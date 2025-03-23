@@ -2,6 +2,15 @@
 name = "openrouter-rs"
 version = "0.1.0"
 edition = "2024"
+authors = ["luckywood <morrisliu1994@outlook.com>"]
+description = "A type-safe OpenRouter Rust SDK"
+license = "MIT"
+repository = "https://github.com/realmorrisliu/openrouter-rs"
+homepage = "https://github.com/realmorrisliu/openrouter-rs"
+documentation = "https://docs.rs/openrouter-rs"
+readme = "README.md"
+keywords = ["openrouter", "ai", "sdk"]
+categories = ["api-bindings", "web-programming::http-client"]
 
 [dependencies]
 reqwest = { version = "0.12", features = ["json"] }
