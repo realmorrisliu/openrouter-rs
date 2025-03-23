@@ -1,0 +1,15 @@
+use openrouter_rs::OpenRouterClient;
+use openrouter_rs::api::credits::CoinbaseChargeRequest;
+use std::env;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let api_key = env::var("OPENROUTER_API_KEY").expect("OPENROUTER_API_KEY not set");
+    let client = OpenRouterClient::new(api_key);
+
+    let coinbase_request = CoinbaseChargeRequest::new(1.1, "your_ethereum_address", 1);
+    let coinbase_response = client.create_coinbase_charge(&coinbase_request).await?;
+    println!("{:?}", coinbase_response);
+
+    Ok(())
+}
