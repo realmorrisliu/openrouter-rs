@@ -1,4 +1,5 @@
 use dotenvy_macro::dotenv;
+use futures_util::StreamExt;
 use openrouter_rs::{
     OpenRouterClient,
     api::chat::{ChatCompletionRequest, Message},
@@ -14,11 +15,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "deepseek/deepseek-chat:free",
         vec![Message::new(Role::User, "What is the meaning of life?")],
     )
-    .max_tokens(100)
     .temperature(0.7);
 
-    let chat_response = client.send_chat_completion(&chat_request).await?;
-    println!("{:?}", chat_response);
+    let mut response = client.stream_chat_completion(&chat_request).await?;
+
+    while let Some(event) = response.next().await {
+        match event {
+            Ok(event) => println!("{:?}", event),
+            Err(err) => eprintln!("Error: {}", err),
+        }
+    }
 
     Ok(())
 }

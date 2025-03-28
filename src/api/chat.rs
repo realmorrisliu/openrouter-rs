@@ -1,14 +1,17 @@
+use std::collections::HashMap;
+
+use futures_util::{AsyncBufReadExt, StreamExt, stream::BoxStream};
+use serde::{Deserialize, Serialize};
+use surf::http::headers::AUTHORIZATION;
+
 use crate::{
     error::OpenRouterError,
     setter,
     types::{ProviderPreferences, ReasoningConfig, Role},
     utils::handle_error,
 };
-use reqwest::Client;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Message {
     role: Role,
     content: String,
@@ -23,7 +26,7 @@ impl Message {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ChatCompletionRequest {
     model: String,
     messages: Vec<Message>,
@@ -73,7 +76,12 @@ impl ChatCompletionRequest {
         }
     }
 
-    setter!(stream, bool);
+    fn stream(&self, stream: bool) -> Self {
+        let mut req = self.clone();
+        req.stream = Some(stream);
+        req
+    }
+
     setter!(max_tokens, u32);
     setter!(temperature, f64);
     setter!(seed, u32);
@@ -108,7 +116,7 @@ pub struct Choice {
 ///
 /// # Arguments
 ///
-/// * `client` - The HTTP client to use for the request.
+/// * `base_url` - The base URL for the OpenRouter API.
 /// * `api_key` - The API key for authentication.
 /// * `request` - The chat completion request containing the model and messages.
 ///
@@ -116,22 +124,85 @@ pub struct Choice {
 ///
 /// * `Result<ChatCompletionResponse, OpenRouterError>` - The response from the chat completion request.
 pub async fn send_chat_completion(
-    client: &Client,
+    base_url: &str,
     api_key: &str,
     request: &ChatCompletionRequest,
 ) -> Result<ChatCompletionResponse, OpenRouterError> {
-    let url = "https://openrouter.ai/api/v1/chat/completions";
+    let url = format!("{}/chat/completions", base_url);
 
-    let response = client
-        .post(url)
-        .bearer_auth(api_key)
-        .json(request)
-        .send()
+    // Ensure that the request is not streaming to get a single response
+    let request = request.stream(false);
+
+    let mut response = surf::post(url)
+        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .body_json(&request)?
         .await?;
 
     if response.status().is_success() {
-        let chat_response = response.json::<ChatCompletionResponse>().await?;
+        let chat_response = response.body_json().await?;
         Ok(chat_response)
+    } else {
+        handle_error(response).await?;
+        unreachable!()
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ChatCompletionStreamEvent {
+    id: Option<String>,
+    provider: Option<String>,
+    model: Option<String>,
+    object: Option<String>,
+    created: Option<u64>,
+    choices: Option<Vec<DeltaChoice>>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DeltaChoice {
+    delta: Option<Message>,
+}
+
+/// Stream chat completion events from a selected model.
+///
+/// # Arguments
+///
+/// * `base_url` - The base URL for the OpenRouter API.
+/// * `api_key` - The API key for authentication.
+/// * `request` - The chat completion request containing the model and messages.
+///
+/// # Returns
+///
+/// * `Result<BoxStream<'static, Result<ChatCompletionStreamEvent, OpenRouterError>>, OpenRouterError>` - A stream of chat completion events or an error.
+pub async fn stream_chat_completion(
+    base_url: &str,
+    api_key: &str,
+    request: &ChatCompletionRequest,
+) -> Result<BoxStream<'static, Result<ChatCompletionStreamEvent, OpenRouterError>>, OpenRouterError>
+{
+    let url = format!("{}/chat/completions", base_url);
+
+    // Ensure that the request is streaming to get a continuous response
+    let request = request.stream(true);
+
+    let response = surf::post(url)
+        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .body_json(&request)?
+        .await?;
+
+    if response.status().is_success() {
+        let lines = response
+            .lines()
+            .filter_map(async |line| match line {
+                Ok(line) => line
+                    .strip_prefix("data: ")
+                    .filter(|line| *line != "[DONE]")
+                    .map(|line| serde_json::from_str::<ChatCompletionStreamEvent>(line))
+                    .map(|event| event.map_err(|err| OpenRouterError::Serialization(err))),
+                Err(error) => Some(Err(OpenRouterError::Io(error))),
+            })
+            .boxed();
+
+        Ok(lines)
     } else {
         handle_error(response).await?;
         unreachable!()

@@ -1,18 +1,29 @@
-use crate::api::{api_keys, auth, chat, completion, credits, generation, models};
-use crate::error::OpenRouterError;
-use reqwest::Client;
+use futures_util::stream::BoxStream;
+
+use crate::{
+    api::{
+        api_keys, auth,
+        chat::{self, ChatCompletionStreamEvent},
+        completion, credits, generation, models,
+    },
+    error::OpenRouterError,
+};
 
 pub struct OpenRouterClient {
-    client: Client,
+    base_url: String,
     api_key: String,
 }
 
 impl OpenRouterClient {
-    pub fn new(api_key: String) -> Self {
+    pub fn new(api_key: &str) -> Self {
         Self {
-            client: Client::new(),
-            api_key,
+            base_url: "https://api.openai.com/v1".to_string(),
+            api_key: api_key.to_string(),
         }
+    }
+
+    pub fn base_url(&mut self, base_url: &str) {
+        self.base_url = base_url.to_string();
     }
 
     /// Creates a new API key. Requires a Provisioning API key.
@@ -38,7 +49,7 @@ impl OpenRouterClient {
         name: &str,
         limit: Option<f64>,
     ) -> Result<api_keys::ApiKey, OpenRouterError> {
-        api_keys::create_api_key(&self.client, &self.api_key, name, limit).await
+        api_keys::create_api_key(&self.base_url, &self.api_key, name, limit).await
     }
 
     /// Get information on the API key associated with the current authentication session.
@@ -57,7 +68,7 @@ impl OpenRouterClient {
     pub async fn get_current_api_key_info(
         &self,
     ) -> Result<api_keys::ApiKeyDetails, OpenRouterError> {
-        api_keys::get_current_api_key(&self.client, &self.api_key).await
+        api_keys::get_current_api_key(&self.base_url, &self.api_key).await
     }
 
     /// Deletes an API key. Requires a Provisioning API key.
@@ -78,7 +89,7 @@ impl OpenRouterClient {
     /// println!("Deletion successful: {}", success);
     /// ```
     pub async fn delete_api_key(&self, hash: &str) -> Result<bool, OpenRouterError> {
-        api_keys::delete_api_key(&self.client, &self.api_key, hash).await
+        api_keys::delete_api_key(&self.base_url, &self.api_key, hash).await
     }
 
     /// Updates an existing API key. Requires a Provisioning API key.
@@ -108,7 +119,7 @@ impl OpenRouterClient {
         disabled: Option<bool>,
         limit: Option<f64>,
     ) -> Result<api_keys::ApiKey, OpenRouterError> {
-        api_keys::update_api_key(&self.client, &self.api_key, hash, name, disabled, limit).await
+        api_keys::update_api_key(&self.base_url, &self.api_key, hash, name, disabled, limit).await
     }
 
     /// Returns a list of all API keys associated with the account. Requires a Provisioning API key.
@@ -134,7 +145,7 @@ impl OpenRouterClient {
         offset: Option<f64>,
         include_disabled: Option<bool>,
     ) -> Result<Vec<api_keys::ApiKey>, OpenRouterError> {
-        api_keys::list_api_keys(&self.client, &self.api_key, offset, include_disabled).await
+        api_keys::list_api_keys(&self.base_url, &self.api_key, offset, include_disabled).await
     }
 
     /// Returns details about a specific API key. Requires a Provisioning API key.
@@ -155,7 +166,7 @@ impl OpenRouterClient {
     /// println!("{:?}", api_key);
     /// ```
     pub async fn get_api_key(&self, hash: &str) -> Result<api_keys::ApiKey, OpenRouterError> {
-        api_keys::get_api_key(&self.client, &self.api_key, hash).await
+        api_keys::get_api_key(&self.base_url, &self.api_key, hash).await
     }
 
     /// Exchange an authorization code from the PKCE flow for a user-controlled API key.
@@ -183,7 +194,7 @@ impl OpenRouterClient {
         code_verifier: Option<&str>,
         code_challenge_method: Option<auth::CodeChallengeMethod>,
     ) -> Result<auth::AuthResponse, OpenRouterError> {
-        auth::exchange_code_for_api_key(&self.client, code, code_verifier, code_challenge_method)
+        auth::exchange_code_for_api_key(&self.base_url, code, code_verifier, code_challenge_method)
             .await
     }
 
@@ -212,7 +223,43 @@ impl OpenRouterClient {
         &self,
         request: &chat::ChatCompletionRequest,
     ) -> Result<chat::ChatCompletionResponse, OpenRouterError> {
-        chat::send_chat_completion(&self.client, &self.api_key, request).await
+        chat::send_chat_completion(&self.base_url, &self.api_key, request).await
+    }
+
+    /// Streams chat completion events from a selected model.
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - The chat completion request containing the model and messages.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<BoxStream<'static, Result<ChatCompletionStreamEvent, OpenRouterError>>, OpenRouterError>` - A stream of chat completion events or an error.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let client = OpenRouterClient::new("your_api_key".to_string());
+    /// let messages = vec![chat::Message::new(chat::Role::User, "Tell me a joke.")];
+    /// let request = chat::ChatCompletionRequest::new("deepseek/deepseek-chat:free", messages)
+    ///     .max_tokens(50)
+    ///     .temperature(0.5);
+    /// let mut stream = client.stream_chat_completion(&request).await?;
+    /// while let Some(event) = stream.next().await {
+    ///     match event {
+    ///         Ok(event) => println!("{:?}", event),
+    ///         Err(e) => eprintln!("Error: {:?}", e),
+    ///     }
+    /// }
+    /// ```
+    pub async fn stream_chat_completion(
+        &self,
+        request: &chat::ChatCompletionRequest,
+    ) -> Result<
+        BoxStream<'static, Result<ChatCompletionStreamEvent, OpenRouterError>>,
+        OpenRouterError,
+    > {
+        chat::stream_chat_completion(&self.base_url, &self.api_key, request).await
     }
 
     /// Send a completion request to a selected model (text-only format).
@@ -240,7 +287,7 @@ impl OpenRouterClient {
         &self,
         request: &completion::CompletionRequest,
     ) -> Result<completion::CompletionResponse, OpenRouterError> {
-        completion::send_completion_request(&self.client, &self.api_key, request).await
+        completion::send_completion_request(&self.base_url, &self.api_key, request).await
     }
 
     /// Creates and hydrates a Coinbase Commerce charge for cryptocurrency payments.
@@ -265,7 +312,7 @@ impl OpenRouterClient {
         &self,
         request: &credits::CoinbaseChargeRequest,
     ) -> Result<credits::CoinbaseChargeResponse, OpenRouterError> {
-        credits::create_coinbase_charge(&self.client, &self.api_key, request).await
+        credits::create_coinbase_charge(&self.base_url, &self.api_key, request).await
     }
 
     /// Returns the total credits purchased and used for the authenticated user.
@@ -282,7 +329,7 @@ impl OpenRouterClient {
     /// println!("{:?}", credits_data);
     /// ```
     pub async fn get_credits(&self) -> Result<credits::CreditsData, OpenRouterError> {
-        credits::get_credits(&self.client, &self.api_key).await
+        credits::get_credits(&self.base_url, &self.api_key).await
     }
 
     /// Returns metadata about a specific generation request.
@@ -307,7 +354,7 @@ impl OpenRouterClient {
         &self,
         request: &generation::GenerationRequest,
     ) -> Result<generation::GenerationData, OpenRouterError> {
-        generation::get_generation(&self.client, &self.api_key, request).await
+        generation::get_generation(&self.base_url, &self.api_key, request).await
     }
 
     /// Returns a list of models available through the API.
@@ -324,7 +371,7 @@ impl OpenRouterClient {
     /// println!("{:?}", models);
     /// ```
     pub async fn list_models(&self) -> Result<Vec<models::Model>, OpenRouterError> {
-        models::list_models(&self.client, &self.api_key).await
+        models::list_models(&self.base_url, &self.api_key).await
     }
 
     /// Returns details about the endpoints for a specific model.
@@ -350,6 +397,6 @@ impl OpenRouterClient {
         author: &str,
         slug: &str,
     ) -> Result<models::EndpointData, OpenRouterError> {
-        models::list_model_endpoints(&self.client, &self.api_key, author, slug).await
+        models::list_model_endpoints(&self.base_url, &self.api_key, author, slug).await
     }
 }

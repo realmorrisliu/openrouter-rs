@@ -1,6 +1,7 @@
-use crate::{error::OpenRouterError, utils::handle_error};
-use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use surf::http::headers::AUTHORIZATION;
+
+use crate::{error::OpenRouterError, types::ApiResponse, utils::handle_error};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CoinbaseChargeRequest {
@@ -49,11 +50,6 @@ pub struct CoinbaseChargeData {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct CreditsResponse {
-    data: CreditsData,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
 pub struct CreditsData {
     total_credits: f64,
     total_usage: f64,
@@ -63,7 +59,7 @@ pub struct CreditsData {
 ///
 /// # Arguments
 ///
-/// * `client` - The HTTP client to use for the request.
+/// * `base_url` - The base URL of the OpenRouter API.
 /// * `api_key` - The API key for authentication.
 /// * `request` - The request data for creating a Coinbase charge.
 ///
@@ -71,21 +67,19 @@ pub struct CreditsData {
 ///
 /// * `Result<CoinbaseChargeResponse, OpenRouterError>` - The response data containing the charge details.
 pub async fn create_coinbase_charge(
-    client: &Client,
+    base_url: &str,
     api_key: &str,
     request: &CoinbaseChargeRequest,
 ) -> Result<CoinbaseChargeResponse, OpenRouterError> {
-    let url = "https://openrouter.ai/api/v1/credits/coinbase";
+    let url = format!("{}/credits/coinbase", base_url);
 
-    let response = client
-        .post(url)
-        .bearer_auth(api_key)
-        .json(request)
-        .send()
+    let mut response = surf::post(url)
+        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .body_json(request)?
         .await?;
 
     if response.status().is_success() {
-        let charge_response = response.json::<CoinbaseChargeResponse>().await?;
+        let charge_response = response.body_json().await?;
         Ok(charge_response)
     } else {
         handle_error(response).await?;
@@ -97,19 +91,21 @@ pub async fn create_coinbase_charge(
 ///
 /// # Arguments
 ///
-/// * `client` - The HTTP client to use for the request.
+/// * `base_url` - The base URL of the OpenRouter API.
 /// * `api_key` - The API key for authentication.
 ///
 /// # Returns
 ///
 /// * `Result<CreditsData, OpenRouterError>` - The response data containing the total credits and usage.
-pub async fn get_credits(client: &Client, api_key: &str) -> Result<CreditsData, OpenRouterError> {
-    let url = "https://openrouter.ai/api/v1/credits";
+pub async fn get_credits(base_url: &str, api_key: &str) -> Result<CreditsData, OpenRouterError> {
+    let url = format!("{}/credits", base_url);
 
-    let response = client.get(url).bearer_auth(api_key).send().await?;
+    let mut response = surf::get(url)
+        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .await?;
 
     if response.status().is_success() {
-        let credits_response = response.json::<CreditsResponse>().await?;
+        let credits_response: ApiResponse<_> = response.body_json().await?;
         Ok(credits_response.data)
     } else {
         handle_error(response).await?;

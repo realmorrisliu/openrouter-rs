@@ -1,6 +1,6 @@
 [package]
 name = "openrouter-rs"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 authors = ["luckywood <morrisliu1994@outlook.com>"]
 description = "A type-safe OpenRouter Rust SDK"
@@ -13,8 +13,12 @@ keywords = ["openrouter", "ai", "sdk"]
 categories = ["api-bindings", "web-programming::http-client"]
 
 [dependencies]
-reqwest = { version = "0.12", features = ["json"] }
+anyhow = "1.0.86"
+dotenvy_macro = "0.15.7"
+dirs = "6.0.0"
+futures-util = "0.3.31"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+surf = "2.3.2"
 tokio = { version = "1", features = ["full"] }
 thiserror = "1.0"

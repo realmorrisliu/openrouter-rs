@@ -1,12 +1,14 @@
+use std::collections::HashMap;
+
+use serde::{Deserialize, Serialize};
+use surf::http::headers::AUTHORIZATION;
+
 use crate::{
     error::OpenRouterError,
     setter,
     types::{ProviderPreferences, ReasoningConfig},
     utils::handle_error,
 };
-use reqwest::Client;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CompletionRequest {
@@ -95,7 +97,7 @@ pub struct Choice {
 ///
 /// # Arguments
 ///
-/// * `client` - The HTTP client to use for the request.
+/// * `base_url` - The API URL for the request.
 /// * `api_key` - The API key for authentication.
 /// * `request` - The completion request containing the model, prompt, and other optional parameters.
 ///
@@ -103,21 +105,19 @@ pub struct Choice {
 ///
 /// * `Result<CompletionResponse, OpenRouterError>` - The response from the completion request, containing the generated text and other details.
 pub async fn send_completion_request(
-    client: &Client,
+    base_url: &str,
     api_key: &str,
     request: &CompletionRequest,
 ) -> Result<CompletionResponse, OpenRouterError> {
-    let url = "https://openrouter.ai/api/v1/completions";
+    let url = format!("{}/completions", base_url);
 
-    let response = client
-        .post(url)
-        .bearer_auth(api_key)
-        .json(request)
-        .send()
+    let mut response = surf::post(url)
+        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .body_json(request)?
         .await?;
 
     if response.status().is_success() {
-        let completion_response = response.json::<CompletionResponse>().await?;
+        let completion_response = response.body_json().await?;
         Ok(completion_response)
     } else {
         handle_error(response).await?;

@@ -1,6 +1,7 @@
-use crate::{error::OpenRouterError, types::ApiResponse, utils::handle_error};
-use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use surf::http::headers::AUTHORIZATION;
+
+use crate::{error::OpenRouterError, types::ApiResponse, utils::handle_error};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GenerationRequest {
@@ -52,7 +53,7 @@ pub struct GenerationData {
 ///
 /// # Arguments
 ///
-/// * `client` - The HTTP client to use for the request
+/// * `base_url` - The base URL of the OpenRouter API.
 /// * `api_key` - The API key for authentication
 /// * `request` - The GenerationRequest containing the ID of the generation request
 ///
@@ -60,21 +61,19 @@ pub struct GenerationData {
 ///
 /// * `Result<GenerationData, OpenRouterError>` - The metadata of the generation request or an error
 pub async fn get_generation(
-    client: &Client,
+    base_url: &str,
     api_key: &str,
     request: &GenerationRequest,
 ) -> Result<GenerationData, OpenRouterError> {
-    let url = "https://openrouter.ai/api/v1/generation";
+    let url = format!("{}/generation", base_url);
 
-    let response = client
-        .get(url)
-        .bearer_auth(api_key)
-        .query(&[("id", &request.id)])
-        .send()
+    let mut response = surf::get(url)
+        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .query(&[("id", &request.id)])?
         .await?;
 
     if response.status().is_success() {
-        let generation_response = response.json::<ApiResponse<GenerationData>>().await?;
+        let generation_response: ApiResponse<_> = response.body_json().await?;
         Ok(generation_response.data)
     } else {
         handle_error(response).await?;

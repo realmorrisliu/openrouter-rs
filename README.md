@@ -10,8 +10,11 @@ This SDK is currently being used in my own project and has not been fully tested
 
 - Create API keys
 - Retrieve current API key information
-- Delete exposed API keys
+- Delete API keys
+- Update API keys
+- List all API keys
 - Send chat completion requests
+- Stream chat completion events
 - Send text completion requests
 - Create Coinbase charge requests
 - Retrieve total credits
@@ -21,7 +24,7 @@ This SDK is currently being used in my own project and has not been fully tested
 
 ## Planned Features
 
-- Streaming support for chat and text completion requests
+- More comprehensive error handling and logging
 
 ## Installation
 
@@ -40,7 +43,7 @@ Here is a simple example demonstrating how to use the `openrouter-rs` library:
 use openrouter_rs::{
     OpenRouterClient,
     api::{
-        chat::{ChatCompletionRequest, Message},
+        chat::{ChatCompletionRequest, Message, Role},
         completion::CompletionRequest,
         credits::CoinbaseChargeRequest,
         generation::GenerationRequest,
@@ -49,7 +52,7 @@ use openrouter_rs::{
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = OpenRouterClient::new("your_api_key".to_string());
+    let client = OpenRouterClient::new("your_api_key");
 
     // Create API key
     let api_key = client.create_api_key("My API Key", Some(100.0)).await?;
@@ -59,21 +62,35 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let api_key_info = client.get_current_api_key_info().await?;
     println!("{:?}", api_key_info);
 
-    // Delete exposed API key
-    client
-        .delete_exposed_api_key("your_exposed_key_hash")
-        .await?;
+    // Delete API key
+    let success = client.delete_api_key("api_key_hash").await?;
+    println!("Deletion successful: {}", success);
+
+    // Update API key
+    let updated_api_key = client.update_api_key("api_key_hash", Some("Updated Name".to_string()), Some(false), Some(200.0)).await?;
+    println!("{:?}", updated_api_key);
+
+    // List all API keys
+    let api_keys = client.list_api_keys(Some(0.0), Some(true)).await?;
+    println!("{:?}", api_keys);
 
     // Send chat completion request
-    let chat_request = ChatCompletionRequest::new(
-        "deepseek/deepseek-chat:free",
-        vec![Message::new("user", "What is the meaning of life?")],
-    )
-    .max_tokens(100)
-    .temperature(0.7);
+    let messages = vec![Message::new(Role::User, "What is the meaning of life?")];
+    let chat_request = ChatCompletionRequest::new("deepseek/deepseek-chat:free", messages)
+        .max_tokens(100)
+        .temperature(0.7);
 
     let chat_response = client.send_chat_completion(&chat_request).await?;
     println!("{:?}", chat_response);
+
+    // Stream chat completion events
+    let mut stream = client.stream_chat_completion(&chat_request).await?;
+    while let Some(event) = stream.next().await {
+        match event {
+            Ok(event) => println!("{:?}", event),
+            Err(e) => eprintln!("Error: {:?}", e),
+        }
+    }
 
     // Send text completion request
     let completion_request = CompletionRequest::new("deepseek/deepseek-chat:free", "Once upon a time")

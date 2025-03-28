@@ -1,5 +1,5 @@
 use crate::{api::errors::ApiErrorResponse, error::OpenRouterError};
-use reqwest::Response;
+use surf::Response;
 
 #[macro_export]
 macro_rules! setter {
@@ -11,10 +11,10 @@ macro_rules! setter {
     };
 }
 
-pub async fn handle_error(response: Response) -> Result<(), OpenRouterError> {
+pub async fn handle_error(mut response: Response) -> Result<(), OpenRouterError> {
     let status = response.status();
     let text = response
-        .text()
+        .body_string()
         .await
         .unwrap_or_else(|_| "Failed to read response text".to_string());
     let api_error_response: Result<ApiErrorResponse, _> = serde_json::from_str(&text);
@@ -23,7 +23,7 @@ pub async fn handle_error(response: Response) -> Result<(), OpenRouterError> {
         Err(OpenRouterError::from(api_error_response))
     } else {
         Err(OpenRouterError::ApiError {
-            code: status.as_u16(),
+            code: status,
             message: text,
         })
     }

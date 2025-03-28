@@ -1,18 +1,36 @@
-use crate::{error::OpenRouterError, types::ApiResponse, utils::handle_error};
-use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use surf::http::headers::AUTHORIZATION;
+
+use crate::{error::OpenRouterError, types::ApiResponse, utils::handle_error};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Model {
     id: String,
     name: String,
-    created: u64,
+    created: f64,
     description: String,
-    context_length: u32,
+    context_length: f64,
     architecture: Architecture,
     top_provider: TopProvider,
     pricing: Pricing,
     per_request_limits: Option<std::collections::HashMap<String, String>>,
+}
+
+impl Model {
+    pub fn id(&self) -> &str {
+        self.id.as_str()
+    }
+    pub fn display_name(&self) -> &str {
+        self.name.as_str()
+    }
+    pub fn max_token_count(&self) -> u32 {
+        self.context_length as u32
+    }
+    pub fn max_output_tokens(&self) -> Option<u32> {
+        self.top_provider
+            .max_completion_tokens
+            .map(|max_completion_tokens| max_completion_tokens as u32)
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -24,8 +42,8 @@ pub struct Architecture {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TopProvider {
-    context_length: f64,
-    max_completion_tokens: f64,
+    context_length: Option<f64>,
+    max_completion_tokens: Option<f64>,
     is_moderated: bool,
 }
 
@@ -83,19 +101,21 @@ pub struct EndpointArchitecture {
 ///
 /// # Arguments
 ///
-/// * `client` - The HTTP client to use for the request.
+/// * `base_url` - The base URL of the OpenRouter API.
 /// * `api_key` - The API key for authentication.
 ///
 /// # Returns
 ///
 /// * `Result<Vec<Model>, OpenRouterError>` - A list of models or an error.
-pub async fn list_models(client: &Client, api_key: &str) -> Result<Vec<Model>, OpenRouterError> {
-    let url = "https://openrouter.ai/api/v1/models";
+pub async fn list_models(base_url: &str, api_key: &str) -> Result<Vec<Model>, OpenRouterError> {
+    let url = format!("{}/models", base_url);
 
-    let response = client.get(url).bearer_auth(api_key).send().await?;
+    let mut response = surf::get(url)
+        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .await?;
 
     if response.status().is_success() {
-        let model_list_response = response.json::<ApiResponse<Vec<Model>>>().await?;
+        let model_list_response: ApiResponse<_> = response.body_json().await?;
         Ok(model_list_response.data)
     } else {
         handle_error(response).await?;
@@ -107,7 +127,7 @@ pub async fn list_models(client: &Client, api_key: &str) -> Result<Vec<Model>, O
 ///
 /// # Arguments
 ///
-/// * `client` - The HTTP client to use for the request.
+/// * `base_url` - The base URL of the OpenRouter API.
 /// * `api_key` - The API key for authentication.
 /// * `author` - The author of the model.
 /// * `slug` - The slug identifier for the model.
@@ -116,17 +136,19 @@ pub async fn list_models(client: &Client, api_key: &str) -> Result<Vec<Model>, O
 ///
 /// * `Result<EndpointData, OpenRouterError>` - The endpoint data or an error.
 pub async fn list_model_endpoints(
-    client: &Client,
+    base_url: &str,
     api_key: &str,
     author: &str,
     slug: &str,
 ) -> Result<EndpointData, OpenRouterError> {
-    let url = format!("https://openrouter.ai/api/v1/models/{}/{}", author, slug);
+    let url = format!("{}/models/{}/{}", base_url, author, slug);
 
-    let response = client.get(&url).bearer_auth(api_key).send().await?;
+    let mut response = surf::get(&url)
+        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .await?;
 
     if response.status().is_success() {
-        let endpoint_list_response = response.json::<ApiResponse<EndpointData>>().await?;
+        let endpoint_list_response: ApiResponse<_> = response.body_json().await?;
         Ok(endpoint_list_response.data)
     } else {
         handle_error(response).await?;

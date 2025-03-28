@@ -1,6 +1,6 @@
-use crate::{error::OpenRouterError, utils::handle_error};
-use reqwest::Client;
 use serde::{Deserialize, Serialize};
+
+use crate::{error::OpenRouterError, utils::handle_error};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct AuthRequest {
@@ -27,7 +27,7 @@ pub struct AuthResponse {
 ///
 /// # Arguments
 ///
-/// * `client` - The HTTP client to use for the request.
+/// * `base_url` - The base URL of the OpenRouter API.
 /// * `code` - The authorization code received from the OAuth redirect.
 /// * `code_verifier` - The code verifier if code_challenge was used in the authorization request.
 /// * `code_challenge_method` - The method used to generate the code challenge.
@@ -36,22 +36,22 @@ pub struct AuthResponse {
 ///
 /// * `Result<AuthResponse, OpenRouterError>` - The API key and user ID associated with the API key.
 pub async fn exchange_code_for_api_key(
-    client: &Client,
+    base_url: &str,
     code: &str,
     code_verifier: Option<&str>,
     code_challenge_method: Option<CodeChallengeMethod>,
 ) -> Result<AuthResponse, OpenRouterError> {
-    let url = "https://openrouter.ai/api/v1/auth/keys";
+    let url = format!("{}/auth/keys", base_url);
     let request = AuthRequest {
         code: code.to_string(),
         code_verifier: code_verifier.map(|s| s.to_string()),
         code_challenge_method,
     };
 
-    let response = client.post(url).json(&request).send().await?;
+    let mut response = surf::post(url).body_json(&request)?.await?;
 
     if response.status().is_success() {
-        let auth_response = response.json::<AuthResponse>().await?;
+        let auth_response = response.body_json().await?;
         Ok(auth_response)
     } else {
         handle_error(response).await?;
