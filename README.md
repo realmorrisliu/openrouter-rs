@@ -32,7 +32,7 @@ To add `openrouter-rs` to your project, include it in your `Cargo.toml` file:
 
 ```toml
 [dependencies]
-openrouter-rs = "0.1.0"
+openrouter-rs = "0.2.0"
 ```
 
 ## Usage Example
