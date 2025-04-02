@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use surf::StatusCode;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ApiErrorResponse {
@@ -7,7 +8,7 @@ pub struct ApiErrorResponse {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ApiError {
-    code: u16,
+    code: StatusCode,
     message: String,
     metadata: Option<ApiErrorMetadata>,
 }

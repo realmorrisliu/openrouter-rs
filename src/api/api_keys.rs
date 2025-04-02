@@ -1,35 +1,37 @@
-use crate::{error::OpenRouterError, types::ApiResponse, utils::handle_error};
-use reqwest::Client;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+use serde::{Deserialize, Serialize};
+use surf::http::headers::AUTHORIZATION;
+
+use crate::{error::OpenRouterError, types::ApiResponse, utils::handle_error};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ApiKey {
-    name: Option<String>,
-    label: Option<String>,
-    limit: Option<f64>,
-    disabled: Option<bool>,
-    created_at: Option<String>,
-    updated_at: Option<String>,
-    hash: Option<String>,
-    key: Option<String>,
+    pub name: Option<String>,
+    pub label: Option<String>,
+    pub limit: Option<f64>,
+    pub disabled: Option<bool>,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
+    pub hash: Option<String>,
+    pub key: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ApiKeyDetails {
-    label: String,
-    usage: f64,
-    is_free_tier: bool,
-    is_provisioning_key: bool,
-    rate_limit: RateLimit,
-    limit: Option<f64>,
-    limit_remaining: Option<f64>,
+    pub label: String,
+    pub usage: f64,
+    pub is_free_tier: bool,
+    pub is_provisioning_key: bool,
+    pub rate_limit: RateLimit,
+    pub limit: Option<f64>,
+    pub limit_remaining: Option<f64>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct RateLimit {
-    requests: f64,
-    interval: String,
+    pub requests: f64,
+    pub interval: String,
 }
 
 #[derive(Serialize)]
@@ -49,22 +51,25 @@ struct UpdateApiKeyRequest {
 ///
 /// # Arguments
 ///
-/// * `client` - The HTTP client to use for the request.
+/// * `base_url` - The base URL of the OpenRouter API.
 /// * `api_key` - The API key for authentication.
 ///
 /// # Returns
 ///
 /// * `Result<ApiKeyDetails, OpenRouterError>` - The details of the current API key.
 pub async fn get_current_api_key(
-    client: &Client,
+    base_url: &str,
     api_key: &str,
 ) -> Result<ApiKeyDetails, OpenRouterError> {
-    let url = "https://openrouter.ai/api/v1/key";
+    let url = format!("{}/key", base_url);
 
-    let response = client.get(url).bearer_auth(api_key).send().await?;
+    let mut response = surf::get(url)
+        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .send()
+        .await?;
 
     if response.status().is_success() {
-        let api_response = response.json::<ApiResponse<ApiKeyDetails>>().await?;
+        let api_response: ApiResponse<_> = response.body_json().await?;
         Ok(api_response.data)
     } else {
         handle_error(response).await?;
@@ -76,7 +81,7 @@ pub async fn get_current_api_key(
 ///
 /// # Arguments
 ///
-/// * `client` - The HTTP client to use for the request.
+/// * `base_url` - The base URL of the OpenRouter API.
 /// * `api_key` - The API key for authentication.
 /// * `offset` - Optional offset for the API keys.
 /// * `include_disabled` - Optional flag to include disabled API keys.
@@ -85,12 +90,12 @@ pub async fn get_current_api_key(
 ///
 /// * `Result<Vec<ApiKey>, OpenRouterError>` - A list of API keys.
 pub async fn list_api_keys(
-    client: &Client,
+    base_url: &str,
     api_key: &str,
     offset: Option<f64>,
     include_disabled: Option<bool>,
 ) -> Result<Vec<ApiKey>, OpenRouterError> {
-    let url = "https://openrouter.ai/api/v1/keys";
+    let url = format!("{}/keys", base_url);
     let mut query_params = HashMap::new();
     if let Some(offset) = offset {
         query_params.insert("offset", offset.to_string());
@@ -99,15 +104,13 @@ pub async fn list_api_keys(
         query_params.insert("include_disabled", include_disabled.to_string());
     }
 
-    let response = client
-        .get(url)
-        .bearer_auth(api_key)
-        .query(&query_params)
-        .send()
+    let mut response = surf::get(url)
+        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .query(&query_params)?
         .await?;
 
     if response.status().is_success() {
-        let api_response = response.json::<ApiResponse<Vec<ApiKey>>>().await?;
+        let api_response: ApiResponse<_> = response.body_json().await?;
         Ok(api_response.data)
     } else {
         handle_error(response).await?;
@@ -119,7 +122,7 @@ pub async fn list_api_keys(
 ///
 /// # Arguments
 ///
-/// * `client` - The HTTP client to use for the request.
+/// * `base_url` - The base URL of the OpenRouter API.
 /// * `api_key` - The API key for authentication.
 /// * `name` - The display name for the new API key.
 /// * `limit` - Optional credit limit for the new API key.
@@ -128,26 +131,24 @@ pub async fn list_api_keys(
 ///
 /// * `Result<ApiKey, OpenRouterError>` - The created API key.
 pub async fn create_api_key(
-    client: &Client,
+    base_url: &str,
     api_key: &str,
     name: &str,
     limit: Option<f64>,
 ) -> Result<ApiKey, OpenRouterError> {
-    let url = "https://openrouter.ai/api/v1/keys";
+    let url = format!("{}/keys", base_url);
     let request = CreateApiKeyRequest {
         name: name.to_string(),
         limit,
     };
 
-    let response = client
-        .post(url)
-        .bearer_auth(api_key)
-        .json(&request)
-        .send()
+    let mut response = surf::post(url)
+        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .body_json(&request)?
         .await?;
 
     if response.status().is_success() {
-        let api_response = response.json::<ApiResponse<ApiKey>>().await?;
+        let api_response: ApiResponse<_> = response.body_json().await?;
         Ok(api_response.data)
     } else {
         handle_error(response).await?;
@@ -159,7 +160,7 @@ pub async fn create_api_key(
 ///
 /// # Arguments
 ///
-/// * `client` - The HTTP client to use for the request.
+/// * `base_url` - The base URL of the OpenRouter API.
 /// * `api_key` - The API key for authentication.
 /// * `hash` - The hash of the API key to retrieve.
 ///
@@ -167,16 +168,18 @@ pub async fn create_api_key(
 ///
 /// * `Result<ApiKey, OpenRouterError>` - The details of the specified API key.
 pub async fn get_api_key(
-    client: &Client,
+    base_url: &str,
     api_key: &str,
     hash: &str,
 ) -> Result<ApiKey, OpenRouterError> {
-    let url = format!("https://openrouter.ai/api/v1/keys/{}", hash);
+    let url = format!("{}/keys/{}", base_url, hash);
 
-    let response = client.get(&url).bearer_auth(api_key).send().await?;
+    let mut response = surf::get(&url)
+        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .await?;
 
     if response.status().is_success() {
-        let api_response = response.json::<ApiResponse<ApiKey>>().await?;
+        let api_response: ApiResponse<_> = response.body_json().await?;
         Ok(api_response.data)
     } else {
         handle_error(response).await?;
@@ -188,7 +191,7 @@ pub async fn get_api_key(
 ///
 /// # Arguments
 ///
-/// * `client` - The HTTP client to use for the request.
+/// * `base_url` - The base URL of the OpenRouter API.
 /// * `api_key` - The API key for authentication.
 /// * `hash` - The hash of the API key to delete.
 ///
@@ -196,13 +199,15 @@ pub async fn get_api_key(
 ///
 /// * `Result<bool, OpenRouterError>` - A boolean indicating whether the deletion was successful.
 pub async fn delete_api_key(
-    client: &Client,
+    base_url: &str,
     api_key: &str,
     hash: &str,
 ) -> Result<bool, OpenRouterError> {
-    let url = format!("https://openrouter.ai/api/v1/keys/{}", hash);
+    let url = format!("{}/api/v1/keys/{}", base_url, hash);
 
-    let response = client.delete(&url).bearer_auth(api_key).send().await?;
+    let response = surf::delete(&url)
+        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .await?;
 
     if response.status().is_success() {
         Ok(true)
@@ -216,7 +221,7 @@ pub async fn delete_api_key(
 ///
 /// # Arguments
 ///
-/// * `client` - The HTTP client to use for the request.
+/// * `base_url` - The base URL of the OpenRouter API.
 /// * `api_key` - The API key for authentication.
 /// * `hash` - The hash of the API key to update.
 /// * `name` - Optional new display name for the API key.
@@ -227,29 +232,27 @@ pub async fn delete_api_key(
 ///
 /// * `Result<ApiKey, OpenRouterError>` - The updated API key.
 pub async fn update_api_key(
-    client: &Client,
+    base_url: &str,
     api_key: &str,
     hash: &str,
     name: Option<String>,
     disabled: Option<bool>,
     limit: Option<f64>,
 ) -> Result<ApiKey, OpenRouterError> {
-    let url = format!("https://openrouter.ai/api/v1/keys/{}", hash);
+    let url = format!("{}/keys/{}", base_url, hash);
     let request = UpdateApiKeyRequest {
         name,
         disabled,
         limit,
     };
 
-    let response = client
-        .patch(&url)
-        .bearer_auth(api_key)
-        .json(&request)
-        .send()
+    let mut response = surf::patch(&url)
+        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .body_json(&request)?
         .await?;
 
     if response.status().is_success() {
-        let api_response = response.json::<ApiResponse<ApiKey>>().await?;
+        let api_response: ApiResponse<_> = response.body_json().await?;
         Ok(api_response.data)
     } else {
         handle_error(response).await?;

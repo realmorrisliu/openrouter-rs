@@ -1,17 +1,20 @@
+use std::collections::HashMap;
+
+use futures_util::{AsyncBufReadExt, StreamExt, stream::BoxStream};
+use serde::{Deserialize, Serialize};
+use surf::http::headers::AUTHORIZATION;
+
 use crate::{
     error::OpenRouterError,
     setter,
     types::{ProviderPreferences, ReasoningConfig, Role},
     utils::handle_error,
 };
-use reqwest::Client;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Message {
-    role: Role,
-    content: String,
+    pub role: Role,
+    pub content: String,
 }
 
 impl Message {
@@ -23,7 +26,7 @@ impl Message {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ChatCompletionRequest {
     model: String,
     messages: Vec<Message>,
@@ -47,32 +50,37 @@ pub struct ChatCompletionRequest {
     reasoning: Option<ReasoningConfig>,
 }
 
-impl ChatCompletionRequest {
-    pub fn new(model: &str, messages: Vec<Message>) -> Self {
-        Self {
-            model: model.to_string(),
-            messages,
-            stream: None,
-            max_tokens: None,
-            temperature: None,
-            seed: None,
-            top_p: None,
-            top_k: None,
-            frequency_penalty: None,
-            presence_penalty: None,
-            repetition_penalty: None,
-            logit_bias: None,
-            top_logprobs: None,
-            min_p: None,
-            top_a: None,
-            transforms: None,
-            models: None,
-            route: None,
-            provider: None,
-            reasoning: None,
-        }
+#[derive(Default)]
+pub struct ChatCompletionRequestBuilder {
+    model: Option<String>,
+    messages: Option<Vec<Message>>,
+    stream: Option<bool>,
+    max_tokens: Option<u32>,
+    temperature: Option<f64>,
+    seed: Option<u32>,
+    top_p: Option<f64>,
+    top_k: Option<u32>,
+    frequency_penalty: Option<f64>,
+    presence_penalty: Option<f64>,
+    repetition_penalty: Option<f64>,
+    logit_bias: Option<HashMap<String, f64>>,
+    top_logprobs: Option<u32>,
+    min_p: Option<f64>,
+    top_a: Option<f64>,
+    transforms: Option<Vec<String>>,
+    models: Option<Vec<String>>,
+    route: Option<String>,
+    provider: Option<ProviderPreferences>,
+    reasoning: Option<ReasoningConfig>,
+}
+
+impl ChatCompletionRequestBuilder {
+    pub fn new() -> Self {
+        Self::default()
     }
 
+    setter!(model, into String);
+    setter!(messages, Vec<Message>);
     setter!(stream, bool);
     setter!(max_tokens, u32);
     setter!(temperature, f64);
@@ -82,33 +90,82 @@ impl ChatCompletionRequest {
     setter!(frequency_penalty, f64);
     setter!(presence_penalty, f64);
     setter!(repetition_penalty, f64);
-    setter!(logit_bias, HashMap<String, f64>);
     setter!(top_logprobs, u32);
     setter!(min_p, f64);
     setter!(top_a, f64);
+    setter!(logit_bias, HashMap<String, f64>);
     setter!(transforms, Vec<String>);
     setter!(models, Vec<String>);
     setter!(route, String);
     setter!(provider, ProviderPreferences);
     setter!(reasoning, ReasoningConfig);
+
+    pub fn build(self) -> Result<ChatCompletionRequest, OpenRouterError> {
+        Ok(ChatCompletionRequest {
+            model: self
+                .model
+                .ok_or(OpenRouterError::Validation("model is required".into()))?,
+            messages: self
+                .messages
+                .ok_or(OpenRouterError::Validation("messages are required".into()))?,
+            stream: self.stream,
+            max_tokens: self.max_tokens,
+            temperature: self.temperature,
+            seed: self.seed,
+            top_p: self.top_p,
+            top_k: self.top_k,
+            frequency_penalty: self.frequency_penalty,
+            presence_penalty: self.presence_penalty,
+            repetition_penalty: self.repetition_penalty,
+            logit_bias: self.logit_bias,
+            top_logprobs: self.top_logprobs,
+            min_p: self.min_p,
+            top_a: self.top_a,
+            transforms: self.transforms,
+            models: self.models,
+            route: self.route,
+            provider: self.provider,
+            reasoning: self.reasoning,
+        })
+    }
+}
+
+impl ChatCompletionRequest {
+    pub fn builder() -> ChatCompletionRequestBuilder {
+        ChatCompletionRequestBuilder::new()
+    }
+
+    pub fn new(model: &str, messages: Vec<Message>) -> Self {
+        Self::builder()
+            .model(model)
+            .messages(messages)
+            .build()
+            .expect("Failed to build ChatCompletionRequest")
+    }
+
+    fn stream(&self, stream: bool) -> Self {
+        let mut req = self.clone();
+        req.stream = Some(stream);
+        req
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ChatCompletionResponse {
-    id: Option<String>,
-    choices: Option<Vec<Choice>>,
+    pub id: Option<String>,
+    pub choices: Option<Vec<Choice>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Choice {
-    message: Option<Message>,
+    pub message: Option<Message>,
 }
 
 /// Send a chat completion request to a selected model.
 ///
 /// # Arguments
 ///
-/// * `client` - The HTTP client to use for the request.
+/// * `base_url` - The base URL for the OpenRouter API.
 /// * `api_key` - The API key for authentication.
 /// * `request` - The chat completion request containing the model and messages.
 ///
@@ -116,22 +173,85 @@ pub struct Choice {
 ///
 /// * `Result<ChatCompletionResponse, OpenRouterError>` - The response from the chat completion request.
 pub async fn send_chat_completion(
-    client: &Client,
+    base_url: &str,
     api_key: &str,
     request: &ChatCompletionRequest,
 ) -> Result<ChatCompletionResponse, OpenRouterError> {
-    let url = "https://openrouter.ai/api/v1/chat/completions";
+    let url = format!("{}/chat/completions", base_url);
 
-    let response = client
-        .post(url)
-        .bearer_auth(api_key)
-        .json(request)
-        .send()
+    // Ensure that the request is not streaming to get a single response
+    let request = request.stream(false);
+
+    let mut response = surf::post(url)
+        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .body_json(&request)?
         .await?;
 
     if response.status().is_success() {
-        let chat_response = response.json::<ChatCompletionResponse>().await?;
+        let chat_response = response.body_json().await?;
         Ok(chat_response)
+    } else {
+        handle_error(response).await?;
+        unreachable!()
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ChatCompletionStreamEvent {
+    id: Option<String>,
+    provider: Option<String>,
+    model: Option<String>,
+    object: Option<String>,
+    created: Option<u64>,
+    choices: Option<Vec<DeltaChoice>>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DeltaChoice {
+    delta: Option<Message>,
+}
+
+/// Stream chat completion events from a selected model.
+///
+/// # Arguments
+///
+/// * `base_url` - The base URL for the OpenRouter API.
+/// * `api_key` - The API key for authentication.
+/// * `request` - The chat completion request containing the model and messages.
+///
+/// # Returns
+///
+/// * `Result<BoxStream<'static, Result<ChatCompletionStreamEvent, OpenRouterError>>, OpenRouterError>` - A stream of chat completion events or an error.
+pub async fn stream_chat_completion(
+    base_url: &str,
+    api_key: &str,
+    request: &ChatCompletionRequest,
+) -> Result<BoxStream<'static, Result<ChatCompletionStreamEvent, OpenRouterError>>, OpenRouterError>
+{
+    let url = format!("{}/chat/completions", base_url);
+
+    // Ensure that the request is streaming to get a continuous response
+    let request = request.stream(true);
+
+    let response = surf::post(url)
+        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .body_json(&request)?
+        .await?;
+
+    if response.status().is_success() {
+        let lines = response
+            .lines()
+            .filter_map(async |line| match line {
+                Ok(line) => line
+                    .strip_prefix("data: ")
+                    .filter(|line| *line != "[DONE]")
+                    .map(|line| serde_json::from_str::<ChatCompletionStreamEvent>(line))
+                    .map(|event| event.map_err(|err| OpenRouterError::Serialization(err))),
+                Err(error) => Some(Err(OpenRouterError::Io(error))),
+            })
+            .boxed();
+
+        Ok(lines)
     } else {
         handle_error(response).await?;
         unreachable!()

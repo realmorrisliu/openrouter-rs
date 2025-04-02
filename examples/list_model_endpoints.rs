@@ -1,12 +1,14 @@
+use dotenvy_macro::dotenv;
 use openrouter_rs::OpenRouterClient;
-use std::env;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let api_key = env::var("OPENROUTER_API_KEY").expect("OPENROUTER_API_KEY not set");
+    let api_key = dotenv!("OPENROUTER_API_KEY");
     let client = OpenRouterClient::new(api_key);
 
-    let endpoints = client.list_model_endpoints("author", "slug").await?;
+    let endpoints = client
+        .list_model_endpoints("deepseek", "deepseek-chat:free")
+        .await?;
     println!("{:?}", endpoints);
 
     Ok(())

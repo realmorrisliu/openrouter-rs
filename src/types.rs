@@ -5,7 +5,7 @@ pub struct ApiResponse<T> {
     pub data: T,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum Role {
     System,
@@ -27,7 +27,7 @@ impl ToString for Role {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum Effort {
     High,
@@ -45,12 +45,12 @@ impl ToString for Effort {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ProviderPreferences {
     sort: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ReasoningConfig {
     effort: Option<Effort>,
     max_tokens: Option<u32>,
