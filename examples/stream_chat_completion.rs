@@ -9,10 +9,10 @@ use openrouter_rs::{
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let api_key = dotenv!("OPENROUTER_API_KEY");
-    let client = OpenRouterClient::new(api_key);
+    let client = OpenRouterClient::builder(api_key).build();
 
     let chat_request = ChatCompletionRequest::builder()
-        .model("deepseek/deepseek-chat:free")
+        .model("deepseek/deepseek-chat-v3-0324:free")
         .messages(vec![Message::new(
             Role::User,
             "What is the meaning of life?",

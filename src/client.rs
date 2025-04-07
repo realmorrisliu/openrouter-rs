@@ -7,23 +7,63 @@ use crate::{
         completion, credits, generation, models,
     },
     error::OpenRouterError,
+    types::completion::CompletionsResponse,
 };
 
 pub struct OpenRouterClient {
     base_url: String,
     api_key: String,
+    http_referer: Option<String>,
+    x_title: Option<String>,
 }
 
-impl OpenRouterClient {
-    pub fn new(api_key: &str) -> Self {
+pub struct OpenRouterClientBuilder {
+    base_url: Option<String>,
+    api_key: String,
+    http_referer: Option<String>,
+    x_title: Option<String>,
+}
+
+impl OpenRouterClientBuilder {
+    pub fn new(api_key: impl Into<String>) -> Self {
         Self {
-            base_url: "https://openrouter.ai/api/v1".to_string(),
-            api_key: api_key.to_string(),
+            base_url: None,
+            api_key: api_key.into(),
+            http_referer: None,
+            x_title: None,
         }
     }
 
-    pub fn base_url(&mut self, base_url: &str) {
-        self.base_url = base_url.to_string();
+    pub fn base_url(mut self, base_url: impl Into<String>) -> Self {
+        self.base_url = Some(base_url.into());
+        self
+    }
+
+    pub fn http_referer(mut self, http_referer: impl Into<String>) -> Self {
+        self.http_referer = Some(http_referer.into());
+        self
+    }
+
+    pub fn x_title(mut self, x_title: impl Into<String>) -> Self {
+        self.x_title = Some(x_title.into());
+        self
+    }
+
+    pub fn build(self) -> OpenRouterClient {
+        OpenRouterClient {
+            base_url: self
+                .base_url
+                .unwrap_or_else(|| "https://openrouter.ai/api/v1".to_string()),
+            api_key: self.api_key,
+            http_referer: self.http_referer,
+            x_title: self.x_title,
+        }
+    }
+}
+
+impl OpenRouterClient {
+    pub fn builder(api_key: impl Into<String>) -> OpenRouterClientBuilder {
+        OpenRouterClientBuilder::new(api_key)
     }
 
     /// Creates a new API key. Requires a Provisioning API key.
@@ -213,7 +253,7 @@ impl OpenRouterClient {
     /// ```
     /// let client = OpenRouterClient::new("your_api_key".to_string());
     /// let request = chat::ChatCompletionRequest::builder()
-    ///     .model("deepseek/deepseek-chat:free")
+    ///     .model("deepseek/deepseek-chat-v3-0324:free")
     ///     .messages(vec![chat::Message::new(chat::Role::User, "What is the meaning of life?")])
     ///     .max_tokens(100)
     ///     .temperature(0.7)
@@ -224,8 +264,15 @@ impl OpenRouterClient {
     pub async fn send_chat_completion(
         &self,
         request: &chat::ChatCompletionRequest,
-    ) -> Result<chat::ChatCompletionResponse, OpenRouterError> {
-        chat::send_chat_completion(&self.base_url, &self.api_key, request).await
+    ) -> Result<CompletionsResponse, OpenRouterError> {
+        chat::send_chat_completion(
+            &self.base_url,
+            &self.api_key,
+            &self.x_title,
+            &self.http_referer,
+            request,
+        )
+        .await
     }
 
     /// Streams chat completion events from a selected model.
@@ -243,7 +290,7 @@ impl OpenRouterClient {
     /// ```
     /// let client = OpenRouterClient::new("your_api_key".to_string());
     /// let request = chat::ChatCompletionRequest::builder()
-    ///     .model("deepseek/deepseek-chat:free")
+    ///     .model("deepseek/deepseek-chat-v3-0324:free")
     ///     .messages(vec![chat::Message::new(chat::Role::User, "Tell me a joke.")])
     ///     .max_tokens(50)
     ///     .temperature(0.5)
@@ -281,7 +328,7 @@ impl OpenRouterClient {
     /// ```
     /// let client = OpenRouterClient::new("your_api_key".to_string());
     /// let request = completion::CompletionRequest::builder()
-    ///     .model("deepseek/deepseek-chat:free")
+    ///     .model("deepseek/deepseek-chat-v3-0324:free")
     ///     .prompt("Once upon a time")
     ///     .max_tokens(100)
     ///     .temperature(0.7)
@@ -292,8 +339,15 @@ impl OpenRouterClient {
     pub async fn send_completion_request(
         &self,
         request: &completion::CompletionRequest,
-    ) -> Result<completion::CompletionResponse, OpenRouterError> {
-        completion::send_completion_request(&self.base_url, &self.api_key, request).await
+    ) -> Result<CompletionsResponse, OpenRouterError> {
+        completion::send_completion_request(
+            &self.base_url,
+            &self.api_key,
+            &self.x_title,
+            &self.http_referer,
+            request,
+        )
+        .await
     }
 
     /// Creates and hydrates a Coinbase Commerce charge for cryptocurrency payments.

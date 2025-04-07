@@ -14,7 +14,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Example: Send Chat Completion
     let chat_request = ChatCompletionRequest::builder()
-        .model("deepseek/deepseek-chat:free")
+        .model("deepseek/deepseek-chat-v3-0324:free")
         .messages(vec![Message::new(
             Role::User,
             "What is the meaning of life?",
@@ -28,7 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Example: Stream Chat Completion
     let chat_request = ChatCompletionRequest::builder()
-        .model("deepseek/deepseek-chat:free")
+        .model("deepseek/deepseek-chat-v3-0324:free")
         .messages(vec![Message::new(
             Role::User,
             "What is the meaning of life?",
@@ -47,7 +47,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Example: Send Completion Request
     let completion_request = CompletionRequest::builder()
-        .model("deepseek/deepseek-chat:free")
+        .model("deepseek/deepseek-chat-v3-0324:free")
         .prompt("Once upon a time")
         .max_tokens(100)
         .temperature(0.7)
@@ -61,7 +61,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Credits: {:?}", credits);
 
     // Example: Get Generation
-    let generation_id = completion_response.id.unwrap();
+    let generation_id = completion_response.id;
     tokio::time::sleep(std::time::Duration::from_secs(10)).await;
     println!("Wait for completion");
     let generation_data = get_generation(&generation_id).await?;
@@ -76,7 +76,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Endpoints: {:?}", endpoints);
 
     // Example: Check if Model is Enabled
-    let is_enabled = is_model_enabled("deepseek/deepseek-chat:free").await?;
+    let is_enabled = is_model_enabled("deepseek/deepseek-chat-v3-0324:free").await?;
     println!("Is Model Enabled: {:?}", is_enabled);
 
     Ok(())

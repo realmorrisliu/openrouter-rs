@@ -6,6 +6,7 @@ use crate::{
     api::{api_keys, chat, completion, credits, generation, models},
     config,
     error::OpenRouterError,
+    types::completion::CompletionsResponse,
 };
 
 // Lazy static variables to cache the API key and config
@@ -67,13 +68,13 @@ pub async fn set_api_key(api_key: &str) -> Result<(), OpenRouterError> {
 ///
 /// # Returns
 ///
-/// * `Result<chat::ChatCompletionResponse, OpenRouterError>` - The response from the chat completion request.
+/// * `Result<CompletionsResponse, OpenRouterError>` - The response from the chat completion request.
 ///
 /// # Example
 ///
 /// ```
 /// let request = chat::ChatCompletionRequest::builder()
-///     .model("deepseek/deepseek-chat:free")
+///     .model("deepseek/deepseek-chat-v3-0324:free")
 ///     .messages(vec![chat::Message::new(chat::Role::User, "What is the meaning of life?")])
 ///     .max_tokens(100)
 ///     .temperature(0.7)
@@ -83,10 +84,17 @@ pub async fn set_api_key(api_key: &str) -> Result<(), OpenRouterError> {
 /// ```
 pub async fn send_chat_completion(
     request: chat::ChatCompletionRequest,
-) -> Result<chat::ChatCompletionResponse, OpenRouterError> {
+) -> Result<CompletionsResponse, OpenRouterError> {
     let config = get_config().await?;
     let api_key = get_default_api_key().await?;
-    chat::send_chat_completion(&config.base_url, &api_key, &request).await
+    chat::send_chat_completion(
+        &config.base_url,
+        &api_key,
+        &config.x_title,
+        &config.http_referer,
+        &request,
+    )
+    .await
 }
 
 /// Streams chat completion events.
@@ -103,7 +111,7 @@ pub async fn send_chat_completion(
 ///
 /// ```
 /// let request = chat::ChatCompletionRequest::builder()
-///     .model("deepseek/deepseek-chat:free")
+///     .model("deepseek/deepseek-chat-v3-0324:free")
 ///     .messages(vec![chat::Message::new(chat::Role::User, "Tell me a joke.")])
 ///     .max_tokens(50)
 ///     .temperature(0.5)
@@ -135,13 +143,13 @@ pub async fn stream_chat_completion(
 ///
 /// # Returns
 ///
-/// * `Result<completion::CompletionResponse, OpenRouterError>` - The response from the completion request.
+/// * `Result<CompletionsResponse, OpenRouterError>` - The response from the completion request.
 ///
 /// # Example
 ///
 /// ```
 /// let request = completion::CompletionRequest::builder()
-///     .model("deepseek/deepseek-chat:free")
+///     .model("deepseek/deepseek-chat-v3-0324:free")
 ///     .prompt("Once upon a time")
 ///     .max_tokens(100)
 ///     .temperature(0.7)
@@ -151,10 +159,17 @@ pub async fn stream_chat_completion(
 /// ```
 pub async fn send_completion(
     request: completion::CompletionRequest,
-) -> Result<completion::CompletionResponse, OpenRouterError> {
+) -> Result<CompletionsResponse, OpenRouterError> {
     let config = get_config().await?;
     let api_key = get_default_api_key().await?;
-    completion::send_completion_request(&config.base_url, &api_key, &request).await
+    completion::send_completion_request(
+        &config.base_url,
+        &api_key,
+        &config.x_title,
+        &config.http_referer,
+        &request,
+    )
+    .await
 }
 
 /// Retrieves the total credits purchased and used for the authenticated user.

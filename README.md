@@ -4,11 +4,18 @@
 
 ## Current Status
 
-This SDK is currently being used in production and supports both simple and advanced usage patterns. If you encounter any issues while using it, please open an issue.
+This SDK is currently in active development and supports both simple and advanced usage patterns. If you encounter any issues while using it, please open an issue to help us improve.
+
+## TODO
+
+- [ ] Add comprehensive test coverage for all API endpoints
+- [ ] Implement integration tests with mock server
+- [ ] Include examples in documentation tests
+- [ ] Improve error handling and documentation
 
 ## Features
 
-- ✅ Builder pattern for complex requests (chat/completion/credits/generation)
+- ✅ Builder pattern for client configuration and complex requests
 - ✅ Simple constructors for basic usage
 - ✅ Full API coverage including:
   - API key management
@@ -23,12 +30,12 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-openrouter-rs = "0.3.0"
+openrouter-rs = "0.4.0"
 ```
 
 ## Quick Start
 
-### Using Builder Pattern (Recommended)
+### Using Client Builder Pattern (Recommended)
 
 ```rust
 use openrouter_rs::{
@@ -38,11 +45,16 @@ use openrouter_rs::{
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = OpenRouterClient::new("your_api_key");
+    // Using the builder pattern for client configuration
+    let client = OpenRouterClient::builder("your_api_key")
+        .base_url("https://openrouter.ai/api/v1") // optional
+        .http_referer("your_referer") // optional
+        .x_title("your_app") // optional
+        .build();
 
-    // Builder pattern for full control
+    // Builder pattern for requests
     let request = ChatCompletionRequest::builder()
-        .model("deepseek/deepseek-chat:free")
+        .model("deepseek/deepseek-chat-v3-0324:free")
         .messages(vec![
             Message::new(Role::System, "You are a helpful assistant"),
             Message::new(Role::User, "Explain Rust in simple terms")
@@ -58,54 +70,44 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-### Simple Constructor
+### Simple Client Constructor
 
 ```rust
-use openrouter_rs::api::chat::{ChatCompletionRequest, Message, Role};
-
-// Simple one-off requests
-let request = ChatCompletionRequest::new(
-    "deepseek/deepseek-chat:free",
-    vec![Message::new(Role::User, "Hello world!")]
-);
+// Simple client creation with just API key
+let client = OpenRouterClient::builder("your_api_key").build();
 ```
 
 ## Key Features Explained
 
-### 1. Builder Pattern
+### 1. Builder Pattern for Client Configuration
 
-For complex requests, we recommend using the builder pattern:
+The client now uses a builder pattern for more flexible configuration:
 
 ```rust
-use openrouter_rs::api::completion::CompletionRequest;
-
-let request = CompletionRequest::builder()
-    .model("deepseek/deepseek-chat:free")
-    .prompt("Write a poem about Rust")
-    .temperature(0.8)
-    .top_p(0.9)
-    .max_tokens(150)
-    .build()?;
+let client = OpenRouterClient::builder("your_api_key")
+    .http_referer("https://yourdomain.com")
+    .x_title("Your App Name")
+    .build();
 ```
 
 **Benefits:**
-- Compile-time safety
-- Auto-completion friendly
-- Clear parameter validation
+- Immutable client configuration
+- Clear, chainable configuration
+- Default values for optional parameters
 
 ### 2. Streaming Responses
 
 ```rust
-use openrouter_rs::api::chat::{ChatCompletionRequest, Message, Role};
 use futures_util::StreamExt;
 
-let client = OpenRouterClient::new("your_api_key");
+let client = OpenRouterClient::builder("your_api_key").build();
 let request = ChatCompletionRequest::builder()
-    .model("deepseek/deepseek-chat:free")
+    .model("deepseek/deepseek-chat-v3-0324:free")
     .messages(vec![Message::new(Role::User, "Tell me a joke.")])
     .max_tokens(50)
     .temperature(0.5)
     .build()?;
+
 let mut stream = client.stream_chat_completion(&request).await?;
 while let Some(event) = stream.next().await {
     match event {
@@ -120,8 +122,6 @@ while let Some(event) = stream.next().await {
 Comprehensive error types:
 
 ```rust
-use openrouter_rs::error::OpenRouterError;
-
 match client.send_chat_completion(&request).await {
     Ok(response) => { /* handle success */ },
     Err(OpenRouterError::ModerationError { reasons, .. }) => {
@@ -137,21 +137,21 @@ Run examples with:
 
 ```sh
 # Builder pattern example
-cargo run --example chat_completion
+cargo run --example send_chat_completion
 
 # Simple usage
-cargo run --example quick_start
+cargo run --example send_completion_request
 
 # Streaming
-cargo run --example streaming_chat
+cargo run --example stream_chat_completion
 ```
 
 ## Best Practices
 
-1. **For complex requests**: Use builders (`Request::builder()`)
-2. **For simple cases**: Use direct constructors (`Request::new()`)
-3. **Always handle errors**: Match on `OpenRouterError` variants
-4. **Reuse clients**: Create one `OpenRouterClient` per application
+1. **Client Configuration**: Use `OpenRouterClient::builder()` for flexible setup
+2. **Request Building**: Use builders (`Request::builder()`) for complex requests
+3. **Error Handling**: Match on `OpenRouterError` variants
+4. **Reuse Clients**: Create one `OpenRouterClient` per application
 
 ## Migration Guide
 
@@ -159,8 +159,9 @@ If upgrading from older versions:
 
 | Old Style | New Recommended Style |
 |-----------|-----------------------|
-| `ChatCompletionRequest::new().max_tokens(100)` | `ChatCompletionRequest::builder().max_tokens(100).build()` |
-| `CoinbaseChargeRequest::new(1.0, "addr", 1)` | `CoinbaseChargeRequest::builder().amount(1.0).sender("addr").chain_id(1).build()` |
+| `OpenRouterClient::new(key)` | `OpenRouterClient::builder(key).build()` |
+| `client.base_url("url")` | `OpenRouterClient::builder(key).base_url("url").build()` |
+| `ChatCompletionRequest::new()` | `ChatCompletionRequest::builder().build()` |
 
 ## Risk Disclaimer
 
@@ -169,7 +170,7 @@ This is a third-party SDK not affiliated with OpenRouter. Use at your own risk.
 ## Contributing
 
 Contributions welcome! Please:
-1. Use builders for new request types
+1. Follow the builder pattern for new features
 2. Include documentation examples
 3. Add tests for new features
 

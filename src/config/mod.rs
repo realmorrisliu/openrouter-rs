@@ -14,6 +14,8 @@ use crate::error::OpenRouterError;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct OpenRouterConfig {
     pub base_url: String,
+    pub x_title: Option<String>,
+    pub http_referer: Option<String>,
     #[serde(default)]
     pub models: ModelConfig,
 }
@@ -22,6 +24,8 @@ impl Default for OpenRouterConfig {
     fn default() -> Self {
         Self {
             base_url: "https://openrouter.ai/api/v1".to_string(),
+            x_title: None,
+            http_referer: None,
             models: ModelConfig::default(),
         }
     }

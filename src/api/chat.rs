@@ -7,7 +7,7 @@ use surf::http::headers::AUTHORIZATION;
 use crate::{
     error::OpenRouterError,
     setter,
-    types::{ProviderPreferences, ReasoningConfig, Role},
+    types::{ProviderPreferences, ReasoningConfig, Role, completion::CompletionsResponse},
     utils::handle_error,
 };
 
@@ -150,42 +150,43 @@ impl ChatCompletionRequest {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ChatCompletionResponse {
-    pub id: Option<String>,
-    pub choices: Option<Vec<Choice>>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Choice {
-    pub message: Option<Message>,
-}
-
 /// Send a chat completion request to a selected model.
 ///
 /// # Arguments
 ///
 /// * `base_url` - The base URL for the OpenRouter API.
 /// * `api_key` - The API key for authentication.
+/// * `x_title` - The name of the site for the request.
+/// * `http_referer` - The URL of the site for the request.
 /// * `request` - The chat completion request containing the model and messages.
 ///
 /// # Returns
 ///
-/// * `Result<ChatCompletionResponse, OpenRouterError>` - The response from the chat completion request.
+/// * `Result<CompletionsResponse, OpenRouterError>` - The response from the chat completion request.
 pub async fn send_chat_completion(
     base_url: &str,
     api_key: &str,
+    x_title: &Option<String>,
+    http_referer: &Option<String>,
     request: &ChatCompletionRequest,
-) -> Result<ChatCompletionResponse, OpenRouterError> {
+) -> Result<CompletionsResponse, OpenRouterError> {
     let url = format!("{}/chat/completions", base_url);
 
     // Ensure that the request is not streaming to get a single response
     let request = request.stream(false);
 
-    let mut response = surf::post(url)
+    let mut surf_req = surf::post(url)
         .header(AUTHORIZATION, format!("Bearer {}", api_key))
-        .body_json(&request)?
-        .await?;
+        .body_json(&request)?;
+
+    if let Some(x_title) = x_title {
+        surf_req = surf_req.header("X-Title", x_title);
+    }
+    if let Some(http_referer) = http_referer {
+        surf_req = surf_req.header("HTTP-Referer", http_referer);
+    }
+
+    let mut response = surf_req.await?;
 
     if response.status().is_success() {
         let chat_response = response.body_json().await?;
