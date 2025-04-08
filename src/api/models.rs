@@ -35,12 +35,12 @@ pub struct TopProvider {
 pub struct Pricing {
     pub prompt: String,
     pub completion: String,
-    pub image: String,
-    pub request: String,
-    pub input_cache_read: String,
-    pub input_cache_write: String,
-    pub web_search: String,
-    pub internal_reasoning: String,
+    pub image: Option<String>,
+    pub request: Option<String>,
+    pub input_cache_read: Option<String>,
+    pub input_cache_write: Option<String>,
+    pub web_search: Option<String>,
+    pub internal_reasoning: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

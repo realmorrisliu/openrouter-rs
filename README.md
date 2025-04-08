@@ -30,7 +30,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-openrouter-rs = "0.4.0"
+openrouter-rs = "0.4.1"
 ```
 
 ## Quick Start
