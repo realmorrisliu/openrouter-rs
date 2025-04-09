@@ -31,3 +31,7 @@ keyring = { version = "3.6.2", features = [
 zeroize = "1.8.1"
 urlencoding = "2.1.3"
 once_cell = "1.21.3"
+
+[[test]]
+name = "integration"
+path = "tests/integration/mod.rs"

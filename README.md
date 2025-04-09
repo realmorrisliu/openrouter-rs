@@ -4,14 +4,26 @@
 
 ## Current Status
 
-This SDK is currently in active development and supports both simple and advanced usage patterns. If you encounter any issues while using it, please open an issue to help us improve.
+This SDK is currently in active development and supports both simple and advanced usage patterns. I've implemented basic integration tests covering:
+
+✅ Get API key information
+✅ Model listing
+✅ Chat completions
+✅ Response validation
+
+If you encounter any issues while using it, please open an issue to help us improve.
 
 ## TODO
 
-- [ ] Add comprehensive test coverage for all API endpoints
-- [ ] Implement integration tests with mock server
-- [ ] Include examples in documentation tests
-- [ ] Improve error handling and documentation
+- [ ] Testing
+  - [x] Core integration tests
+  - [ ] Complete API coverage
+- [ ] Features
+  - [ ] Advanced model management capabilities
+  - [ ] Use cargo feature flags to enable/disable features
+  - [ ] Add cli tools for easy usage
+
+If you have any suggestions or feedback, feel free to open an issue or submit a pull request.
 
 ## Features
 
@@ -144,6 +156,9 @@ cargo run --example send_completion_request
 
 # Streaming
 cargo run --example stream_chat_completion
+
+# Run integration tests (requires API key)
+OPENROUTER_API_KEY=your_key cargo test --test integration -- --nocapture
 ```
 
 ## Best Practices
