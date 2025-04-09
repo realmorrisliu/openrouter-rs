@@ -5,11 +5,10 @@
 ## Current Status
 
 This SDK is currently in active development and supports both simple and advanced usage patterns. I've implemented basic integration tests covering:
-
-✅ Get API key information
-✅ Model listing
-✅ Chat completions
-✅ Response validation
+- Get API key information
+- Model listing
+- Chat completions
+- Response validation
 
 If you encounter any issues while using it, please open an issue to help us improve.
 
