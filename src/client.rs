@@ -12,23 +12,26 @@ use crate::{
 
 pub struct OpenRouterClient {
     base_url: String,
-    api_key: String,
+    api_key: Option<String>,
+    provisioning_key: Option<String>,
     http_referer: Option<String>,
     x_title: Option<String>,
 }
 
 pub struct OpenRouterClientBuilder {
     base_url: Option<String>,
-    api_key: String,
+    api_key: Option<String>,
+    provisioning_key: Option<String>,
     http_referer: Option<String>,
     x_title: Option<String>,
 }
 
 impl OpenRouterClientBuilder {
-    pub fn new(api_key: impl Into<String>) -> Self {
+    pub fn new() -> Self {
         Self {
             base_url: None,
-            api_key: api_key.into(),
+            api_key: None,
+            provisioning_key: None,
             http_referer: None,
             x_title: None,
         }
@@ -36,6 +39,16 @@ impl OpenRouterClientBuilder {
 
     pub fn base_url(mut self, base_url: impl Into<String>) -> Self {
         self.base_url = Some(base_url.into());
+        self
+    }
+
+    pub fn api_key(mut self, api_key: impl Into<String>) -> Self {
+        self.api_key = Some(api_key.into());
+        self
+    }
+
+    pub fn provisioning_key(mut self, provisioning_key: impl Into<String>) -> Self {
+        self.provisioning_key = Some(provisioning_key.into());
         self
     }
 
@@ -55,6 +68,7 @@ impl OpenRouterClientBuilder {
                 .base_url
                 .unwrap_or_else(|| "https://openrouter.ai/api/v1".to_string()),
             api_key: self.api_key,
+            provisioning_key: self.provisioning_key,
             http_referer: self.http_referer,
             x_title: self.x_title,
         }
@@ -62,8 +76,65 @@ impl OpenRouterClientBuilder {
 }
 
 impl OpenRouterClient {
-    pub fn builder(api_key: impl Into<String>) -> OpenRouterClientBuilder {
-        OpenRouterClientBuilder::new(api_key)
+    pub fn builder() -> OpenRouterClientBuilder {
+        OpenRouterClientBuilder::new()
+    }
+
+    /// Sets the API key after client construction.
+    ///
+    /// # Arguments
+    ///
+    /// * `api_key` - The API key to set
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let mut client = OpenRouterClient::builder().build();
+    /// client.set_api_key("your_api_key");
+    /// ```
+    pub fn set_api_key(&mut self, api_key: impl Into<String>) {
+        self.api_key = Some(api_key.into());
+    }
+
+    /// Clears the currently set API key.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let mut client = OpenRouterClient::builder().api_key("your_api_key").build();
+    /// client.clear_api_key();
+    /// ```
+    pub fn clear_api_key(&mut self) {
+        self.api_key = None;
+    }
+
+    /// Sets the provisioning key after client construction.
+    ///
+    /// # Arguments
+    ///
+    /// * `provisioning_key` - The provisioning key to set
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let mut client = OpenRouterClient::builder().build();
+    /// client.set_provisioning_key("your_provisioning_key");
+    /// ```
+    pub fn set_provisioning_key(&mut self, provisioning_key: impl Into<String>) {
+        self.provisioning_key = Some(provisioning_key.into());
+    }
+
+    /// Clears the currently set provisioning key.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let mut client = OpenRouterClient::builder().build();
+    /// client.set_provisioning_key("your_provisioning_key");
+    /// client.clear_provisioning_key();
+    /// ```
+    pub fn clear_provisioning_key(&mut self) {
+        self.provisioning_key = None;
     }
 
     /// Creates a new API key. Requires a Provisioning API key.
@@ -80,7 +151,7 @@ impl OpenRouterClient {
     /// # Example
     ///
     /// ```
-    /// let client = OpenRouterClient::new("your_api_key".to_string());
+    /// let client = OpenRouterClient::builder().api_key("your_api_key").build();
     /// let api_key = client.create_api_key("New API Key", Some(100.0)).await?;
     /// println!("{:?}", api_key);
     /// ```
@@ -89,7 +160,11 @@ impl OpenRouterClient {
         name: &str,
         limit: Option<f64>,
     ) -> Result<api_keys::ApiKey, OpenRouterError> {
-        api_keys::create_api_key(&self.base_url, &self.api_key, name, limit).await
+        if let Some(api_key) = &self.api_key {
+            api_keys::create_api_key(&self.base_url, api_key, name, limit).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
     }
 
     /// Get information on the API key associated with the current authentication session.
@@ -101,14 +176,18 @@ impl OpenRouterClient {
     /// # Example
     ///
     /// ```
-    /// let client = OpenRouterClient::new("your_api_key".to_string());
+    /// let client = OpenRouterClient::builder().api_key("your_api_key").build();
     /// let api_key_details = client.get_current_api_key_info().await?;
     /// println!("{:?}", api_key_details);
     /// ```
     pub async fn get_current_api_key_info(
         &self,
     ) -> Result<api_keys::ApiKeyDetails, OpenRouterError> {
-        api_keys::get_current_api_key(&self.base_url, &self.api_key).await
+        if let Some(api_key) = &self.api_key {
+            api_keys::get_current_api_key(&self.base_url, api_key).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
     }
 
     /// Deletes an API key. Requires a Provisioning API key.
@@ -124,12 +203,16 @@ impl OpenRouterClient {
     /// # Example
     ///
     /// ```
-    /// let client = OpenRouterClient::new("your_api_key".to_string());
+    /// let client = OpenRouterClient::builder().provisioning_key("your_provisioning_key").build();
     /// let success = client.delete_api_key("api_key_hash").await?;
     /// println!("Deletion successful: {}", success);
     /// ```
     pub async fn delete_api_key(&self, hash: &str) -> Result<bool, OpenRouterError> {
-        api_keys::delete_api_key(&self.base_url, &self.api_key, hash).await
+        if let Some(provisioning_key) = &self.provisioning_key {
+            api_keys::delete_api_key(&self.base_url, provisioning_key, hash).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
     }
 
     /// Updates an existing API key. Requires a Provisioning API key.
@@ -148,7 +231,7 @@ impl OpenRouterClient {
     /// # Example
     ///
     /// ```
-    /// let client = OpenRouterClient::new("your_api_key".to_string());
+    /// let client = OpenRouterClient::builder().provisioning_key("your_provisioning_key").build();
     /// let updated_api_key = client.update_api_key("api_key_hash", Some("Updated Name".to_string()), Some(false), Some(200.0)).await?;
     /// println!("{:?}", updated_api_key);
     /// ```
@@ -159,7 +242,19 @@ impl OpenRouterClient {
         disabled: Option<bool>,
         limit: Option<f64>,
     ) -> Result<api_keys::ApiKey, OpenRouterError> {
-        api_keys::update_api_key(&self.base_url, &self.api_key, hash, name, disabled, limit).await
+        if let Some(provisioning_key) = &self.provisioning_key {
+            api_keys::update_api_key(
+                &self.base_url,
+                provisioning_key,
+                hash,
+                name,
+                disabled,
+                limit,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
     }
 
     /// Returns a list of all API keys associated with the account. Requires a Provisioning API key.
@@ -176,7 +271,7 @@ impl OpenRouterClient {
     /// # Example
     ///
     /// ```
-    /// let client = OpenRouterClient::new("your_api_key".to_string());
+    /// let client = OpenRouterClient::builder().provisioning_key("your_provisioning_key").build();
     /// let api_keys = client.list_api_keys(Some(0.0), Some(true)).await?;
     /// println!("{:?}", api_keys);
     /// ```
@@ -185,7 +280,12 @@ impl OpenRouterClient {
         offset: Option<f64>,
         include_disabled: Option<bool>,
     ) -> Result<Vec<api_keys::ApiKey>, OpenRouterError> {
-        api_keys::list_api_keys(&self.base_url, &self.api_key, offset, include_disabled).await
+        if let Some(provisioning_key) = &self.provisioning_key {
+            api_keys::list_api_keys(&self.base_url, provisioning_key, offset, include_disabled)
+                .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
     }
 
     /// Returns details about a specific API key. Requires a Provisioning API key.
@@ -201,12 +301,16 @@ impl OpenRouterClient {
     /// # Example
     ///
     /// ```
-    /// let client = OpenRouterClient::new("your_api_key".to_string());
+    /// let client = OpenRouterClient::builder().provisioning_key("your_provisioning_key").build();
     /// let api_key = client.get_api_key("api_key_hash").await?;
     /// println!("{:?}", api_key);
     /// ```
     pub async fn get_api_key(&self, hash: &str) -> Result<api_keys::ApiKey, OpenRouterError> {
-        api_keys::get_api_key(&self.base_url, &self.api_key, hash).await
+        if let Some(provisioning_key) = &self.provisioning_key {
+            api_keys::get_api_key(&self.base_url, provisioning_key, hash).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
     }
 
     /// Exchange an authorization code from the PKCE flow for a user-controlled API key.
@@ -224,7 +328,7 @@ impl OpenRouterClient {
     /// # Example
     ///
     /// ```
-    /// let client = OpenRouterClient::new("your_api_key".to_string());
+    /// let client = OpenRouterClient::builder().api_key("your_api_key").build();
     /// let auth_response = client.exchange_code_for_api_key("auth_code", Some("code_verifier"), Some(auth::CodeChallengeMethod::S256)).await?;
     /// println!("{:?}", auth_response);
     /// ```
@@ -251,7 +355,7 @@ impl OpenRouterClient {
     /// # Example
     ///
     /// ```
-    /// let client = OpenRouterClient::new("your_api_key".to_string());
+    /// let client = OpenRouterClient::builder().api_key("your_api_key").build();
     /// let request = chat::ChatCompletionRequest::builder()
     ///     .model("deepseek/deepseek-chat-v3-0324:free")
     ///     .messages(vec![chat::Message::new(chat::Role::User, "What is the meaning of life?")])
@@ -265,14 +369,18 @@ impl OpenRouterClient {
         &self,
         request: &chat::ChatCompletionRequest,
     ) -> Result<CompletionsResponse, OpenRouterError> {
-        chat::send_chat_completion(
-            &self.base_url,
-            &self.api_key,
-            &self.x_title,
-            &self.http_referer,
-            request,
-        )
-        .await
+        if let Some(api_key) = &self.api_key {
+            chat::send_chat_completion(
+                &self.base_url,
+                api_key,
+                &self.x_title,
+                &self.http_referer,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
     }
 
     /// Streams chat completion events from a selected model.
@@ -288,7 +396,7 @@ impl OpenRouterClient {
     /// # Example
     ///
     /// ```
-    /// let client = OpenRouterClient::new("your_api_key".to_string());
+    /// let client = OpenRouterClient::builder().api_key("your_api_key").build();
     /// let request = chat::ChatCompletionRequest::builder()
     ///     .model("deepseek/deepseek-chat-v3-0324:free")
     ///     .messages(vec![chat::Message::new(chat::Role::User, "Tell me a joke.")])
@@ -310,7 +418,11 @@ impl OpenRouterClient {
         BoxStream<'static, Result<ChatCompletionStreamEvent, OpenRouterError>>,
         OpenRouterError,
     > {
-        chat::stream_chat_completion(&self.base_url, &self.api_key, request).await
+        if let Some(api_key) = &self.api_key {
+            chat::stream_chat_completion(&self.base_url, api_key, request).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
     }
 
     /// Send a completion request to a selected model (text-only format).
@@ -326,7 +438,7 @@ impl OpenRouterClient {
     /// # Example
     ///
     /// ```
-    /// let client = OpenRouterClient::new("your_api_key".to_string());
+    /// let client = OpenRouterClient::builder().api_key("your_api_key").build();
     /// let request = completion::CompletionRequest::builder()
     ///     .model("deepseek/deepseek-chat-v3-0324:free")
     ///     .prompt("Once upon a time")
@@ -340,14 +452,18 @@ impl OpenRouterClient {
         &self,
         request: &completion::CompletionRequest,
     ) -> Result<CompletionsResponse, OpenRouterError> {
-        completion::send_completion_request(
-            &self.base_url,
-            &self.api_key,
-            &self.x_title,
-            &self.http_referer,
-            request,
-        )
-        .await
+        if let Some(api_key) = &self.api_key {
+            completion::send_completion_request(
+                &self.base_url,
+                api_key,
+                &self.x_title,
+                &self.http_referer,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
     }
 
     /// Creates and hydrates a Coinbase Commerce charge for cryptocurrency payments.
@@ -363,7 +479,7 @@ impl OpenRouterClient {
     /// # Example
     ///
     /// ```
-    /// let client = OpenRouterClient::new("your_api_key".to_string());
+    /// let client = OpenRouterClient::builder().api_key("your_api_key").build();
     /// let request = credits::CoinbaseChargeRequest::builder()
     ///     .amount(100.0)
     ///     .sender("sender_address")
@@ -376,7 +492,11 @@ impl OpenRouterClient {
         &self,
         request: &credits::CoinbaseChargeRequest,
     ) -> Result<credits::CoinbaseChargeData, OpenRouterError> {
-        credits::create_coinbase_charge(&self.base_url, &self.api_key, request).await
+        if let Some(api_key) = &self.api_key {
+            credits::create_coinbase_charge(&self.base_url, api_key, request).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
     }
 
     /// Returns the total credits purchased and used for the authenticated user.
@@ -388,12 +508,16 @@ impl OpenRouterClient {
     /// # Example
     ///
     /// ```
-    /// let client = OpenRouterClient::new("your_api_key".to_string());
+    /// let client = OpenRouterClient::builder().api_key("your_api_key").build();
     /// let credits_data = client.get_credits().await?;
     /// println!("{:?}", credits_data);
     /// ```
     pub async fn get_credits(&self) -> Result<credits::CreditsData, OpenRouterError> {
-        credits::get_credits(&self.base_url, &self.api_key).await
+        if let Some(api_key) = &self.api_key {
+            credits::get_credits(&self.base_url, api_key).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
     }
 
     /// Returns metadata about a specific generation request.
@@ -409,7 +533,7 @@ impl OpenRouterClient {
     /// # Example
     ///
     /// ```
-    /// let client = OpenRouterClient::new("your_api_key".to_string());
+    /// let client = OpenRouterClient::builder().api_key("your_api_key").build();
     /// let request = generation::GenerationRequest::builder()
     ///     .id("generation_id")
     ///     .build()?;
@@ -420,7 +544,11 @@ impl OpenRouterClient {
         &self,
         id: impl Into<String>,
     ) -> Result<generation::GenerationData, OpenRouterError> {
-        generation::get_generation(&self.base_url, &self.api_key, id).await
+        if let Some(api_key) = &self.api_key {
+            generation::get_generation(&self.base_url, api_key, id).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
     }
 
     /// Returns a list of models available through the API.
@@ -432,12 +560,16 @@ impl OpenRouterClient {
     /// # Example
     ///
     /// ```
-    /// let client = OpenRouterClient::new("your_api_key".to_string());
+    /// let client = OpenRouterClient::builder().api_key("your_api_key").build();
     /// let models = client.list_models().await?;
     /// println!("{:?}", models);
     /// ```
     pub async fn list_models(&self) -> Result<Vec<models::Model>, OpenRouterError> {
-        models::list_models(&self.base_url, &self.api_key).await
+        if let Some(api_key) = &self.api_key {
+            models::list_models(&self.base_url, api_key).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
     }
 
     /// Returns details about the endpoints for a specific model.
@@ -454,7 +586,7 @@ impl OpenRouterClient {
     /// # Example
     ///
     /// ```
-    /// let client = OpenRouterClient::new("your_api_key".to_string());
+    /// let client = OpenRouterClient::builder().api_key("your_api_key").build();
     /// let endpoint_data = client.list_model_endpoints("author_name", "model_slug").await?;
     /// println!("{:?}", endpoint_data);
     /// ```
@@ -463,6 +595,10 @@ impl OpenRouterClient {
         author: &str,
         slug: &str,
     ) -> Result<models::EndpointData, OpenRouterError> {
-        models::list_model_endpoints(&self.base_url, &self.api_key, author, slug).await
+        if let Some(api_key) = &self.api_key {
+            models::list_model_endpoints(&self.base_url, api_key, author, slug).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
     }
 }

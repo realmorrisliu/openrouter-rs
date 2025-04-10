@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-
-use crate::error::OpenRouterError;
+use std::collections::{HashMap, HashSet};
 
 /// Configuration for model selection and presets
 ///
@@ -16,7 +14,7 @@ use crate::error::OpenRouterError;
 ///     "google/gemini-2.5-pro-exp-03-25:free"
 /// ]
 ///
-/// [model_presets]
+/// [models.presets]
 /// thinking = ["openai/o3-mini-high", "anthropic/claude-3.7-sonnet:thinking", "deepseek/deepseek-r1"]
 /// coding = ["anthropic/claude-3.7-sonnet", "deepseek/deepseek-chat-v3-0324"]
 /// ```
@@ -31,14 +29,7 @@ pub struct ModelConfig {
     #[serde(default)]
     pub enable: Vec<String>, // Supports preset: prefix syntax
 
-    /// Predefined groups of models that can be referenced in `enable`
-    ///
-    /// # Example
-    /// ```toml
-    /// [model_presets]
-    /// coding = ["anthropic/claude-3.7-sonnet", "deepseek/deepseek-chat-v3-0324"]
-    /// ```
-    #[serde(rename = "model_presets", default)]
+    #[serde(rename = "presets", default)]
     pub presets: HashMap<String, Vec<String>>,
 
     /// Resolved list of enabled model IDs (calculated at runtime)
@@ -48,9 +39,6 @@ pub struct ModelConfig {
 
 impl ModelConfig {
     /// Resolves the final list of enabled models by processing presets
-    ///
-    /// # Errors
-    /// Returns `InvalidConfigValue` if referenced preset doesn't exist
     ///
     /// # Example
     /// ```rust
@@ -64,38 +52,31 @@ impl ModelConfig {
     ///     ..Default::default()
     /// };
     ///
-    /// config.resolve().unwrap();
+    /// config.resolve();
     /// assert!(config.is_enabled("anthropic/claude-3.7-sonnet"));
     /// ```
-    pub fn resolve(&mut self) -> Result<(), OpenRouterError> {
-        let mut new_models = Vec::new();
+    pub fn resolve(&mut self) {
+        let mut new_models = HashSet::new();
 
         for entry in &self.enable {
             if let Some(preset_name) = entry.strip_prefix("preset:") {
                 // Handle selective enable with @
                 let (preset, filter) = preset_name.split_once('@').unwrap_or((preset_name, ""));
 
-                let models = self.presets.get(preset).ok_or_else(|| {
-                    OpenRouterError::InvalidConfigValue(format!("Unknown preset: {}", preset))
-                })?;
-
-                for model in models {
-                    if filter.is_empty() || model.contains(filter) {
-                        if !new_models.contains(&model.to_string()) {
-                            new_models.push(model.to_string());
+                if let Some(models) = self.presets.get(preset) {
+                    for model in models {
+                        if filter.is_empty() || model.contains(filter) {
+                            new_models.insert(model.to_string());
                         }
                     }
                 }
             } else {
                 // Directly add single model
-                if !new_models.contains(&entry.to_string()) {
-                    new_models.push(entry.to_string());
-                }
+                new_models.insert(entry.to_string());
             }
         }
 
-        self.resolved_models = new_models;
-        Ok(())
+        self.resolved_models = new_models.into_iter().collect();
     }
 
     /// Checks if a specific model is enabled

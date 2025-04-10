@@ -1,40 +1,56 @@
-pub mod api_key;
-mod loader;
 mod model;
 
-use std::path::PathBuf;
+use std::{fs, path::Path};
 
 use serde::{Deserialize, Serialize};
 
-pub use loader::load_config;
 pub use model::ModelConfig;
 
 use crate::error::OpenRouterError;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct OpenRouterConfig {
-    pub base_url: String,
-    pub x_title: Option<String>,
-    pub http_referer: Option<String>,
     #[serde(default)]
     pub models: ModelConfig,
 }
 
 impl Default for OpenRouterConfig {
     fn default() -> Self {
-        Self {
-            base_url: "https://openrouter.ai/api/v1".to_string(),
-            x_title: None,
-            http_referer: None,
+        let default_config = include_str!("default_config.toml");
+        let mut config = toml::from_str(default_config).unwrap_or(Self {
             models: ModelConfig::default(),
-        }
+        });
+
+        config.models.resolve();
+
+        config
     }
 }
 
-pub fn get_config_path() -> Result<PathBuf, OpenRouterError> {
-    let config_dir = dirs::config_dir()
-        .ok_or_else(|| OpenRouterError::ConfigError("Could not find config directory".into()))?
-        .join("openrouter");
+pub fn load_config(config_path: impl AsRef<Path>) -> Result<OpenRouterConfig, OpenRouterError> {
+    let config_path = config_path.as_ref();
 
-    Ok(config_dir.join("config.toml"))
+    if !config_path.exists() {
+        return Ok(OpenRouterConfig::default());
+    }
+
+    let config_content = fs::read_to_string(&config_path).map_err(|e| {
+        OpenRouterError::ConfigError(format!(
+            "Failed to read config file at {}: {}",
+            config_path.display(),
+            e
+        ))
+    })?;
+
+    let mut config: OpenRouterConfig = toml::from_str(&config_content).map_err(|e| {
+        OpenRouterError::ConfigError(format!(
+            "Invalid config format in {}: {}",
+            config_path.display(),
+            e
+        ))
+    })?;
+
+    config.models.resolve();
+
+    Ok(config)
 }

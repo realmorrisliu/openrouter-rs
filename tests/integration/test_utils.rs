@@ -12,7 +12,8 @@ pub fn get_test_api_key() -> String {
 }
 
 pub fn create_test_client() -> OpenRouterClient {
-    OpenRouterClient::builder(get_test_api_key())
+    OpenRouterClient::builder()
+        .api_key(get_test_api_key())
         .base_url("https://openrouter.ai/api/v1")
         .build()
 }

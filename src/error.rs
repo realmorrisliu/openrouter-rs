@@ -48,11 +48,8 @@ pub enum OpenRouterError {
     #[error("Config file not found: {0}")]
     ConfigNotFound(PathBuf),
 
-    #[error("Keychain error: {0}")]
-    KeychainError(String),
-
-    #[error("Invalid config value: {0}")]
-    InvalidConfigValue(String),
+    #[error("API key not configured")]
+    KeyNotConfigured,
 
     // Data processing errors
     #[error("Validation error: {0}")]
@@ -64,13 +61,6 @@ pub enum OpenRouterError {
     // System IO errors
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
-
-    // Keychain errors
-    #[error("Keychain error: {0}")]
-    Keychain(String),
-
-    #[error("API key not configured")]
-    KeyNotConfigured,
 
     // Uncategorized errors
     #[error("Unknown error: {0}")]

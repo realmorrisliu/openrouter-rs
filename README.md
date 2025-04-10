@@ -12,6 +12,11 @@ This SDK is currently in active development and supports both simple and advance
 
 If you encounter any issues while using it, please open an issue to help us improve.
 
+Notice: I'm trying to simplify the codebase and remove some unnecessary features in version 0.5.0, including:
+- Remove commands and keyring
+- Simplify configuration loading
+- Remove unnecessary dependencies
+
 ## TODO
 
 - [ ] Testing
