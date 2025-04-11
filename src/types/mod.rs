@@ -1,6 +1,10 @@
 pub mod completion;
+pub mod provider;
+pub mod response_format;
 
 use serde::{Deserialize, Serialize};
+
+pub use {completion::*, provider::*, response_format::*};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ApiResponse<T> {
@@ -48,13 +52,8 @@ impl ToString for Effort {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ProviderPreferences {
-    sort: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ReasoningConfig {
-    effort: Option<Effort>,
-    max_tokens: Option<u32>,
-    exclude: Option<bool>,
+    pub effort: Option<Effort>,
+    pub max_tokens: Option<u32>,
+    pub exclude: Option<bool>,
 }

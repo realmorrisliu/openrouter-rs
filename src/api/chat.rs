@@ -7,7 +7,9 @@ use surf::http::headers::AUTHORIZATION;
 use crate::{
     error::OpenRouterError,
     setter,
-    types::{ProviderPreferences, ReasoningConfig, Role, completion::CompletionsResponse},
+    types::{
+        ProviderPreferences, ReasoningConfig, ResponseFormat, Role, completion::CompletionsResponse,
+    },
     utils::handle_error,
 };
 
@@ -29,6 +31,7 @@ impl Message {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ChatCompletionRequest {
     model: String,
+    models: Option<Vec<String>>,
     messages: Vec<Message>,
     stream: Option<bool>,
     max_tokens: Option<u32>,
@@ -44,15 +47,16 @@ pub struct ChatCompletionRequest {
     min_p: Option<f64>,
     top_a: Option<f64>,
     transforms: Option<Vec<String>>,
-    models: Option<Vec<String>>,
     route: Option<String>,
     provider: Option<ProviderPreferences>,
+    response_format: Option<ResponseFormat>,
     reasoning: Option<ReasoningConfig>,
 }
 
 #[derive(Default)]
 pub struct ChatCompletionRequestBuilder {
     model: Option<String>,
+    models: Option<Vec<String>>,
     messages: Option<Vec<Message>>,
     stream: Option<bool>,
     max_tokens: Option<u32>,
@@ -68,9 +72,9 @@ pub struct ChatCompletionRequestBuilder {
     min_p: Option<f64>,
     top_a: Option<f64>,
     transforms: Option<Vec<String>>,
-    models: Option<Vec<String>>,
     route: Option<String>,
     provider: Option<ProviderPreferences>,
+    response_format: Option<ResponseFormat>,
     reasoning: Option<ReasoningConfig>,
 }
 
@@ -80,6 +84,7 @@ impl ChatCompletionRequestBuilder {
     }
 
     setter!(model, into String);
+    setter!(models, Vec<String>);
     setter!(messages, Vec<Message>);
     setter!(stream, bool);
     setter!(max_tokens, u32);
@@ -95,9 +100,9 @@ impl ChatCompletionRequestBuilder {
     setter!(top_a, f64);
     setter!(logit_bias, HashMap<String, f64>);
     setter!(transforms, Vec<String>);
-    setter!(models, Vec<String>);
     setter!(route, String);
     setter!(provider, ProviderPreferences);
+    setter!(response_format, ResponseFormat);
     setter!(reasoning, ReasoningConfig);
 
     pub fn build(self) -> Result<ChatCompletionRequest, OpenRouterError> {
@@ -105,6 +110,7 @@ impl ChatCompletionRequestBuilder {
             model: self
                 .model
                 .ok_or(OpenRouterError::Validation("model is required".into()))?,
+            models: self.models,
             messages: self
                 .messages
                 .ok_or(OpenRouterError::Validation("messages are required".into()))?,
@@ -122,9 +128,9 @@ impl ChatCompletionRequestBuilder {
             min_p: self.min_p,
             top_a: self.top_a,
             transforms: self.transforms,
-            models: self.models,
             route: self.route,
             provider: self.provider,
+            response_format: self.response_format,
             reasoning: self.reasoning,
         })
     }

@@ -11,13 +11,31 @@ use crate::error::OpenRouterError;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct OpenRouterConfig {
     #[serde(default)]
+    pub default_model: String,
+
+    #[serde(default)]
     pub models: ModelConfig,
+}
+
+impl OpenRouterConfig {
+    pub fn resolve_models(&mut self) {
+        self.models.resolve();
+    }
+
+    pub fn get_default_model(&self) -> &str {
+        &self.default_model
+    }
+
+    pub fn get_resolved_models(&self) -> Vec<String> {
+        self.models.resolved_models.clone()
+    }
 }
 
 impl Default for OpenRouterConfig {
     fn default() -> Self {
         let default_config = include_str!("default_config.toml");
         let mut config = toml::from_str(default_config).unwrap_or(Self {
+            default_model: "deepseek/deepseek-chat-v3-0324:free".to_string(),
             models: ModelConfig::default(),
         });
 

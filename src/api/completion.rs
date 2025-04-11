@@ -6,13 +6,16 @@ use surf::http::headers::AUTHORIZATION;
 use crate::{
     error::OpenRouterError,
     setter,
-    types::{ProviderPreferences, ReasoningConfig, completion::CompletionsResponse},
+    types::{
+        ProviderPreferences, ReasoningConfig, ResponseFormat, completion::CompletionsResponse,
+    },
     utils::handle_error,
 };
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CompletionRequest {
     model: String,
+    models: Option<Vec<String>>,
     prompt: String,
     stream: Option<bool>,
     max_tokens: Option<u32>,
@@ -28,15 +31,16 @@ pub struct CompletionRequest {
     min_p: Option<f64>,
     top_a: Option<f64>,
     transforms: Option<Vec<String>>,
-    models: Option<Vec<String>>,
     route: Option<String>,
     provider: Option<ProviderPreferences>,
+    response_format: Option<ResponseFormat>,
     reasoning: Option<ReasoningConfig>,
 }
 
 #[derive(Default)]
 pub struct CompletionRequestBuilder {
     model: Option<String>,
+    models: Option<Vec<String>>,
     prompt: Option<String>,
     stream: Option<bool>,
     max_tokens: Option<u32>,
@@ -52,9 +56,9 @@ pub struct CompletionRequestBuilder {
     min_p: Option<f64>,
     top_a: Option<f64>,
     transforms: Option<Vec<String>>,
-    models: Option<Vec<String>>,
     route: Option<String>,
     provider: Option<ProviderPreferences>,
+    response_format: Option<ResponseFormat>,
     reasoning: Option<ReasoningConfig>,
 }
 
@@ -64,6 +68,7 @@ impl CompletionRequestBuilder {
     }
 
     setter!(model, into String);
+    setter!(models, Vec<String>);
     setter!(prompt, into String);
     setter!(stream, bool);
     setter!(max_tokens, u32);
@@ -79,9 +84,9 @@ impl CompletionRequestBuilder {
     setter!(min_p, f64);
     setter!(top_a, f64);
     setter!(transforms, Vec<String>);
-    setter!(models, Vec<String>);
     setter!(route, String);
     setter!(provider, ProviderPreferences);
+    setter!(response_format, ResponseFormat);
     setter!(reasoning, ReasoningConfig);
 
     pub fn build(self) -> Result<CompletionRequest, OpenRouterError> {
@@ -89,6 +94,7 @@ impl CompletionRequestBuilder {
             model: self
                 .model
                 .ok_or(OpenRouterError::Validation("model is required".into()))?,
+            models: self.models,
             prompt: self
                 .prompt
                 .ok_or(OpenRouterError::Validation("prompt is required".into()))?,
@@ -106,9 +112,9 @@ impl CompletionRequestBuilder {
             min_p: self.min_p,
             top_a: self.top_a,
             transforms: self.transforms,
-            models: self.models,
             route: self.route,
             provider: self.provider,
+            response_format: self.response_format,
             reasoning: self.reasoning,
         })
     }

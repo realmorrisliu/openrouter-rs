@@ -1,3 +1,5 @@
+default_model = "deepseek/deepseek-chat-v3-0324:free"
+
 [models]
 enable = ["preset:thinking", "preset:coding", "preset:free"]
 
