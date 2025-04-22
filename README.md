@@ -46,7 +46,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-openrouter-rs = "0.4.1"
+openrouter-rs = "0.4.2"
 ```
 
 ## Quick Start
@@ -66,7 +66,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .base_url("https://openrouter.ai/api/v1") // optional
         .http_referer("your_referer") // optional
         .x_title("your_app") // optional
-        .build();
+        .build()?;
 
     // Builder pattern for requests
     let request = ChatCompletionRequest::builder()
@@ -90,7 +90,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ```rust
 // Simple client creation with just API key
-let client = OpenRouterClient::builder("your_api_key").build();
+let client = OpenRouterClient::builder("your_api_key").build()?;
 ```
 
 ## Key Features Explained
@@ -103,7 +103,7 @@ The client now uses a builder pattern for more flexible configuration:
 let client = OpenRouterClient::builder("your_api_key")
     .http_referer("https://yourdomain.com")
     .x_title("Your App Name")
-    .build();
+    .build()?;
 ```
 
 **Benefits:**
@@ -116,7 +116,7 @@ let client = OpenRouterClient::builder("your_api_key")
 ```rust
 use futures_util::StreamExt;
 
-let client = OpenRouterClient::builder("your_api_key").build();
+let client = OpenRouterClient::builder("your_api_key").build()?;
 let request = ChatCompletionRequest::builder()
     .model("deepseek/deepseek-chat-v3-0324:free")
     .messages(vec![Message::new(Role::User, "Tell me a joke.")])
