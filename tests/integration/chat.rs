@@ -13,10 +13,10 @@ const TEST_MODEL: &str = "deepseek/deepseek-chat-v3-0324:free";
 
 #[tokio::test]
 async fn test_basic_chat_completion() -> Result<(), OpenRouterError> {
-    let client = create_test_client();
+    let client = create_test_client()?;
     rate_limit_delay().await;
 
-    let request = ChatCompletionRequestBuilder::new()
+    let request = ChatCompletionRequestBuilder::default()
         .model(TEST_MODEL)
         .messages(vec![Message::new(
             Role::User,

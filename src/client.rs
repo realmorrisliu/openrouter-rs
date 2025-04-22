@@ -1,3 +1,4 @@
+use derive_builder::Builder;
 use futures_util::stream::BoxStream;
 
 use crate::{
@@ -10,74 +11,27 @@ use crate::{
     types::completion::CompletionsResponse,
 };
 
+#[derive(Builder)]
+#[builder(build_fn(error = "OpenRouterError"))]
 pub struct OpenRouterClient {
+    #[builder(
+        setter(into),
+        default = "String::from(\"https://openrouter.ai/api/v1\")"
+    )]
     base_url: String,
+    #[builder(setter(into, strip_option), default)]
     api_key: Option<String>,
+    #[builder(setter(into, strip_option), default)]
     provisioning_key: Option<String>,
+    #[builder(setter(into, strip_option), default)]
     http_referer: Option<String>,
+    #[builder(setter(into, strip_option), default)]
     x_title: Option<String>,
-}
-
-pub struct OpenRouterClientBuilder {
-    base_url: Option<String>,
-    api_key: Option<String>,
-    provisioning_key: Option<String>,
-    http_referer: Option<String>,
-    x_title: Option<String>,
-}
-
-impl OpenRouterClientBuilder {
-    pub fn new() -> Self {
-        Self {
-            base_url: None,
-            api_key: None,
-            provisioning_key: None,
-            http_referer: None,
-            x_title: None,
-        }
-    }
-
-    pub fn base_url(mut self, base_url: impl Into<String>) -> Self {
-        self.base_url = Some(base_url.into());
-        self
-    }
-
-    pub fn api_key(mut self, api_key: impl Into<String>) -> Self {
-        self.api_key = Some(api_key.into());
-        self
-    }
-
-    pub fn provisioning_key(mut self, provisioning_key: impl Into<String>) -> Self {
-        self.provisioning_key = Some(provisioning_key.into());
-        self
-    }
-
-    pub fn http_referer(mut self, http_referer: impl Into<String>) -> Self {
-        self.http_referer = Some(http_referer.into());
-        self
-    }
-
-    pub fn x_title(mut self, x_title: impl Into<String>) -> Self {
-        self.x_title = Some(x_title.into());
-        self
-    }
-
-    pub fn build(self) -> OpenRouterClient {
-        OpenRouterClient {
-            base_url: self
-                .base_url
-                .unwrap_or_else(|| "https://openrouter.ai/api/v1".to_string()),
-            api_key: self.api_key,
-            provisioning_key: self.provisioning_key,
-            http_referer: self.http_referer,
-            x_title: self.x_title,
-        }
-    }
 }
 
 impl OpenRouterClient {
     pub fn builder() -> OpenRouterClientBuilder {
-        OpenRouterClientBuilder::new()
+        OpenRouterClientBuilder::default()
     }
 
     /// Sets the API key after client construction.

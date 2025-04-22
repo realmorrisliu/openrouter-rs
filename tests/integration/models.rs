@@ -4,7 +4,7 @@ use super::test_utils::{create_test_client, rate_limit_delay};
 
 #[tokio::test]
 async fn test_list_models() -> Result<(), OpenRouterError> {
-    let client = create_test_client();
+    let client = create_test_client()?;
 
     rate_limit_delay().await;
 

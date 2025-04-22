@@ -52,8 +52,8 @@ pub enum OpenRouterError {
     KeyNotConfigured,
 
     // Data processing errors
-    #[error("Validation error: {0}")]
-    Validation(String),
+    #[error("Uninitialized field error: {0}")]
+    UninitializedFieldError(#[from] derive_builder::UninitializedFieldError),
 
     #[error("Serialization error: {0}")]
     Serialization(#[from] serde_json::Error),

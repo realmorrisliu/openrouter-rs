@@ -6,7 +6,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let provisioning_key = dotenv!("OPENROUTER_PROVISIONING_KEY");
     let client = OpenRouterClient::builder()
         .provisioning_key(provisioning_key)
-        .build();
+        .build()?;
 
     let updated_api_key = client
         .update_api_key(

@@ -3,7 +3,7 @@ use openrouter_rs::error::OpenRouterError;
 
 #[tokio::test]
 async fn test_get_current_api_key_info() -> Result<(), OpenRouterError> {
-    let client = create_test_client();
+    let client = create_test_client()?;
     rate_limit_delay().await;
 
     let key_info = client.get_current_api_key_info().await?;

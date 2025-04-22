@@ -3,7 +3,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use openrouter_rs::client::OpenRouterClient;
+use openrouter_rs::{client::OpenRouterClient, error::OpenRouterError};
 use tokio::time::sleep;
 
 pub fn get_test_api_key() -> String {
@@ -11,7 +11,7 @@ pub fn get_test_api_key() -> String {
         .expect("OPENROUTER_API_KEY environment variable not set for integration tests")
 }
 
-pub fn create_test_client() -> OpenRouterClient {
+pub fn create_test_client() -> Result<OpenRouterClient, OpenRouterError> {
     OpenRouterClient::builder()
         .api_key(get_test_api_key())
         .base_url("https://openrouter.ai/api/v1")

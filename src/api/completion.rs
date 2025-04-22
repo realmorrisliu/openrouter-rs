@@ -1,128 +1,113 @@
 use std::collections::HashMap;
 
+use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use surf::http::headers::AUTHORIZATION;
 
 use crate::{
     error::OpenRouterError,
-    setter,
+    strip_option_map_setter, strip_option_vec_setter,
     types::{
         ProviderPreferences, ReasoningConfig, ResponseFormat, completion::CompletionsResponse,
     },
     utils::handle_error,
 };
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Builder)]
+#[builder(build_fn(error = "OpenRouterError"))]
 pub struct CompletionRequest {
+    #[builder(setter(into))]
     model: String,
-    models: Option<Vec<String>>,
-    prompt: String,
-    stream: Option<bool>,
-    max_tokens: Option<u32>,
-    temperature: Option<f64>,
-    seed: Option<u32>,
-    top_p: Option<f64>,
-    top_k: Option<u32>,
-    frequency_penalty: Option<f64>,
-    presence_penalty: Option<f64>,
-    repetition_penalty: Option<f64>,
-    logit_bias: Option<HashMap<String, f64>>,
-    top_logprobs: Option<u32>,
-    min_p: Option<f64>,
-    top_a: Option<f64>,
-    transforms: Option<Vec<String>>,
-    route: Option<String>,
-    provider: Option<ProviderPreferences>,
-    response_format: Option<ResponseFormat>,
-    reasoning: Option<ReasoningConfig>,
-}
 
-#[derive(Default)]
-pub struct CompletionRequestBuilder {
-    model: Option<String>,
-    models: Option<Vec<String>>,
-    prompt: Option<String>,
+    #[builder(setter(into))]
+    prompt: String,
+
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     stream: Option<bool>,
+
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     max_tokens: Option<u32>,
+
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     temperature: Option<f64>,
+
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     seed: Option<u32>,
+
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     top_p: Option<f64>,
+
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     top_k: Option<u32>,
+
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     frequency_penalty: Option<f64>,
+
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     presence_penalty: Option<f64>,
+
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     repetition_penalty: Option<f64>,
+
+    #[builder(setter(custom), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     logit_bias: Option<HashMap<String, f64>>,
+
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     top_logprobs: Option<u32>,
+
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     min_p: Option<f64>,
+
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     top_a: Option<f64>,
+
+    #[builder(setter(custom), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     transforms: Option<Vec<String>>,
+
+    #[builder(setter(custom), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    models: Option<Vec<String>>,
+
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     route: Option<String>,
+
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     provider: Option<ProviderPreferences>,
+
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     response_format: Option<ResponseFormat>,
+
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     reasoning: Option<ReasoningConfig>,
 }
 
 impl CompletionRequestBuilder {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    setter!(model, into String);
-    setter!(models, Vec<String>);
-    setter!(prompt, into String);
-    setter!(stream, bool);
-    setter!(max_tokens, u32);
-    setter!(temperature, f64);
-    setter!(seed, u32);
-    setter!(top_p, f64);
-    setter!(top_k, u32);
-    setter!(frequency_penalty, f64);
-    setter!(presence_penalty, f64);
-    setter!(repetition_penalty, f64);
-    setter!(logit_bias, HashMap<String, f64>);
-    setter!(top_logprobs, u32);
-    setter!(min_p, f64);
-    setter!(top_a, f64);
-    setter!(transforms, Vec<String>);
-    setter!(route, String);
-    setter!(provider, ProviderPreferences);
-    setter!(response_format, ResponseFormat);
-    setter!(reasoning, ReasoningConfig);
-
-    pub fn build(self) -> Result<CompletionRequest, OpenRouterError> {
-        Ok(CompletionRequest {
-            model: self
-                .model
-                .ok_or(OpenRouterError::Validation("model is required".into()))?,
-            models: self.models,
-            prompt: self
-                .prompt
-                .ok_or(OpenRouterError::Validation("prompt is required".into()))?,
-            stream: self.stream,
-            max_tokens: self.max_tokens,
-            temperature: self.temperature,
-            seed: self.seed,
-            top_p: self.top_p,
-            top_k: self.top_k,
-            frequency_penalty: self.frequency_penalty,
-            presence_penalty: self.presence_penalty,
-            repetition_penalty: self.repetition_penalty,
-            logit_bias: self.logit_bias,
-            top_logprobs: self.top_logprobs,
-            min_p: self.min_p,
-            top_a: self.top_a,
-            transforms: self.transforms,
-            route: self.route,
-            provider: self.provider,
-            response_format: self.response_format,
-            reasoning: self.reasoning,
-        })
-    }
+    strip_option_vec_setter!(models, String);
+    strip_option_map_setter!(logit_bias, String, f64);
+    strip_option_vec_setter!(transforms, String);
 }
 
 impl CompletionRequest {
     pub fn builder() -> CompletionRequestBuilder {
-        CompletionRequestBuilder::new()
+        CompletionRequestBuilder::default()
     }
 
     pub fn new(model: &str, prompt: &str) -> Self {

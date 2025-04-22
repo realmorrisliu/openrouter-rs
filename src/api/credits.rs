@@ -1,51 +1,23 @@
 use std::collections::HashMap;
 
+use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use surf::http::headers::AUTHORIZATION;
 
-use crate::{error::OpenRouterError, setter, types::ApiResponse, utils::handle_error};
+use crate::{error::OpenRouterError, types::ApiResponse, utils::handle_error};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Builder)]
+#[builder(build_fn(error = "OpenRouterError"))]
 pub struct CoinbaseChargeRequest {
     amount: f64,
+    #[builder(setter(into))]
     sender: String,
     chain_id: u32,
 }
 
-#[derive(Default)]
-pub struct CoinbaseChargeRequestBuilder {
-    amount: Option<f64>,
-    sender: Option<String>,
-    chain_id: Option<u32>,
-}
-
-impl CoinbaseChargeRequestBuilder {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    setter!(amount, f64);
-    setter!(sender, into String);
-    setter!(chain_id, u32);
-
-    pub fn build(self) -> Result<CoinbaseChargeRequest, OpenRouterError> {
-        Ok(CoinbaseChargeRequest {
-            amount: self
-                .amount
-                .ok_or(OpenRouterError::Validation("amount is required".into()))?,
-            sender: self
-                .sender
-                .ok_or(OpenRouterError::Validation("sender is required".into()))?,
-            chain_id: self
-                .chain_id
-                .ok_or(OpenRouterError::Validation("chain_id is required".into()))?,
-        })
-    }
-}
-
 impl CoinbaseChargeRequest {
     pub fn builder() -> CoinbaseChargeRequestBuilder {
-        CoinbaseChargeRequestBuilder::new()
+        CoinbaseChargeRequestBuilder::default()
     }
 
     pub fn new(amount: f64, sender: &str, chain_id: u32) -> Self {

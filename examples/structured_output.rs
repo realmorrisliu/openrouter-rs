@@ -12,7 +12,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .api_key(api_key)
         .http_referer("https://github.com/realmorrisliu/openrouter-rs")
         .x_title("openrouter-rs")
-        .build();
+        .build()?;
 
     let format = ResponseFormat::json_schema(
         "character_info",

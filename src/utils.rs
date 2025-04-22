@@ -1,52 +1,35 @@
 use crate::{api::errors::ApiErrorResponse, error::OpenRouterError};
 use surf::Response;
 
-/// A macro for generating builder-style setter methods.
-///
-/// This macro provides two variants:
-/// 1. Direct assignment: `setter!(field_name, FieldType)`
-/// 2. Automatic Into conversion: `setter!(field_name, into TargetType)`
-///
-/// # Examples
-///
-/// ```rust
-/// struct Builder {
-///     name: Option<String>,
-///     count: Option<u32>,
-/// }
-///
-/// impl Builder {
-///     setter!(name, into String);  // Accepts any type that implements Into<String>
-///     setter!(count, u32);         // Only accepts u32
-///
-///     pub fn build(self) -> Self {
-///         self
-///     }
-/// }
-///
-/// let builder = Builder {
-///     name: None,
-///     count: None,
-/// }
-/// .name("test")    // &str automatically converted to String
-/// .count(42);      // Direct u32 assignment
-/// ```
 #[macro_export]
-macro_rules! setter {
-    // Direct value assignment
-    ($name:ident, $type:ty) => {
-        #[doc = concat!("Sets the `", stringify!($name), "` field directly.")]
-        pub fn $name(mut self, value: $type) -> Self {
-            self.$name = Some(value);
+macro_rules! strip_option_vec_setter {
+    ($field:ident, $item_ty:ty) => {
+        pub fn $field<T, S>(&mut self, items: T) -> &mut Self
+        where
+            T: IntoIterator<Item = S>,
+            S: Into<$item_ty>,
+        {
+            self.$field = Some(Some(items.into_iter().map(Into::into).collect()));
             self
         }
     };
+}
 
-    // Automatic Into conversion
-    ($name:ident, into $type:ty) => {
-        #[doc = concat!("Sets the `", stringify!($name), "` field with automatic conversion using `Into<", stringify!($type), ">`.")]
-        pub fn $name(mut self, value: impl Into<$type>) -> Self {
-            self.$name = Some(value.into());
+#[macro_export]
+macro_rules! strip_option_map_setter {
+    ($field:ident, $key_ty:ty, $val_ty:ty) => {
+        pub fn $field<K, V, T>(&mut self, items: T) -> &mut Self
+        where
+            T: IntoIterator<Item = (K, V)>,
+            K: Into<$key_ty>,
+            V: Into<$val_ty>,
+        {
+            let map: std::collections::HashMap<$key_ty, $val_ty> = items
+                .into_iter()
+                .map(|(k, v)| (k.into(), v.into()))
+                .collect();
+
+            self.$field = Some(Some(map));
             self
         }
     };
