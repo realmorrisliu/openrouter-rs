@@ -2,7 +2,11 @@ use serde::{Deserialize, Serialize};
 use surf::http::headers::AUTHORIZATION;
 use urlencoding::encode;
 
-use crate::{error::OpenRouterError, types::ApiResponse, utils::handle_error};
+use crate::{
+    error::OpenRouterError,
+    types::{ApiResponse, ModelCategory},
+    utils::handle_error,
+};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Model {
@@ -87,12 +91,24 @@ pub struct EndpointArchitecture {
 ///
 /// * `base_url` - The base URL of the OpenRouter API.
 /// * `api_key` - The API key for authentication.
+/// * `category` - The category of the models.
 ///
 /// # Returns
 ///
 /// * `Result<Vec<Model>, OpenRouterError>` - A list of models or an error.
-pub async fn list_models(base_url: &str, api_key: &str) -> Result<Vec<Model>, OpenRouterError> {
-    let url = format!("{}/models", base_url);
+pub async fn list_models(
+    base_url: &str,
+    api_key: &str,
+    category: Option<ModelCategory>,
+) -> Result<Vec<Model>, OpenRouterError> {
+    let url = match category {
+        Some(category) => {
+            format!("{}/models?category={}", base_url, category)
+        }
+        None => {
+            format!("{}/models", base_url)
+        }
+    };
 
     let mut response = surf::get(url)
         .header(AUTHORIZATION, format!("Bearer {}", api_key))

@@ -8,7 +8,7 @@ use crate::{
         completion, credits, generation, models,
     },
     error::OpenRouterError,
-    types::completion::CompletionsResponse,
+    types::{ModelCategory, completion::CompletionsResponse},
 };
 
 #[derive(Builder)]
@@ -520,7 +520,35 @@ impl OpenRouterClient {
     /// ```
     pub async fn list_models(&self) -> Result<Vec<models::Model>, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            models::list_models(&self.base_url, api_key).await
+            models::list_models(&self.base_url, api_key, None).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Returns a list of models available through the API by category.
+    ///
+    /// # Arguments
+    ///
+    /// * `category` - The category of the models.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Vec<models::Model>, OpenRouterError>` - A list of models or an error.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let client = OpenRouterClient::builder().api_key("your_api_key").build();
+    /// let models = client.list_models_by_category(ModelCategory::TextCompletion).await?;
+    /// println!("{:?}", models);
+    /// ```
+    pub async fn list_models_by_category(
+        &self,
+        category: ModelCategory,
+    ) -> Result<Vec<models::Model>, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            models::list_models(&self.base_url, api_key, Some(category)).await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }

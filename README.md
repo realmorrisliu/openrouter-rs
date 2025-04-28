@@ -2,6 +2,12 @@
 
 `openrouter-rs` is a third-party Rust SDK that helps you interact with the OpenRouter API. It wraps various endpoints of the OpenRouter API, making it easier to use in Rust projects. By taking advantage of Rust's strengths like type safety, memory safety, and concurrency without data races, `openrouter-rs` ensures a solid and reliable integration with the OpenRouter API.
 
+## Release Notes
+
+### Version 0.4.3
+
+- Added: Support for listing models by category (Thanks OpenRouter team! [Details](https://github.com/zed-industries/zed/discussions/16576#discussioncomment-12952507))
+
 ## Current Status
 
 This SDK is currently in active development and supports both simple and advanced usage patterns. I've implemented basic integration tests covering:
@@ -46,7 +52,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-openrouter-rs = "0.4.2"
+openrouter-rs = "0.4.3"
 ```
 
 ## Quick Start
