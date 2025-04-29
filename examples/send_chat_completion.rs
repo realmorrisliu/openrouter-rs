@@ -25,7 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build()?;
 
     let chat_response = client.send_chat_completion(&chat_request).await?;
-    println!("{:?}", chat_response);
+    println!("{:?}", chat_response.choices[0].content().unwrap());
 
     Ok(())
 }

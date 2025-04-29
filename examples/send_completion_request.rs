@@ -16,7 +16,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build()?;
 
     let completion_response = client.send_completion_request(&completion_request).await?;
-    println!("{:?}", completion_response);
+    println!("{:?}", completion_response.choices[0].content().unwrap());
 
     Ok(())
 }
