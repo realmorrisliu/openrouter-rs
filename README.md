@@ -68,7 +68,8 @@ use openrouter_rs::{
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Using the builder pattern for client configuration
-    let client = OpenRouterClient::builder("your_api_key")
+    let client = OpenRouterClient::builder()
+        .api_key("your_api_key")
         .base_url("https://openrouter.ai/api/v1") // optional
         .http_referer("your_referer") // optional
         .x_title("your_app") // optional
@@ -96,7 +97,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ```rust
 // Simple client creation with just API key
-let client = OpenRouterClient::builder("your_api_key").build()?;
+let client = OpenRouterClient::builder()
+    .api_key("your_api_key")
+    .build()?;
 ```
 
 ## Key Features Explained
@@ -106,7 +109,8 @@ let client = OpenRouterClient::builder("your_api_key").build()?;
 The client now uses a builder pattern for more flexible configuration:
 
 ```rust
-let client = OpenRouterClient::builder("your_api_key")
+let client = OpenRouterClient::builder()
+    .api_key("your_api_key")
     .http_referer("https://yourdomain.com")
     .x_title("Your App Name")
     .build()?;
@@ -122,21 +126,26 @@ let client = OpenRouterClient::builder("your_api_key")
 ```rust
 use futures_util::StreamExt;
 
-let client = OpenRouterClient::builder("your_api_key").build()?;
+let client = OpenRouterClient::builder()
+    .api_key("your_api_key")
+    .build()?;
 let request = ChatCompletionRequest::builder()
     .model("deepseek/deepseek-chat-v3-0324:free")
     .messages(vec![Message::new(Role::User, "Tell me a joke.")])
-    .max_tokens(50)
-    .temperature(0.5)
     .build()?;
-
-let mut stream = client.stream_chat_completion(&request).await?;
-while let Some(event) = stream.next().await {
-    match event {
-        Ok(event) => print!("{}", event.choices[0].delta.content.unwrap_or_default()),
-        Err(e) => eprintln!("Error: {}", e),
-    }
-}
+let response = client.stream_chat_completion(&request).await?;
+response
+    .filter_map(|event| async { event.ok() })
+    .for_each(|event| async move {
+        event.choices.into_iter().for_each(|choice| {
+            if let Choice::Streaming(c) = choice {
+                if let Some(content) = c.delta.content {
+                    println!("{}", content);
+                }
+            }
+        });
+    })
+    .await;
 ```
 
 ### 3. Error Handling
@@ -184,8 +193,8 @@ If upgrading from older versions:
 
 | Old Style | New Recommended Style |
 |-----------|-----------------------|
-| `OpenRouterClient::new(key)` | `OpenRouterClient::builder(key).build()` |
-| `client.base_url("url")` | `OpenRouterClient::builder(key).base_url("url").build()` |
+| `OpenRouterClient::new(key)` | `OpenRouterClient::builder().api_key(key).build()` |
+| `client.base_url("url")` | `OpenRouterClient::builder().api_key(key).base_url("url").build()` |
 | `ChatCompletionRequest::new()` | `ChatCompletionRequest::builder().build()` |
 
 ## Risk Disclaimer
