@@ -105,6 +105,7 @@ pub struct CompletionsResponse {
     pub model: String,
     #[serde(rename = "object")]
     pub object_type: ObjectType,
+    pub provider: Option<String>,
     pub system_fingerprint: Option<String>,
     pub usage: Option<ResponseUsage>,
 }

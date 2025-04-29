@@ -3,7 +3,7 @@ use futures_util::StreamExt;
 use openrouter_rs::{
     OpenRouterClient,
     api::chat::{ChatCompletionRequest, Message},
-    types::Role,
+    types::{Choice, Role},
 };
 
 #[tokio::main]
@@ -20,14 +20,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .temperature(0.7)
         .build()?;
 
-    let mut response = client.stream_chat_completion(&chat_request).await?;
+    let response = client.stream_chat_completion(&chat_request).await?;
 
-    while let Some(event) = response.next().await {
-        match event {
-            Ok(event) => println!("{:?}", event),
-            Err(err) => eprintln!("Error: {}", err),
-        }
-    }
+    response
+        .filter_map(|event| async { event.ok() })
+        .for_each(|event| async move {
+            event
+                .choices
+                .into_iter()
+                .filter_map(|choice| match choice {
+                    Choice::Streaming(choice) => {
+                        if choice.finish_reason.is_some() {
+                            println!("{:?}", choice);
+                        }
+
+                        choice.delta.content
+                    }
+                    _ => None,
+                })
+                .for_each(|content| println!("{}", content));
+        })
+        .await;
 
     Ok(())
 }

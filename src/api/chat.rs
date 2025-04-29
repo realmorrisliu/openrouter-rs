@@ -187,21 +187,6 @@ pub async fn send_chat_completion(
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ChatCompletionStreamEvent {
-    id: Option<String>,
-    provider: Option<String>,
-    model: Option<String>,
-    object: Option<String>,
-    created: Option<u64>,
-    choices: Option<Vec<DeltaChoice>>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct DeltaChoice {
-    delta: Option<Message>,
-}
-
 /// Stream chat completion events from a selected model.
 ///
 /// # Arguments
@@ -212,13 +197,12 @@ pub struct DeltaChoice {
 ///
 /// # Returns
 ///
-/// * `Result<BoxStream<'static, Result<ChatCompletionStreamEvent, OpenRouterError>>, OpenRouterError>` - A stream of chat completion events or an error.
+/// * `Result<BoxStream<'static, Result<CompletionsResponse, OpenRouterError>>, OpenRouterError>` - A stream of chat completion events or an error.
 pub async fn stream_chat_completion(
     base_url: &str,
     api_key: &str,
     request: &ChatCompletionRequest,
-) -> Result<BoxStream<'static, Result<ChatCompletionStreamEvent, OpenRouterError>>, OpenRouterError>
-{
+) -> Result<BoxStream<'static, Result<CompletionsResponse, OpenRouterError>>, OpenRouterError> {
     let url = format!("{}/chat/completions", base_url);
 
     // Ensure that the request is streaming to get a continuous response
@@ -236,7 +220,7 @@ pub async fn stream_chat_completion(
                 Ok(line) => line
                     .strip_prefix("data: ")
                     .filter(|line| *line != "[DONE]")
-                    .map(|line| serde_json::from_str::<ChatCompletionStreamEvent>(line))
+                    .map(|line| serde_json::from_str::<CompletionsResponse>(line))
                     .map(|event| event.map_err(|err| OpenRouterError::Serialization(err))),
                 Err(error) => Some(Err(OpenRouterError::Io(error))),
             })

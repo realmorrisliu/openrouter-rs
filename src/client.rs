@@ -2,11 +2,7 @@ use derive_builder::Builder;
 use futures_util::stream::BoxStream;
 
 use crate::{
-    api::{
-        api_keys, auth,
-        chat::{self, ChatCompletionStreamEvent},
-        completion, credits, generation, models,
-    },
+    api::{api_keys, auth, chat, completion, credits, generation, models},
     error::OpenRouterError,
     types::{ModelCategory, completion::CompletionsResponse},
 };
@@ -345,7 +341,7 @@ impl OpenRouterClient {
     ///
     /// # Returns
     ///
-    /// * `Result<BoxStream<'static, Result<ChatCompletionStreamEvent, OpenRouterError>>, OpenRouterError>` - A stream of chat completion events or an error.
+    /// * `Result<BoxStream<'static, Result<CompletionsResponse, OpenRouterError>>, OpenRouterError>` - A stream of chat completion events or an error.
     ///
     /// # Example
     ///
@@ -368,10 +364,8 @@ impl OpenRouterClient {
     pub async fn stream_chat_completion(
         &self,
         request: &chat::ChatCompletionRequest,
-    ) -> Result<
-        BoxStream<'static, Result<ChatCompletionStreamEvent, OpenRouterError>>,
-        OpenRouterError,
-    > {
+    ) -> Result<BoxStream<'static, Result<CompletionsResponse, OpenRouterError>>, OpenRouterError>
+    {
         if let Some(api_key) = &self.api_key {
             chat::stream_chat_completion(&self.base_url, api_key, request).await
         } else {
