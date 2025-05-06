@@ -1,6 +1,6 @@
 [package]
 name = "openrouter-rs"
-version = "0.4.3"
+version = "0.4.4"
 edition = "2024"
 authors = ["luckywood <morrisliu1994@outlook.com>"]
 description = "A type-safe OpenRouter Rust SDK"

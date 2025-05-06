@@ -4,6 +4,10 @@
 
 ## Release Notes
 
+### Version 0.4.4
+
+- Added: Support for listing models by supported parameters (Please note: The OpenRouter API currently does not support filtering by both `category` and `supported_parameters` at the same time. Additionally, you can only pass in a single `category` or `supported_parameters` value—not an array.)
+
 ### Version 0.4.3
 
 - Added: Support for listing models by category (Thanks OpenRouter team! [Details](https://github.com/zed-industries/zed/discussions/16576#discussioncomment-12952507))
@@ -52,7 +56,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-openrouter-rs = "0.4.3"
+openrouter-rs = "0.4.4"
 ```
 
 ## Quick Start

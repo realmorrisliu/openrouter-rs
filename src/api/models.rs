@@ -4,7 +4,7 @@ use urlencoding::encode;
 
 use crate::{
     error::OpenRouterError,
-    types::{ApiResponse, ModelCategory},
+    types::{ApiResponse, ModelCategory, SupportedParameters},
     utils::handle_error,
 };
 
@@ -100,12 +100,19 @@ pub async fn list_models(
     base_url: &str,
     api_key: &str,
     category: Option<ModelCategory>,
+    supported_parameters: Option<SupportedParameters>,
 ) -> Result<Vec<Model>, OpenRouterError> {
-    let url = match category {
-        Some(category) => {
+    let url = match (category, supported_parameters) {
+        (Some(category), None) => {
             format!("{}/models?category={}", base_url, category)
         }
-        None => {
+        (None, Some(supported_parameters)) => {
+            format!(
+                "{}/models?supported_parameters={}",
+                base_url, supported_parameters
+            )
+        }
+        _ => {
             format!("{}/models", base_url)
         }
     };

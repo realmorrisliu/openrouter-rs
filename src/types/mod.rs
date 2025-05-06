@@ -115,3 +115,82 @@ impl ModelCategory {
         ]
     }
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum SupportedParameters {
+    Tools,
+    Temperature,
+    TopP,
+    TopK,
+    MinP,
+    TopA,
+    FrequencyPenalty,
+    PresencePenalty,
+    RepetitionPenalty,
+    MaxTokens,
+    LogitBias,
+    Logprobs,
+    TopLogprobs,
+    Seed,
+    ResponseFormat,
+    StructuredOutputs,
+    Stop,
+    IncludeReasoning,
+    Reasoning,
+    WebSearchOptions,
+}
+
+impl Display for SupportedParameters {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SupportedParameters::Tools => write!(f, "tools"),
+            SupportedParameters::Temperature => write!(f, "temperature"),
+            SupportedParameters::TopP => write!(f, "top_p"),
+            SupportedParameters::TopK => write!(f, "top_k"),
+            SupportedParameters::MinP => write!(f, "min_p"),
+            SupportedParameters::TopA => write!(f, "top_a"),
+            SupportedParameters::FrequencyPenalty => write!(f, "frequency_penalty"),
+            SupportedParameters::PresencePenalty => write!(f, "presence_penalty"),
+            SupportedParameters::RepetitionPenalty => write!(f, "repetition_penalty"),
+            SupportedParameters::MaxTokens => write!(f, "max_tokens"),
+            SupportedParameters::LogitBias => write!(f, "logit_bias"),
+            SupportedParameters::Logprobs => write!(f, "logprobs"),
+            SupportedParameters::TopLogprobs => write!(f, "top_logprobs"),
+            SupportedParameters::Seed => write!(f, "seed"),
+            SupportedParameters::ResponseFormat => write!(f, "response_format"),
+            SupportedParameters::StructuredOutputs => write!(f, "structured_outputs"),
+            SupportedParameters::Stop => write!(f, "stop"),
+            SupportedParameters::IncludeReasoning => write!(f, "include_reasoning"),
+            SupportedParameters::Reasoning => write!(f, "reasoning"),
+            SupportedParameters::WebSearchOptions => write!(f, "web_search_options"),
+        }
+    }
+}
+
+impl SupportedParameters {
+    pub fn all() -> Vec<SupportedParameters> {
+        vec![
+            SupportedParameters::Tools,
+            SupportedParameters::Temperature,
+            SupportedParameters::TopP,
+            SupportedParameters::TopK,
+            SupportedParameters::MinP,
+            SupportedParameters::TopA,
+            SupportedParameters::FrequencyPenalty,
+            SupportedParameters::PresencePenalty,
+            SupportedParameters::RepetitionPenalty,
+            SupportedParameters::MaxTokens,
+            SupportedParameters::LogitBias,
+            SupportedParameters::Logprobs,
+            SupportedParameters::TopLogprobs,
+            SupportedParameters::Seed,
+            SupportedParameters::ResponseFormat,
+            SupportedParameters::StructuredOutputs,
+            SupportedParameters::Stop,
+            SupportedParameters::IncludeReasoning,
+            SupportedParameters::Reasoning,
+            SupportedParameters::WebSearchOptions,
+        ]
+    }
+}

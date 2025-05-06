@@ -4,7 +4,7 @@ use futures_util::stream::BoxStream;
 use crate::{
     api::{api_keys, auth, chat, completion, credits, generation, models},
     error::OpenRouterError,
-    types::{ModelCategory, completion::CompletionsResponse},
+    types::{ModelCategory, SupportedParameters, completion::CompletionsResponse},
 };
 
 #[derive(Builder)]
@@ -514,7 +514,7 @@ impl OpenRouterClient {
     /// ```
     pub async fn list_models(&self) -> Result<Vec<models::Model>, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            models::list_models(&self.base_url, api_key, None).await
+            models::list_models(&self.base_url, api_key, None, None).await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -542,7 +542,35 @@ impl OpenRouterClient {
         category: ModelCategory,
     ) -> Result<Vec<models::Model>, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            models::list_models(&self.base_url, api_key, Some(category)).await
+            models::list_models(&self.base_url, api_key, Some(category), None).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Returns a list of models available for the specified supported parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `supported_parameters` - The supported parameters for the models.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Vec<models::Model>, OpenRouterError>` - A list of models or an error.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let client = OpenRouterClient::builder().api_key("your_api_key").build();
+    /// let models = client.list_models_by_parameters(SupportedParameters::Tools).await?;
+    /// println!("{:?}", models);
+    /// ```
+    pub async fn list_models_by_parameters(
+        &self,
+        supported_parameters: SupportedParameters,
+    ) -> Result<Vec<models::Model>, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            models::list_models(&self.base_url, api_key, None, Some(supported_parameters)).await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
