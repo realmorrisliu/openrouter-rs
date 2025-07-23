@@ -52,7 +52,7 @@ pub fn load_config(config_path: impl AsRef<Path>) -> Result<OpenRouterConfig, Op
         return Ok(OpenRouterConfig::default());
     }
 
-    let config_content = fs::read_to_string(&config_path).map_err(|e| {
+    let config_content = fs::read_to_string(config_path).map_err(|e| {
         OpenRouterError::ConfigError(format!(
             "Failed to read config file at {}: {}",
             config_path.display(),

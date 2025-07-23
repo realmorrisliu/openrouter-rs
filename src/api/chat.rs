@@ -160,13 +160,13 @@ pub async fn send_chat_completion(
     http_referer: &Option<String>,
     request: &ChatCompletionRequest,
 ) -> Result<CompletionsResponse, OpenRouterError> {
-    let url = format!("{}/chat/completions", base_url);
+    let url = format!("{base_url}/chat/completions");
 
     // Ensure that the request is not streaming to get a single response
     let request = request.stream(false);
 
     let mut surf_req = surf::post(url)
-        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .header(AUTHORIZATION, format!("Bearer {api_key}"))
         .body_json(&request)?;
 
     if let Some(x_title) = x_title {
@@ -203,13 +203,13 @@ pub async fn stream_chat_completion(
     api_key: &str,
     request: &ChatCompletionRequest,
 ) -> Result<BoxStream<'static, Result<CompletionsResponse, OpenRouterError>>, OpenRouterError> {
-    let url = format!("{}/chat/completions", base_url);
+    let url = format!("{base_url}/chat/completions");
 
     // Ensure that the request is streaming to get a continuous response
     let request = request.stream(true);
 
     let response = surf::post(url)
-        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .header(AUTHORIZATION, format!("Bearer {api_key}"))
         .body_json(&request)?
         .await?;
 
@@ -220,8 +220,8 @@ pub async fn stream_chat_completion(
                 Ok(line) => line
                     .strip_prefix("data: ")
                     .filter(|line| *line != "[DONE]")
-                    .map(|line| serde_json::from_str::<CompletionsResponse>(line))
-                    .map(|event| event.map_err(|err| OpenRouterError::Serialization(err))),
+                    .map(serde_json::from_str::<CompletionsResponse>)
+                    .map(|event| event.map_err(OpenRouterError::Serialization)),
                 Err(error) => Some(Err(OpenRouterError::Io(error))),
             })
             .boxed();

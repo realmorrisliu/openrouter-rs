@@ -1,6 +1,6 @@
 #[test]
 fn dummy_test() {
-    assert!(true);
+    // This is a placeholder test
 }
 
 pub mod api_keys;

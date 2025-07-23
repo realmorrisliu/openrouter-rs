@@ -61,10 +61,10 @@ pub async fn create_coinbase_charge(
     api_key: &str,
     request: &CoinbaseChargeRequest,
 ) -> Result<CoinbaseChargeData, OpenRouterError> {
-    let url = format!("{}/credits/coinbase", base_url);
+    let url = format!("{base_url}/credits/coinbase");
 
     let mut response = surf::post(url)
-        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .header(AUTHORIZATION, format!("Bearer {api_key}"))
         .body_json(request)?
         .await?;
 
@@ -88,10 +88,10 @@ pub async fn create_coinbase_charge(
 ///
 /// * `Result<CreditsData, OpenRouterError>` - The response data containing the total credits and usage.
 pub async fn get_credits(base_url: &str, api_key: &str) -> Result<CreditsData, OpenRouterError> {
-    let url = format!("{}/credits", base_url);
+    let url = format!("{base_url}/credits");
 
     let mut response = surf::get(url)
-        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .header(AUTHORIZATION, format!("Bearer {api_key}"))
         .await?;
 
     if response.status().is_success() {

@@ -41,7 +41,7 @@ pub async fn exchange_code_for_api_key(
     code_verifier: Option<&str>,
     code_challenge_method: Option<CodeChallengeMethod>,
 ) -> Result<AuthResponse, OpenRouterError> {
-    let url = format!("{}/auth/keys", base_url);
+    let url = format!("{base_url}/auth/keys");
     let request = AuthRequest {
         code: code.to_string(),
         code_verifier: code_verifier.map(|s| s.to_string()),

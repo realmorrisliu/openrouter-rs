@@ -9,7 +9,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let models = client
         .list_models_by_parameters(SupportedParameters::Tools)
         .await?;
-    println!("{:?}", models);
+    println!("{models:?}");
 
     Ok(())
 }

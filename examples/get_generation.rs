@@ -15,7 +15,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let completion_response = client.send_completion_request(&completion_request).await?;
 
-    println!("{:?}", completion_response);
+    println!("{completion_response:?}");
 
     // Wait for the completion to finish
     tokio::time::sleep(std::time::Duration::from_secs(10)).await;
@@ -23,7 +23,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let generation_id = completion_response.id;
     let generation_data = client.get_generation(&generation_id).await?;
-    println!("{:?}", generation_data);
+    println!("{generation_data:?}");
 
     Ok(())
 }

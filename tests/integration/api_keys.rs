@@ -2,6 +2,7 @@ use super::test_utils::{create_test_client, rate_limit_delay};
 use openrouter_rs::error::OpenRouterError;
 
 #[tokio::test]
+#[allow(clippy::result_large_err)]
 async fn test_get_current_api_key_info() -> Result<(), OpenRouterError> {
     let client = create_test_client()?;
     rate_limit_delay().await;
@@ -15,6 +16,6 @@ async fn test_get_current_api_key_info() -> Result<(), OpenRouterError> {
         "Should have positive request limit"
     );
 
-    println!("Current API key info: {:?}", key_info);
+    println!("Current API key info: {key_info:?}");
     Ok(())
 }

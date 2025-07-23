@@ -9,7 +9,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let endpoints = client
         .list_model_endpoints("deepseek", "deepseek-chat:free")
         .await?;
-    println!("{:?}", endpoints);
+    println!("{endpoints:?}");
 
     Ok(())
 }

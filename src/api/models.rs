@@ -104,21 +104,18 @@ pub async fn list_models(
 ) -> Result<Vec<Model>, OpenRouterError> {
     let url = match (category, supported_parameters) {
         (Some(category), None) => {
-            format!("{}/models?category={}", base_url, category)
+            format!("{base_url}/models?category={category}")
         }
         (None, Some(supported_parameters)) => {
-            format!(
-                "{}/models?supported_parameters={}",
-                base_url, supported_parameters
-            )
+            format!("{base_url}/models?supported_parameters={supported_parameters}")
         }
         _ => {
-            format!("{}/models", base_url)
+            format!("{base_url}/models")
         }
     };
 
     let mut response = surf::get(url)
-        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .header(AUTHORIZATION, format!("Bearer {api_key}"))
         .await?;
 
     if response.status().is_success() {
@@ -148,16 +145,13 @@ pub async fn list_model_endpoints(
     author: &str,
     slug: &str,
 ) -> Result<EndpointData, OpenRouterError> {
-    let encoded_author = encode(&author);
-    let encoded_slug = encode(&slug);
-    let url = format!(
-        "{}/models/{}/{}/endpoints",
-        base_url, encoded_author, encoded_slug
-    );
-    println!("URL: {}", url);
+    let encoded_author = encode(author);
+    let encoded_slug = encode(slug);
+    let url = format!("{base_url}/models/{encoded_author}/{encoded_slug}/endpoints");
+    println!("URL: {url}");
 
     let mut response = surf::get(&url)
-        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .header(AUTHORIZATION, format!("Bearer {api_key}"))
         .await?;
 
     if response.status().is_success() {

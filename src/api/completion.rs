@@ -139,10 +139,10 @@ pub async fn send_completion_request(
     http_referer: &Option<String>,
     request: &CompletionRequest,
 ) -> Result<CompletionsResponse, OpenRouterError> {
-    let url = format!("{}/completions", base_url);
+    let url = format!("{base_url}/completions");
 
     let mut surf_req = surf::post(url)
-        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .header(AUTHORIZATION, format!("Bearer {api_key}"))
         .body_json(request)?;
 
     if let Some(x_title) = x_title {

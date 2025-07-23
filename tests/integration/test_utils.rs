@@ -11,6 +11,7 @@ pub fn get_test_api_key() -> String {
         .expect("OPENROUTER_API_KEY environment variable not set for integration tests")
 }
 
+#[allow(clippy::result_large_err)]
 pub fn create_test_client() -> Result<OpenRouterClient, OpenRouterError> {
     OpenRouterClient::builder()
         .api_key(get_test_api_key())
@@ -21,12 +22,26 @@ pub fn create_test_client() -> Result<OpenRouterClient, OpenRouterError> {
 pub async fn rate_limit_delay() {
     static LAST_CALL: std::sync::Mutex<Option<Instant>> = std::sync::Mutex::new(None);
 
-    let mut last_call = LAST_CALL.lock().unwrap();
-    if let Some(last) = *last_call {
-        let elapsed = last.elapsed();
-        if elapsed < Duration::from_millis(500) {
-            sleep(Duration::from_millis(500) - elapsed).await;
+    let sleep_duration = {
+        let last_call = LAST_CALL.lock().unwrap();
+        if let Some(last) = *last_call {
+            let elapsed = last.elapsed();
+            if elapsed < Duration::from_millis(500) {
+                Some(Duration::from_millis(500) - elapsed)
+            } else {
+                None
+            }
+        } else {
+            None
         }
+    };
+
+    if let Some(duration) = sleep_duration {
+        sleep(duration).await;
     }
-    *last_call = Some(Instant::now());
+
+    {
+        let mut last_call = LAST_CALL.lock().unwrap();
+        *last_call = Some(Instant::now());
+    }
 }

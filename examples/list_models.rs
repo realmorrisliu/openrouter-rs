@@ -7,7 +7,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = OpenRouterClient::builder().api_key(api_key).build()?;
 
     let models = client.list_models().await?;
-    println!("{:?}", models);
+    println!("{models:?}");
 
     Ok(())
 }

@@ -9,7 +9,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let models = client
         .list_models_by_category(ModelCategory::Programming)
         .await?;
-    println!("{:?}", models);
+    println!("{models:?}");
 
     Ok(())
 }

@@ -12,6 +12,7 @@ use openrouter_rs::{
 const TEST_MODEL: &str = "deepseek/deepseek-chat-v3-0324:free";
 
 #[tokio::test]
+#[allow(clippy::result_large_err)]
 async fn test_basic_chat_completion() -> Result<(), OpenRouterError> {
     let client = create_test_client()?;
     rate_limit_delay().await;
@@ -36,6 +37,7 @@ async fn test_basic_chat_completion() -> Result<(), OpenRouterError> {
     Ok(())
 }
 
+#[allow(clippy::result_large_err)]
 fn validate_chat_response(response: &CompletionsResponse) -> Result<(), OpenRouterError> {
     assert!(!response.id.is_empty(), "Response ID should not be empty");
 

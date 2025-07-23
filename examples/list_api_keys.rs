@@ -9,7 +9,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build()?;
 
     let api_keys = client.list_api_keys(Some(0.0), Some(true)).await?;
-    println!("{:?}", api_keys);
+    println!("{api_keys:?}");
 
     Ok(())
 }

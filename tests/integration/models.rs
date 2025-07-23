@@ -3,6 +3,7 @@ use openrouter_rs::error::OpenRouterError;
 use super::test_utils::{create_test_client, rate_limit_delay};
 
 #[tokio::test]
+#[allow(clippy::result_large_err)]
 async fn test_list_models() -> Result<(), OpenRouterError> {
     let client = create_test_client()?;
 

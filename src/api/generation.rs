@@ -49,10 +49,11 @@ pub async fn get_generation(
     api_key: &str,
     id: impl Into<String>,
 ) -> Result<GenerationData, OpenRouterError> {
-    let url = format!("{}/generation?id={}", base_url, id.into());
+    let id = id.into();
+    let url = format!("{base_url}/generation?id={id}");
 
     let mut response = surf::get(url)
-        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .header(AUTHORIZATION, format!("Bearer {api_key}"))
         .await?;
 
     if response.status().is_success() {

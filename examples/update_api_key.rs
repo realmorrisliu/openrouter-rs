@@ -16,7 +16,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Some(200.0),
         )
         .await?;
-    println!("{:?}", updated_api_key);
+    println!("{updated_api_key:?}");
 
     Ok(())
 }

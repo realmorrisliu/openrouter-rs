@@ -7,7 +7,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = OpenRouterClient::builder().api_key(api_key).build()?;
 
     let credits = client.get_credits().await?;
-    println!("{:?}", credits);
+    println!("{credits:?}");
 
     Ok(())
 }

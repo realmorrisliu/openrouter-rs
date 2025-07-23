@@ -45,13 +45,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let chat_response = client.send_chat_completion(&chat_request).await?;
 
     println!("=== Chat Response:");
-    println!("{:?}", chat_response);
+    println!("{chat_response:?}");
 
     println!("=== Structured Response:");
     for choice in chat_response.choices {
         if let Choice::NonStreaming(non_streaming_choice) = choice {
             if let Some(content) = non_streaming_choice.message.content {
-                println!("{}", content);
+                println!("{content}");
             }
         }
     }

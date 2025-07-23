@@ -9,7 +9,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build()?;
 
     let delete_result = client.delete_api_key("your_exposed_key_hash").await?;
-    println!("API key deleted: {}", delete_result);
+    println!("API key deleted: {delete_result}");
 
     Ok(())
 }

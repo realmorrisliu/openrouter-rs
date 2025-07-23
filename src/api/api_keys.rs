@@ -61,10 +61,10 @@ pub async fn get_current_api_key(
     base_url: &str,
     api_key: &str,
 ) -> Result<ApiKeyDetails, OpenRouterError> {
-    let url = format!("{}/key", base_url);
+    let url = format!("{base_url}/key");
 
     let mut response = surf::get(url)
-        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .header(AUTHORIZATION, format!("Bearer {api_key}"))
         .send()
         .await?;
 
@@ -95,7 +95,7 @@ pub async fn list_api_keys(
     offset: Option<f64>,
     include_disabled: Option<bool>,
 ) -> Result<Vec<ApiKey>, OpenRouterError> {
-    let url = format!("{}/keys", base_url);
+    let url = format!("{base_url}/keys");
     let mut query_params = HashMap::new();
     if let Some(offset) = offset {
         query_params.insert("offset", offset.to_string());
@@ -105,7 +105,7 @@ pub async fn list_api_keys(
     }
 
     let mut response = surf::get(url)
-        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .header(AUTHORIZATION, format!("Bearer {api_key}"))
         .query(&query_params)?
         .await?;
 
@@ -136,14 +136,14 @@ pub async fn create_api_key(
     name: &str,
     limit: Option<f64>,
 ) -> Result<ApiKey, OpenRouterError> {
-    let url = format!("{}/keys", base_url);
+    let url = format!("{base_url}/keys");
     let request = CreateApiKeyRequest {
         name: name.to_string(),
         limit,
     };
 
     let mut response = surf::post(url)
-        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .header(AUTHORIZATION, format!("Bearer {api_key}"))
         .body_json(&request)?
         .await?;
 
@@ -172,10 +172,10 @@ pub async fn get_api_key(
     api_key: &str,
     hash: &str,
 ) -> Result<ApiKey, OpenRouterError> {
-    let url = format!("{}/keys/{}", base_url, hash);
+    let url = format!("{base_url}/keys/{hash}");
 
     let mut response = surf::get(&url)
-        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .header(AUTHORIZATION, format!("Bearer {api_key}"))
         .await?;
 
     if response.status().is_success() {
@@ -203,10 +203,10 @@ pub async fn delete_api_key(
     api_key: &str,
     hash: &str,
 ) -> Result<bool, OpenRouterError> {
-    let url = format!("{}/api/v1/keys/{}", base_url, hash);
+    let url = format!("{base_url}/api/v1/keys/{hash}");
 
     let response = surf::delete(&url)
-        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .header(AUTHORIZATION, format!("Bearer {api_key}"))
         .await?;
 
     if response.status().is_success() {
@@ -239,7 +239,7 @@ pub async fn update_api_key(
     disabled: Option<bool>,
     limit: Option<f64>,
 ) -> Result<ApiKey, OpenRouterError> {
-    let url = format!("{}/keys/{}", base_url, hash);
+    let url = format!("{base_url}/keys/{hash}");
     let request = UpdateApiKeyRequest {
         name,
         disabled,
@@ -247,7 +247,7 @@ pub async fn update_api_key(
     };
 
     let mut response = surf::patch(&url)
-        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .header(AUTHORIZATION, format!("Bearer {api_key}"))
         .body_json(&request)?
         .await?;
 

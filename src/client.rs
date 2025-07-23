@@ -3,11 +3,12 @@ use futures_util::stream::BoxStream;
 
 use crate::{
     api::{api_keys, auth, chat, completion, credits, generation, models},
+    config::OpenRouterConfig,
     error::OpenRouterError,
     types::{ModelCategory, SupportedParameters, completion::CompletionsResponse},
 };
 
-#[derive(Builder)]
+#[derive(Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 pub struct OpenRouterClient {
     #[builder(
@@ -23,11 +24,17 @@ pub struct OpenRouterClient {
     http_referer: Option<String>,
     #[builder(setter(into, strip_option), default)]
     x_title: Option<String>,
+    #[builder(setter(into, strip_option), default)]
+    config: Option<OpenRouterConfig>,
 }
 
 impl OpenRouterClient {
     pub fn builder() -> OpenRouterClientBuilder {
         OpenRouterClientBuilder::default()
+    }
+
+    pub fn get_config(&self) -> Option<OpenRouterConfig> {
+        self.config.clone()
     }
 
     /// Sets the API key after client construction.

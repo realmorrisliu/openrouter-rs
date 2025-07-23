@@ -14,7 +14,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Some(CodeChallengeMethod::S256),
         )
         .await?;
-    println!("{:?}", auth_response);
+    println!("{auth_response:?}");
 
     Ok(())
 }
