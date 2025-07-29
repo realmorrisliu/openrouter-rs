@@ -112,12 +112,44 @@ pub struct ChatCompletionRequest {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     reasoning: Option<ReasoningConfig>,
+
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    include_reasoning: Option<bool>,
 }
 
 impl ChatCompletionRequestBuilder {
     strip_option_vec_setter!(models, String);
     strip_option_map_setter!(logit_bias, String, f64);
     strip_option_vec_setter!(transforms, String);
+
+    /// Enable reasoning with default settings (medium effort)
+    pub fn enable_reasoning(&mut self) -> &mut Self {
+        use crate::types::ReasoningConfig;
+        self.reasoning = Some(Some(ReasoningConfig::enabled()));
+        self
+    }
+
+    /// Set reasoning effort level
+    pub fn reasoning_effort(&mut self, effort: crate::types::Effort) -> &mut Self {
+        use crate::types::ReasoningConfig;
+        self.reasoning = Some(Some(ReasoningConfig::with_effort(effort)));
+        self
+    }
+
+    /// Set reasoning max tokens
+    pub fn reasoning_max_tokens(&mut self, max_tokens: u32) -> &mut Self {
+        use crate::types::ReasoningConfig;
+        self.reasoning = Some(Some(ReasoningConfig::with_max_tokens(max_tokens)));
+        self
+    }
+
+    /// Exclude reasoning from response (use reasoning internally but don't return it)
+    pub fn exclude_reasoning(&mut self) -> &mut Self {
+        use crate::types::ReasoningConfig;
+        self.reasoning = Some(Some(ReasoningConfig::excluded()));
+        self
+    }
 }
 
 impl ChatCompletionRequest {

@@ -1,217 +1,320 @@
 # OpenRouter Rust SDK
 
-`openrouter-rs` is a third-party Rust SDK that helps you interact with the OpenRouter API. It wraps various endpoints of the OpenRouter API, making it easier to use in Rust projects. By taking advantage of Rust's strengths like type safety, memory safety, and concurrency without data races, `openrouter-rs` ensures a solid and reliable integration with the OpenRouter API.
+<div align="center">
 
-## Release Notes
+A **type-safe**, **async** Rust SDK for the [OpenRouter API](https://openrouter.ai/) - Access 200+ AI models with ease
 
-### Version 0.4.4
+[![Crates.io](https://img.shields.io/crates/v/openrouter-rs)](https://crates.io/crates/openrouter-rs)
+[![Documentation](https://docs.rs/openrouter-rs/badge.svg)](https://docs.rs/openrouter-rs)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-- Added: Support for listing models by supported parameters (Please note: The OpenRouter API currently does not support filtering by both `category` and `supported_parameters` at the same time. Additionally, you can only pass in a single `category` or `supported_parameters` value—not an array.)
+[📚 Documentation](https://docs.rs/openrouter-rs) | [🎯 Examples](https://github.com/realmorrisliu/openrouter-rs/tree/main/examples) | [📦 Crates.io](https://crates.io/crates/openrouter-rs)
 
-### Version 0.4.3
+</div>
 
-- Added: Support for listing models by category (Thanks OpenRouter team! [Details](https://github.com/zed-industries/zed/discussions/16576#discussioncomment-12952507))
+## 🌟 What makes this special?
 
-## Current Status
+- **🔒 Type Safety**: Leverages Rust's type system for compile-time error prevention
+- **⚡ Async/Await**: Built on `tokio` for high-performance concurrent operations
+- **🧠 Reasoning Tokens**: Industry-leading chain-of-thought reasoning support
+- **📡 Streaming**: Real-time response streaming with `futures`
+- **🏗️ Builder Pattern**: Ergonomic client and request construction
+- **⚙️ Smart Presets**: Curated model groups for programming, reasoning, and free tiers
+- **🎯 Complete Coverage**: All OpenRouter API endpoints supported
 
-This SDK is currently in active development and supports both simple and advanced usage patterns. I've implemented basic integration tests covering:
-- Get API key information
-- Model listing
-- Chat completions
-- Response validation
+## 🚀 Quick Start
 
-If you encounter any issues while using it, please open an issue to help us improve.
-
-Notice: I'm trying to simplify the codebase and remove some unnecessary features in version 0.5.0, including:
-- Remove commands and keyring
-- Simplify configuration loading
-- Remove unnecessary dependencies
-
-## TODO
-
-- [ ] Testing
-  - [x] Core integration tests
-  - [ ] Complete API coverage
-- [ ] Features
-  - [ ] Advanced model management capabilities
-  - [ ] Use cargo feature flags to enable/disable features
-  - [ ] Add cli tools for easy usage
-
-If you have any suggestions or feedback, feel free to open an issue or submit a pull request.
-
-## Features
-
-- ✅ Builder pattern for client configuration and complex requests
-- ✅ Simple constructors for basic usage
-- ✅ Full API coverage including:
-  - API key management
-  - Chat and text completions
-  - Streaming responses
-  - Credit management
-  - Model information
-
-## Installation
+### Installation
 
 Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-openrouter-rs = "0.4.4"
+openrouter-rs = "0.4.5"
+tokio = { version = "1", features = ["full"] }
 ```
 
-## Quick Start
-
-### Using Client Builder Pattern (Recommended)
+### 30-Second Example
 
 ```rust
-use openrouter_rs::{
-    OpenRouterClient,
-    api::chat::{ChatCompletionRequest, Message, Role},
-};
+use openrouter_rs::{OpenRouterClient, api::chat::*, types::Role};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Using the builder pattern for client configuration
+    // Create client
     let client = OpenRouterClient::builder()
         .api_key("your_api_key")
-        .base_url("https://openrouter.ai/api/v1") // optional
-        .http_referer("your_referer") // optional
-        .x_title("your_app") // optional
         .build()?;
 
-    // Builder pattern for requests
+    // Send chat completion
     let request = ChatCompletionRequest::builder()
-        .model("deepseek/deepseek-chat-v3-0324:free")
+        .model("anthropic/claude-sonnet-4")
         .messages(vec![
-            Message::new(Role::System, "You are a helpful assistant"),
-            Message::new(Role::User, "Explain Rust in simple terms")
+            Message::new(Role::User, "Explain Rust ownership in simple terms")
         ])
-        .temperature(0.7)
-        .max_tokens(200)
         .build()?;
 
     let response = client.send_chat_completion(&request).await?;
-    println!("Response: {:?}", response);
+    println!("{}", response.choices[0].content().unwrap_or(""));
 
     Ok(())
 }
 ```
 
-### Simple Client Constructor
+## ✨ Key Features
+
+### 🧠 Advanced Reasoning Support
+
+Leverage chain-of-thought processing with reasoning tokens:
 
 ```rust
-// Simple client creation with just API key
-let client = OpenRouterClient::builder()
-    .api_key("your_api_key")
+use openrouter_rs::types::Effort;
+
+let request = ChatCompletionRequest::builder()
+    .model("deepseek/deepseek-r1")
+    .messages(vec![Message::new(Role::User, "What's bigger: 9.9 or 9.11?")])
+    .reasoning_effort(Effort::High)    // Enable deep reasoning
+    .reasoning_max_tokens(2000)        // Control reasoning depth
     .build()?;
+
+let response = client.send_chat_completion(&request).await?;
+
+// Access both reasoning and final answer
+println!("🧠 Reasoning: {}", response.choices[0].reasoning().unwrap_or(""));
+println!("💡 Answer: {}", response.choices[0].content().unwrap_or(""));
 ```
 
-## Key Features Explained
+### 📡 Real-time Streaming
 
-### 1. Builder Pattern for Client Configuration
-
-The client now uses a builder pattern for more flexible configuration:
-
-```rust
-let client = OpenRouterClient::builder()
-    .api_key("your_api_key")
-    .http_referer("https://yourdomain.com")
-    .x_title("Your App Name")
-    .build()?;
-```
-
-**Benefits:**
-- Immutable client configuration
-- Clear, chainable configuration
-- Default values for optional parameters
-
-### 2. Streaming Responses
+Process responses as they arrive:
 
 ```rust
 use futures_util::StreamExt;
 
-let client = OpenRouterClient::builder()
-    .api_key("your_api_key")
-    .build()?;
-let request = ChatCompletionRequest::builder()
-    .model("deepseek/deepseek-chat-v3-0324:free")
-    .messages(vec![Message::new(Role::User, "Tell me a joke.")])
-    .build()?;
-let response = client.stream_chat_completion(&request).await?;
-response
+let stream = client.stream_chat_completion(&request).await?;
+
+stream
     .filter_map(|event| async { event.ok() })
-    .for_each(|event| async move {
-        event.choices.into_iter().for_each(|choice| {
-            if let Choice::Streaming(c) = choice {
-                if let Some(content) = c.delta.content {
-                    println!("{}", content);
-                }
-            }
-        });
+    .for_each(|chunk| async move {
+        if let Some(content) = chunk.choices[0].content() {
+            print!("{}", content);  // Print as it arrives
+        }
     })
     .await;
 ```
 
-### 3. Error Handling
+### ⚙️ Smart Model Presets
 
-Comprehensive error types:
+Use curated model collections:
 
 ```rust
+use openrouter_rs::config::OpenRouterConfig;
+
+let config = OpenRouterConfig::default();
+
+// Three built-in presets:
+// • programming: Code generation and development
+// • reasoning: Advanced problem-solving models  
+// • free: Free-tier models for experimentation
+
+println!("Available models: {:?}", config.get_resolved_models());
+```
+
+### 🛡️ Comprehensive Error Handling
+
+```rust
+use openrouter_rs::error::OpenRouterError;
+
 match client.send_chat_completion(&request).await {
-    Ok(response) => { /* handle success */ },
+    Ok(response) => println!("Success!"),
     Err(OpenRouterError::ModerationError { reasons, .. }) => {
         eprintln!("Content flagged: {:?}", reasons);
-    },
-    Err(e) => { /* handle other errors */ }
+    }
+    Err(OpenRouterError::ApiError { code, message }) => {
+        eprintln!("API error {}: {}", code, message);
+    }
+    Err(e) => eprintln!("Other error: {}", e),
 }
 ```
 
-## Examples
+## 📊 API Coverage
 
-Run examples with:
+| Feature | Status | Module |
+|---------|---------|---------|
+| Chat Completions | ✅ | [`api::chat`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/chat/) |
+| Text Completions | ✅ | [`api::completion`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/completion/) |
+| **Reasoning Tokens** | ✅ | [`api::chat`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/chat/) |
+| Streaming Responses | ✅ | [`api::chat`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/chat/) |
+| Model Information | ✅ | [`api::models`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/models/) |
+| API Key Management | ✅ | [`api::api_keys`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/api_keys/) |
+| Credit Management | ✅ | [`api::credits`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/credits/) |
+| Authentication | ✅ | [`api::auth`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/auth/) |
 
-```sh
-# Builder pattern example
-cargo run --example send_chat_completion
+## 🎯 More Examples
 
-# Simple usage
-cargo run --example send_completion_request
+### Filter Models by Category
 
-# Streaming
-cargo run --example stream_chat_completion
+```rust
+use openrouter_rs::types::ModelCategory;
 
-# Run integration tests (requires API key)
-OPENROUTER_API_KEY=your_key cargo test --test integration -- --nocapture
+let models = client
+    .list_models_by_category(ModelCategory::Programming)
+    .await?;
+
+println!("Found {} programming models", models.len());
 ```
 
-## Best Practices
+### Advanced Client Configuration
 
-1. **Client Configuration**: Use `OpenRouterClient::builder()` for flexible setup
-2. **Request Building**: Use builders (`Request::builder()`) for complex requests
-3. **Error Handling**: Match on `OpenRouterError` variants
-4. **Reuse Clients**: Create one `OpenRouterClient` per application
+```rust
+let client = OpenRouterClient::builder()
+    .api_key("your_key")
+    .http_referer("https://yourapp.com")
+    .x_title("My AI App")
+    .base_url("https://openrouter.ai/api/v1")  // Custom endpoint
+    .build()?;
+```
 
-## Migration Guide
+### Streaming with Reasoning
 
-If upgrading from older versions:
+```rust
+let stream = client.stream_chat_completion(
+    &ChatCompletionRequest::builder()
+        .model("anthropic/claude-sonnet-4")
+        .messages(vec![Message::new(Role::User, "Solve this step by step: 2x + 5 = 13")])
+        .reasoning_effort(Effort::High)
+        .build()?
+).await?;
 
-| Old Style | New Recommended Style |
-|-----------|-----------------------|
-| `OpenRouterClient::new(key)` | `OpenRouterClient::builder().api_key(key).build()` |
-| `client.base_url("url")` | `OpenRouterClient::builder().api_key(key).base_url("url").build()` |
-| `ChatCompletionRequest::new()` | `ChatCompletionRequest::builder().build()` |
+let mut reasoning_buffer = String::new();
+let mut content_buffer = String::new();
 
-## Risk Disclaimer
+stream.filter_map(|event| async { event.ok() })
+    .for_each(|chunk| async {
+        if let Some(reasoning) = chunk.choices[0].reasoning() {
+            reasoning_buffer.push_str(reasoning);
+            print!("🧠");  // Show reasoning progress
+        }
+        if let Some(content) = chunk.choices[0].content() {
+            content_buffer.push_str(content);
+            print!("💬");  // Show content progress
+        }
+    }).await;
 
-This is a third-party SDK not affiliated with OpenRouter. Use at your own risk.
+println!("\n🧠 Reasoning: {}", reasoning_buffer);
+println!("💡 Answer: {}", content_buffer);
+```
 
-## Contributing
+## 📚 Documentation & Resources
 
-Contributions welcome! Please:
-1. Follow the builder pattern for new features
-2. Include documentation examples
-3. Add tests for new features
+- **[📖 API Documentation](https://docs.rs/openrouter-rs)** - Complete API reference
+- **[🎯 Examples Repository](https://github.com/realmorrisliu/openrouter-rs/tree/main/examples)** - Comprehensive usage examples
+- **[🔧 Configuration Guide](https://docs.rs/openrouter-rs/latest/openrouter_rs/config/)** - Model presets and configuration
+- **[⚡ OpenRouter API Docs](https://openrouter.ai/docs)** - Official OpenRouter documentation
 
-## License
+### Run Examples Locally
 
-MIT - See [LICENSE](LICENSE)
+```bash
+# Set your API key
+export OPENROUTER_API_KEY="your_key_here"
+
+# Basic chat completion
+cargo run --example send_chat_completion
+
+# Reasoning tokens demo
+cargo run --example chat_with_reasoning
+
+# Streaming responses
+cargo run --example stream_chat_completion
+
+# Run with reasoning
+cargo run --example stream_chat_with_reasoning
+```
+
+## 🤝 Community & Support
+
+### 🐛 Found a Bug?
+
+Please [open an issue](https://github.com/realmorrisliu/openrouter-rs/issues/new) with:
+- Your Rust version (`rustc --version`)
+- SDK version you're using
+- Minimal code example
+- Expected vs actual behavior
+
+### 💡 Feature Requests
+
+We love hearing your ideas! [Start a discussion](https://github.com/realmorrisliu/openrouter-rs/discussions) to:
+- Suggest new features
+- Share use cases
+- Get help with implementation
+
+### 🛠️ Contributing
+
+Contributions are welcome! Please see our [contributing guidelines](CONTRIBUTING.md):
+
+1. **Fork** the repository
+2. **Create** a feature branch
+3. **Add** tests for new functionality
+4. **Follow** the existing code style
+5. **Submit** a pull request
+
+### ⭐ Show Your Support
+
+If this SDK helps your project, consider:
+- ⭐ **Starring** the repository
+- 🐦 **Sharing** on social media
+- 📝 **Writing** about your experience
+- 🤝 **Contributing** improvements
+
+## 📋 Requirements
+
+- **Rust**: 1.85+ (2024 edition)
+- **Tokio**: 1.0+ (for async runtime)
+- **OpenRouter API Key**: [Get yours here](https://openrouter.ai/keys)
+
+## 🗺️ Roadmap
+
+- [ ] **WebSocket Support** - Real-time bidirectional communication
+- [ ] **Retry Strategies** - Automatic retry with exponential backoff
+- [ ] **Caching Layer** - Response caching for improved performance
+- [ ] **CLI Tool** - Command-line interface for quick testing
+- [ ] **Middleware System** - Request/response interceptors
+
+## 📜 License
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+## ⚠️ Disclaimer
+
+This is a **third-party SDK** not officially affiliated with OpenRouter. Use at your own discretion.
+
+---
+
+## 📈 Release History
+
+### Version 0.4.5 *(Latest)*
+
+- 🧠 **New**: Complete reasoning tokens implementation with chain-of-thought support
+- ⚙️ **Updated**: Model presets restructured to `programming`/`reasoning`/`free` categories  
+- 📚 **Enhanced**: Professional-grade documentation with comprehensive examples
+- 🏗️ **Improved**: Configuration system with better model management
+
+### Version 0.4.4
+
+- Added: Support for listing models by supported parameters
+- Note: OpenRouter API limitations on simultaneous category and parameter filtering
+
+### Version 0.4.3
+
+- Added: Support for listing models by category
+- Thanks to OpenRouter team for the API enhancement!
+
+---
+
+<div align="center">
+
+**Made with ❤️ for the Rust community**
+
+[⭐ Star us on GitHub](https://github.com/realmorrisliu/openrouter-rs) | [📦 Find us on Crates.io](https://crates.io/crates/openrouter-rs) | [📚 Read the Docs](https://docs.rs/openrouter-rs)
+
+</div>

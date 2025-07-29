@@ -1,3 +1,29 @@
+//! # Basic Chat Completion
+//!
+//! This is the simplest example of using the OpenRouter SDK for chat completions.
+//! It demonstrates the fundamental building blocks: client creation, request building,
+//! and response handling.
+//!
+//! ## Features Demonstrated
+//!
+//! - Client configuration with builder pattern
+//! - Basic chat completion request
+//! - Response parsing and display
+//! - Error handling with `?` operator
+//!
+//! ## Perfect for
+//!
+//! - Getting started with the SDK
+//! - Understanding the basic request/response flow
+//! - Testing your API key configuration
+//! - Learning the builder pattern usage
+//!
+//! ## Usage
+//!
+//! ```bash
+//! OPENROUTER_API_KEY=your_key cargo run --example send_chat_completion
+//! ```
+
 use dotenvy_macro::dotenv;
 use openrouter_rs::{
     OpenRouterClient,

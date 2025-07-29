@@ -4,6 +4,34 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ReasoningDetail {
+    /// The type of reasoning block (e.g., "reasoning.text")
+    #[serde(rename = "type")]
+    pub block_type: String,
+    /// The actual reasoning content (Anthropic uses "text" field)
+    #[serde(alias = "content")]
+    pub text: String,
+    /// Cryptographic signature (Anthropic specific)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub signature: Option<String>,
+    /// Format identifier (Anthropic specific)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub format: Option<String>,
+}
+
+impl ReasoningDetail {
+    /// Get the content/text of this reasoning detail
+    pub fn content(&self) -> &str {
+        &self.text
+    }
+
+    /// Get the type of this reasoning block
+    pub fn reasoning_type(&self) -> &str {
+        &self.block_type
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ResponseUsage {
     /// Including images and tools if any
     pub prompt_tokens: u32,
@@ -90,6 +118,22 @@ impl Choice {
             Choice::Streaming(choice) => choice.error.as_ref(),
         }
     }
+
+    pub fn reasoning(&self) -> Option<&str> {
+        match self {
+            Choice::NonChat(_) => None,
+            Choice::NonStreaming(choice) => choice.message.reasoning.as_deref(),
+            Choice::Streaming(choice) => choice.delta.reasoning.as_deref(),
+        }
+    }
+
+    pub fn reasoning_details(&self) -> Option<&[ReasoningDetail]> {
+        match self {
+            Choice::NonChat(_) => None,
+            Choice::NonStreaming(choice) => choice.message.reasoning_details.as_deref(),
+            Choice::Streaming(choice) => choice.delta.reasoning_details.as_deref(),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -130,6 +174,10 @@ pub struct Message {
     pub content: Option<String>,
     pub role: Option<String>,
     pub tool_calls: Option<Vec<ToolCall>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reasoning: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reasoning_details: Option<Vec<ReasoningDetail>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -137,6 +185,10 @@ pub struct Delta {
     pub content: Option<String>,
     pub role: Option<String>,
     pub tool_calls: Option<Vec<ToolCall>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reasoning: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reasoning_details: Option<Vec<ReasoningDetail>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

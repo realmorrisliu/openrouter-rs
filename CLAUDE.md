@@ -60,6 +60,10 @@ cargo run --example send_chat_completion
 # Streaming chat completion
 cargo run --example stream_chat_completion
 
+# Reasoning tokens (new in 0.4.5)
+cargo run --example chat_with_reasoning
+cargo run --example stream_chat_with_reasoning
+
 # Get model list
 cargo run --example list_models
 
@@ -97,7 +101,7 @@ cargo clippy
 ### Default Configuration
 The project uses `src/config/default_config.toml` to define default models and presets:
 - `default_model` - Default model to use
-- `models.presets` - Model preset groups (thinking, coding, free)
+- `models.presets` - Model preset groups (programming, reasoning, free)
 
 ## API Usage Patterns
 
@@ -113,11 +117,27 @@ let client = OpenRouterClient::builder()
 ### Request Building
 ```rust
 let request = ChatCompletionRequest::builder()
-    .model("deepseek/deepseek-chat-v3-0324:free")
+    .model("anthropic/claude-sonnet-4")
     .messages(vec![Message::new(Role::User, "Hello")])
     .temperature(0.7)
     .max_tokens(200)
     .build()?;
+```
+
+### Reasoning Tokens (New in 0.4.5)
+```rust
+use openrouter_rs::types::Effort;
+
+let request = ChatCompletionRequest::builder()
+    .model("deepseek/deepseek-r1")
+    .messages(vec![Message::new(Role::User, "What's bigger: 9.9 or 9.11?")])
+    .reasoning_effort(Effort::High)
+    .reasoning_max_tokens(1000)
+    .build()?;
+
+let response = client.send_chat_completion(&request).await?;
+println!("Reasoning: {}", response.choices[0].reasoning().unwrap_or(""));
+println!("Answer: {}", response.choices[0].content().unwrap_or(""));
 ```
 
 ### Streaming Response Handling
@@ -136,11 +156,12 @@ Use `futures_util::StreamExt` to process streaming data, filtering errors and ex
 
 ## Version Information
 
-Current version: 0.4.4
-- Support for filtering models by supported parameters
-- Support for listing models by category
-- Complete API endpoint coverage
-- Builder pattern refactoring completed
+Current version: 0.4.5
+- 🧠 **New**: Complete reasoning tokens implementation with chain-of-thought support
+- ⚙️ **Updated**: Model presets restructured to `programming`/`reasoning`/`free` categories
+- 📚 **Enhanced**: Professional-grade documentation with comprehensive examples
+- 🏗️ **Improved**: Configuration system with better model management
+- Previous: Support for filtering models by supported parameters and categories
 
 ## Development Guidelines
 
@@ -152,8 +173,9 @@ Current version: 0.4.4
 
 ## Current Development Focus
 
-Based on the README TODO, main areas of focus:
-- Improving test coverage
-- Advanced model management capabilities
-- Cargo feature flags support
+Main areas of focus:
+- WebSocket support for real-time communication
+- Retry strategies with exponential backoff
+- Response caching layer
 - CLI tool development
+- Middleware system for request/response interceptors

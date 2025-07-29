@@ -9,14 +9,14 @@ use std::collections::{HashMap, HashSet};
 /// ```toml
 /// [models]
 /// enable = [
-///     "preset:thinking",
-///     "preset:coding@sonnet",
-///     "google/gemini-2.5-pro-exp-03-25:free"
+///     "preset:programming",
+///     "preset:reasoning@sonnet",
+///     "google/gemini-2.0-flash-exp:free"
 /// ]
 ///
 /// [models.presets]
-/// thinking = ["openai/o3-mini-high", "anthropic/claude-3.7-sonnet:thinking", "deepseek/deepseek-r1"]
-/// coding = ["anthropic/claude-3.7-sonnet", "deepseek/deepseek-chat-v3-0324"]
+/// programming = ["anthropic/claude-sonnet-4", "google/gemini-2.5-flash", "qwen/qwen3-coder"]
+/// reasoning = ["anthropic/claude-sonnet-4", "google/gemini-2.5-pro", "deepseek/deepseek-r1:free"]
 /// ```
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct ModelConfig {
@@ -43,17 +43,17 @@ impl ModelConfig {
     /// # Example
     /// ```rust
     /// let mut config = ModelConfig {
-    ///     enable: vec!["preset:coding".into()],
+    ///     enable: vec!["preset:programming".into()],
     ///     presets: {
     ///         let mut map = HashMap::new();
-    ///         map.insert("coding".into(), vec!["anthropic/claude-3.7-sonnet".into()]);
+    ///         map.insert("programming".into(), vec!["anthropic/claude-sonnet-4".into()]);
     ///         map
     ///     },
     ///     ..Default::default()
     /// };
     ///
     /// config.resolve();
-    /// assert!(config.is_enabled("anthropic/claude-3.7-sonnet"));
+    /// assert!(config.is_enabled("anthropic/claude-sonnet-4"));
     /// ```
     pub fn resolve(&mut self) {
         let mut new_models = HashSet::new();
@@ -84,11 +84,11 @@ impl ModelConfig {
     /// # Example
     /// ```rust
     /// let config = ModelConfig {
-    ///     resolved_models: vec!["anthropic/claude-3.7-sonnet".into()],
+    ///     resolved_models: vec!["anthropic/claude-sonnet-4".into()],
     ///     ..Default::default()
     /// };
-    /// assert!(config.is_enabled("anthropic/claude-3.7-sonnet"));
-    /// assert!(!config.is_enabled("openai/gpt-4o-mini"));
+    /// assert!(config.is_enabled("anthropic/claude-sonnet-4"));
+    /// assert!(!config.is_enabled("google/gemini-2.5-flash"));
     /// ```
     pub fn is_enabled(&self, model_id: &str) -> bool {
         self.resolved_models.contains(&model_id.to_string())

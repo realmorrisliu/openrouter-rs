@@ -1,3 +1,136 @@
+//! # Core Types and Data Structures
+//!
+//! This module contains all the core types, enums, and data structures used
+//! throughout the OpenRouter SDK. These types provide type-safe representations
+//! of API requests, responses, and configuration options.
+//!
+//! ## 📋 Type Categories
+//!
+//! ### Request/Response Types ([`completion`])
+//! - **Chat Completions**: Modern conversational AI request/response structures
+//! - **Text Completions**: Legacy prompt-based completion types
+//! - **Streaming**: Types for handling real-time response streams
+//! - **Reasoning**: Advanced reasoning and chain-of-thought structures
+//!
+//! ### Provider Information ([`provider`])
+//! - **Model Metadata**: Provider-specific model information
+//! - **Capabilities**: Model feature and parameter support
+//! - **Pricing**: Cost information and token usage
+//!
+//! ### Response Formatting ([`response_format`])
+//! - **JSON Schema**: Structured output formatting
+//! - **Content Types**: Different response content formats
+//! - **Validation**: Response format validation rules
+//!
+//! ## 🎯 Core Enums
+//!
+//! ### Role
+//! Defines the role of a message in a conversation:
+//!
+//! ```rust
+//! use openrouter_rs::types::Role;
+//!
+//! let system_role = Role::System;    // System instructions
+//! let user_role = Role::User;        // User input
+//! let assistant_role = Role::Assistant; // AI response
+//! let tool_role = Role::Tool;        // Tool/function results
+//! let developer_role = Role::Developer; // Developer context
+//! ```
+//!
+//! ### Effort
+//! Specifies reasoning effort levels for chain-of-thought models:
+//!
+//! ```rust
+//! use openrouter_rs::types::Effort;
+//!
+//! let high_effort = Effort::High;    // Maximum reasoning depth
+//! let medium_effort = Effort::Medium; // Balanced reasoning
+//! let low_effort = Effort::Low;      // Quick reasoning
+//! ```
+//!
+//! ## 🔧 Configuration Types
+//!
+//! ### ReasoningConfig
+//! Configuration for advanced reasoning capabilities:
+//!
+//! ```rust
+//! use openrouter_rs::types::{ReasoningConfig, Effort};
+//!
+//! let reasoning = ReasoningConfig::builder()
+//!     .enabled(true)
+//!     .effort(Effort::High)
+//!     .max_tokens(1000)
+//!     .build()?;
+//! # Ok::<(), Box<dyn std::error::Error>>(())
+//! ```
+//!
+//! ### ProviderPreferences
+//! Specify preferences for model provider selection:
+//!
+//! ```rust
+//! use openrouter_rs::types::ProviderPreferences;
+//!
+//! let prefs = ProviderPreferences {
+//!     allow_fallbacks: true,
+//!     require_parameters: Some(vec!["tools".to_string()]),
+//!     data_collection: Some("deny".to_string()),
+//! };
+//! ```
+//!
+//! ## 📊 Model Categories
+//!
+//! Categories for filtering and organizing models:
+//!
+//! ```rust
+//! use openrouter_rs::types::ModelCategory;
+//!
+//! // Filter models by use case
+//! let programming_models = ModelCategory::Programming;
+//! let reasoning_models = ModelCategory::Reasoning;
+//! let image_models = ModelCategory::Image;
+//! ```
+//!
+//! ## 🏗️ Builder Patterns
+//!
+//! Most complex types support the builder pattern for ergonomic construction:
+//!
+//! ```rust
+//! use openrouter_rs::types::{ReasoningConfig, Effort};
+//!
+//! let config = ReasoningConfig::builder()
+//!     .enabled(true)
+//!     .effort(Effort::High)
+//!     .max_tokens(2000)
+//!     .exclude(false)
+//!     .build()?;
+//! # Ok::<(), Box<dyn std::error::Error>>(())
+//! ```
+//!
+//! ## 🔄 Serialization Support
+//!
+//! All types implement `Serialize` and `Deserialize` for JSON compatibility:
+//!
+//! ```rust
+//! use openrouter_rs::types::Role;
+//! use serde_json;
+//!
+//! let role = Role::Assistant;
+//! let json = serde_json::to_string(&role)?;
+//! let parsed: Role = serde_json::from_str(&json)?;
+//! # Ok::<(), Box<dyn std::error::Error>>(())
+//! ```
+//!
+//! ## 🎨 Display Formatting
+//!
+//! Common enums implement `Display` for human-readable output:
+//!
+//! ```rust
+//! use openrouter_rs::types::{Role, Effort};
+//!
+//! println!("Role: {}", Role::User);        // "user"
+//! println!("Effort: {}", Effort::High);    // "high"
+//! ```
+
 pub mod completion;
 pub mod provider;
 pub mod response_format;
@@ -13,13 +146,33 @@ pub struct ApiResponse<T> {
     pub data: T,
 }
 
+/// Message role in a conversation
+///
+/// Specifies who or what is sending a message in a chat completion.
+/// Different roles have different behaviors and restrictions.
+///
+/// # Examples
+///
+/// ```rust
+/// use openrouter_rs::types::Role;
+/// use openrouter_rs::api::chat::Message;
+///
+/// let system_msg = Message::new(Role::System, "You are a helpful assistant");
+/// let user_msg = Message::new(Role::User, "Hello, world!");
+/// let assistant_msg = Message::new(Role::Assistant, "Hello! How can I help?");
+/// ```
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum Role {
+    /// System instructions that guide the AI's behavior
     System,
+    /// Developer/admin context (provider-specific)
     Developer,
+    /// User input or questions
     User,
+    /// AI assistant responses
     Assistant,
+    /// Results from tool/function calls
     Tool,
 }
 
@@ -35,11 +188,33 @@ impl Display for Role {
     }
 }
 
+/// Reasoning effort level for chain-of-thought models
+///
+/// Controls how much computational effort the model should put into
+/// reasoning through problems. Higher effort levels typically produce
+/// more detailed reasoning but take longer and cost more.
+///
+/// # Examples
+///
+/// ```rust
+/// use openrouter_rs::types::Effort;
+/// use openrouter_rs::api::chat::ChatCompletionRequest;
+///
+/// let request = ChatCompletionRequest::builder()
+///     .model("deepseek/deepseek-r1")
+///     .reasoning_effort(Effort::High)  // Maximum reasoning depth
+///     // ... other fields
+///     .build()?;
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum Effort {
+    /// Maximum reasoning depth and thoroughness
     High,
+    /// Balanced reasoning effort
     Medium,
+    /// Quick, lightweight reasoning
     Low,
 }
 
@@ -55,9 +230,74 @@ impl Display for Effort {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ReasoningConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub effort: Option<Effort>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub max_tokens: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub exclude: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+}
+
+impl ReasoningConfig {
+    /// Create a new ReasoningConfig with default enabled settings (medium effort)
+    pub fn enabled() -> Self {
+        Self {
+            effort: None,
+            max_tokens: None,
+            exclude: None,
+            enabled: Some(true),
+        }
+    }
+
+    /// Create a ReasoningConfig with specific effort level
+    pub fn with_effort(effort: Effort) -> Self {
+        Self {
+            effort: Some(effort),
+            max_tokens: None,
+            exclude: None,
+            enabled: None,
+        }
+    }
+
+    /// Create a ReasoningConfig with max tokens limit
+    pub fn with_max_tokens(max_tokens: u32) -> Self {
+        Self {
+            effort: None,
+            max_tokens: Some(max_tokens),
+            exclude: None,
+            enabled: None,
+        }
+    }
+
+    /// Create a ReasoningConfig that excludes reasoning from response
+    pub fn excluded() -> Self {
+        Self {
+            effort: None,
+            max_tokens: None,
+            exclude: Some(true),
+            enabled: None,
+        }
+    }
+
+    /// Set effort level
+    pub fn effort(mut self, effort: Effort) -> Self {
+        self.effort = Some(effort);
+        self
+    }
+
+    /// Set max tokens
+    pub fn max_tokens(mut self, max_tokens: u32) -> Self {
+        self.max_tokens = Some(max_tokens);
+        self
+    }
+
+    /// Set exclude flag
+    pub fn exclude(mut self, exclude: bool) -> Self {
+        self.exclude = Some(exclude);
+        self
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
