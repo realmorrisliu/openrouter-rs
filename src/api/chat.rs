@@ -100,6 +100,15 @@ impl From<Vec<ContentPart>> for Content {
 pub struct Message {
     pub role: Role,
     pub content: Content,
+    /// Optional name for tool messages or function calls
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Tool call ID for tool response messages
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_call_id: Option<String>,
+    /// Tool calls made by assistant
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_calls: Option<Vec<crate::types::ToolCall>>,
 }
 
 impl Message {
@@ -107,6 +116,9 @@ impl Message {
         Self {
             role,
             content: content.into(),
+            name: None,
+            tool_call_id: None,
+            tool_calls: None,
         }
     }
 
@@ -115,6 +127,53 @@ impl Message {
         Self {
             role,
             content: Content::Parts(parts),
+            name: None,
+            tool_call_id: None,
+            tool_calls: None,
+        }
+    }
+
+    /// Create a tool response message
+    pub fn tool_response(tool_call_id: &str, content: impl Into<Content>) -> Self {
+        Self {
+            role: Role::Tool,
+            content: content.into(),
+            name: None,
+            tool_call_id: Some(tool_call_id.to_string()),
+            tool_calls: None,
+        }
+    }
+
+    /// Create a tool response message with a specific tool name
+    pub fn tool_response_named(tool_call_id: &str, tool_name: &str, content: impl Into<Content>) -> Self {
+        Self {
+            role: Role::Tool,
+            content: content.into(),
+            name: Some(tool_name.to_string()),
+            tool_call_id: Some(tool_call_id.to_string()),
+            tool_calls: None,
+        }
+    }
+
+    /// Create a message with a specific name
+    pub fn named(role: Role, name: &str, content: impl Into<Content>) -> Self {
+        Self {
+            role,
+            content: content.into(),
+            name: Some(name.to_string()),
+            tool_call_id: None,
+            tool_calls: None,
+        }
+    }
+
+    /// Create an assistant message with tool calls
+    pub fn assistant_with_tool_calls(content: impl Into<Content>, tool_calls: Vec<crate::types::ToolCall>) -> Self {
+        Self {
+            role: Role::Assistant,
+            content: content.into(),
+            name: None,
+            tool_call_id: None,
+            tool_calls: Some(tool_calls),
         }
     }
 }
@@ -206,12 +265,25 @@ pub struct ChatCompletionRequest {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     include_reasoning: Option<bool>,
+
+    #[builder(setter(custom), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    tools: Option<Vec<crate::types::Tool>>,
+
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    tool_choice: Option<crate::types::ToolChoice>,
+
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    parallel_tool_calls: Option<bool>,
 }
 
 impl ChatCompletionRequestBuilder {
     strip_option_vec_setter!(models, String);
     strip_option_map_setter!(logit_bias, String, f64);
     strip_option_vec_setter!(transforms, String);
+    strip_option_vec_setter!(tools, crate::types::Tool);
 
     /// Enable reasoning with default settings (medium effort)
     pub fn enable_reasoning(&mut self) -> &mut Self {
@@ -240,6 +312,40 @@ impl ChatCompletionRequestBuilder {
         self.reasoning = Some(Some(ReasoningConfig::excluded()));
         self
     }
+
+    /// Add a single tool to the request
+    pub fn tool(&mut self, tool: crate::types::Tool) -> &mut Self {
+        if let Some(Some(ref mut existing_tools)) = self.tools {
+            existing_tools.push(tool);
+        } else {
+            self.tools = Some(Some(vec![tool]));
+        }
+        self
+    }
+
+    /// Set tool choice to auto (model chooses whether to use tools)
+    pub fn tool_choice_auto(&mut self) -> &mut Self {
+        self.tool_choice = Some(Some(crate::types::ToolChoice::auto()));
+        self
+    }
+
+    /// Set tool choice to none (model will not use tools)
+    pub fn tool_choice_none(&mut self) -> &mut Self {
+        self.tool_choice = Some(Some(crate::types::ToolChoice::none()));
+        self
+    }
+
+    /// Set tool choice to required (model must use tools)
+    pub fn tool_choice_required(&mut self) -> &mut Self {
+        self.tool_choice = Some(Some(crate::types::ToolChoice::required()));
+        self
+    }
+
+    /// Force the model to use a specific tool
+    pub fn force_tool(&mut self, tool_name: &str) -> &mut Self {
+        self.tool_choice = Some(Some(crate::types::ToolChoice::force_tool(tool_name)));
+        self
+    }
 }
 
 impl ChatCompletionRequest {
@@ -253,6 +359,26 @@ impl ChatCompletionRequest {
             .messages(messages)
             .build()
             .expect("Failed to build ChatCompletionRequest")
+    }
+
+    /// Get the tools defined in this request
+    pub fn tools(&self) -> Option<&Vec<crate::types::Tool>> {
+        self.tools.as_ref()
+    }
+
+    /// Get the tool choice setting
+    pub fn tool_choice(&self) -> Option<&crate::types::ToolChoice> {
+        self.tool_choice.as_ref()
+    }
+
+    /// Get the parallel tool calls setting
+    pub fn parallel_tool_calls(&self) -> Option<bool> {
+        self.parallel_tool_calls
+    }
+
+    /// Get the messages in this request
+    pub fn messages(&self) -> &Vec<Message> {
+        &self.messages
     }
 
     fn stream(&self, stream: bool) -> Self {
