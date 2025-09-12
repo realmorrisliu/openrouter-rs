@@ -346,6 +346,111 @@ impl ChatCompletionRequestBuilder {
         self.tool_choice = Some(Some(crate::types::ToolChoice::force_tool(tool_name)));
         self
     }
+
+    /// Add a typed tool to the request
+    ///
+    /// This method allows adding strongly-typed tools using the TypedTool trait.
+    /// The tool's JSON Schema is automatically generated from the Rust type.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use openrouter_rs::types::typed_tool::TypedTool;
+    /// use serde::{Deserialize, Serialize};
+    /// use schemars::JsonSchema;
+    ///
+    /// #[derive(Serialize, Deserialize, JsonSchema)]
+    /// struct WeatherParams {
+    ///     location: String,
+    /// }
+    ///
+    /// impl TypedTool for WeatherParams {
+    ///     fn name() -> &'static str { "get_weather" }
+    ///     fn description() -> &'static str { "Get weather for location" }
+    /// }
+    ///
+    /// let request = ChatCompletionRequest::builder()
+    ///     .model("anthropic/claude-sonnet-4")
+    ///     .typed_tool::<WeatherParams>()
+    ///     .build()?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    pub fn typed_tool<T: crate::types::TypedTool>(&mut self) -> &mut Self {
+        let tool = T::create_tool();
+        self.tool(tool)
+    }
+
+    /// Add multiple typed tools to the request
+    ///
+    /// This is a convenience method for adding multiple typed tools at once.
+    /// Each tool type must implement the TypedTool trait.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use openrouter_rs::types::typed_tool::TypedTool;
+    /// # use serde::{Deserialize, Serialize};
+    /// # use schemars::JsonSchema;
+    /// # #[derive(Serialize, Deserialize, JsonSchema)]
+    /// # struct WeatherParams { location: String }
+    /// # impl TypedTool for WeatherParams {
+    /// #     fn name() -> &'static str { "get_weather" }
+    /// #     fn description() -> &'static str { "Get weather" }
+    /// # }
+    /// # #[derive(Serialize, Deserialize, JsonSchema)]
+    /// # struct CalculatorParams { a: f64, b: f64 }
+    /// # impl TypedTool for CalculatorParams {
+    /// #     fn name() -> &'static str { "calculator" }
+    /// #     fn description() -> &'static str { "Calculate" }
+    /// # }
+    /// 
+    /// let request = ChatCompletionRequest::builder()
+    ///     .model("anthropic/claude-sonnet-4")
+    ///     .typed_tools_batch(&[
+    ///         WeatherParams::create_tool(),
+    ///         CalculatorParams::create_tool(),
+    ///     ])
+    ///     .build()?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    pub fn typed_tools_batch(&mut self, tools: &[crate::types::Tool]) -> &mut Self {
+        for tool in tools {
+            self.tool(tool.clone());
+        }
+        self
+    }
+
+    /// Force the model to use a specific typed tool
+    ///
+    /// This method combines the typed tool functionality with tool choice forcing.
+    /// The specified typed tool will be added to the tools list and forced as the choice.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use openrouter_rs::types::typed_tool::TypedTool;
+    /// # use serde::{Deserialize, Serialize};
+    /// # use schemars::JsonSchema;
+    /// # #[derive(Serialize, Deserialize, JsonSchema)]
+    /// # struct WeatherParams { location: String }
+    /// # impl TypedTool for WeatherParams {
+    /// #     fn name() -> &'static str { "get_weather" }
+    /// #     fn description() -> &'static str { "Get weather" }
+    /// # }
+    ///
+    /// let request = ChatCompletionRequest::builder()
+    ///     .model("anthropic/claude-sonnet-4")
+    ///     .force_typed_tool::<WeatherParams>()
+    ///     .build()?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    pub fn force_typed_tool<T: crate::types::TypedTool>(&mut self) -> &mut Self {
+        let tool_name = T::name();
+        let tool = T::create_tool();
+        self.tool(tool);
+        self.force_tool(tool_name);
+        self
+    }
 }
 
 impl ChatCompletionRequest {
