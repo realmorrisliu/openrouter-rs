@@ -25,7 +25,7 @@ use openrouter_rs::{
     client::OpenRouterClient,
     types::{
         typed_tool::{TypedTool, TypedToolParams},
-        Role, ToolChoice,
+        Role,
     },
 };
 use schemars::JsonSchema;
@@ -280,32 +280,65 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         println!("  {}. {} (ID: {})", j + 1, tool_call.function.name, tool_call.id);
                         println!("     Arguments: {}", tool_call.function.arguments);
                         
-                        // Demonstrate typed parameter parsing
+                        // ================================
+                        // OLD WAY (Ugly Pattern Matching)
+                        // ================================
+                        println!("     🔴 OLD WAY - Ugly pattern matching:");
                         match tool_call.function.name.as_str() {
                             "get_weather" => {
                                 match serde_json::from_str::<WeatherParams>(&tool_call.function.arguments) {
                                     Ok(params) => {
-                                        println!("     ✅ Parsed weather params:");
-                                        println!("        Location: {}", params.location);
-                                        println!("        Unit: {:?}", params.unit);
-                                        println!("        Include forecast: {}", params.include_forecast);
+                                        println!("        ✅ Parsed weather params:");
+                                        println!("           Location: {}", params.location);
+                                        println!("           Unit: {:?}", params.unit);
+                                        println!("           Include forecast: {}", params.include_forecast);
                                     }
-                                    Err(e) => println!("     ❌ Failed to parse weather params: {}", e),
+                                    Err(e) => println!("        ❌ Failed to parse weather params: {}", e),
                                 }
                             }
                             "calculator" => {
                                 match serde_json::from_str::<CalculatorParams>(&tool_call.function.arguments) {
                                     Ok(params) => {
-                                        println!("     ✅ Parsed calculator params:");
-                                        println!("        Operation: {:?}", params.operation);
-                                        println!("        A: {}, B: {}", params.a, params.b);
-                                        println!("        Precision: {}", params.precision);
+                                        println!("        ✅ Parsed calculator params:");
+                                        println!("           Operation: {:?}", params.operation);
+                                        println!("           A: {}, B: {}", params.a, params.b);
+                                        println!("           Precision: {}", params.precision);
                                     }
-                                    Err(e) => println!("     ❌ Failed to parse calculator params: {}", e),
+                                    Err(e) => println!("        ❌ Failed to parse calculator params: {}", e),
                                 }
                             }
                             _ => {
-                                println!("     ℹ️  Tool not handled in this example");
+                                println!("        ℹ️  Tool not handled in this example");
+                            }
+                        }
+
+                        // =====================================
+                        // NEW WAY (Clean Enhanced Pattern)
+                        // =====================================
+                        println!("     🟢 NEW WAY - Clean enhanced pattern:");
+                        match tool_call.name() {
+                            "get_weather" => {
+                                match tool_call.parse_params::<WeatherParams>() {
+                                    Ok(params) => {
+                                        println!("        ✅ Weather for: {}", params.location);
+                                        println!("           Unit: {:?}", params.unit);
+                                        println!("           Include forecast: {}", params.include_forecast);
+                                    }
+                                    Err(e) => println!("        ❌ Parse error: {}", e),
+                                }
+                            }
+                            "calculator" => {
+                                match tool_call.parse_params::<CalculatorParams>() {
+                                    Ok(params) => {
+                                        println!("        🧮 Calculate: {:?}", params.operation);
+                                        println!("           {} {:?} {} with {} decimal places", 
+                                            params.a, params.operation, params.b, params.precision);
+                                    }
+                                    Err(e) => println!("        ❌ Parse error: {}", e),
+                                }
+                            }
+                            _ => {
+                                println!("        ℹ️  Unknown tool: {}", tool_call.name());
                             }
                         }
                     }
