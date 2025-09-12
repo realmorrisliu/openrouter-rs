@@ -1,8 +1,14 @@
 use openrouter_rs::{
     api::chat::{ChatCompletionRequest, Message},
-    types::{Role, Tool, ToolChoice},
+    types::{
+        Role, Tool, ToolChoice, 
+        typed_tool::{TypedTool, TypedToolParams},
+        completion::{ToolCall, FunctionCall},
+    },
 };
 use serde_json::json;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
 use crate::test_utils::create_test_client;
 
@@ -244,4 +250,84 @@ async fn test_real_tool_call() {
         assert_eq!(tool_call.function.name, "echo");
         assert!(tool_call.function.arguments.contains("Hello, World!"));
     }
+}
+
+// =============================================
+// ENHANCED TOOL CALL CONVENIENCE TESTS
+// =============================================
+
+/// Test data structures for testing enhanced ToolCall methods
+#[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq)]
+struct TestToolParams {
+    pub message: String,
+    pub count: u32,
+}
+
+impl TypedTool for TestToolParams {
+    fn name() -> &'static str {
+        "test_tool"
+    }
+
+    fn description() -> &'static str {
+        "A test tool for unit testing"
+    }
+}
+
+/// Create a test ToolCall for testing
+fn create_test_tool_call(tool_name: &str, arguments: &str) -> ToolCall {
+    ToolCall {
+        id: format!("call_{}", tool_name),
+        type_: "function".to_string(),
+        function: FunctionCall {
+            name: tool_name.to_string(),
+            arguments: arguments.to_string(),
+        },
+    }
+}
+
+#[tokio::test]
+async fn test_enhanced_tool_call_convenience_methods() {
+    let tool_call = create_test_tool_call(
+        "test_tool",
+        r#"{"message": "Hello", "count": 42}"#,
+    );
+
+    // Test convenience methods
+    assert_eq!(tool_call.name(), "test_tool");
+    assert_eq!(tool_call.id(), "call_test_tool");
+    assert_eq!(tool_call.tool_type(), "function");
+    assert_eq!(tool_call.arguments_json(), r#"{"message": "Hello", "count": 42}"#);
+
+    // Test type checking
+    assert!(tool_call.is_tool::<TestToolParams>());
+    
+    // Test parameter parsing
+    let params: TestToolParams = tool_call.parse_params().unwrap();
+    assert_eq!(params.message, "Hello");
+    assert_eq!(params.count, 42);
+
+    // Test parsing invalid JSON
+    let invalid_tool_call = create_test_tool_call("test_tool", r#"invalid json"#);
+    let parse_result: Result<TestToolParams, _> = invalid_tool_call.parse_params();
+    assert!(parse_result.is_err());
+}
+
+#[tokio::test]
+async fn test_typed_tool_params_validation() {
+    let params = TestToolParams {
+        message: "Hello".to_string(),
+        count: 42,
+    };
+
+    // Test validation (default implementation should pass)
+    assert!(params.validate().is_ok());
+
+    // Test JSON conversion
+    let json_value = params.to_json_value().unwrap();
+    assert_eq!(json_value["message"], "Hello");
+    assert_eq!(json_value["count"], 42);
+
+    // Test round-trip conversion
+    let converted_back = TestToolParams::from_json_value(json_value).unwrap();
+    assert_eq!(converted_back, params);
 }
