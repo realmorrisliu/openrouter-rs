@@ -119,6 +119,14 @@ impl Choice {
         }
     }
 
+    pub fn index(&self) -> Option<u32> {
+        match self {
+            Choice::NonChat(choice) => choice.index,
+            Choice::NonStreaming(choice) => choice.index,
+            Choice::Streaming(choice) => choice.index,
+        }
+    }
+
     pub fn reasoning(&self) -> Option<&str> {
         match self {
             Choice::NonChat(_) => None,
@@ -132,6 +140,14 @@ impl Choice {
             Choice::NonChat(_) => None,
             Choice::NonStreaming(choice) => choice.message.reasoning_details.as_deref(),
             Choice::Streaming(choice) => choice.delta.reasoning_details.as_deref(),
+        }
+    }
+
+    pub fn logprobs(&self) -> Option<&Value> {
+        match self {
+            Choice::NonChat(choice) => choice.logprobs.as_ref(),
+            Choice::NonStreaming(choice) => choice.logprobs.as_ref(),
+            Choice::Streaming(choice) => choice.logprobs.as_ref(),
         }
     }
 }
@@ -151,6 +167,8 @@ pub struct NonChatChoice {
     pub finish_reason: Option<FinishReason>,
     pub text: String,
     pub error: Option<ErrorResponse>,
+    pub index: Option<u32>,
+    pub logprobs: Option<Value>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -159,6 +177,8 @@ pub struct NonStreamingChoice {
     pub native_finish_reason: Option<String>,
     pub message: Message,
     pub error: Option<ErrorResponse>,
+    pub index: Option<u32>,
+    pub logprobs: Option<Value>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -167,6 +187,8 @@ pub struct StreamingChoice {
     pub native_finish_reason: Option<String>,
     pub delta: Delta,
     pub error: Option<ErrorResponse>,
+    pub index: Option<u32>,
+    pub logprobs: Option<Value>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -178,6 +200,7 @@ pub struct Message {
     pub reasoning: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reasoning_details: Option<Vec<ReasoningDetail>>,
+    pub refusal: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -189,6 +212,7 @@ pub struct Delta {
     pub reasoning: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reasoning_details: Option<Vec<ReasoningDetail>>,
+    pub refusal: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
