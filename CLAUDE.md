@@ -156,12 +156,11 @@ Use `futures_util::StreamExt` to process streaming data, filtering errors and ex
 
 ## Version Information
 
-Current version: 0.4.5
-- 🧠 **New**: Complete reasoning tokens implementation with chain-of-thought support
-- ⚙️ **Updated**: Model presets restructured to `programming`/`reasoning`/`free` categories
-- 📚 **Enhanced**: Professional-grade documentation with comprehensive examples
-- 🏗️ **Improved**: Configuration system with better model management
-- Previous: Support for filtering models by supported parameters and categories
+Current version: 0.4.6
+- 🐛 **Fixed**: Grok model deserialization error (Issue #6)
+- ➕ **Added**: `index` and `logprobs` fields to Choice structs
+- 🧪 **Added**: Grok model integration test and unit tests for response parsing
+- Previous: Complete reasoning tokens implementation, model presets restructuring
 
 ## Development Guidelines
 
