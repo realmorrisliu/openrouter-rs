@@ -10,6 +10,8 @@ use openrouter_rs::{
 };
 
 const TEST_MODEL: &str = "deepseek/deepseek-chat-v3-0324:free";
+const GROK_MODEL: &str = "x-ai/grok-code-fast-1";
+const REASONING_MODEL: &str = "openai/o3-mini";
 
 #[tokio::test]
 #[allow(clippy::result_large_err)]
@@ -62,7 +64,40 @@ fn get_first_content(response: &CompletionsResponse) -> &str {
     }
 }
 
-const REASONING_MODEL: &str = "openai/o3-mini";
+/// Test Grok model chat completion (Issue #6)
+/// This test verifies that Grok model responses can be properly deserialized
+#[tokio::test]
+#[allow(clippy::result_large_err)]
+async fn test_grok_chat_completion() -> Result<(), OpenRouterError> {
+    let client = create_test_client()?;
+    rate_limit_delay().await;
+
+    let request = ChatCompletionRequestBuilder::default()
+        .model(GROK_MODEL)
+        .messages(vec![Message::new(
+            Role::User,
+            "Say 'Hello from Rust!' in exactly those words.",
+        )])
+        .max_tokens(50)
+        .temperature(0.1)
+        .build()?;
+
+    let response = client.send_chat_completion(&request).await?;
+
+    // Basic validation
+    assert!(!response.id.is_empty(), "Response ID should not be empty");
+    assert!(!response.choices.is_empty(), "Response should have choices");
+
+    let choice = &response.choices[0];
+    let content = choice.content();
+    assert!(content.is_some(), "Response should have content");
+
+    println!(
+        "Grok test passed, model response: {:?}",
+        content.unwrap_or_default()
+    );
+    Ok(())
+}
 
 #[tokio::test]
 #[allow(clippy::result_large_err)]
