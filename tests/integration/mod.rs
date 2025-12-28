@@ -7,3 +7,4 @@ pub mod api_keys;
 pub mod chat;
 pub mod models;
 pub mod test_utils;
+pub mod tools;
