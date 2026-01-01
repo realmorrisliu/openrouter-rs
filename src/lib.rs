@@ -174,6 +174,6 @@ pub mod error;
 pub mod types;
 pub mod utils;
 
-pub use api::chat::Message;
+pub use api::chat::{Content, ContentPart, ImageUrl, Message};
 pub use api::models::Model;
 pub use client::OpenRouterClient;
