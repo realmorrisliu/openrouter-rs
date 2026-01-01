@@ -121,9 +121,14 @@ fn test_response_with_reasoning_details() {
     assert_eq!(choice.content(), Some("The answer is 42."));
     assert_eq!(choice.reasoning(), Some("Let me think step by step..."));
 
-    let reasoning_details = choice.reasoning_details().expect("Should have reasoning_details");
+    let reasoning_details = choice
+        .reasoning_details()
+        .expect("Should have reasoning_details");
     assert_eq!(reasoning_details.len(), 2);
-    assert_eq!(reasoning_details[0].content(), "First, I need to consider...");
+    assert_eq!(
+        reasoning_details[0].content(),
+        "First, I need to consider..."
+    );
     assert_eq!(reasoning_details[0].reasoning_type(), "reasoning.text");
 }
 

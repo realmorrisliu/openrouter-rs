@@ -14,17 +14,107 @@ use crate::{
     utils::handle_error,
 };
 
+/// Image URL with optional detail level for vision models.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ImageUrl {
+    /// URL of the image (can be a web URL or base64 data URI)
+    pub url: String,
+    /// Detail level: "auto", "low", or "high"
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub detail: Option<String>,
+}
+
+impl ImageUrl {
+    pub fn new(url: impl Into<String>) -> Self {
+        Self {
+            url: url.into(),
+            detail: None,
+        }
+    }
+
+    pub fn with_detail(url: impl Into<String>, detail: impl Into<String>) -> Self {
+        Self {
+            url: url.into(),
+            detail: Some(detail.into()),
+        }
+    }
+}
+
+/// A content part in a multi-modal message.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum ContentPart {
+    /// Text content
+    Text { text: String },
+    /// Image URL content
+    ImageUrl { image_url: ImageUrl },
+}
+
+impl ContentPart {
+    pub fn text(text: impl Into<String>) -> Self {
+        Self::Text { text: text.into() }
+    }
+
+    pub fn image_url(url: impl Into<String>) -> Self {
+        Self::ImageUrl {
+            image_url: ImageUrl::new(url),
+        }
+    }
+
+    pub fn image_url_with_detail(url: impl Into<String>, detail: impl Into<String>) -> Self {
+        Self::ImageUrl {
+            image_url: ImageUrl::with_detail(url, detail),
+        }
+    }
+}
+
+/// Message content - either a simple string or multi-part content.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
+pub enum Content {
+    /// Simple text content
+    Text(String),
+    /// Multi-part content (text, images, etc.)
+    Parts(Vec<ContentPart>),
+}
+
+impl From<String> for Content {
+    fn from(s: String) -> Self {
+        Self::Text(s)
+    }
+}
+
+impl From<&str> for Content {
+    fn from(s: &str) -> Self {
+        Self::Text(s.to_string())
+    }
+}
+
+impl From<Vec<ContentPart>> for Content {
+    fn from(parts: Vec<ContentPart>) -> Self {
+        Self::Parts(parts)
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Message {
     pub role: Role,
-    pub content: String,
+    pub content: Content,
 }
 
 impl Message {
-    pub fn new(role: Role, content: &str) -> Self {
+    pub fn new(role: Role, content: impl Into<Content>) -> Self {
         Self {
             role,
-            content: content.to_string(),
+            content: content.into(),
+        }
+    }
+
+    /// Create a message with multi-part content (text and images).
+    pub fn with_parts(role: Role, parts: Vec<ContentPart>) -> Self {
+        Self {
+            role,
+            content: Content::Parts(parts),
         }
     }
 }
