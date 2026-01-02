@@ -532,7 +532,12 @@ pub async fn send_chat_completion(
     let mut response = surf_req.await?;
 
     if response.status().is_success() {
-        let chat_response = response.body_json().await?;
+        let body_text = response.body_string().await?;
+        let chat_response: CompletionsResponse = serde_json::from_str(&body_text)
+            .map_err(|e| {
+                eprintln!("Failed to deserialize response: {e}\nBody: {body_text}");
+                OpenRouterError::Serialization(e)
+            })?;
         Ok(chat_response)
     } else {
         handle_error(response).await?;

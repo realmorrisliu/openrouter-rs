@@ -125,10 +125,7 @@ fn test_response_with_reasoning_details() {
         .reasoning_details()
         .expect("Should have reasoning_details");
     assert_eq!(reasoning_details.len(), 2);
-    assert_eq!(
-        reasoning_details[0].content(),
-        "First, I need to consider..."
-    );
+    assert_eq!(reasoning_details[0].content(), Some("First, I need to consider..."));
     assert_eq!(reasoning_details[0].reasoning_type(), "reasoning.text");
 }
 
@@ -228,4 +225,13 @@ fn test_minimal_response() {
     assert_eq!(choice.content(), Some("Hello"));
     assert!(choice.finish_reason().is_none());
     assert!(choice.index().is_none());
+}
+
+/// Test Gemini tool call response with annotations field
+#[test]
+fn test_gemini_tool_call_response() {
+    let json = r#"{"id":"gen-123","provider":"Google AI Studio","model":"google/gemini-3-flash-preview","object":"chat.completion","created":1767358919,"choices":[{"logprobs":null,"finish_reason":"tool_calls","native_finish_reason":"STOP","index":0,"message":{"role":"assistant","content":"","refusal":null,"reasoning":null,"tool_calls":[{"type":"function","index":0,"id":"tool_123","function":{"name":"test","arguments":"{}"}}],"reasoning_details":[{"id":"tool_123","format":"google-gemini-v1","index":0,"type":"reasoning.encrypted","data":"abc123"}],"annotations":[]}}],"usage":{"prompt_tokens":100,"completion_tokens":10,"total_tokens":110}}"#;
+
+    let result = serde_json::from_str::<CompletionsResponse>(json);
+    assert!(result.is_ok(), "Failed: {:?}", result.err());
 }

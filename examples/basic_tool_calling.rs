@@ -168,7 +168,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("     ✅ Result: {}", tool_result);
 
                 // Add tool response to messages
-                messages.push(Message::tool_response(&tool_call.id, &tool_result));
+                messages.push(Message::tool_response(&tool_call.id, tool_result));
             }
 
             // Send follow-up request with tool results - keep tools available in case model needs more
@@ -227,7 +227,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         };
 
                         println!("     ✅ Result: {}", tool_result);
-                        messages.push(Message::tool_response(&tool_call.id, &tool_result));
+                        messages.push(Message::tool_response(&tool_call.id, tool_result));
                     }
                     
                     // Final request without tools for summary

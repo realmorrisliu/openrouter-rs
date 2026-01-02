@@ -90,32 +90,35 @@ async fn test_chat_request_with_tools() {
 
 #[tokio::test]
 async fn test_tool_message_creation() {
+    use openrouter_rs::Content;
+
     // Test regular message
     let user_msg = Message::new(Role::User, "Hello");
     assert_eq!(user_msg.role, Role::User);
-    assert_eq!(user_msg.content, "Hello");
+    assert!(matches!(user_msg.content, Content::Text(ref s) if s == "Hello"));
     assert!(user_msg.name.is_none());
     assert!(user_msg.tool_call_id.is_none());
 
     // Test tool response message
     let tool_msg = Message::tool_response("call_123", "Tool result");
     assert_eq!(tool_msg.role, Role::Tool);
-    assert_eq!(tool_msg.content, "Tool result");
+    assert!(matches!(tool_msg.content, Content::Text(ref s) if s == "Tool result"));
     assert_eq!(tool_msg.tool_call_id, Some("call_123".to_string()));
     assert!(tool_msg.name.is_none());
 
     // Test named tool response
     let named_tool_msg = Message::tool_response_named("call_456", "weather", "Sunny");
     assert_eq!(named_tool_msg.role, Role::Tool);
-    assert_eq!(named_tool_msg.content, "Sunny");
+    assert!(matches!(named_tool_msg.content, Content::Text(ref s) if s == "Sunny"));
     assert_eq!(named_tool_msg.tool_call_id, Some("call_456".to_string()));
     assert_eq!(named_tool_msg.name, Some("weather".to_string()));
 }
 
 #[tokio::test]
 async fn test_assistant_message_with_tool_calls() {
+    use openrouter_rs::Content;
     use openrouter_rs::types::{ToolCall, FunctionCall};
-    
+
     let tool_call = ToolCall {
         id: "call_123".to_string(),
         type_: "function".to_string(),
@@ -123,11 +126,12 @@ async fn test_assistant_message_with_tool_calls() {
             name: "test_function".to_string(),
             arguments: r#"{"param": "value"}"#.to_string(),
         },
+        index: None,
     };
-    
+
     let assistant_msg = Message::assistant_with_tool_calls("I'll help you with that", vec![tool_call]);
     assert_eq!(assistant_msg.role, Role::Assistant);
-    assert_eq!(assistant_msg.content, "I'll help you with that");
+    assert!(matches!(assistant_msg.content, Content::Text(ref s) if s == "I'll help you with that"));
     assert!(assistant_msg.tool_calls.is_some());
     assert_eq!(assistant_msg.tool_calls.as_ref().unwrap().len(), 1);
     assert_eq!(assistant_msg.tool_calls.as_ref().unwrap()[0].id, "call_123");
@@ -282,6 +286,7 @@ fn create_test_tool_call(tool_name: &str, arguments: &str) -> ToolCall {
             name: tool_name.to_string(),
             arguments: arguments.to_string(),
         },
+        index: None,
     }
 }
 

@@ -25,7 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .model("deepseek/deepseek-r1")
         .messages(vec![Message::new(
             Role::User,
-            &format!("{question} Please think this through, but don't output an answer"),
+            format!("{question} Please think this through, but don't output an answer"),
         )])
         .max_tokens(1000)
         .enable_reasoning()
@@ -62,7 +62,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let enhanced_content = format!("{question}. Here is some context to help you: {reasoning}");
     let enhanced_request = ChatCompletionRequest::builder()
         .model("openai/gpt-4o-mini")
-        .messages(vec![Message::new(Role::User, &enhanced_content)])
+        .messages(vec![Message::new(Role::User, enhanced_content)])
         .max_tokens(300)
         .build()?;
 

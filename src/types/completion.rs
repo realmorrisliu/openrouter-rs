@@ -5,24 +5,33 @@ use serde_json::Value;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ReasoningDetail {
-    /// The type of reasoning block (e.g., "reasoning.text")
+    /// The type of reasoning block (e.g., "reasoning.text", "reasoning.encrypted")
     #[serde(rename = "type")]
     pub block_type: String,
     /// The actual reasoning content (Anthropic uses "text" field)
-    #[serde(alias = "content")]
-    pub text: String,
+    #[serde(alias = "content", default)]
+    pub text: Option<String>,
+    /// Encrypted reasoning data (Gemini uses "data" field)
+    #[serde(default)]
+    pub data: Option<String>,
     /// Cryptographic signature (Anthropic specific)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub signature: Option<String>,
-    /// Format identifier (Anthropic specific)
+    /// Format identifier
     #[serde(skip_serializing_if = "Option::is_none")]
     pub format: Option<String>,
+    /// ID of the reasoning block (Gemini specific)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// Index of the reasoning block (Gemini specific)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub index: Option<u32>,
 }
 
 impl ReasoningDetail {
     /// Get the content/text of this reasoning detail
-    pub fn content(&self) -> &str {
-        &self.text
+    pub fn content(&self) -> Option<&str> {
+        self.text.as_deref().or(self.data.as_deref())
     }
 
     /// Get the type of this reasoning block
@@ -53,6 +62,8 @@ pub struct ToolCall {
     #[serde(rename = "type")]
     pub type_: String, // Always "function" according to TS type
     pub function: FunctionCall,
+    #[serde(default)]
+    pub index: Option<u32>,
 }
 
 impl ToolCall {
@@ -298,6 +309,8 @@ pub struct Message {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reasoning_details: Option<Vec<ReasoningDetail>>,
     pub refusal: Option<String>,
+    #[serde(default)]
+    pub annotations: Option<Vec<Value>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
