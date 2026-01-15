@@ -22,6 +22,16 @@
 //! - **Content Types**: Different response content formats
 //! - **Validation**: Response format validation rules
 //!
+//! ### Tool Support ([`tool`])
+//! - **Tool Definitions**: Function calling definitions and schemas
+//! - **Tool Choice**: Control over tool usage behavior
+//! - **Function Parameters**: JSON Schema for tool parameters
+//!
+//! ### Typed Tools ([`typed_tool`])
+//! - **TypedTool Trait**: Strongly-typed tool definitions using Rust structs
+//! - **Automatic Schema Generation**: JSON Schema generation from Rust types
+//! - **Type Safety**: Compile-time validation of tool parameters
+//!
 //! ## 🎯 Core Enums
 //!
 //! ### Role
@@ -134,12 +144,14 @@
 pub mod completion;
 pub mod provider;
 pub mod response_format;
+pub mod tool;
+pub mod typed_tool;
 
 use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
 
-pub use {completion::*, provider::*, response_format::*};
+pub use {completion::*, provider::*, response_format::*, tool::*, typed_tool::*};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ApiResponse<T> {
@@ -161,7 +173,7 @@ pub struct ApiResponse<T> {
 /// let user_msg = Message::new(Role::User, "Hello, world!");
 /// let assistant_msg = Message::new(Role::Assistant, "Hello! How can I help?");
 /// ```
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum Role {
     /// System instructions that guide the AI's behavior

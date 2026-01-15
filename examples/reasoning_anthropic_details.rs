@@ -41,14 +41,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
 
         for (i, detail) in reasoning_details.iter().enumerate() {
+            let content = detail.content().unwrap_or("[no content]");
             println!(
                 "Block {}: Type={}, Content={}",
                 i + 1,
                 detail.reasoning_type(),
-                if detail.content().len() > 100 {
-                    &detail.content()[..100]
+                if content.len() > 100 {
+                    &content[..100]
                 } else {
-                    detail.content()
+                    content
                 }
             );
         }
