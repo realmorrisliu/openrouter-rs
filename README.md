@@ -30,7 +30,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-openrouter-rs = "0.4.6"
+openrouter-rs = "0.4.7"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -292,25 +292,27 @@ This is a **third-party SDK** not officially affiliated with OpenRouter. Use at 
 
 ## 📈 Release History
 
-### Version 0.4.6 *(Latest)*
+### Version 0.4.7 *(Latest)*
+
+- ✨ **Added**: Gemini 3 model support
+
+### Version 0.4.6
 
 - 🐛 **Fixed**: Grok model deserialization error (Issue #6)
 - ➕ **Added**: `index` and `logprobs` fields to Choice structs
 - 🧪 **Added**: Grok model integration test and unit tests for response parsing
-
-### Version 0.4.5
 
 - 🧠 **New**: Complete reasoning tokens implementation with chain-of-thought support
 - ⚙️ **Updated**: Model presets restructured to `programming`/`reasoning`/`free` categories
 - 📚 **Enhanced**: Professional-grade documentation with comprehensive examples
 - 🏗️ **Improved**: Configuration system with better model management
 
-### Version 0.4.4
+### Version 0.4.5
 
 - Added: Support for listing models by supported parameters
 - Note: OpenRouter API limitations on simultaneous category and parameter filtering
 
-### Version 0.4.3
+### Version 0.4.4
 
 - Added: Support for listing models by category
 - Thanks to OpenRouter team for the API enhancement!
