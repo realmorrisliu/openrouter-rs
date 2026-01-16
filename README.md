@@ -17,6 +17,8 @@ A **type-safe**, **async** Rust SDK for the [OpenRouter API](https://openrouter.
 - **🔒 Type Safety**: Leverages Rust's type system for compile-time error prevention
 - **⚡ Async/Await**: Built on `tokio` for high-performance concurrent operations
 - **🧠 Reasoning Tokens**: Industry-leading chain-of-thought reasoning support
+- **🛠️ Tool Calling**: Function calling with typed tools and automatic JSON schema generation
+- **🖼️ Vision Support**: Multi-modal content for image analysis with vision models
 - **📡 Streaming**: Real-time response streaming with `futures`
 - **🏗️ Builder Pattern**: Ergonomic client and request construction
 - **⚙️ Smart Presets**: Curated model groups for programming, reasoning, and free tiers
@@ -84,6 +86,97 @@ println!("🧠 Reasoning: {}", response.choices[0].reasoning().unwrap_or(""));
 println!("💡 Answer: {}", response.choices[0].content().unwrap_or(""));
 ```
 
+### 🛠️ Tool Calling (Function Calling)
+
+Define tools and let models call functions:
+
+```rust
+use openrouter_rs::types::Tool;
+use serde_json::json;
+
+// Define a tool
+let calculator = Tool::builder()
+    .name("calculator")
+    .description("Perform arithmetic operations")
+    .parameters(json!({
+        "type": "object",
+        "properties": {
+            "operation": { "type": "string", "enum": ["add", "subtract", "multiply"] },
+            "a": { "type": "number" },
+            "b": { "type": "number" }
+        },
+        "required": ["operation", "a", "b"]
+    }))
+    .build()?;
+
+// Send request with tools
+let request = ChatCompletionRequest::builder()
+    .model("anthropic/claude-sonnet-4")
+    .messages(vec![Message::new(Role::User, "What's 42 * 17?")])
+    .tools(vec![calculator])
+    .build()?;
+
+let response = client.send_chat_completion(&request).await?;
+
+// Handle tool calls
+if let Some(tool_calls) = response.choices[0].tool_calls() {
+    for call in tool_calls {
+        println!("Tool: {}, Args: {}", call.function.name, call.function.arguments);
+    }
+}
+```
+
+### 🔧 Typed Tools with Auto Schema Generation
+
+Use Rust structs for type-safe tool definitions:
+
+```rust
+use openrouter_rs::types::typed_tool::{TypedTool, TypedToolParams};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, JsonSchema)]
+pub struct WeatherParams {
+    /// City and country, e.g. "London, UK"
+    pub location: String,
+    /// Temperature unit
+    pub unit: Option<String>,
+}
+
+impl TypedTool for WeatherParams {
+    fn name() -> &'static str { "get_weather" }
+    fn description() -> &'static str { "Get weather for a location" }
+}
+
+// Auto-generates JSON schema from struct
+let request = ChatCompletionRequest::builder()
+    .model("anthropic/claude-sonnet-4")
+    .messages(vec![Message::new(Role::User, "Weather in Paris?")])
+    .typed_tool::<WeatherParams>()
+    .build()?;
+```
+
+### 🖼️ Multi-Modal Vision Support
+
+Send images for analysis with vision models:
+
+```rust
+use openrouter_rs::api::chat::{ContentPart, ImageUrl};
+
+let request = ChatCompletionRequest::builder()
+    .model("anthropic/claude-sonnet-4")
+    .messages(vec![
+        Message::with_parts(Role::User, vec![
+            ContentPart::Text { text: "What's in this image?".into() },
+            ContentPart::ImageUrl {
+                image_url: ImageUrl::new("https://example.com/image.jpg")
+                    .with_detail("high")
+            },
+        ])
+    ])
+    .build()?;
+```
+
 ### 📡 Real-time Streaming
 
 Process responses as they arrive:
@@ -143,6 +236,9 @@ match client.send_chat_completion(&request).await {
 |---------|---------|---------|
 | Chat Completions | ✅ | [`api::chat`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/chat/) |
 | Text Completions | ✅ | [`api::completion`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/completion/) |
+| **Tool Calling** | ✅ | [`api::chat`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/chat/) |
+| **Typed Tools** | ✅ | [`types::typed_tool`](https://docs.rs/openrouter-rs/latest/openrouter_rs/types/typed_tool/) |
+| **Multi-Modal/Vision** | ✅ | [`api::chat`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/chat/) |
 | **Reasoning Tokens** | ✅ | [`api::chat`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/chat/) |
 | Streaming Responses | ✅ | [`api::chat`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/chat/) |
 | Model Information | ✅ | [`api::models`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/models/) |
@@ -221,6 +317,12 @@ export OPENROUTER_API_KEY="your_key_here"
 # Basic chat completion
 cargo run --example send_chat_completion
 
+# Tool calling (function calling)
+cargo run --example basic_tool_calling
+
+# Typed tools with JSON schema generation
+cargo run --example typed_tool_calling
+
 # Reasoning tokens demo
 cargo run --example chat_with_reasoning
 
@@ -294,7 +396,10 @@ This is a **third-party SDK** not officially affiliated with OpenRouter. Use at 
 
 ### Version 0.4.7 *(Latest)*
 
-- ✨ **Added**: Gemini 3 model support
+- 🛠️ **New**: Comprehensive tool calling (function calling) support with parallel tool calls
+- 🔧 **New**: Typed tools with automatic JSON schema generation via `schemars`
+- 🖼️ **New**: Multi-modal content support for vision models (images with detail levels)
+- 🐛 **Fixed**: Gemini model compatibility (added missing fields)
 
 ### Version 0.4.6
 
