@@ -166,16 +166,18 @@ impl ToolBuilder {
     }
 
     /// Set parameters from a serializable struct
-    pub fn parameters_from<T: Serialize>(&mut self, params: &T) -> Result<&mut Self, OpenRouterError> {
-        let value = serde_json::to_value(params)
-            .map_err(|e| OpenRouterError::Serialization(e))?;
+    pub fn parameters_from<T: Serialize>(
+        &mut self,
+        params: &T,
+    ) -> Result<&mut Self, OpenRouterError> {
+        let value = serde_json::to_value(params).map_err(|e| OpenRouterError::Serialization(e))?;
         Ok(self.parameters(value))
     }
 
     /// Set parameters from a JSON string
     pub fn parameters_json(&mut self, json: &str) -> Result<&mut Self, OpenRouterError> {
-        let value: Value = serde_json::from_str(json)
-            .map_err(|e| OpenRouterError::Serialization(e))?;
+        let value: Value =
+            serde_json::from_str(json).map_err(|e| OpenRouterError::Serialization(e))?;
         Ok(self.parameters(value))
     }
 }
@@ -188,17 +190,19 @@ impl FunctionDefinitionBuilder {
     }
 
     /// Set parameters from a serializable struct
-    pub fn parameters_from<T: Serialize>(&mut self, params: &T) -> Result<&mut Self, OpenRouterError> {
-        let value = serde_json::to_value(params)
-            .map_err(|e| OpenRouterError::Serialization(e))?;
+    pub fn parameters_from<T: Serialize>(
+        &mut self,
+        params: &T,
+    ) -> Result<&mut Self, OpenRouterError> {
+        let value = serde_json::to_value(params).map_err(|e| OpenRouterError::Serialization(e))?;
         self.parameters = Some(value);
         Ok(self)
     }
 
     /// Set parameters from a JSON string
     pub fn parameters_json(&mut self, json: &str) -> Result<&mut Self, OpenRouterError> {
-        let value: Value = serde_json::from_str(json)
-            .map_err(|e| OpenRouterError::Serialization(e))?;
+        let value: Value =
+            serde_json::from_str(json).map_err(|e| OpenRouterError::Serialization(e))?;
         self.parameters = Some(value);
         Ok(self)
     }
@@ -297,12 +301,7 @@ pub struct SpecificToolFunction {
 ///     &["operation", "a", "b"]
 /// );
 /// ```
-pub fn create_tool(
-    name: &str,
-    description: &str,
-    properties: Value,
-    required: &[&str],
-) -> Tool {
+pub fn create_tool(name: &str, description: &str, properties: Value, required: &[&str]) -> Tool {
     let parameters = serde_json::json!({
         "type": "object",
         "properties": properties,
@@ -342,7 +341,7 @@ mod tests {
         assert_eq!(serde_json::to_string(&auto).unwrap(), r#""auto""#);
         assert_eq!(serde_json::to_string(&none).unwrap(), r#""none""#);
         assert_eq!(serde_json::to_string(&required).unwrap(), r#""required""#);
-        
+
         if let ToolChoice::Specific(spec) = specific {
             assert_eq!(spec.function.name, "my_function");
         } else {
@@ -356,12 +355,12 @@ mod tests {
             "weather",
             "Get weather",
             json!({"location": {"type": "string"}}),
-            &["location"]
+            &["location"],
         );
 
         assert_eq!(tool.function.name, "weather");
         assert_eq!(tool.function.description, "Get weather");
-        
+
         let params = &tool.function.parameters;
         assert_eq!(params["type"], "object");
         assert_eq!(params["required"], json!(["location"]));

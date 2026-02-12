@@ -144,6 +144,7 @@
 pub mod completion;
 pub mod provider;
 pub mod response_format;
+pub mod stream;
 pub mod tool;
 pub mod typed_tool;
 
@@ -151,7 +152,7 @@ use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
 
-pub use {completion::*, provider::*, response_format::*, tool::*, typed_tool::*};
+pub use {completion::*, provider::*, response_format::*, stream::*, tool::*, typed_tool::*};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ApiResponse<T> {
