@@ -66,6 +66,41 @@ pub struct ToolCall {
     pub index: Option<u32>,
 }
 
+/// Partial function call data as received in streaming deltas.
+///
+/// Unlike [`FunctionCall`], all fields are optional because streaming chunks
+/// may only contain fragments of the function call (e.g., just an arguments
+/// fragment without the function name).
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct PartialFunctionCall {
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub arguments: Option<String>,
+}
+
+/// Partial tool call data as received in streaming deltas.
+///
+/// When the API streams a response that includes tool calls, each SSE chunk
+/// contains only a fragment of the tool call data. The first chunk typically
+/// contains `id`, `type`, and the function `name`, while subsequent chunks
+/// contain fragments of the `arguments` string.
+///
+/// Use [`ToolAwareStream`](crate::types::stream::ToolAwareStream) to
+/// automatically accumulate these partial chunks into complete [`ToolCall`]
+/// objects.
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct PartialToolCall {
+    #[serde(default)]
+    pub id: Option<String>,
+    #[serde(default, rename = "type")]
+    pub type_: Option<String>,
+    #[serde(default)]
+    pub function: Option<PartialFunctionCall>,
+    #[serde(default)]
+    pub index: Option<u32>,
+}
+
 impl ToolCall {
     /// Parse tool arguments into typed parameters
     /// 
@@ -195,10 +230,32 @@ impl Choice {
         }
     }
 
+    /// Returns the complete tool calls for non-streaming responses.
+    ///
+    /// For streaming responses, this always returns `None` because tool calls
+    /// arrive as partial fragments across multiple chunks. Use
+    /// [`ToolAwareStream`](crate::types::stream::ToolAwareStream) to
+    /// accumulate streaming tool call fragments into complete [`ToolCall`] objects.
     pub fn tool_calls(&self) -> Option<&[ToolCall]> {
         match self {
             Choice::NonChat(_) => None,
             Choice::NonStreaming(choice) => choice.message.tool_calls.as_deref(),
+            Choice::Streaming(_) => None,
+        }
+    }
+
+    /// Returns the partial tool call fragments from a streaming delta.
+    ///
+    /// This is only populated for streaming responses. Each chunk contains
+    /// a fragment of the tool call data that must be accumulated across
+    /// the entire stream to form complete tool calls.
+    ///
+    /// For most use cases, prefer [`ToolAwareStream`](crate::types::stream::ToolAwareStream)
+    /// which handles this accumulation automatically.
+    pub fn partial_tool_calls(&self) -> Option<&[PartialToolCall]> {
+        match self {
+            Choice::NonChat(_) => None,
+            Choice::NonStreaming(_) => None,
             Choice::Streaming(choice) => choice.delta.tool_calls.as_deref(),
         }
     }
@@ -317,7 +374,12 @@ pub struct Message {
 pub struct Delta {
     pub content: Option<String>,
     pub role: Option<String>,
-    pub tool_calls: Option<Vec<ToolCall>>,
+    /// Partial tool call fragments received during streaming.
+    ///
+    /// Each chunk contains only a fragment of the full tool call data.
+    /// Use [`ToolAwareStream`](crate::types::stream::ToolAwareStream)
+    /// to accumulate these into complete [`ToolCall`] objects.
+    pub tool_calls: Option<Vec<PartialToolCall>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reasoning: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

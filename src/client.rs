@@ -5,7 +5,11 @@ use crate::{
     api::{api_keys, auth, chat, completion, credits, generation, models},
     config::OpenRouterConfig,
     error::OpenRouterError,
-    types::{ModelCategory, SupportedParameters, completion::CompletionsResponse},
+    types::{
+        ModelCategory, SupportedParameters,
+        completion::CompletionsResponse,
+        stream::ToolAwareStream,
+    },
 };
 
 #[derive(Debug, Clone, Builder)]
@@ -378,6 +382,55 @@ impl OpenRouterClient {
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
+    }
+
+    /// Streams chat completion events with tool-call-aware processing.
+    ///
+    /// Returns a [`ToolAwareStream`] that yields [`StreamEvent`](crate::types::stream::StreamEvent)
+    /// values. Content and reasoning deltas are forwarded immediately, while
+    /// tool call fragments are accumulated internally and emitted as complete
+    /// [`ToolCall`](crate::types::completion::ToolCall) objects in the final
+    /// [`StreamEvent::Done`](crate::types::stream::StreamEvent::Done) event.
+    ///
+    /// This is the recommended way to stream responses when using tool calling.
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - The chat completion request (should include tools).
+    ///
+    /// # Returns
+    ///
+    /// * `Result<ToolAwareStream, OpenRouterError>` - A stream of [`StreamEvent`](crate::types::stream::StreamEvent) values.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use futures_util::StreamExt;
+    /// use openrouter_rs::types::stream::StreamEvent;
+    ///
+    /// # async fn example(client: openrouter_rs::OpenRouterClient, request: openrouter_rs::api::chat::ChatCompletionRequest) -> Result<(), Box<dyn std::error::Error>> {
+    /// let mut stream = client.stream_chat_completion_tool_aware(&request).await?;
+    ///
+    /// while let Some(event) = stream.next().await {
+    ///     match event {
+    ///         StreamEvent::ContentDelta(text) => print!("{}", text),
+    ///         StreamEvent::Done { tool_calls, .. } => {
+    ///             for tc in &tool_calls {
+    ///                 println!("Tool call: {}", tc.name());
+    ///             }
+    ///         },
+    ///         _ => {}
+    ///     }
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn stream_chat_completion_tool_aware(
+        &self,
+        request: &chat::ChatCompletionRequest,
+    ) -> Result<ToolAwareStream, OpenRouterError> {
+        let raw_stream = self.stream_chat_completion(request).await?;
+        Ok(ToolAwareStream::new(raw_stream))
     }
 
     /// Send a completion request to a selected model (text-only format).
