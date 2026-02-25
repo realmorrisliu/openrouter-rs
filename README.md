@@ -241,6 +241,7 @@ match client.send_chat_completion(&request).await {
 | **Multi-Modal/Vision** | ✅ | [`api::chat`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/chat/) |
 | **Reasoning Tokens** | ✅ | [`api::chat`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/chat/) |
 | Streaming Responses | ✅ | [`api::chat`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/chat/) |
+| **Streaming Tool Calls** | ✅ | [`types::stream`](https://docs.rs/openrouter-rs/latest/openrouter_rs/types/stream/) |
 | Model Information | ✅ | [`api::models`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/models/) |
 | API Key Management | ✅ | [`api::api_keys`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/api_keys/) |
 | Credit Management | ✅ | [`api::credits`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/credits/) |
@@ -331,6 +332,9 @@ cargo run --example stream_chat_completion
 
 # Run with reasoning
 cargo run --example stream_chat_with_reasoning
+
+# Streaming with tool calls
+cargo run --example stream_chat_with_tools
 ```
 
 ## 🤝 Community & Support
@@ -394,7 +398,14 @@ This is a **third-party SDK** not officially affiliated with OpenRouter. Use at 
 
 ## 📈 Release History
 
-### Version 0.4.7 *(Latest)*
+### Version 0.5.0 *(Latest)*
+
+- 🌊 **New**: Streaming tool calls support with `ToolAwareStream` - automatically accumulates partial tool call fragments
+- 🔧 **New**: `PartialToolCall` and `PartialFunctionCall` types for incremental streaming data
+- 📡 **New**: `StreamEvent` enum for structured streaming events (`ContentDelta`, `ReasoningDelta`, `Done`, `Error`)
+- 🛠️ **New**: `stream_chat_completion_tool_aware()` convenience method on client
+
+### Version 0.4.7
 
 - 🛠️ **New**: Comprehensive tool calling (function calling) support with parallel tool calls
 - 🔧 **New**: Typed tools with automatic JSON schema generation via `schemars`
