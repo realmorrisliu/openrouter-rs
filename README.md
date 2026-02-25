@@ -32,7 +32,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-openrouter-rs = "0.4.7"
+openrouter-rs = "0.5.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
