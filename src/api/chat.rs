@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use derive_builder::Builder;
 use futures_util::{AsyncBufReadExt, StreamExt, stream::BoxStream};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use surf::http::headers::AUTHORIZATION;
 
 use crate::{
@@ -241,6 +242,94 @@ impl Message {
     }
 }
 
+/// Output modality for chat responses.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum Modality {
+    Text,
+    Image,
+    Audio,
+}
+
+/// Streaming debug options.
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct DebugOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub echo_upstream_body: Option<bool>,
+}
+
+/// Streaming configuration options.
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct StreamOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_usage: Option<bool>,
+}
+
+/// Trace metadata used for observability.
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct TraceOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trace_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trace_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub span_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub generation_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parent_span_id: Option<String>,
+    #[serde(flatten)]
+    pub extra: HashMap<String, Value>,
+}
+
+/// Plugin configuration payload.
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct Plugin {
+    pub id: String,
+    #[serde(flatten)]
+    pub config: HashMap<String, Value>,
+}
+
+impl Plugin {
+    pub fn new(id: impl Into<String>) -> Self {
+        Self {
+            id: id.into(),
+            config: HashMap::new(),
+        }
+    }
+
+    pub fn option(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.config.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// Stop sequence configuration.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
+pub enum StopSequence {
+    Single(String),
+    Multiple(Vec<String>),
+}
+
+impl From<String> for StopSequence {
+    fn from(value: String) -> Self {
+        Self::Single(value)
+    }
+}
+
+impl From<&str> for StopSequence {
+    fn from(value: &str) -> Self {
+        Self::Single(value.to_string())
+    }
+}
+
+impl From<Vec<String>> for StopSequence {
+    fn from(value: Vec<String>) -> Self {
+        Self::Multiple(value)
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 pub struct ChatCompletionRequest {
@@ -256,6 +345,10 @@ pub struct ChatCompletionRequest {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     max_tokens: Option<u32>,
+
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    max_completion_tokens: Option<u32>,
 
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -291,6 +384,10 @@ pub struct ChatCompletionRequest {
 
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
+    logprobs: Option<bool>,
+
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     top_logprobs: Option<u32>,
 
     #[builder(setter(strip_option), default)]
@@ -313,9 +410,37 @@ pub struct ChatCompletionRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     route: Option<String>,
 
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    user: Option<String>,
+
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    session_id: Option<String>,
+
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    trace: Option<TraceOptions>,
+
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     provider: Option<ProviderPreferences>,
+
+    #[builder(setter(custom), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    metadata: Option<HashMap<String, String>>,
+
+    #[builder(setter(custom), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    plugins: Option<Vec<Plugin>>,
+
+    #[builder(setter(custom), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    modalities: Option<Vec<Modality>>,
+
+    #[builder(setter(custom), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    image_config: Option<HashMap<String, Value>>,
 
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -328,6 +453,18 @@ pub struct ChatCompletionRequest {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     include_reasoning: Option<bool>,
+
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    stop: Option<StopSequence>,
+
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    stream_options: Option<StreamOptions>,
+
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    debug: Option<DebugOptions>,
 
     #[builder(setter(custom), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -346,6 +483,10 @@ impl ChatCompletionRequestBuilder {
     strip_option_vec_setter!(models, String);
     strip_option_map_setter!(logit_bias, String, f64);
     strip_option_vec_setter!(transforms, String);
+    strip_option_map_setter!(metadata, String, String);
+    strip_option_map_setter!(image_config, String, Value);
+    strip_option_vec_setter!(plugins, Plugin);
+    strip_option_vec_setter!(modalities, Modality);
     strip_option_vec_setter!(tools, crate::types::Tool);
 
     /// Enable reasoning with default settings (medium effort)

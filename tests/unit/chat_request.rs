@@ -1,7 +1,11 @@
 use openrouter_rs::{
-    api::chat::{CacheControl, CacheControlType, ChatCompletionRequest, ContentPart, Message},
+    api::chat::{
+        CacheControl, CacheControlType, ChatCompletionRequest, ContentPart, DebugOptions, Message,
+        Modality, Plugin, StopSequence, StreamOptions, TraceOptions,
+    },
     types::{Effort, Role},
 };
+use serde_json::json;
 
 #[test]
 fn test_reasoning_effort_extended_values_serialize() {
@@ -82,4 +86,94 @@ fn test_text_content_part_cache_control_deserialization() {
         }
         _ => panic!("expected text content part"),
     }
+}
+
+#[test]
+fn test_chat_request_extended_control_fields_serialize() {
+    let trace = TraceOptions {
+        trace_id: Some("trace-1".to_string()),
+        span_name: Some("sdk.chat".to_string()),
+        generation_name: None,
+        trace_name: None,
+        parent_span_id: None,
+        extra: [("team".to_string(), json!("rust-sdk"))]
+            .into_iter()
+            .collect(),
+    };
+
+    let request = ChatCompletionRequest::builder()
+        .model("openai/gpt-5")
+        .messages(vec![Message::new(Role::User, "ping")])
+        .user("user-123")
+        .session_id("session-abc")
+        .metadata([("env", "test"), ("feature", "chat-parity")])
+        .trace(trace)
+        .stop(StopSequence::Multiple(vec![
+            "END".to_string(),
+            "DONE".to_string(),
+        ]))
+        .build()
+        .expect("request should build");
+
+    let json = serde_json::to_value(&request).expect("request should serialize");
+
+    assert_eq!(json["user"], "user-123");
+    assert_eq!(json["session_id"], "session-abc");
+    assert_eq!(json["metadata"]["env"], "test");
+    assert_eq!(json["metadata"]["feature"], "chat-parity");
+    assert_eq!(json["trace"]["trace_id"], "trace-1");
+    assert_eq!(json["trace"]["span_name"], "sdk.chat");
+    assert_eq!(json["trace"]["team"], "rust-sdk");
+    assert_eq!(json["stop"][0], "END");
+    assert_eq!(json["stop"][1], "DONE");
+}
+
+#[test]
+fn test_chat_request_extended_generation_fields_serialize() {
+    let request = ChatCompletionRequest::builder()
+        .model("openai/gpt-5")
+        .messages(vec![Message::new(Role::User, "generate")])
+        .max_completion_tokens(512)
+        .logprobs(true)
+        .modalities(vec![Modality::Text, Modality::Image])
+        .image_config([("aspect_ratio", json!("16:9")), ("n", json!(1))])
+        .build()
+        .expect("request should build");
+
+    let json = serde_json::to_value(&request).expect("request should serialize");
+
+    assert_eq!(json["max_completion_tokens"], 512);
+    assert_eq!(json["logprobs"], true);
+    assert_eq!(json["modalities"][0], "text");
+    assert_eq!(json["modalities"][1], "image");
+    assert_eq!(json["image_config"]["aspect_ratio"], "16:9");
+    assert_eq!(json["image_config"]["n"], 1);
+}
+
+#[test]
+fn test_chat_request_plugins_and_stream_options_serialize() {
+    let request = ChatCompletionRequest::builder()
+        .model("openai/gpt-5")
+        .messages(vec![Message::new(Role::User, "search the web")])
+        .plugins(vec![
+            Plugin::new("web")
+                .option("max_results", 3)
+                .option("search_prompt", "latest rust release"),
+        ])
+        .stream_options(StreamOptions {
+            include_usage: Some(true),
+        })
+        .debug(DebugOptions {
+            echo_upstream_body: Some(true),
+        })
+        .build()
+        .expect("request should build");
+
+    let json = serde_json::to_value(&request).expect("request should serialize");
+
+    assert_eq!(json["plugins"][0]["id"], "web");
+    assert_eq!(json["plugins"][0]["max_results"], 3);
+    assert_eq!(json["plugins"][0]["search_prompt"], "latest rust release");
+    assert_eq!(json["stream_options"]["include_usage"], true);
+    assert_eq!(json["debug"]["echo_upstream_body"], true);
 }
