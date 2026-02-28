@@ -227,6 +227,32 @@ match client.send_chat_completion(&request).await {
 }
 ```
 
+### 🔐 OAuth PKCE Flow
+
+```rust
+use openrouter_rs::{OpenRouterClient, api::auth};
+
+let client = OpenRouterClient::builder()
+    .api_key("your_api_key")
+    .build()?;
+
+let create = auth::CreateAuthCodeRequest::builder()
+    .callback_url("https://myapp.com/auth/callback")
+    .code_challenge("your_pkce_code_challenge")
+    .code_challenge_method(auth::CodeChallengeMethod::S256)
+    .build()?;
+
+let auth_code = client.create_auth_code(&create).await?;
+
+let key = client
+    .exchange_code_for_api_key(
+        &auth_code.id,
+        Some("your_pkce_code_verifier"),
+        Some(auth::CodeChallengeMethod::S256),
+    )
+    .await?;
+```
+
 ## 📊 API Coverage
 
 | Feature | Status | Module |
