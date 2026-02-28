@@ -142,6 +142,7 @@ pub mod discovery;
 pub mod embeddings;
 pub mod errors;
 pub mod generation;
+pub mod guardrails;
 pub mod messages;
 pub mod models;
 pub mod responses;

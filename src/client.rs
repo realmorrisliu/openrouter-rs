@@ -3,8 +3,8 @@ use futures_util::stream::BoxStream;
 
 use crate::{
     api::{
-        api_keys, auth, chat, completion, credits, discovery, embeddings, generation, messages,
-        models, responses,
+        api_keys, auth, chat, completion, credits, discovery, embeddings, generation, guardrails,
+        messages, models, responses,
     },
     config::OpenRouterConfig,
     error::OpenRouterError,
@@ -319,6 +319,202 @@ impl OpenRouterClient {
     ) -> Result<auth::AuthCodeData, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
             auth::create_auth_code(&self.base_url, api_key, request).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// List guardrails (`GET /guardrails`). Requires a management key.
+    pub async fn list_guardrails(
+        &self,
+        offset: Option<u32>,
+        limit: Option<u32>,
+    ) -> Result<guardrails::GuardrailListResponse, OpenRouterError> {
+        if let Some(provisioning_key) = &self.provisioning_key {
+            guardrails::list_guardrails(&self.base_url, provisioning_key, offset, limit).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Create a guardrail (`POST /guardrails`). Requires a management key.
+    pub async fn create_guardrail(
+        &self,
+        request: &guardrails::CreateGuardrailRequest,
+    ) -> Result<guardrails::Guardrail, OpenRouterError> {
+        if let Some(provisioning_key) = &self.provisioning_key {
+            guardrails::create_guardrail(&self.base_url, provisioning_key, request).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Get a guardrail by ID (`GET /guardrails/{id}`). Requires a management key.
+    pub async fn get_guardrail(&self, id: &str) -> Result<guardrails::Guardrail, OpenRouterError> {
+        if let Some(provisioning_key) = &self.provisioning_key {
+            guardrails::get_guardrail(&self.base_url, provisioning_key, id).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Update a guardrail (`PATCH /guardrails/{id}`). Requires a management key.
+    pub async fn update_guardrail(
+        &self,
+        id: &str,
+        request: &guardrails::UpdateGuardrailRequest,
+    ) -> Result<guardrails::Guardrail, OpenRouterError> {
+        if let Some(provisioning_key) = &self.provisioning_key {
+            guardrails::update_guardrail(&self.base_url, provisioning_key, id, request).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Delete a guardrail (`DELETE /guardrails/{id}`). Requires a management key.
+    pub async fn delete_guardrail(&self, id: &str) -> Result<bool, OpenRouterError> {
+        if let Some(provisioning_key) = &self.provisioning_key {
+            guardrails::delete_guardrail(&self.base_url, provisioning_key, id).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// List key assignments for a guardrail (`GET /guardrails/{id}/assignments/keys`).
+    pub async fn list_guardrail_key_assignments(
+        &self,
+        id: &str,
+        offset: Option<u32>,
+        limit: Option<u32>,
+    ) -> Result<guardrails::GuardrailKeyAssignmentsResponse, OpenRouterError> {
+        if let Some(provisioning_key) = &self.provisioning_key {
+            guardrails::list_guardrail_key_assignments(
+                &self.base_url,
+                provisioning_key,
+                id,
+                offset,
+                limit,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Bulk assign key hashes to a guardrail (`POST /guardrails/{id}/assignments/keys`).
+    pub async fn bulk_assign_keys_to_guardrail(
+        &self,
+        id: &str,
+        request: &guardrails::BulkKeyAssignmentRequest,
+    ) -> Result<guardrails::AssignedCountResponse, OpenRouterError> {
+        if let Some(provisioning_key) = &self.provisioning_key {
+            guardrails::bulk_assign_keys_to_guardrail(&self.base_url, provisioning_key, id, request)
+                .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Bulk unassign key hashes from a guardrail (`POST /guardrails/{id}/assignments/keys/remove`).
+    pub async fn bulk_unassign_keys_from_guardrail(
+        &self,
+        id: &str,
+        request: &guardrails::BulkKeyAssignmentRequest,
+    ) -> Result<guardrails::UnassignedCountResponse, OpenRouterError> {
+        if let Some(provisioning_key) = &self.provisioning_key {
+            guardrails::bulk_unassign_keys_from_guardrail(
+                &self.base_url,
+                provisioning_key,
+                id,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// List member assignments for a guardrail (`GET /guardrails/{id}/assignments/members`).
+    pub async fn list_guardrail_member_assignments(
+        &self,
+        id: &str,
+        offset: Option<u32>,
+        limit: Option<u32>,
+    ) -> Result<guardrails::GuardrailMemberAssignmentsResponse, OpenRouterError> {
+        if let Some(provisioning_key) = &self.provisioning_key {
+            guardrails::list_guardrail_member_assignments(
+                &self.base_url,
+                provisioning_key,
+                id,
+                offset,
+                limit,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Bulk assign members to a guardrail (`POST /guardrails/{id}/assignments/members`).
+    pub async fn bulk_assign_members_to_guardrail(
+        &self,
+        id: &str,
+        request: &guardrails::BulkMemberAssignmentRequest,
+    ) -> Result<guardrails::AssignedCountResponse, OpenRouterError> {
+        if let Some(provisioning_key) = &self.provisioning_key {
+            guardrails::bulk_assign_members_to_guardrail(
+                &self.base_url,
+                provisioning_key,
+                id,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Bulk unassign members from a guardrail (`POST /guardrails/{id}/assignments/members/remove`).
+    pub async fn bulk_unassign_members_from_guardrail(
+        &self,
+        id: &str,
+        request: &guardrails::BulkMemberAssignmentRequest,
+    ) -> Result<guardrails::UnassignedCountResponse, OpenRouterError> {
+        if let Some(provisioning_key) = &self.provisioning_key {
+            guardrails::bulk_unassign_members_from_guardrail(
+                &self.base_url,
+                provisioning_key,
+                id,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// List all key assignments (`GET /guardrails/assignments/keys`). Requires a management key.
+    pub async fn list_key_assignments(
+        &self,
+        offset: Option<u32>,
+        limit: Option<u32>,
+    ) -> Result<guardrails::GuardrailKeyAssignmentsResponse, OpenRouterError> {
+        if let Some(provisioning_key) = &self.provisioning_key {
+            guardrails::list_key_assignments(&self.base_url, provisioning_key, offset, limit).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// List all member assignments (`GET /guardrails/assignments/members`). Requires a management key.
+    pub async fn list_member_assignments(
+        &self,
+        offset: Option<u32>,
+        limit: Option<u32>,
+    ) -> Result<guardrails::GuardrailMemberAssignmentsResponse, OpenRouterError> {
+        if let Some(provisioning_key) = &self.provisioning_key {
+            guardrails::list_member_assignments(&self.base_url, provisioning_key, offset, limit)
+                .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }

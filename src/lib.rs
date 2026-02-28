@@ -149,6 +149,7 @@
 //! | Credit Management | ✅ | [`api::credits`] |
 //! | Generation Data | ✅ | [`api::generation`] |
 //! | Authentication | ✅ | [`api::auth`] |
+//! | Guardrails | ✅ | [`api::guardrails`] |
 //!
 //! ## 📖 Examples
 //!
