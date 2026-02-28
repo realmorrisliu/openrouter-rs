@@ -2,7 +2,7 @@ use derive_builder::Builder;
 use futures_util::stream::BoxStream;
 
 use crate::{
-    api::{api_keys, auth, chat, completion, credits, generation, models},
+    api::{api_keys, auth, chat, completion, credits, generation, models, responses},
     config::OpenRouterConfig,
     error::OpenRouterError,
     types::{
@@ -430,6 +430,63 @@ impl OpenRouterClient {
     ) -> Result<ToolAwareStream, OpenRouterError> {
         let raw_stream = self.stream_chat_completion(request).await?;
         Ok(ToolAwareStream::new(raw_stream))
+    }
+
+    /// Create a non-streaming response using the OpenRouter Responses API.
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - The responses request built using `ResponsesRequest::builder()`.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<responses::ResponsesResponse, OpenRouterError>` - The response payload.
+    pub async fn create_response(
+        &self,
+        request: &responses::ResponsesRequest,
+    ) -> Result<responses::ResponsesResponse, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            responses::create_response(
+                &self.base_url,
+                api_key,
+                &self.x_title,
+                &self.http_referer,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Stream response events from the OpenRouter Responses API.
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - The responses request built using `ResponsesRequest::builder()`.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<BoxStream<'static, Result<responses::ResponsesStreamEvent, OpenRouterError>>, OpenRouterError>` - A stream of response events.
+    pub async fn stream_response(
+        &self,
+        request: &responses::ResponsesRequest,
+    ) -> Result<
+        BoxStream<'static, Result<responses::ResponsesStreamEvent, OpenRouterError>>,
+        OpenRouterError,
+    > {
+        if let Some(api_key) = &self.api_key {
+            responses::stream_response(
+                &self.base_url,
+                api_key,
+                &self.x_title,
+                &self.http_referer,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
     }
 
     /// Send a completion request to a selected model (text-only format).
