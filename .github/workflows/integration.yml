@@ -4,9 +4,6 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "0 6 * * 1"
-  push:
-    branches:
-      - main
 
 concurrency:
   group: integration-${{ github.workflow }}-${{ github.ref }}
@@ -36,11 +33,3 @@ jobs:
 
       - name: Run integration tests
         run: cargo test --test integration -- --nocapture
-
-  integration-skipped:
-    name: Integration tests skipped
-    if: ${{ secrets.OPENROUTER_API_KEY == '' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Explain skip reason
-        run: echo "OPENROUTER_API_KEY secret is not configured; integration tests were skipped."
