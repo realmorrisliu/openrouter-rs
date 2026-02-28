@@ -241,10 +241,13 @@ match client.send_chat_completion(&request).await {
 | **Streaming Tool Calls** | ✅ | [`types::stream`](https://docs.rs/openrouter-rs/latest/openrouter_rs/types/stream/) |
 | Responses API | ✅ | [`api::responses`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/responses/) |
 | Anthropic Messages API | ✅ | [`api::messages`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/messages/) |
+| Provider/Activity Discovery | ✅ | [`api::discovery`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/discovery/) |
 | Model Information | ✅ | [`api::models`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/models/) |
 | API Key Management | ✅ | [`api::api_keys`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/api_keys/) |
 | Credit Management | ✅ | [`api::credits`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/credits/) |
 | Authentication | ✅ | [`api::auth`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/auth/) |
+
+`/activity` requires a management key; in this SDK set it with `.provisioning_key(...)`.
 
 ## 🎯 More Examples
 

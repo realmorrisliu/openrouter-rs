@@ -7,6 +7,7 @@ pub mod api_keys;
 pub mod chat_request;
 pub mod completion;
 pub mod config;
+pub mod discovery;
 pub mod embeddings;
 pub mod messages;
 pub mod provider;
