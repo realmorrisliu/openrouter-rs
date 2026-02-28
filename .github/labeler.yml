@@ -1,0 +1,35 @@
+api:
+  - changed-files:
+      - any-glob-to-any-file: src/api/**
+
+types:
+  - changed-files:
+      - any-glob-to-any-file: src/types/**
+
+config:
+  - changed-files:
+      - any-glob-to-any-file: src/config/**
+
+client:
+  - changed-files:
+      - any-glob-to-any-file: src/client.rs
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file: README.md
+      - any-glob-to-any-file: CHANGELOG.md
+      - any-glob-to-any-file: "**/*.md"
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file: tests/**
+
+examples:
+  - changed-files:
+      - any-glob-to-any-file: examples/**
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file: .github/workflows/**
+      - any-glob-to-any-file: .github/labeler.yml
+      - any-glob-to-any-file: .github/labels.yml

@@ -129,7 +129,7 @@ impl ToolCall {
         T: crate::types::typed_tool::TypedTool,
     {
         serde_json::from_str(&self.function.arguments)
-            .map_err(|e| crate::error::OpenRouterError::Serialization(e))
+            .map_err(crate::error::OpenRouterError::Serialization)
     }
 
     /// Check if this tool call matches a specific tool type

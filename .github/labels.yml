@@ -1,0 +1,31 @@
+- name: api
+  color: 1d76db
+  description: Changes to API endpoint modules and request handling
+
+- name: types
+  color: 5319e7
+  description: Changes to shared types and data contracts
+
+- name: config
+  color: 0e8a16
+  description: Configuration or model preset changes
+
+- name: client
+  color: c5def5
+  description: OpenRouter client behavior and builder changes
+
+- name: tests
+  color: fbca04
+  description: Unit or integration test changes
+
+- name: docs
+  color: 0075ca
+  description: Documentation updates
+
+- name: examples
+  color: bfd4f2
+  description: Example code changes
+
+- name: ci
+  color: d93f0b
+  description: CI/CD workflow and automation changes
