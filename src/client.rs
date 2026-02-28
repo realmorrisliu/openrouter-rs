@@ -2,7 +2,7 @@ use derive_builder::Builder;
 use futures_util::stream::BoxStream;
 
 use crate::{
-    api::{api_keys, auth, chat, completion, credits, generation, models, responses},
+    api::{api_keys, auth, chat, completion, credits, generation, messages, models, responses},
     config::OpenRouterConfig,
     error::OpenRouterError,
     types::{
@@ -477,6 +477,47 @@ impl OpenRouterClient {
     > {
         if let Some(api_key) = &self.api_key {
             responses::stream_response(
+                &self.base_url,
+                api_key,
+                &self.x_title,
+                &self.http_referer,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Create a non-streaming message using the Anthropic-compatible `/messages` API.
+    pub async fn create_message(
+        &self,
+        request: &messages::AnthropicMessagesRequest,
+    ) -> Result<messages::AnthropicMessagesResponse, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            messages::create_message(
+                &self.base_url,
+                api_key,
+                &self.x_title,
+                &self.http_referer,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Stream SSE events from the Anthropic-compatible `/messages` API.
+    pub async fn stream_messages(
+        &self,
+        request: &messages::AnthropicMessagesRequest,
+    ) -> Result<
+        BoxStream<'static, Result<messages::AnthropicMessagesSseEvent, OpenRouterError>>,
+        OpenRouterError,
+    > {
+        if let Some(api_key) = &self.api_key {
+            messages::stream_messages(
                 &self.base_url,
                 api_key,
                 &self.x_title,
