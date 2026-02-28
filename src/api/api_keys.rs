@@ -203,7 +203,7 @@ pub async fn delete_api_key(
     api_key: &str,
     hash: &str,
 ) -> Result<bool, OpenRouterError> {
-    let url = format!("{base_url}/api/v1/keys/{hash}");
+    let url = format!("{base_url}/keys/{hash}");
 
     let response = surf::delete(&url)
         .header(AUTHORIZATION, format!("Bearer {api_key}"))
