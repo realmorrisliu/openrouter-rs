@@ -9,4 +9,5 @@ pub mod completion;
 pub mod config;
 pub mod provider;
 pub mod response_format;
+pub mod responses;
 pub mod stream;

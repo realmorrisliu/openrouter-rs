@@ -141,3 +141,4 @@ pub mod credits;
 pub mod errors;
 pub mod generation;
 pub mod models;
+pub mod responses;
