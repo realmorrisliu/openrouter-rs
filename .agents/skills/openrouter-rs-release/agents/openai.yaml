@@ -1,0 +1,4 @@
+interface:
+  display_name: "OpenRouter-rs Release"
+  short_description: "Prepare and publish openrouter-rs releases safely"
+  default_prompt: "Use $openrouter-rs-release to prepare, verify, and publish the next openrouter-rs release."
