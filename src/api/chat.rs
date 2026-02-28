@@ -41,6 +41,74 @@ impl ImageUrl {
     }
 }
 
+/// Audio input payload for multimodal requests.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct InputAudio {
+    /// Base64-encoded audio data.
+    pub data: String,
+    /// Audio format (e.g. wav, mp3, flac).
+    pub format: String,
+}
+
+impl InputAudio {
+    pub fn new(data: impl Into<String>, format: impl Into<String>) -> Self {
+        Self {
+            data: data.into(),
+            format: format.into(),
+        }
+    }
+}
+
+/// Video URL payload for multimodal requests.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct VideoUrl {
+    /// URL of the input video.
+    pub url: String,
+}
+
+impl VideoUrl {
+    pub fn new(url: impl Into<String>) -> Self {
+        Self { url: url.into() }
+    }
+}
+
+/// File payload for multimodal requests.
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct FileInput {
+    /// File content as URL or data URL.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_data: Option<String>,
+    /// File id for previously uploaded files.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_id: Option<String>,
+    /// Optional filename metadata.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub filename: Option<String>,
+}
+
+impl FileInput {
+    pub fn from_data(file_data: impl Into<String>) -> Self {
+        Self {
+            file_data: Some(file_data.into()),
+            file_id: None,
+            filename: None,
+        }
+    }
+
+    pub fn from_id(file_id: impl Into<String>) -> Self {
+        Self {
+            file_data: None,
+            file_id: Some(file_id.into()),
+            filename: None,
+        }
+    }
+
+    pub fn filename(mut self, filename: impl Into<String>) -> Self {
+        self.filename = Some(filename.into());
+        self
+    }
+}
+
 /// Cache control type for prompt caching breakpoints.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "lowercase")]
@@ -87,6 +155,14 @@ pub enum ContentPart {
     },
     /// Image URL content
     ImageUrl { image_url: ImageUrl },
+    /// Audio input content
+    InputAudio { input_audio: InputAudio },
+    /// Video URL content
+    VideoUrl { video_url: VideoUrl },
+    /// Legacy video input content
+    InputVideo { video_url: VideoUrl },
+    /// File content
+    File { file: FileInput },
 }
 
 impl ContentPart {
@@ -121,6 +197,51 @@ impl ContentPart {
     pub fn image_url_with_detail(url: impl Into<String>, detail: impl Into<String>) -> Self {
         Self::ImageUrl {
             image_url: ImageUrl::with_detail(url, detail),
+        }
+    }
+
+    pub fn input_audio(data: impl Into<String>, format: impl Into<String>) -> Self {
+        Self::InputAudio {
+            input_audio: InputAudio::new(data, format),
+        }
+    }
+
+    pub fn video_url(url: impl Into<String>) -> Self {
+        Self::VideoUrl {
+            video_url: VideoUrl::new(url),
+        }
+    }
+
+    pub fn input_video(url: impl Into<String>) -> Self {
+        Self::InputVideo {
+            video_url: VideoUrl::new(url),
+        }
+    }
+
+    pub fn file_data(file_data: impl Into<String>) -> Self {
+        Self::File {
+            file: FileInput::from_data(file_data),
+        }
+    }
+
+    pub fn file_data_with_filename(
+        file_data: impl Into<String>,
+        filename: impl Into<String>,
+    ) -> Self {
+        Self::File {
+            file: FileInput::from_data(file_data).filename(filename),
+        }
+    }
+
+    pub fn file_id(file_id: impl Into<String>) -> Self {
+        Self::File {
+            file: FileInput::from_id(file_id),
+        }
+    }
+
+    pub fn file_id_with_filename(file_id: impl Into<String>, filename: impl Into<String>) -> Self {
+        Self::File {
+            file: FileInput::from_id(file_id).filename(filename),
         }
     }
 }

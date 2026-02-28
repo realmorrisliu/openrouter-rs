@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -205,6 +205,20 @@ pub struct ErrorResponse {
     pub metadata: Option<HashMap<String, Value>>,
 }
 
+fn deserialize_optional_text_content<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Option::<Value>::deserialize(deserializer)?;
+    Ok(match value {
+        None | Some(Value::Null) => None,
+        Some(Value::String(text)) => Some(text),
+        // Multimodal content arrays/objects are accepted and represented via
+        // specialized fields (e.g. images/audio), while `content` remains text-only.
+        Some(_) => None,
+    })
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(untagged)]
 pub enum Choice {
@@ -358,13 +372,20 @@ pub struct StreamingChoice {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Message {
+    #[serde(default, deserialize_with = "deserialize_optional_text_content")]
     pub content: Option<String>,
     pub role: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
     pub tool_calls: Option<Vec<ToolCall>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reasoning: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reasoning_details: Option<Vec<ReasoningDetail>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub images: Option<Vec<Value>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub audio: Option<Value>,
     pub refusal: Option<String>,
     #[serde(default)]
     pub annotations: Option<Vec<Value>>,
@@ -372,6 +393,7 @@ pub struct Message {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Delta {
+    #[serde(default, deserialize_with = "deserialize_optional_text_content")]
     pub content: Option<String>,
     pub role: Option<String>,
     /// Partial tool call fragments received during streaming.
@@ -384,6 +406,8 @@ pub struct Delta {
     pub reasoning: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reasoning_details: Option<Vec<ReasoningDetail>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub audio: Option<Value>,
     pub refusal: Option<String>,
 }
 
