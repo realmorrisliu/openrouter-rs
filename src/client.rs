@@ -3,8 +3,8 @@ use futures_util::stream::BoxStream;
 
 use crate::{
     api::{
-        api_keys, auth, chat, completion, credits, embeddings, generation, messages, models,
-        responses,
+        api_keys, auth, chat, completion, credits, discovery, embeddings, generation, messages,
+        models, responses,
     },
     config::OpenRouterConfig,
     error::OpenRouterError,
@@ -797,6 +797,72 @@ impl OpenRouterClient {
     ) -> Result<models::EndpointData, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
             models::list_model_endpoints(&self.base_url, api_key, author, slug).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// List all providers.
+    ///
+    /// This endpoint is public, but this SDK method still requires `api_key`
+    /// for consistency with other client operations.
+    pub async fn list_providers(&self) -> Result<Vec<discovery::Provider>, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            discovery::list_providers(&self.base_url, api_key).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// List models filtered by user provider preferences, privacy settings, and guardrails.
+    ///
+    /// Equivalent to `GET /models/user`.
+    pub async fn list_models_for_user(&self) -> Result<Vec<discovery::UserModel>, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            discovery::list_models_for_user(&self.base_url, api_key).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Get the total number of available models.
+    ///
+    /// Equivalent to `GET /models/count`.
+    pub async fn count_models(&self) -> Result<discovery::ModelsCountData, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            discovery::count_models(&self.base_url, api_key).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Preview ZDR-compatible endpoints.
+    ///
+    /// Equivalent to `GET /endpoints/zdr`.
+    pub async fn list_zdr_endpoints(
+        &self,
+    ) -> Result<Vec<discovery::PublicEndpoint>, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            discovery::list_zdr_endpoints(&self.base_url, api_key).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Get activity grouped by endpoint for the last 30 UTC days.
+    ///
+    /// Equivalent to `GET /activity`.
+    ///
+    /// Requires a management API key. In this SDK, configure that via
+    /// `OpenRouterClientBuilder::provisioning_key(...)`.
+    ///
+    /// `date` is optional and should be `YYYY-MM-DD`.
+    pub async fn get_activity(
+        &self,
+        date: Option<&str>,
+    ) -> Result<Vec<discovery::ActivityItem>, OpenRouterError> {
+        if let Some(provisioning_key) = &self.provisioning_key {
+            discovery::get_activity(&self.base_url, provisioning_key, date).await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }

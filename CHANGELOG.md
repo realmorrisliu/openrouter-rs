@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - non-streaming `create_message` and streaming `stream_messages`
   - `OpenRouterClient::{create_message,stream_messages}` wrappers
   - new examples: `create_message.rs` and `stream_messages.rs`
+- Discovery and activity endpoint support:
+  - `api::discovery` module for `/providers`, `/models/user`, `/models/count`, `/endpoints/zdr`, `/activity`
+  - `OpenRouterClient` wrappers for each endpoint
+  - management-key requirement documented for `GET /activity` (`.provisioning_key(...)`)
 
 ## [0.5.1] - 2026-02-28
 
