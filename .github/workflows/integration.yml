@@ -1,0 +1,46 @@
+name: Integration Tests
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: integration-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    name: Run live integration tests
+    if: ${{ secrets.OPENROUTER_API_KEY != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      OPENROUTER_PROVISIONING_KEY: ${{ secrets.OPENROUTER_PROVISIONING_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run integration tests
+        run: cargo test --test integration -- --nocapture
+
+  integration-skipped:
+    name: Integration tests skipped
+    if: ${{ secrets.OPENROUTER_API_KEY == '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Explain skip reason
+        run: echo "OPENROUTER_API_KEY secret is not configured; integration tests were skipped."

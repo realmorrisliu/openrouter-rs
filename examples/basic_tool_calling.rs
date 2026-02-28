@@ -28,18 +28,18 @@
 //! - Tool responses reference tool_call_id correctly
 //! - Multi-turn conversation handling
 
-use std::env;
 use openrouter_rs::{
     OpenRouterClient,
     api::chat::{ChatCompletionRequest, Message},
     types::{Role, Tool},
 };
 use serde_json::json;
+use std::env;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let api_key = env::var("OPENROUTER_API_KEY")
-        .expect("OPENROUTER_API_KEY environment variable not set");
+    let api_key =
+        env::var("OPENROUTER_API_KEY").expect("OPENROUTER_API_KEY environment variable not set");
     let client = OpenRouterClient::builder()
         .api_key(api_key)
         .http_referer("https://github.com/realmorrisliu/openrouter-rs")
@@ -63,7 +63,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     "description": "First number"
                 },
                 "b": {
-                    "type": "number", 
+                    "type": "number",
                     "description": "Second number"
                 }
             },
@@ -117,19 +117,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Some(choice) = response.choices.first() {
         if let Some(tool_calls) = choice.tool_calls() {
             println!("🛠️  Model wants to call {} tool(s):", tool_calls.len());
-            
+
             let mut messages = request.messages().clone();
-            
+
             // Add the assistant's response (with tool calls) to conversation
             let content = choice.content().unwrap_or("");
-            let assistant_message = Message::assistant_with_tool_calls(content, tool_calls.to_vec());
+            let assistant_message =
+                Message::assistant_with_tool_calls(content, tool_calls.to_vec());
             messages.push(assistant_message);
 
             // Process each tool call
             for (i, tool_call) in tool_calls.iter().enumerate() {
-                println!("  {}. Calling '{}' with arguments: {}", 
-                    i + 1, 
-                    tool_call.function.name, 
+                println!(
+                    "  {}. Calling '{}' with arguments: {}",
+                    i + 1,
+                    tool_call.function.name,
                     tool_call.function.arguments
                 );
 
@@ -137,31 +139,42 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let tool_result = match tool_call.function.name.as_str() {
                     "calculator" => {
                         // Parse arguments and perform calculation
-                        let args: serde_json::Value = serde_json::from_str(&tool_call.function.arguments)?;
+                        let args: serde_json::Value =
+                            serde_json::from_str(&tool_call.function.arguments)?;
                         let operation = args["operation"].as_str().unwrap_or("add");
                         let a = args["a"].as_f64().unwrap_or(0.0);
                         let b = args["b"].as_f64().unwrap_or(0.0);
-                        
+
                         let result = match operation {
                             "add" => a + b,
                             "subtract" => a - b,
                             "multiply" => a * b,
-                            "divide" => if b != 0.0 { a / b } else { f64::NAN },
+                            "divide" => {
+                                if b != 0.0 {
+                                    a / b
+                                } else {
+                                    f64::NAN
+                                }
+                            }
                             _ => f64::NAN,
                         };
-                        
+
                         format!("The result of {} {} {} is {}", a, operation, b, result)
-                    },
+                    }
                     "get_weather" => {
                         // Simulate weather API call
-                        let args: serde_json::Value = serde_json::from_str(&tool_call.function.arguments)?;
+                        let args: serde_json::Value =
+                            serde_json::from_str(&tool_call.function.arguments)?;
                         let location = args["location"].as_str().unwrap_or("Unknown");
                         let unit = args["unit"].as_str().unwrap_or("fahrenheit");
-                        
+
                         // Mock weather data
                         let temp = if unit == "celsius" { "22°C" } else { "72°F" };
-                        format!("Current weather in {}: Sunny, {}, light breeze", location, temp)
-                    },
+                        format!(
+                            "Current weather in {}: Sunny, {}, light breeze",
+                            location, temp
+                        )
+                    }
                     _ => "Unknown tool".to_string(),
                 };
 
@@ -197,39 +210,48 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .build()?;
 
             let final_response = client.send_chat_completion(&follow_up_request).await?;
-            
+
             if let Some(final_choice) = final_response.choices.first() {
                 // Check if model wants to call more tools
                 if let Some(more_tool_calls) = final_choice.tool_calls() {
-                    println!("🛠️  Model wants to call {} additional tool(s):", more_tool_calls.len());
-                    
+                    println!(
+                        "🛠️  Model wants to call {} additional tool(s):",
+                        more_tool_calls.len()
+                    );
+
                     // Add assistant message with additional tool calls to conversation
                     let content = final_choice.content().unwrap_or("");
-                    let assistant_message = Message::assistant_with_tool_calls(content, more_tool_calls.to_vec());
+                    let assistant_message =
+                        Message::assistant_with_tool_calls(content, more_tool_calls.to_vec());
                     messages.push(assistant_message);
-                    
+
                     // Handle additional tool calls
                     for (i, tool_call) in more_tool_calls.iter().enumerate() {
-                        println!("  {}. Calling '{}' with arguments: {}", 
-                            i + 1, 
-                            tool_call.function.name, 
+                        println!(
+                            "  {}. Calling '{}' with arguments: {}",
+                            i + 1,
+                            tool_call.function.name,
                             tool_call.function.arguments
                         );
 
                         let tool_result = match tool_call.function.name.as_str() {
                             "get_weather" => {
-                                let args: serde_json::Value = serde_json::from_str(&tool_call.function.arguments)?;
+                                let args: serde_json::Value =
+                                    serde_json::from_str(&tool_call.function.arguments)?;
                                 let location = args["location"].as_str().unwrap_or("Unknown");
                                 let temp = "22°C";
-                                format!("Current weather in {}: Sunny, {}, light breeze", location, temp)
-                            },
+                                format!(
+                                    "Current weather in {}: Sunny, {}, light breeze",
+                                    location, temp
+                                )
+                            }
                             _ => "Unknown tool".to_string(),
                         };
 
                         println!("     ✅ Result: {}", tool_result);
                         messages.push(Message::tool_response(&tool_call.id, tool_result));
                     }
-                    
+
                     // Final request without tools for summary
                     println!("\n📤 Sending final summary request...");
                     let summary_request = ChatCompletionRequest::builder()

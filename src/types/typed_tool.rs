@@ -59,7 +59,7 @@ use crate::types::Tool;
 ///
 /// Types implementing this trait must also derive:
 /// - `Serialize` (for JSON serialization)
-/// - `Deserialize` (for JSON deserialization) 
+/// - `Deserialize` (for JSON deserialization)
 /// - `JsonSchema` (for automatic schema generation)
 ///
 /// # Examples
@@ -109,7 +109,7 @@ pub trait TypedTool: JsonSchema + serde::Serialize + for<'de> serde::Deserialize
     fn create_tool() -> Tool {
         let schema = schema_for!(Self);
         let schema_json = serde_json::to_value(schema).unwrap_or(Value::Null);
-        
+
         Tool::new(Self::name(), Self::description(), schema_json)
     }
 
@@ -158,8 +158,8 @@ impl<T: TypedTool> TypedToolParams for T {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde::{Deserialize, Serialize};
     use schemars::JsonSchema;
+    use serde::{Deserialize, Serialize};
 
     #[derive(Serialize, Deserialize, JsonSchema, Debug, PartialEq)]
     struct TestTool {
@@ -180,11 +180,11 @@ mod tests {
     #[test]
     fn test_typed_tool_creation() {
         let tool = TestTool::create_tool();
-        
+
         assert_eq!(tool.function.name, "test_tool");
         assert_eq!(tool.function.description, "A test tool for unit testing");
         assert_eq!(tool.tool_type, "function");
-        
+
         // Verify schema structure
         let schema = &tool.function.parameters;
         assert_eq!(schema["type"], "object");
@@ -196,7 +196,7 @@ mod tests {
     #[test]
     fn test_schema_generation() {
         let schema = TestTool::get_schema();
-        
+
         assert_eq!(schema["type"], "object");
         assert!(schema["properties"]["message"]["type"] == "string");
         assert!(schema["properties"]["count"]["type"] == "integer");
@@ -216,7 +216,7 @@ mod tests {
 
         let json_value = test_tool.to_json_value().unwrap();
         let converted_back = TestTool::from_json_value(json_value).unwrap();
-        
+
         assert_eq!(test_tool, converted_back);
     }
 
@@ -248,11 +248,11 @@ mod tests {
     fn test_enum_schema_generation() {
         let tool = EnumTool::create_tool();
         let schema = &tool.function.parameters;
-        
+
         // Verify enum is properly represented in schema
         assert!(schema["properties"]["operation"].is_object());
         let operation_schema = &schema["properties"]["operation"];
-        
+
         // schemars can generate enums in various formats - just ensure the operation property exists
         // and is structured (not just a simple type)
         assert!(operation_schema.is_object());

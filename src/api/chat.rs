@@ -40,19 +40,75 @@ impl ImageUrl {
     }
 }
 
+/// Cache control type for prompt caching breakpoints.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "lowercase")]
+pub enum CacheControlType {
+    Ephemeral,
+}
+
+/// Cache control settings for text content parts.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct CacheControl {
+    #[serde(rename = "type")]
+    pub kind: CacheControlType,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ttl: Option<String>,
+}
+
+impl CacheControl {
+    /// Create cache control using default ephemeral TTL.
+    pub fn ephemeral() -> Self {
+        Self {
+            kind: CacheControlType::Ephemeral,
+            ttl: None,
+        }
+    }
+
+    /// Create cache control with explicit TTL (e.g. "1h").
+    pub fn ephemeral_with_ttl(ttl: impl Into<String>) -> Self {
+        Self {
+            kind: CacheControlType::Ephemeral,
+            ttl: Some(ttl.into()),
+        }
+    }
+}
+
 /// A content part in a multi-modal message.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ContentPart {
     /// Text content
-    Text { text: String },
+    Text {
+        text: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        cache_control: Option<CacheControl>,
+    },
     /// Image URL content
     ImageUrl { image_url: ImageUrl },
 }
 
 impl ContentPart {
     pub fn text(text: impl Into<String>) -> Self {
-        Self::Text { text: text.into() }
+        Self::Text {
+            text: text.into(),
+            cache_control: None,
+        }
+    }
+
+    pub fn text_with_cache_control(text: impl Into<String>, cache_control: CacheControl) -> Self {
+        Self::Text {
+            text: text.into(),
+            cache_control: Some(cache_control),
+        }
+    }
+
+    pub fn cacheable_text(text: impl Into<String>) -> Self {
+        Self::text_with_cache_control(text, CacheControl::ephemeral())
+    }
+
+    pub fn cacheable_text_with_ttl(text: impl Into<String>, ttl: impl Into<String>) -> Self {
+        Self::text_with_cache_control(text, CacheControl::ephemeral_with_ttl(ttl))
     }
 
     pub fn image_url(url: impl Into<String>) -> Self {
@@ -145,7 +201,11 @@ impl Message {
     }
 
     /// Create a tool response message with a specific tool name
-    pub fn tool_response_named(tool_call_id: &str, tool_name: &str, content: impl Into<Content>) -> Self {
+    pub fn tool_response_named(
+        tool_call_id: &str,
+        tool_name: &str,
+        content: impl Into<Content>,
+    ) -> Self {
         Self {
             role: Role::Tool,
             content: content.into(),
@@ -167,7 +227,10 @@ impl Message {
     }
 
     /// Create an assistant message with tool calls
-    pub fn assistant_with_tool_calls(content: impl Into<Content>, tool_calls: Vec<crate::types::ToolCall>) -> Self {
+    pub fn assistant_with_tool_calls(
+        content: impl Into<Content>,
+        tool_calls: Vec<crate::types::ToolCall>,
+    ) -> Self {
         Self {
             role: Role::Assistant,
             content: content.into(),
@@ -403,7 +466,7 @@ impl ChatCompletionRequestBuilder {
     /// #     fn name() -> &'static str { "calculator" }
     /// #     fn description() -> &'static str { "Calculate" }
     /// # }
-    /// 
+    ///
     /// let request = ChatCompletionRequest::builder()
     ///     .model("anthropic/claude-sonnet-4")
     ///     .typed_tools_batch(&[
@@ -533,11 +596,10 @@ pub async fn send_chat_completion(
 
     if response.status().is_success() {
         let body_text = response.body_string().await?;
-        let chat_response: CompletionsResponse = serde_json::from_str(&body_text)
-            .map_err(|e| {
-                eprintln!("Failed to deserialize response: {e}\nBody: {body_text}");
-                OpenRouterError::Serialization(e)
-            })?;
+        let chat_response: CompletionsResponse = serde_json::from_str(&body_text).map_err(|e| {
+            eprintln!("Failed to deserialize response: {e}\nBody: {body_text}");
+            OpenRouterError::Serialization(e)
+        })?;
         Ok(chat_response)
     } else {
         handle_error(response).await?;

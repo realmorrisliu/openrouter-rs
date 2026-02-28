@@ -29,7 +29,6 @@
 //! cargo run --example chat_with_reasoning
 //! ```
 
-use dotenvy_macro::dotenv;
 use openrouter_rs::{
     OpenRouterClient,
     api::chat::{ChatCompletionRequest, Message},
@@ -38,7 +37,7 @@ use openrouter_rs::{
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let api_key = dotenv!("OPENROUTER_API_KEY");
+    let api_key = std::env::var("OPENROUTER_API_KEY").expect("OPENROUTER_API_KEY must be set");
     let client = OpenRouterClient::builder()
         .api_key(api_key)
         .http_referer("https://github.com/realmorrisliu/openrouter-rs")

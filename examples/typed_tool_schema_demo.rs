@@ -11,7 +11,10 @@
 
 use openrouter_rs::{
     api::chat::{ChatCompletionRequest, Message},
-    types::{typed_tool::{TypedTool, TypedToolParams}, Role},
+    types::{
+        Role,
+        typed_tool::{TypedTool, TypedToolParams},
+    },
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -76,23 +79,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("📋 Generated Tools:");
     println!("------------------");
-    
+
     println!("Calculator Tool:");
     println!("  Name: {}", calculator_tool.function.name);
     println!("  Description: {}", calculator_tool.function.description);
-    println!("  Schema: {}\n", serde_json::to_string_pretty(&calculator_tool.function.parameters)?);
+    println!(
+        "  Schema: {}\n",
+        serde_json::to_string_pretty(&calculator_tool.function.parameters)?
+    );
 
     println!("Weather Tool:");
     println!("  Name: {}", weather_tool.function.name);
     println!("  Description: {}", weather_tool.function.description);
-    println!("  Schema: {}\n", serde_json::to_string_pretty(&weather_tool.function.parameters)?);
+    println!(
+        "  Schema: {}\n",
+        serde_json::to_string_pretty(&weather_tool.function.parameters)?
+    );
 
     // 2. Create a chat request using typed tools
     let request = ChatCompletionRequest::builder()
         .model("deepseek/deepseek-chat-v3.1:free")
-        .messages(vec![
-            Message::new(Role::User, "Calculate 15 * 3 and get weather for Tokyo")
-        ])
+        .messages(vec![Message::new(
+            Role::User,
+            "Calculate 15 * 3 and get weather for Tokyo",
+        )])
         .typed_tool::<CalculatorParams>()
         .typed_tool::<WeatherParams>()
         .tool_choice_auto()
@@ -106,7 +116,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 3. Demonstrate type-safe parameter creation
     println!("\n🧪 Type-Safe Parameters:");
     println!("-----------------------");
-    
+
     let calc_params = CalculatorParams {
         a: 15.0,
         b: 3.0,

@@ -125,7 +125,10 @@ fn test_response_with_reasoning_details() {
         .reasoning_details()
         .expect("Should have reasoning_details");
     assert_eq!(reasoning_details.len(), 2);
-    assert_eq!(reasoning_details[0].content(), Some("First, I need to consider..."));
+    assert_eq!(
+        reasoning_details[0].content(),
+        Some("First, I need to consider...")
+    );
     assert_eq!(reasoning_details[0].reasoning_type(), "reasoning.text");
 }
 

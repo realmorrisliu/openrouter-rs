@@ -103,56 +103,56 @@ pub struct PartialToolCall {
 
 impl ToolCall {
     /// Parse tool arguments into typed parameters
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```rust
     /// use openrouter_rs::types::typed_tool::TypedTool;
     /// use serde::{Deserialize, Serialize};
     /// use schemars::JsonSchema;
-    /// 
+    ///
     /// #[derive(Serialize, Deserialize, JsonSchema)]
     /// struct WeatherParams {
     ///     location: String,
     /// }
-    /// 
+    ///
     /// impl TypedTool for WeatherParams {
     ///     fn name() -> &'static str { "get_weather" }
     ///     fn description() -> &'static str { "Get weather" }
     /// }
-    /// 
+    ///
     /// // Parse tool call parameters
     /// let params: WeatherParams = tool_call.parse_params()?;
     /// ```
-    pub fn parse_params<T>(&self) -> Result<T, crate::error::OpenRouterError> 
-    where 
+    pub fn parse_params<T>(&self) -> Result<T, crate::error::OpenRouterError>
+    where
         T: crate::types::typed_tool::TypedTool,
     {
         serde_json::from_str(&self.function.arguments)
-            .map_err(|e| crate::error::OpenRouterError::Serialization(e))
+            .map_err(crate::error::OpenRouterError::Serialization)
     }
-    
+
     /// Check if this tool call matches a specific tool type
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```rust
     /// if tool_call.is_tool::<WeatherParams>() {
     ///     let params = tool_call.parse_params::<WeatherParams>()?;
     ///     // Handle weather tool
     /// }
     /// ```
-    pub fn is_tool<T>(&self) -> bool 
-    where 
+    pub fn is_tool<T>(&self) -> bool
+    where
         T: crate::types::typed_tool::TypedTool,
     {
         self.function.name == T::name()
     }
-    
+
     /// Get the tool name
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```rust
     /// match tool_call.name() {
     ///     "get_weather" => { /* handle weather */ }
@@ -163,33 +163,33 @@ impl ToolCall {
     pub fn name(&self) -> &str {
         &self.function.name
     }
-    
+
     /// Get the raw JSON arguments as a string
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```rust
     /// println!("Raw arguments: {}", tool_call.arguments_json());
     /// ```
     pub fn arguments_json(&self) -> &str {
         &self.function.arguments
     }
-    
+
     /// Get the tool call ID
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```rust
     /// println!("Tool call ID: {}", tool_call.id());
     /// ```
     pub fn id(&self) -> &str {
         &self.id
     }
-    
+
     /// Get the tool type (usually "function")
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```rust
     /// assert_eq!(tool_call.tool_type(), "function");
     /// ```

@@ -170,14 +170,13 @@ impl ToolBuilder {
         &mut self,
         params: &T,
     ) -> Result<&mut Self, OpenRouterError> {
-        let value = serde_json::to_value(params).map_err(|e| OpenRouterError::Serialization(e))?;
+        let value = serde_json::to_value(params).map_err(OpenRouterError::Serialization)?;
         Ok(self.parameters(value))
     }
 
     /// Set parameters from a JSON string
     pub fn parameters_json(&mut self, json: &str) -> Result<&mut Self, OpenRouterError> {
-        let value: Value =
-            serde_json::from_str(json).map_err(|e| OpenRouterError::Serialization(e))?;
+        let value: Value = serde_json::from_str(json).map_err(OpenRouterError::Serialization)?;
         Ok(self.parameters(value))
     }
 }
@@ -194,15 +193,14 @@ impl FunctionDefinitionBuilder {
         &mut self,
         params: &T,
     ) -> Result<&mut Self, OpenRouterError> {
-        let value = serde_json::to_value(params).map_err(|e| OpenRouterError::Serialization(e))?;
+        let value = serde_json::to_value(params).map_err(OpenRouterError::Serialization)?;
         self.parameters = Some(value);
         Ok(self)
     }
 
     /// Set parameters from a JSON string
     pub fn parameters_json(&mut self, json: &str) -> Result<&mut Self, OpenRouterError> {
-        let value: Value =
-            serde_json::from_str(json).map_err(|e| OpenRouterError::Serialization(e))?;
+        let value: Value = serde_json::from_str(json).map_err(OpenRouterError::Serialization)?;
         self.parameters = Some(value);
         Ok(self)
     }

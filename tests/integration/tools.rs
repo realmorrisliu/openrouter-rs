@@ -1,14 +1,14 @@
 use openrouter_rs::{
     api::chat::{ChatCompletionRequest, Message},
     types::{
-        Role, Tool, ToolChoice, 
+        Role, Tool, ToolChoice,
+        completion::{FunctionCall, ToolCall},
         typed_tool::{TypedTool, TypedToolParams},
-        completion::{ToolCall, FunctionCall},
     },
 };
-use serde_json::json;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 
 use crate::test_utils::create_test_client;
 
@@ -47,7 +47,10 @@ async fn test_tool_choice_serialization() {
 
     assert_eq!(serde_json::to_string(&auto_choice).unwrap(), r#""auto""#);
     assert_eq!(serde_json::to_string(&none_choice).unwrap(), r#""none""#);
-    assert_eq!(serde_json::to_string(&required_choice).unwrap(), r#""required""#);
+    assert_eq!(
+        serde_json::to_string(&required_choice).unwrap(),
+        r#""required""#
+    );
 
     // Test specific tool choice
     let specific_choice = ToolChoice::force_tool("my_function");
@@ -117,7 +120,7 @@ async fn test_tool_message_creation() {
 #[tokio::test]
 async fn test_assistant_message_with_tool_calls() {
     use openrouter_rs::Content;
-    use openrouter_rs::types::{ToolCall, FunctionCall};
+    use openrouter_rs::types::{FunctionCall, ToolCall};
 
     let tool_call = ToolCall {
         id: "call_123".to_string(),
@@ -129,13 +132,19 @@ async fn test_assistant_message_with_tool_calls() {
         index: None,
     };
 
-    let assistant_msg = Message::assistant_with_tool_calls("I'll help you with that", vec![tool_call]);
+    let assistant_msg =
+        Message::assistant_with_tool_calls("I'll help you with that", vec![tool_call]);
     assert_eq!(assistant_msg.role, Role::Assistant);
-    assert!(matches!(assistant_msg.content, Content::Text(ref s) if s == "I'll help you with that"));
+    assert!(
+        matches!(assistant_msg.content, Content::Text(ref s) if s == "I'll help you with that")
+    );
     assert!(assistant_msg.tool_calls.is_some());
     assert_eq!(assistant_msg.tool_calls.as_ref().unwrap().len(), 1);
     assert_eq!(assistant_msg.tool_calls.as_ref().unwrap()[0].id, "call_123");
-    assert_eq!(assistant_msg.tool_calls.as_ref().unwrap()[0].function.name, "test_function");
+    assert_eq!(
+        assistant_msg.tool_calls.as_ref().unwrap()[0].function.name,
+        "test_function"
+    );
 
     // Test serialization
     let serialized = serde_json::to_string(&assistant_msg).unwrap();
@@ -147,19 +156,19 @@ async fn test_assistant_message_with_tool_calls() {
 #[tokio::test]
 async fn test_tool_builder_methods() {
     let mut builder = ChatCompletionRequest::builder();
-    
+
     let tool1 = Tool::new("tool1", "First tool", json!({"type": "object"}));
     let tool2 = Tool::new("tool2", "Second tool", json!({"type": "object"}));
 
     // Test adding single tool
     builder.tool(tool1);
-    
+
     // Test adding another tool
     builder.tool(tool2);
-    
+
     // Test setting tool choice
     builder.tool_choice_required();
-    
+
     // Test setting parallel tool calls
     builder.parallel_tool_calls(false);
 
@@ -178,7 +187,7 @@ async fn test_tool_builder_methods() {
 
     // Verify tool choice
     assert!(request.tool_choice().is_some());
-    
+
     // Verify parallel tool calls
     assert_eq!(request.parallel_tool_calls(), Some(false));
 }
@@ -193,12 +202,12 @@ async fn test_tool_helper_function() {
             "a": {"type": "number"},
             "b": {"type": "number"}
         }),
-        &["operation", "a", "b"]
+        &["operation", "a", "b"],
     );
 
     assert_eq!(tool.function.name, "calculator");
     assert_eq!(tool.function.description, "Perform calculations");
-    
+
     let params = &tool.function.parameters;
     assert_eq!(params["type"], "object");
     assert_eq!(params["required"], json!(["operation", "a", "b"]));
@@ -209,7 +218,7 @@ async fn test_tool_helper_function() {
 #[ignore = "Requires API key and makes real API calls"]
 async fn test_real_tool_call() {
     let client = create_test_client().unwrap();
-    
+
     let tool = Tool::builder()
         .name("echo")
         .description("Echo back the input")
@@ -227,10 +236,13 @@ async fn test_real_tool_call() {
         .unwrap();
 
     let request = ChatCompletionRequest::builder()
-        .model("openai/gpt-4o-mini")  // Use a cheaper model for testing
+        .model("openai/gpt-4o-mini") // Use a cheaper model for testing
         .messages(vec![
-            Message::new(Role::System, "You are a helpful assistant. Use the echo tool when asked to echo something."),
-            Message::new(Role::User, "Please echo 'Hello, World!'")
+            Message::new(
+                Role::System,
+                "You are a helpful assistant. Use the echo tool when asked to echo something.",
+            ),
+            Message::new(Role::User, "Please echo 'Hello, World!'"),
         ])
         .tool(tool)
         .tool_choice_auto()
@@ -239,15 +251,15 @@ async fn test_real_tool_call() {
         .unwrap();
 
     let response = client.send_chat_completion(&request).await.unwrap();
-    
+
     // Check that we got a response
     assert!(!response.choices.is_empty());
-    
+
     let choice = &response.choices[0];
-    
+
     // The model should either call the tool or provide a response
     assert!(choice.tool_calls().is_some() || choice.content().is_some());
-    
+
     if let Some(tool_calls) = choice.tool_calls() {
         assert!(!tool_calls.is_empty());
         let tool_call = &tool_calls[0];
@@ -292,20 +304,20 @@ fn create_test_tool_call(tool_name: &str, arguments: &str) -> ToolCall {
 
 #[tokio::test]
 async fn test_enhanced_tool_call_convenience_methods() {
-    let tool_call = create_test_tool_call(
-        "test_tool",
-        r#"{"message": "Hello", "count": 42}"#,
-    );
+    let tool_call = create_test_tool_call("test_tool", r#"{"message": "Hello", "count": 42}"#);
 
     // Test convenience methods
     assert_eq!(tool_call.name(), "test_tool");
     assert_eq!(tool_call.id(), "call_test_tool");
     assert_eq!(tool_call.tool_type(), "function");
-    assert_eq!(tool_call.arguments_json(), r#"{"message": "Hello", "count": 42}"#);
+    assert_eq!(
+        tool_call.arguments_json(),
+        r#"{"message": "Hello", "count": 42}"#
+    );
 
     // Test type checking
     assert!(tool_call.is_tool::<TestToolParams>());
-    
+
     // Test parameter parsing
     let params: TestToolParams = tool_call.parse_params().unwrap();
     assert_eq!(params.message, "Hello");
