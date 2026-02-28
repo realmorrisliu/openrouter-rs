@@ -7,11 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-02-28
+
 ### Added
 - Support `cache_control` on multipart text content via `ContentPart::text_with_cache_control`, `ContentPart::cacheable_text`, and `ContentPart::cacheable_text_with_ttl`.
 
 ### Changed
 - Extended reasoning effort support to include `xhigh`, `minimal`, and `none`.
+
+### Fixed
+- Updated examples to read `OPENROUTER_API_KEY` and `OPENROUTER_PROVISIONING_KEY` at runtime (instead of compile-time `.env` macro expansion), preventing CI/build failures.
+- Bumped `bytes` from `1.10.1` to `1.11.1` to address `GHSA-434x-w66g-qw3r` (`CVE-2026-25541`).
 
 ## [0.5.0] - 2026-02-25
 

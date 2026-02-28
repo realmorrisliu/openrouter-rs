@@ -32,7 +32,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-openrouter-rs = "0.5.0"
+openrouter-rs = "0.5.1"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -395,7 +395,14 @@ This is a **third-party SDK** not officially affiliated with OpenRouter. Use at 
 
 ## 📈 Release History
 
-### Version 0.5.0 *(Latest)*
+### Version 0.5.1 *(Latest)*
+
+- 🧩 **New**: Multipart text `cache_control` helpers (`text_with_cache_control`, `cacheable_text`, `cacheable_text_with_ttl`)
+- 🧠 **Improved**: Reasoning effort now supports `xhigh`, `minimal`, and `none`
+- 🛡️ **Security**: Upgraded `bytes` to `1.11.1` (`GHSA-434x-w66g-qw3r`)
+- 🔧 **Fixed**: Examples now load API keys at runtime to avoid compile-time `.env` failures in CI
+
+### Version 0.5.0
 
 - 🌊 **New**: Streaming tool calls support with `ToolAwareStream` - automatically accumulates partial tool call fragments
 - 🔧 **New**: `PartialToolCall` and `PartialFunctionCall` types for incremental streaming data
