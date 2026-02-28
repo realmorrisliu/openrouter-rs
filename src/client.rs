@@ -276,6 +276,54 @@ impl OpenRouterClient {
         }
     }
 
+    /// Create an authorization code for PKCE flow (`POST /auth/keys/code`).
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - The auth-code creation request built with `CreateAuthCodeRequest::builder()`.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<auth::AuthCodeData, OpenRouterError>` - The created authorization code payload.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use openrouter_rs::{OpenRouterClient, api::auth};
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
+    ///
+    /// let create = auth::CreateAuthCodeRequest::builder()
+    ///     .callback_url("https://myapp.com/auth/callback")
+    ///     .code_challenge("E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM")
+    ///     .code_challenge_method(auth::CodeChallengeMethod::S256)
+    ///     .build()?;
+    ///
+    /// let auth_code = client.create_auth_code(&create).await?;
+    ///
+    /// let exchanged = client
+    ///     .exchange_code_for_api_key(
+    ///         &auth_code.id,
+    ///         Some("your_pkce_code_verifier"),
+    ///         Some(auth::CodeChallengeMethod::S256),
+    ///     )
+    ///     .await?;
+    ///
+    /// println!("New key: {}", exchanged.key);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn create_auth_code(
+        &self,
+        request: &auth::CreateAuthCodeRequest,
+    ) -> Result<auth::AuthCodeData, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            auth::create_auth_code(&self.base_url, api_key, request).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
     /// Exchange an authorization code from the PKCE flow for a user-controlled API key.
     ///
     /// # Arguments
