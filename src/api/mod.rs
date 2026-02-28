@@ -140,5 +140,6 @@ pub mod completion;
 pub mod credits;
 pub mod errors;
 pub mod generation;
+pub mod messages;
 pub mod models;
 pub mod responses;

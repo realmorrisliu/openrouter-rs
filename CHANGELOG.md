@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Anthropic-compatible `/messages` API support:
+  - `api::messages` module with typed request/response models
+  - non-streaming `create_message` and streaming `stream_messages`
+  - `OpenRouterClient::{create_message,stream_messages}` wrappers
+  - new examples: `create_message.rs` and `stream_messages.rs`
+
 ## [0.5.1] - 2026-02-28
 
 ### Added

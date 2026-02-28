@@ -239,6 +239,8 @@ match client.send_chat_completion(&request).await {
 | **Reasoning Tokens** | ✅ | [`api::chat`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/chat/) |
 | Streaming Responses | ✅ | [`api::chat`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/chat/) |
 | **Streaming Tool Calls** | ✅ | [`types::stream`](https://docs.rs/openrouter-rs/latest/openrouter_rs/types/stream/) |
+| Responses API | ✅ | [`api::responses`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/responses/) |
+| Anthropic Messages API | ✅ | [`api::messages`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/messages/) |
 | Model Information | ✅ | [`api::models`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/models/) |
 | API Key Management | ✅ | [`api::api_keys`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/api_keys/) |
 | Credit Management | ✅ | [`api::credits`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/credits/) |
