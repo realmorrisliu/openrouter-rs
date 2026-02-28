@@ -49,7 +49,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("   Name: {}", calculator_tool.function.name);
     println!("   Description: {}", calculator_tool.function.description);
-    println!("   Parameters: {}\n", serde_json::to_string_pretty(&calculator_tool.function.parameters)?);
+    println!(
+        "   Parameters: {}\n",
+        serde_json::to_string_pretty(&calculator_tool.function.parameters)?
+    );
 
     // Demo 2: Tool with complex nested parameters
     println!("2. Weather Tool with Complex Parameters:");
@@ -107,7 +110,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "description": "Content to write (only for write action)"
             }
         }),
-        &["action", "path"]
+        &["action", "path"],
     );
 
     println!("   Name: {}", file_tool.function.name);
@@ -123,14 +126,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   Auto: {}", serde_json::to_string(&auto_choice)?);
     println!("   None: {}", serde_json::to_string(&none_choice)?);
     println!("   Required: {}", serde_json::to_string(&required_choice)?);
-    println!("   Specific: {}\n", serde_json::to_string_pretty(&specific_choice)?);
+    println!(
+        "   Specific: {}\n",
+        serde_json::to_string_pretty(&specific_choice)?
+    );
 
     // Demo 5: Chat request with tools
     println!("5. Chat Request with Tools:");
     let request = ChatCompletionRequest::builder()
         .model("deepseek/deepseek-chat-v3.1:free")
         .messages(vec![
-            Message::new(Role::System, "You are a helpful assistant with access to tools."),
+            Message::new(
+                Role::System,
+                "You are a helpful assistant with access to tools.",
+            ),
             Message::new(Role::User, "Calculate 15 * 7 and get weather for London"),
         ])
         .tool(calculator_tool)
@@ -142,14 +151,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build()?;
 
     println!("   Model: DeepSeek Chat v3.1 (Free)");
-    println!("   Tools defined: {}", request.tools().map_or(0, |t| t.len()));
+    println!(
+        "   Tools defined: {}",
+        request.tools().map_or(0, |t| t.len())
+    );
     println!("   Tool choice: Auto");
     println!("   Parallel calls: Enabled");
 
     // Demo 6: Serialized request (what gets sent to API)
     println!("\n6. Serialized Request Sample:");
     let serialized = serde_json::to_string_pretty(&request)?;
-    
+
     // Show just the tools section for brevity
     let parsed: serde_json::Value = serde_json::from_str(&serialized)?;
     if let Some(tools) = parsed.get("tools") {

@@ -24,8 +24,8 @@ use openrouter_rs::{
     api::chat::{ChatCompletionRequest, Message},
     client::OpenRouterClient,
     types::{
-        typed_tool::{TypedTool, TypedToolParams},
         Role,
+        typed_tool::{TypedTool, TypedToolParams},
     },
 };
 use schemars::JsonSchema;
@@ -228,13 +228,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Demonstrate schema generation
     println!("📋 Generated JSON Schemas:");
     println!("---------------------------");
-    
+
     println!("Weather Tool Schema:");
-    println!("{}", serde_json::to_string_pretty(&WeatherParams::get_schema())?);
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&WeatherParams::get_schema())?
+    );
     println!();
 
     println!("Calculator Tool Schema:");
-    println!("{}", serde_json::to_string_pretty(&CalculatorParams::get_schema())?);
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&CalculatorParams::get_schema())?
+    );
     println!();
 
     // Create a chat completion request with multiple typed tools
@@ -257,15 +263,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .tool_choice_auto()                   // Let model choose which tools to use
         .build()?;
 
-    println!("🤖 Sending request with {} typed tools...", request.tools().map_or(0, |t| t.len()));
-    
+    println!(
+        "🤖 Sending request with {} typed tools...",
+        request.tools().map_or(0, |t| t.len())
+    );
+
     match client.send_chat_completion(&request).await {
         Ok(response) => {
             println!("✅ Response received!\n");
-            
+
             for (i, choice) in response.choices.iter().enumerate() {
                 println!("Choice {}: {}", i + 1, "=".repeat(50));
-                
+
                 if let Some(content) = choice.content() {
                     println!("💬 Content: {}", content);
                 }
@@ -277,31 +286,37 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if let Some(tool_calls) = choice.tool_calls() {
                     println!("🔧 Tool Calls ({}):", tool_calls.len());
                     for (j, tool_call) in tool_calls.iter().enumerate() {
-                        println!("  {}. {} (ID: {})", j + 1, tool_call.function.name, tool_call.id);
+                        println!(
+                            "  {}. {} (ID: {})",
+                            j + 1,
+                            tool_call.function.name,
+                            tool_call.id
+                        );
                         println!("     Arguments: {}", tool_call.function.arguments);
-                        
+
                         // Demonstrate clean typed parameter parsing
                         match tool_call.name() {
-                            "get_weather" => {
-                                match tool_call.parse_params::<WeatherParams>() {
-                                    Ok(params) => {
-                                        println!("     ✅ Weather for: {}", params.location);
-                                        println!("        Unit: {:?}", params.unit);
-                                        println!("        Include forecast: {}", params.include_forecast);
-                                    }
-                                    Err(e) => println!("     ❌ Parse error: {}", e),
+                            "get_weather" => match tool_call.parse_params::<WeatherParams>() {
+                                Ok(params) => {
+                                    println!("     ✅ Weather for: {}", params.location);
+                                    println!("        Unit: {:?}", params.unit);
+                                    println!(
+                                        "        Include forecast: {}",
+                                        params.include_forecast
+                                    );
                                 }
-                            }
-                            "calculator" => {
-                                match tool_call.parse_params::<CalculatorParams>() {
-                                    Ok(params) => {
-                                        println!("     🧮 Calculate: {:?}", params.operation);
-                                        println!("        {} {:?} {} with {} decimal places", 
-                                            params.a, params.operation, params.b, params.precision);
-                                    }
-                                    Err(e) => println!("     ❌ Parse error: {}", e),
+                                Err(e) => println!("     ❌ Parse error: {}", e),
+                            },
+                            "calculator" => match tool_call.parse_params::<CalculatorParams>() {
+                                Ok(params) => {
+                                    println!("     🧮 Calculate: {:?}", params.operation);
+                                    println!(
+                                        "        {} {:?} {} with {} decimal places",
+                                        params.a, params.operation, params.b, params.precision
+                                    );
                                 }
-                            }
+                                Err(e) => println!("     ❌ Parse error: {}", e),
+                            },
                             _ => {
                                 println!("     ℹ️  Unknown tool: {}", tool_call.name());
                             }
@@ -332,7 +347,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Additional demonstration: Show how to work with typed parameters
     println!("\n🧪 Type Safety Demo:");
     println!("---------------------");
-    
+
     // Create typed parameters programmatically
     let weather_params = WeatherParams {
         location: "Tokyo, Japan".to_string(),
@@ -348,11 +363,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     println!("Weather params JSON: {}", weather_params.to_json_value()?);
-    println!("Calculator params JSON: {}", calculator_params.to_json_value()?);
+    println!(
+        "Calculator params JSON: {}",
+        calculator_params.to_json_value()?
+    );
 
     // Validate parameters
     println!("Weather params validation: {:?}", weather_params.validate());
-    println!("Calculator params validation: {:?}", calculator_params.validate());
+    println!(
+        "Calculator params validation: {:?}",
+        calculator_params.validate()
+    );
 
     Ok(())
 }

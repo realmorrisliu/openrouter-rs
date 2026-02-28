@@ -152,12 +152,7 @@ fn test_streaming_chunk_arguments_fragment() {
     let partials = response.choices[0].partial_tool_calls().unwrap();
     assert_eq!(partials.len(), 1);
     assert_eq!(
-        partials[0]
-            .function
-            .as_ref()
-            .unwrap()
-            .arguments
-            .as_deref(),
+        partials[0].function.as_ref().unwrap().arguments.as_deref(),
         Some("{\"loc")
     );
 }
@@ -402,10 +397,7 @@ async fn test_tool_aware_stream_single_tool_call() {
             assert_eq!(tool_calls[0].id, "call_abc");
             assert_eq!(tool_calls[0].type_, "function");
             assert_eq!(tool_calls[0].function.name, "get_weather");
-            assert_eq!(
-                tool_calls[0].function.arguments,
-                "{\"location\": \"NYC\"}"
-            );
+            assert_eq!(tool_calls[0].function.arguments, "{\"location\": \"NYC\"}");
             assert!(matches!(
                 finish_reason,
                 Some(openrouter_rs::types::completion::FinishReason::ToolCalls)
@@ -488,10 +480,7 @@ async fn test_tool_aware_stream_parallel_tool_calls() {
 
             assert_eq!(tool_calls[1].id, "call_2");
             assert_eq!(tool_calls[1].function.name, "get_time");
-            assert_eq!(
-                tool_calls[1].function.arguments,
-                "{\"timezone\": \"EST\"}"
-            );
+            assert_eq!(tool_calls[1].function.arguments, "{\"timezone\": \"EST\"}");
         }
         other => panic!("Expected Done, got {:?}", other),
     }

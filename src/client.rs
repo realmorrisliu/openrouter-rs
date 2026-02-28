@@ -6,8 +6,7 @@ use crate::{
     config::OpenRouterConfig,
     error::OpenRouterError,
     types::{
-        ModelCategory, SupportedParameters,
-        completion::CompletionsResponse,
+        ModelCategory, SupportedParameters, completion::CompletionsResponse,
         stream::ToolAwareStream,
     },
 };

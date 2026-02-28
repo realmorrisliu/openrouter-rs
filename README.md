@@ -161,17 +161,14 @@ let request = ChatCompletionRequest::builder()
 Send images for analysis with vision models:
 
 ```rust
-use openrouter_rs::api::chat::{ContentPart, ImageUrl};
+use openrouter_rs::api::chat::ContentPart;
 
 let request = ChatCompletionRequest::builder()
     .model("anthropic/claude-sonnet-4")
     .messages(vec![
         Message::with_parts(Role::User, vec![
-            ContentPart::Text { text: "What's in this image?".into() },
-            ContentPart::ImageUrl {
-                image_url: ImageUrl::new("https://example.com/image.jpg")
-                    .with_detail("high")
-            },
+            ContentPart::text("What's in this image?"),
+            ContentPart::image_url_with_detail("https://example.com/image.jpg", "high"),
         ])
     ])
     .build()?;

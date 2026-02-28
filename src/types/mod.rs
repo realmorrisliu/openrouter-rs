@@ -53,9 +53,12 @@
 //! ```rust
 //! use openrouter_rs::types::Effort;
 //!
-//! let high_effort = Effort::High;    // Maximum reasoning depth
+//! let xhigh_effort = Effort::Xhigh;   // Extra high reasoning depth
+//! let high_effort = Effort::High;     // High reasoning depth
 //! let medium_effort = Effort::Medium; // Balanced reasoning
-//! let low_effort = Effort::Low;      // Quick reasoning
+//! let low_effort = Effort::Low;       // Quick reasoning
+//! let minimal_effort = Effort::Minimal; // Minimal reasoning
+//! let no_effort = Effort::None;       // Disable reasoning
 //! ```
 //!
 //! ## 🔧 Configuration Types
@@ -223,20 +226,29 @@ impl Display for Role {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum Effort {
+    /// Extra high reasoning depth and thoroughness
+    Xhigh,
     /// Maximum reasoning depth and thoroughness
     High,
     /// Balanced reasoning effort
     Medium,
     /// Quick, lightweight reasoning
     Low,
+    /// Minimal reasoning effort
+    Minimal,
+    /// Disable reasoning effort
+    None,
 }
 
 impl Display for Effort {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Effort::Xhigh => write!(f, "xhigh"),
             Effort::High => write!(f, "high"),
             Effort::Medium => write!(f, "medium"),
             Effort::Low => write!(f, "low"),
+            Effort::Minimal => write!(f, "minimal"),
+            Effort::None => write!(f, "none"),
         }
     }
 }
