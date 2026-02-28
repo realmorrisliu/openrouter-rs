@@ -89,6 +89,78 @@ fn test_text_content_part_cache_control_deserialization() {
 }
 
 #[test]
+fn test_multimodal_content_parts_serialize() {
+    let request = ChatCompletionRequest::builder()
+        .model("openai/gpt-5")
+        .messages(vec![Message::with_parts(
+            Role::User,
+            vec![
+                ContentPart::input_audio("UklGRiQAAABXQVZF", "wav"),
+                ContentPart::video_url("https://example.com/video.mp4"),
+                ContentPart::input_video("https://example.com/legacy-video.mp4"),
+                ContentPart::file_data_with_filename("https://example.com/doc.pdf", "document.pdf"),
+                ContentPart::file_id_with_filename("file_123", "uploaded.pdf"),
+            ],
+        )])
+        .build()
+        .expect("request should build");
+
+    let json = serde_json::to_value(&request).expect("request should serialize");
+    let parts = json["messages"][0]["content"]
+        .as_array()
+        .expect("content should be multipart");
+
+    assert_eq!(parts[0]["type"], "input_audio");
+    assert_eq!(parts[0]["input_audio"]["format"], "wav");
+    assert_eq!(parts[1]["type"], "video_url");
+    assert_eq!(
+        parts[1]["video_url"]["url"],
+        "https://example.com/video.mp4"
+    );
+    assert_eq!(parts[2]["type"], "input_video");
+    assert_eq!(
+        parts[2]["video_url"]["url"],
+        "https://example.com/legacy-video.mp4"
+    );
+    assert_eq!(parts[3]["type"], "file");
+    assert_eq!(parts[3]["file"]["filename"], "document.pdf");
+    assert_eq!(parts[4]["file"]["file_id"], "file_123");
+}
+
+#[test]
+fn test_multimodal_content_part_deserialization() {
+    let audio_json = r#"{
+        "type": "input_audio",
+        "input_audio": {"data":"abc123","format":"mp3"}
+    }"#;
+    let file_json = r#"{
+        "type": "file",
+        "file": {"file_id":"file_abc","filename":"clip.wav"}
+    }"#;
+
+    let audio_part: ContentPart =
+        serde_json::from_str(audio_json).expect("audio content part should deserialize");
+    let file_part: ContentPart =
+        serde_json::from_str(file_json).expect("file content part should deserialize");
+
+    match audio_part {
+        ContentPart::InputAudio { input_audio } => {
+            assert_eq!(input_audio.data, "abc123");
+            assert_eq!(input_audio.format, "mp3");
+        }
+        _ => panic!("expected input_audio content part"),
+    }
+
+    match file_part {
+        ContentPart::File { file } => {
+            assert_eq!(file.file_id.as_deref(), Some("file_abc"));
+            assert_eq!(file.filename.as_deref(), Some("clip.wav"));
+        }
+        _ => panic!("expected file content part"),
+    }
+}
+
+#[test]
 fn test_chat_request_extended_control_fields_serialize() {
     let trace = TraceOptions {
         trace_id: Some("trace-1".to_string()),

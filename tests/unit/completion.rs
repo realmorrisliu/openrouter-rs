@@ -238,3 +238,56 @@ fn test_gemini_tool_call_response() {
     let result = serde_json::from_str::<CompletionsResponse>(json);
     assert!(result.is_ok(), "Failed: {:?}", result.err());
 }
+
+/// Test deserialization of multimodal assistant content parts
+#[test]
+fn test_response_with_multimodal_content_parts() {
+    let json = r#"{
+        "id": "gen-multi-001",
+        "choices": [{
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+                "role": "assistant",
+                "content": [
+                    {"type":"output_text","text":"Caption: beach sunset"},
+                    {"type":"image_url","image_url":{"url":"https://example.com/out.png"}}
+                ]
+            }
+        }],
+        "created": 1700000000,
+        "model": "test-model",
+        "object": "chat.completion"
+    }"#;
+
+    let response: CompletionsResponse = serde_json::from_str(json).expect("Failed to deserialize");
+    let choice = &response.choices[0];
+
+    // content() returns only plain-text content, and should remain safe for multimodal arrays.
+    assert!(choice.content().is_none());
+}
+
+/// Test deserialization of assistant images/audio fields
+#[test]
+fn test_response_with_assistant_media_fields() {
+    let json = r#"{
+        "id": "gen-media-001",
+        "choices": [{
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+                "role": "assistant",
+                "content": "Here is your result",
+                "images": [{"url":"https://example.com/generated.png"}],
+                "audio": {"id":"audio_123","expires_at":1700001000}
+            }
+        }],
+        "created": 1700000000,
+        "model": "test-model",
+        "object": "chat.completion"
+    }"#;
+
+    let response: CompletionsResponse = serde_json::from_str(json).expect("Failed to deserialize");
+    let choice = &response.choices[0];
+    assert_eq!(choice.content(), Some("Here is your result"));
+}
