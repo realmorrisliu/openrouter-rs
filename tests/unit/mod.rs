@@ -10,6 +10,7 @@ pub mod completion;
 pub mod config;
 pub mod discovery;
 pub mod embeddings;
+pub mod guardrails;
 pub mod messages;
 pub mod provider;
 pub mod response_format;

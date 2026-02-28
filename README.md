@@ -268,12 +268,14 @@ let key = client
 | Responses API | ✅ | [`api::responses`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/responses/) |
 | Anthropic Messages API | ✅ | [`api::messages`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/messages/) |
 | Provider/Activity Discovery | ✅ | [`api::discovery`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/discovery/) |
+| Guardrails | ✅ | [`api::guardrails`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/guardrails/) |
 | Model Information | ✅ | [`api::models`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/models/) |
 | API Key Management | ✅ | [`api::api_keys`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/api_keys/) |
 | Credit Management | ✅ | [`api::credits`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/credits/) |
 | Authentication | ✅ | [`api::auth`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/auth/) |
 
 `/activity` requires a management key; in this SDK set it with `.provisioning_key(...)`.
+`/guardrails*` endpoints also require a management key; in this SDK set it with `.provisioning_key(...)`.
 
 ## 🎯 More Examples
 

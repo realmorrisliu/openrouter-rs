@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - OAuth auth-code creation support:
   - add `POST /auth/keys/code` request/response types and client wrapper (`create_auth_code`)
   - add PKCE end-to-end doc snippet (`create_auth_code` -> `exchange_code_for_api_key`)
+- Guardrails endpoint support:
+  - `api::guardrails` module for `/guardrails` and all guardrail assignment endpoints
+  - `OpenRouterClient` wrappers for create/read/update/delete and key/member assignment flows
+  - management-key requirement documented for guardrail endpoints (`.provisioning_key(...)`)
 
 ## [0.5.1] - 2026-02-28
 
