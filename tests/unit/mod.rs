@@ -8,6 +8,7 @@ pub mod chat_request;
 pub mod completion;
 pub mod config;
 pub mod messages;
+pub mod embeddings;
 pub mod provider;
 pub mod response_format;
 pub mod responses;

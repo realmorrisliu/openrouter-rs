@@ -2,7 +2,10 @@ use derive_builder::Builder;
 use futures_util::stream::BoxStream;
 
 use crate::{
-    api::{api_keys, auth, chat, completion, credits, generation, messages, models, responses},
+    api::{
+        api_keys, auth, chat, completion, credits, embeddings, generation, messages, models,
+        responses,
+    },
     config::OpenRouterConfig,
     error::OpenRouterError,
     types::{
@@ -566,6 +569,42 @@ impl OpenRouterClient {
                 request,
             )
             .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Submit an embeddings request.
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - The embeddings request built using `EmbeddingRequest::builder()`.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<embeddings::EmbeddingResponse, OpenRouterError>` - The embeddings response.
+    pub async fn create_embedding(
+        &self,
+        request: &embeddings::EmbeddingRequest,
+    ) -> Result<embeddings::EmbeddingResponse, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            embeddings::create_embedding(
+                &self.base_url,
+                api_key,
+                &self.x_title,
+                &self.http_referer,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// List all available embeddings models.
+    pub async fn list_embedding_models(&self) -> Result<Vec<models::Model>, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            embeddings::list_embedding_models(&self.base_url, api_key).await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }

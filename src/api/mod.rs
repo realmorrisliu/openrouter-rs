@@ -138,6 +138,7 @@ pub mod auth;
 pub mod chat;
 pub mod completion;
 pub mod credits;
+pub mod embeddings;
 pub mod errors;
 pub mod generation;
 pub mod messages;
