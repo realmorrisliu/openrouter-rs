@@ -228,7 +228,7 @@ mod tests {
             api_key: None,
             management_key: None,
             base_url: None,
-            output: crate::cli::OutputFormat::Text,
+            output: crate::cli::OutputFormat::Table,
         }
     }
 

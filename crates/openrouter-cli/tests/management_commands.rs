@@ -128,10 +128,14 @@ fn test_keys_list_happy_path() {
     let output = cmd.assert().success().get_output().stdout.clone();
     let parsed: Value = serde_json::from_slice(&output).expect("stdout should be json");
 
-    assert!(parsed.is_array(), "keys list should print array output");
     assert_eq!(
-        parsed
-            .get(0)
+        parsed.get("schema_version").and_then(Value::as_str),
+        Some("0.1")
+    );
+    let data = parsed.get("data").expect("json envelope should have data");
+    assert_eq!(
+        data.as_array()
+            .and_then(|values| values.first())
             .and_then(|entry| entry.get("hash"))
             .and_then(Value::as_str),
         Some("key_hash_1")
@@ -180,8 +184,13 @@ fn test_guardrails_create_happy_path() {
     let output = cmd.assert().success().get_output().stdout.clone();
     let parsed: Value = serde_json::from_slice(&output).expect("stdout should be json");
 
-    assert_eq!(parsed.get("id").and_then(Value::as_str), Some("gr_1"));
-    assert_eq!(parsed.get("name").and_then(Value::as_str), Some("Prod"));
+    assert_eq!(
+        parsed.get("schema_version").and_then(Value::as_str),
+        Some("0.1")
+    );
+    let data = parsed.get("data").expect("json envelope should have data");
+    assert_eq!(data.get("id").and_then(Value::as_str), Some("gr_1"));
+    assert_eq!(data.get("name").and_then(Value::as_str), Some("Prod"));
 
     let captured = rx
         .recv_timeout(Duration::from_secs(2))
@@ -229,7 +238,10 @@ fn test_guardrail_key_assignment_assign_happy_path() {
     let output = cmd.assert().success().get_output().stdout.clone();
     let parsed: Value = serde_json::from_slice(&output).expect("stdout should be json");
     assert_eq!(
-        parsed.get("assigned_count").and_then(Value::as_f64),
+        parsed
+            .get("data")
+            .and_then(|value| value.get("assigned_count"))
+            .and_then(Value::as_f64),
         Some(2.0)
     );
 
@@ -269,7 +281,13 @@ fn test_guardrail_member_assignment_list_global_happy_path() {
         .arg("5");
     let output = cmd.assert().success().get_output().stdout.clone();
     let parsed: Value = serde_json::from_slice(&output).expect("stdout should be json");
-    assert_eq!(parsed.get("total_count").and_then(Value::as_f64), Some(1.0));
+    assert_eq!(
+        parsed
+            .get("data")
+            .and_then(|value| value.get("total_count"))
+            .and_then(Value::as_f64),
+        Some(1.0)
+    );
 
     let captured = rx
         .recv_timeout(Duration::from_secs(2))

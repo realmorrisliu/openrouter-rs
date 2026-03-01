@@ -4,7 +4,8 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, ValueEnum)]
 pub enum OutputFormat {
-    Text,
+    #[value(name = "table", alias = "text")]
+    Table,
     Json,
 }
 
@@ -31,7 +32,7 @@ pub struct GlobalOptions {
     pub base_url: Option<String>,
 
     /// Output format.
-    #[arg(long, global = true, value_enum, default_value_t = OutputFormat::Text)]
+    #[arg(long, global = true, value_enum, default_value_t = OutputFormat::Table)]
     pub output: OutputFormat,
 }
 
@@ -47,6 +48,42 @@ pub enum ConfigCommands {
     Show,
     /// Print the resolved config file path.
     Path,
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct CreditsChargeArgs {
+    /// Charge amount in USD.
+    #[arg(long)]
+    pub amount: f64,
+
+    /// Sender wallet address.
+    #[arg(long)]
+    pub sender: String,
+
+    /// Chain ID for the charge.
+    #[arg(long)]
+    pub chain_id: u32,
+}
+
+#[derive(Debug, Clone, Subcommand)]
+pub enum CreditsCommands {
+    /// Show credit totals for the authenticated account.
+    Show,
+    /// Create a Coinbase charge.
+    Charge(CreditsChargeArgs),
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct UsageActivityArgs {
+    /// Optional date in YYYY-MM-DD.
+    #[arg(long)]
+    pub date: Option<String>,
+}
+
+#[derive(Debug, Clone, Subcommand)]
+pub enum UsageCommands {
+    /// Show activity grouped by endpoint.
+    Activity(UsageActivityArgs),
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, ValueEnum)]
@@ -442,6 +479,11 @@ pub enum Commands {
         #[command(subcommand)]
         command: ConfigCommands,
     },
+    /// Credits and billing commands.
+    Credits {
+        #[command(subcommand)]
+        command: CreditsCommands,
+    },
     /// Model discovery commands.
     Models {
         #[command(subcommand)]
@@ -462,8 +504,11 @@ pub enum Commands {
         #[command(subcommand)]
         command: GuardrailsCommands,
     },
-    /// Usage/billing command group placeholder (planned in OR-22).
-    Usage,
+    /// Usage commands.
+    Usage {
+        #[command(subcommand)]
+        command: UsageCommands,
+    },
 }
 
 #[derive(Debug, Clone, Parser)]

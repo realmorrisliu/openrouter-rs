@@ -45,6 +45,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `keys`: `list/create/get/update/delete`
     - `guardrails`: `list/create/get/update/delete`
     - `guardrails assignments`: `keys|members` with `list/assign/unassign`
+  - added OR-22 usage/billing commands:
+    - `credits show`
+    - `credits charge --amount --sender --chain-id`
+    - `usage activity --date`
 
 ### Changed
 - Breaking (planned for `0.6.0`) legacy completions isolation:
@@ -55,6 +59,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - unified `ManagementClient` and `ModelsClient` naming on `create_*`/`get_*`/`list_*`/`delete_*`/`stream_*` conventions
   - introduced shared `types::PaginationOptions` for paginated endpoints
   - updated paginated API signatures (`api_keys`, `guardrails`, client wrappers) to use `PaginationOptions`
+- CLI output modes standardized on `table|json` (`table` default, `text` alias retained)
+- JSON CLI outputs now use versioned envelopes (`schema_version: "0.1"`) with structured JSON error payloads
 
 ### Added
 - Unified streaming abstraction across chat/responses/messages:
