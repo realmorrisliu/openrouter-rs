@@ -16,14 +16,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Discovery and activity endpoint support:
   - `api::discovery` module for `/providers`, `/models/user`, `/models/count`, `/endpoints/zdr`, `/activity`
   - `OpenRouterClient` wrappers for each endpoint
-  - management-key requirement documented for `GET /activity` (`.provisioning_key(...)`)
+  - management-key requirement documented for `GET /activity` (`.management_key(...)`)
 - OAuth auth-code creation support:
   - add `POST /auth/keys/code` request/response types and client wrapper (`create_auth_code`)
   - add PKCE end-to-end doc snippet (`create_auth_code` -> `exchange_code_for_api_key`)
 - Guardrails endpoint support:
   - `api::guardrails` module for `/guardrails` and all guardrail assignment endpoints
   - `OpenRouterClient` wrappers for create/read/update/delete and key/member assignment flows
-  - management-key requirement documented for guardrail endpoints (`.provisioning_key(...)`)
+  - management-key requirement documented for guardrail endpoints (`.management_key(...)`)
+- Management-key naming alignment:
+  - renamed `OpenRouterClient` builder/config surface from `provisioning_key` to `management_key`
+  - renamed management-key helpers to `set_management_key` / `clear_management_key`
+  - API-key management and governance endpoints consistently require `management_key`
 
 ## [0.5.1] - 2026-02-28
 
@@ -34,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Extended reasoning effort support to include `xhigh`, `minimal`, and `none`.
 
 ### Fixed
-- Updated examples to read `OPENROUTER_API_KEY` and `OPENROUTER_PROVISIONING_KEY` at runtime (instead of compile-time `.env` macro expansion), preventing CI/build failures.
+- Updated examples to read `OPENROUTER_API_KEY` and `OPENROUTER_MANAGEMENT_KEY` at runtime (instead of compile-time `.env` macro expansion), preventing CI/build failures.
 - Bumped `bytes` from `1.10.1` to `1.11.1` to address `GHSA-434x-w66g-qw3r` (`CVE-2026-25541`).
 
 ## [0.5.0] - 2026-02-25

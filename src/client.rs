@@ -25,7 +25,7 @@ pub struct OpenRouterClient {
     #[builder(setter(into, strip_option), default)]
     api_key: Option<String>,
     #[builder(setter(into, strip_option), default)]
-    provisioning_key: Option<String>,
+    management_key: Option<String>,
     #[builder(setter(into, strip_option), default)]
     http_referer: Option<String>,
     #[builder(setter(into, strip_option), default)]
@@ -71,36 +71,36 @@ impl OpenRouterClient {
         self.api_key = None;
     }
 
-    /// Sets the provisioning key after client construction.
+    /// Sets the management key after client construction.
     ///
     /// # Arguments
     ///
-    /// * `provisioning_key` - The provisioning key to set
+    /// * `management_key` - The management key to set
     ///
     /// # Example
     ///
     /// ```
     /// let mut client = OpenRouterClient::builder().build();
-    /// client.set_provisioning_key("your_provisioning_key");
+    /// client.set_management_key("your_management_key");
     /// ```
-    pub fn set_provisioning_key(&mut self, provisioning_key: impl Into<String>) {
-        self.provisioning_key = Some(provisioning_key.into());
+    pub fn set_management_key(&mut self, management_key: impl Into<String>) {
+        self.management_key = Some(management_key.into());
     }
 
-    /// Clears the currently set provisioning key.
+    /// Clears the currently set management key.
     ///
     /// # Example
     ///
     /// ```
     /// let mut client = OpenRouterClient::builder().build();
-    /// client.set_provisioning_key("your_provisioning_key");
-    /// client.clear_provisioning_key();
+    /// client.set_management_key("your_management_key");
+    /// client.clear_management_key();
     /// ```
-    pub fn clear_provisioning_key(&mut self) {
-        self.provisioning_key = None;
+    pub fn clear_management_key(&mut self) {
+        self.management_key = None;
     }
 
-    /// Creates a new API key. Requires a Provisioning API key.
+    /// Creates a new API key. Requires a management API key.
     ///
     /// # Arguments
     ///
@@ -114,7 +114,7 @@ impl OpenRouterClient {
     /// # Example
     ///
     /// ```
-    /// let client = OpenRouterClient::builder().api_key("your_api_key").build();
+    /// let client = OpenRouterClient::builder().management_key("your_management_key").build();
     /// let api_key = client.create_api_key("New API Key", Some(100.0)).await?;
     /// println!("{:?}", api_key);
     /// ```
@@ -123,8 +123,8 @@ impl OpenRouterClient {
         name: &str,
         limit: Option<f64>,
     ) -> Result<api_keys::ApiKey, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            api_keys::create_api_key(&self.base_url, api_key, name, limit).await
+        if let Some(management_key) = &self.management_key {
+            api_keys::create_api_key(&self.base_url, management_key, name, limit).await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -153,7 +153,7 @@ impl OpenRouterClient {
         }
     }
 
-    /// Deletes an API key. Requires a Provisioning API key.
+    /// Deletes an API key. Requires a management API key.
     ///
     /// # Arguments
     ///
@@ -166,19 +166,19 @@ impl OpenRouterClient {
     /// # Example
     ///
     /// ```
-    /// let client = OpenRouterClient::builder().provisioning_key("your_provisioning_key").build();
+    /// let client = OpenRouterClient::builder().management_key("your_management_key").build();
     /// let success = client.delete_api_key("api_key_hash").await?;
     /// println!("Deletion successful: {}", success);
     /// ```
     pub async fn delete_api_key(&self, hash: &str) -> Result<bool, OpenRouterError> {
-        if let Some(provisioning_key) = &self.provisioning_key {
-            api_keys::delete_api_key(&self.base_url, provisioning_key, hash).await
+        if let Some(management_key) = &self.management_key {
+            api_keys::delete_api_key(&self.base_url, management_key, hash).await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
     }
 
-    /// Updates an existing API key. Requires a Provisioning API key.
+    /// Updates an existing API key. Requires a management API key.
     ///
     /// # Arguments
     ///
@@ -194,7 +194,7 @@ impl OpenRouterClient {
     /// # Example
     ///
     /// ```
-    /// let client = OpenRouterClient::builder().provisioning_key("your_provisioning_key").build();
+    /// let client = OpenRouterClient::builder().management_key("your_management_key").build();
     /// let updated_api_key = client.update_api_key("api_key_hash", Some("Updated Name".to_string()), Some(false), Some(200.0)).await?;
     /// println!("{:?}", updated_api_key);
     /// ```
@@ -205,22 +205,15 @@ impl OpenRouterClient {
         disabled: Option<bool>,
         limit: Option<f64>,
     ) -> Result<api_keys::ApiKey, OpenRouterError> {
-        if let Some(provisioning_key) = &self.provisioning_key {
-            api_keys::update_api_key(
-                &self.base_url,
-                provisioning_key,
-                hash,
-                name,
-                disabled,
-                limit,
-            )
-            .await
+        if let Some(management_key) = &self.management_key {
+            api_keys::update_api_key(&self.base_url, management_key, hash, name, disabled, limit)
+                .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
     }
 
-    /// Returns a list of all API keys associated with the account. Requires a Provisioning API key.
+    /// Returns a list of all API keys associated with the account. Requires a management API key.
     ///
     /// # Arguments
     ///
@@ -234,7 +227,7 @@ impl OpenRouterClient {
     /// # Example
     ///
     /// ```
-    /// let client = OpenRouterClient::builder().provisioning_key("your_provisioning_key").build();
+    /// let client = OpenRouterClient::builder().management_key("your_management_key").build();
     /// let api_keys = client.list_api_keys(Some(0.0), Some(true)).await?;
     /// println!("{:?}", api_keys);
     /// ```
@@ -243,15 +236,14 @@ impl OpenRouterClient {
         offset: Option<f64>,
         include_disabled: Option<bool>,
     ) -> Result<Vec<api_keys::ApiKey>, OpenRouterError> {
-        if let Some(provisioning_key) = &self.provisioning_key {
-            api_keys::list_api_keys(&self.base_url, provisioning_key, offset, include_disabled)
-                .await
+        if let Some(management_key) = &self.management_key {
+            api_keys::list_api_keys(&self.base_url, management_key, offset, include_disabled).await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
     }
 
-    /// Returns details about a specific API key. Requires a Provisioning API key.
+    /// Returns details about a specific API key. Requires a management API key.
     ///
     /// # Arguments
     ///
@@ -264,13 +256,13 @@ impl OpenRouterClient {
     /// # Example
     ///
     /// ```
-    /// let client = OpenRouterClient::builder().provisioning_key("your_provisioning_key").build();
+    /// let client = OpenRouterClient::builder().management_key("your_management_key").build();
     /// let api_key = client.get_api_key("api_key_hash").await?;
     /// println!("{:?}", api_key);
     /// ```
     pub async fn get_api_key(&self, hash: &str) -> Result<api_keys::ApiKey, OpenRouterError> {
-        if let Some(provisioning_key) = &self.provisioning_key {
-            api_keys::get_api_key(&self.base_url, provisioning_key, hash).await
+        if let Some(management_key) = &self.management_key {
+            api_keys::get_api_key(&self.base_url, management_key, hash).await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -330,8 +322,8 @@ impl OpenRouterClient {
         offset: Option<u32>,
         limit: Option<u32>,
     ) -> Result<guardrails::GuardrailListResponse, OpenRouterError> {
-        if let Some(provisioning_key) = &self.provisioning_key {
-            guardrails::list_guardrails(&self.base_url, provisioning_key, offset, limit).await
+        if let Some(management_key) = &self.management_key {
+            guardrails::list_guardrails(&self.base_url, management_key, offset, limit).await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -342,8 +334,8 @@ impl OpenRouterClient {
         &self,
         request: &guardrails::CreateGuardrailRequest,
     ) -> Result<guardrails::Guardrail, OpenRouterError> {
-        if let Some(provisioning_key) = &self.provisioning_key {
-            guardrails::create_guardrail(&self.base_url, provisioning_key, request).await
+        if let Some(management_key) = &self.management_key {
+            guardrails::create_guardrail(&self.base_url, management_key, request).await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -351,8 +343,8 @@ impl OpenRouterClient {
 
     /// Get a guardrail by ID (`GET /guardrails/{id}`). Requires a management key.
     pub async fn get_guardrail(&self, id: &str) -> Result<guardrails::Guardrail, OpenRouterError> {
-        if let Some(provisioning_key) = &self.provisioning_key {
-            guardrails::get_guardrail(&self.base_url, provisioning_key, id).await
+        if let Some(management_key) = &self.management_key {
+            guardrails::get_guardrail(&self.base_url, management_key, id).await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -364,8 +356,8 @@ impl OpenRouterClient {
         id: &str,
         request: &guardrails::UpdateGuardrailRequest,
     ) -> Result<guardrails::Guardrail, OpenRouterError> {
-        if let Some(provisioning_key) = &self.provisioning_key {
-            guardrails::update_guardrail(&self.base_url, provisioning_key, id, request).await
+        if let Some(management_key) = &self.management_key {
+            guardrails::update_guardrail(&self.base_url, management_key, id, request).await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -373,8 +365,8 @@ impl OpenRouterClient {
 
     /// Delete a guardrail (`DELETE /guardrails/{id}`). Requires a management key.
     pub async fn delete_guardrail(&self, id: &str) -> Result<bool, OpenRouterError> {
-        if let Some(provisioning_key) = &self.provisioning_key {
-            guardrails::delete_guardrail(&self.base_url, provisioning_key, id).await
+        if let Some(management_key) = &self.management_key {
+            guardrails::delete_guardrail(&self.base_url, management_key, id).await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -387,10 +379,10 @@ impl OpenRouterClient {
         offset: Option<u32>,
         limit: Option<u32>,
     ) -> Result<guardrails::GuardrailKeyAssignmentsResponse, OpenRouterError> {
-        if let Some(provisioning_key) = &self.provisioning_key {
+        if let Some(management_key) = &self.management_key {
             guardrails::list_guardrail_key_assignments(
                 &self.base_url,
-                provisioning_key,
+                management_key,
                 id,
                 offset,
                 limit,
@@ -407,8 +399,8 @@ impl OpenRouterClient {
         id: &str,
         request: &guardrails::BulkKeyAssignmentRequest,
     ) -> Result<guardrails::AssignedCountResponse, OpenRouterError> {
-        if let Some(provisioning_key) = &self.provisioning_key {
-            guardrails::bulk_assign_keys_to_guardrail(&self.base_url, provisioning_key, id, request)
+        if let Some(management_key) = &self.management_key {
+            guardrails::bulk_assign_keys_to_guardrail(&self.base_url, management_key, id, request)
                 .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
@@ -421,10 +413,10 @@ impl OpenRouterClient {
         id: &str,
         request: &guardrails::BulkKeyAssignmentRequest,
     ) -> Result<guardrails::UnassignedCountResponse, OpenRouterError> {
-        if let Some(provisioning_key) = &self.provisioning_key {
+        if let Some(management_key) = &self.management_key {
             guardrails::bulk_unassign_keys_from_guardrail(
                 &self.base_url,
-                provisioning_key,
+                management_key,
                 id,
                 request,
             )
@@ -441,10 +433,10 @@ impl OpenRouterClient {
         offset: Option<u32>,
         limit: Option<u32>,
     ) -> Result<guardrails::GuardrailMemberAssignmentsResponse, OpenRouterError> {
-        if let Some(provisioning_key) = &self.provisioning_key {
+        if let Some(management_key) = &self.management_key {
             guardrails::list_guardrail_member_assignments(
                 &self.base_url,
-                provisioning_key,
+                management_key,
                 id,
                 offset,
                 limit,
@@ -461,10 +453,10 @@ impl OpenRouterClient {
         id: &str,
         request: &guardrails::BulkMemberAssignmentRequest,
     ) -> Result<guardrails::AssignedCountResponse, OpenRouterError> {
-        if let Some(provisioning_key) = &self.provisioning_key {
+        if let Some(management_key) = &self.management_key {
             guardrails::bulk_assign_members_to_guardrail(
                 &self.base_url,
-                provisioning_key,
+                management_key,
                 id,
                 request,
             )
@@ -480,10 +472,10 @@ impl OpenRouterClient {
         id: &str,
         request: &guardrails::BulkMemberAssignmentRequest,
     ) -> Result<guardrails::UnassignedCountResponse, OpenRouterError> {
-        if let Some(provisioning_key) = &self.provisioning_key {
+        if let Some(management_key) = &self.management_key {
             guardrails::bulk_unassign_members_from_guardrail(
                 &self.base_url,
-                provisioning_key,
+                management_key,
                 id,
                 request,
             )
@@ -499,8 +491,8 @@ impl OpenRouterClient {
         offset: Option<u32>,
         limit: Option<u32>,
     ) -> Result<guardrails::GuardrailKeyAssignmentsResponse, OpenRouterError> {
-        if let Some(provisioning_key) = &self.provisioning_key {
-            guardrails::list_key_assignments(&self.base_url, provisioning_key, offset, limit).await
+        if let Some(management_key) = &self.management_key {
+            guardrails::list_key_assignments(&self.base_url, management_key, offset, limit).await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -512,9 +504,8 @@ impl OpenRouterClient {
         offset: Option<u32>,
         limit: Option<u32>,
     ) -> Result<guardrails::GuardrailMemberAssignmentsResponse, OpenRouterError> {
-        if let Some(provisioning_key) = &self.provisioning_key {
-            guardrails::list_member_assignments(&self.base_url, provisioning_key, offset, limit)
-                .await
+        if let Some(management_key) = &self.management_key {
+            guardrails::list_member_assignments(&self.base_url, management_key, offset, limit).await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -1098,15 +1089,15 @@ impl OpenRouterClient {
     /// Equivalent to `GET /activity`.
     ///
     /// Requires a management API key. In this SDK, configure that via
-    /// `OpenRouterClientBuilder::provisioning_key(...)`.
+    /// `OpenRouterClientBuilder::management_key(...)`.
     ///
     /// `date` is optional and should be `YYYY-MM-DD`.
     pub async fn get_activity(
         &self,
         date: Option<&str>,
     ) -> Result<Vec<discovery::ActivityItem>, OpenRouterError> {
-        if let Some(provisioning_key) = &self.provisioning_key {
-            discovery::get_activity(&self.base_url, provisioning_key, date).await
+        if let Some(management_key) = &self.management_key {
+            discovery::get_activity(&self.base_url, management_key, date).await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
