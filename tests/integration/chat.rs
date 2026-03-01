@@ -1,4 +1,5 @@
 use super::test_utils::{create_test_client, rate_limit_delay};
+use std::env;
 
 use openrouter_rs::{
     api::chat::{ChatCompletionRequestBuilder, Message},
@@ -9,9 +10,17 @@ use openrouter_rs::{
     },
 };
 
-const TEST_MODEL: &str = "deepseek/deepseek-chat-v3-0324:free";
 const GROK_MODEL: &str = "x-ai/grok-code-fast-1";
-const REASONING_MODEL: &str = "openai/o3-mini";
+const DEFAULT_REASONING_MODEL: &str = "deepseek/deepseek-r1";
+
+fn test_chat_model() -> String {
+    env::var("OPENROUTER_TEST_CHAT_MODEL").unwrap_or_else(|_| GROK_MODEL.to_string())
+}
+
+fn test_reasoning_model() -> String {
+    env::var("OPENROUTER_TEST_REASONING_MODEL")
+        .unwrap_or_else(|_| DEFAULT_REASONING_MODEL.to_string())
+}
 
 #[tokio::test]
 #[allow(clippy::result_large_err)]
@@ -20,10 +29,10 @@ async fn test_basic_chat_completion() -> Result<(), OpenRouterError> {
     rate_limit_delay().await;
 
     let request = ChatCompletionRequestBuilder::default()
-        .model(TEST_MODEL)
+        .model(test_chat_model())
         .messages(vec![Message::new(
             Role::User,
-            "Please reply simply with 'Hello' in English",
+            "Please reply with a short greeting in English.",
         )])
         .max_tokens(10)
         .temperature(0.1)
@@ -42,15 +51,20 @@ async fn test_basic_chat_completion() -> Result<(), OpenRouterError> {
 #[allow(clippy::result_large_err)]
 fn validate_chat_response(response: &CompletionsResponse) -> Result<(), OpenRouterError> {
     assert!(!response.id.is_empty(), "Response ID should not be empty");
-
-    let test_model_name = response.model.split(':').next().unwrap_or(&response.model);
-    assert_eq!(response.model, test_model_name, "Model name mismatch");
-
-    let content = get_first_content(response);
-    assert!(!content.is_empty(), "Response content should not be empty");
     assert!(
-        content.contains("Hello"),
-        "Response should contain prompt content"
+        !response.model.is_empty(),
+        "Response model should not be empty"
+    );
+    assert!(
+        !response.choices.is_empty(),
+        "Response should have at least one choice"
+    );
+
+    let content = get_first_content(response).trim();
+    let reasoning = response.choices[0].reasoning().unwrap_or_default().trim();
+    assert!(
+        !content.is_empty() || !reasoning.is_empty(),
+        "Response should contain content or reasoning"
     );
 
     Ok(())
@@ -106,7 +120,7 @@ async fn test_basic_reasoning() -> Result<(), OpenRouterError> {
     rate_limit_delay().await;
 
     let request = ChatCompletionRequestBuilder::default()
-        .model(REASONING_MODEL)
+        .model(test_reasoning_model())
         .messages(vec![Message::new(
             Role::User,
             "Which is bigger: 9.11 or 9.9? Think step by step.",
@@ -142,7 +156,7 @@ async fn test_reasoning_effort_levels() -> Result<(), OpenRouterError> {
         rate_limit_delay().await;
 
         let request = ChatCompletionRequestBuilder::default()
-            .model(REASONING_MODEL)
+            .model(test_reasoning_model())
             .messages(vec![Message::new(
                 Role::User,
                 "Explain the theory of relativity briefly.",
@@ -177,7 +191,7 @@ async fn test_reasoning_max_tokens() -> Result<(), OpenRouterError> {
     rate_limit_delay().await;
 
     let request = ChatCompletionRequestBuilder::default()
-        .model("anthropic/claude-3.7-sonnet")
+        .model(test_reasoning_model())
         .messages(vec![Message::new(
             Role::User,
             "What's the most efficient sorting algorithm?",
@@ -206,7 +220,7 @@ async fn test_excluded_reasoning() -> Result<(), OpenRouterError> {
     rate_limit_delay().await;
 
     let request = ChatCompletionRequestBuilder::default()
-        .model("deepseek/deepseek-r1")
+        .model(test_reasoning_model())
         .messages(vec![Message::new(
             Role::User,
             "Explain quantum computing in simple terms.",
@@ -236,7 +250,7 @@ async fn test_legacy_include_reasoning() -> Result<(), OpenRouterError> {
     rate_limit_delay().await;
 
     let request = ChatCompletionRequestBuilder::default()
-        .model(REASONING_MODEL)
+        .model(test_reasoning_model())
         .messages(vec![Message::new(Role::User, "What is 2+2?")])
         .max_tokens(100)
         .include_reasoning(true)

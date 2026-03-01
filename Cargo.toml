@@ -46,3 +46,6 @@ path = "tests/unit/mod.rs"
 [[example]]
 name = "send_completion_request"
 required-features = ["legacy-completions"]
+
+[dev-dependencies]
+dotenvy = "0.15.7"
