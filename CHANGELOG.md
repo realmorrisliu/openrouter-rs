@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-03-01
+
 ### Added
 - Anthropic-compatible `/messages` API support:
   - `api::messages` module with typed request/response models
@@ -69,6 +71,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - added `scripts/check_migration_docs.sh` to validate migration mapping sections/snippets in docs
   - CI now runs a dedicated `Migration Smoke Checks` job (`docs check + cargo test --test migration_smoke --all-features`)
   - documented migration validation commands in README for contributors
+- Unified streaming abstraction across chat/responses/messages:
+  - new `types::stream::{UnifiedStreamEvent, UnifiedStreamSource, UnifiedStream}`
+  - adapters: `adapt_chat_stream`, `adapt_responses_stream`, `adapt_messages_stream`
+  - new domain methods: `chat().stream_unified(...)`, `responses().stream_unified(...)`, `messages().stream_unified(...)`
+- Normalized API error model:
+  - new `error::{ApiErrorContext, ApiErrorKind}`
+  - `OpenRouterError::Api(...)` now consistently carries status/api_code/message/request_id
+  - added retryability helpers via `ApiErrorContext::is_retryable()`
+- CI now runs `cargo test -p openrouter-cli` for CLI startup/config coverage
 
 ### Changed
 - Breaking (planned for `0.6.0`) legacy completions isolation:
@@ -82,22 +93,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI output modes standardized on `table|json` (`table` default, `text` alias retained)
 - JSON CLI outputs now use versioned envelopes (`schema_version: "0.1"`) with structured JSON error payloads
 - deprecation warnings now point to concrete replacement APIs and planned removal in `0.6.0`
-
-### Added
-- Unified streaming abstraction across chat/responses/messages:
-  - new `types::stream::{UnifiedStreamEvent, UnifiedStreamSource, UnifiedStream}`
-  - adapters: `adapt_chat_stream`, `adapt_responses_stream`, `adapt_messages_stream`
-  - new domain methods: `chat().stream_unified(...)`, `responses().stream_unified(...)`, `messages().stream_unified(...)`
-- Normalized API error model:
-  - new `error::{ApiErrorContext, ApiErrorKind}`
-  - `OpenRouterError::Api(...)` now consistently carries status/api_code/message/request_id
-  - added retryability helpers via `ApiErrorContext::is_retryable()`
-- CI now runs `cargo test -p openrouter-cli` for CLI startup/config coverage
+- integration tests now load `.env` automatically and allow model overrides via:
+  - `OPENROUTER_TEST_CHAT_MODEL`
+  - `OPENROUTER_TEST_REASONING_MODEL`
 
 ### Fixed
 - Unified messages tool-start events now preserve `content_block_start.index` to keep tool chunks correlatable.
 - Unified responses stream now only terminates on `response.completed` (avoids premature close on non-terminal `*.completed` events).
 - `guardrails update` now supports explicit allowlist clearing via `--clear-allowed-providers` and `--clear-allowed-models`.
+- integration API-key metadata assertions now accept sentinel rate-limit values from live API responses.
+- live chat/reasoning integration assertions no longer assume prompt echoing in model outputs.
 
 ## [0.5.1] - 2026-02-28
 

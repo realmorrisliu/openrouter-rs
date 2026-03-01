@@ -33,7 +33,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-openrouter-rs = "0.5.1"
+openrouter-rs = "0.5.2"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -118,7 +118,7 @@ Legacy `POST /completions` support is isolated behind `legacy-completions` and e
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.5.1", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.5.2", features = ["legacy-completions"] }
 ```
 
 ```rust
@@ -570,7 +570,15 @@ This is a **third-party SDK** not officially affiliated with OpenRouter. Use at 
 
 ## 📈 Release History
 
-### Version 0.5.1 *(Latest)*
+### Version 0.5.2 *(Latest)*
+
+- 🧭 **Added**: Domain-oriented SDK surface and major OpenRouter coverage expansion (`messages`, discovery/activity, guardrails, auth code flow)
+- 🛠️ **Added**: `openrouter-cli v0.1` foundation with discovery, management, and usage/billing command groups
+- 🔁 **Added**: 0.5.x deprecation bridge + published `0.5.x -> 0.6.0` migration guide and migration smoke harness
+- 🌊 **Added**: Unified streaming abstraction across chat/responses/messages and normalized API error model
+- ✅ **Improved**: Live integration suite stability (standard `.env` loading, configurable test models, resilient assertions)
+
+### Version 0.5.1
 
 - 🧩 **New**: Multipart text `cache_control` helpers (`text_with_cache_control`, `cacheable_text`, `cacheable_text_with_ttl`)
 - 🧠 **Improved**: Reasoning effort now supports `xhigh`, `minimal`, and `none`
