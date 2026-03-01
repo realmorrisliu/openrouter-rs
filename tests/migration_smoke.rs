@@ -90,9 +90,7 @@ async fn test_flat_05_style_management_surface_requires_management_key() {
     let created = client.create_api_key("migration-smoke", Some(10.0)).await;
     assert!(matches!(created, Err(OpenRouterError::KeyNotConfigured)));
 
-    let listed = client
-        .list_api_keys(Some(PaginationOptions::with_offset(0)), Some(false))
-        .await;
+    let listed = client.list_api_keys(Some(0.0), Some(false)).await;
     assert!(matches!(listed, Err(OpenRouterError::KeyNotConfigured)));
 
     let activity = client.get_activity(None).await;
