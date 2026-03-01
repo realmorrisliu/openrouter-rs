@@ -293,15 +293,22 @@ println!("Available models: {:?}", config.get_resolved_models());
 ### 🛡️ Comprehensive Error Handling
 
 ```rust
-use openrouter_rs::error::OpenRouterError;
+use openrouter_rs::error::{ApiErrorKind, OpenRouterError};
 
 match client.chat().create(&request).await {
     Ok(response) => println!("Success!"),
-    Err(OpenRouterError::ModerationError { reasons, .. }) => {
-        eprintln!("Content flagged: {:?}", reasons);
-    }
-    Err(OpenRouterError::ApiError { code, message }) => {
-        eprintln!("API error {}: {}", code, message);
+    Err(OpenRouterError::Api(api_error)) => match &api_error.kind {
+        ApiErrorKind::Moderation { reasons, .. } => {
+            eprintln!("Content flagged: {:?}", reasons);
+        }
+        _ => {
+            eprintln!(
+                "API error {} (retryable={}): {}",
+                api_error.status,
+                api_error.is_retryable(),
+                api_error.message
+            );
+        }
     }
     Err(e) => eprintln!("Other error: {}", e),
 }

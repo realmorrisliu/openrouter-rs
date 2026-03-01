@@ -14,6 +14,7 @@ pub mod completion;
 pub mod config;
 pub mod discovery;
 pub mod embeddings;
+pub mod error_model;
 pub mod guardrails;
 pub mod messages;
 pub mod pagination;
