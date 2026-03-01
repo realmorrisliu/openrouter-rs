@@ -33,6 +33,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - added typed domain clients with endpoint methods grouped by API domain
   - added domain-oriented examples for chat and management workflows
 
+### Changed
+- Breaking (planned for `0.6.0`) legacy completions isolation:
+  - moved legacy completions to `api::legacy::completion` behind the `legacy-completions` feature
+  - added explicit legacy client namespace: `client.legacy().completions().create(...)`
+  - updated docs/migration mapping from old completion calls to legacy namespace and modern chat APIs
+
 ## [0.5.1] - 2026-02-28
 
 ### Added

@@ -7,6 +7,8 @@ pub mod api_keys;
 pub mod auth;
 pub mod chat_request;
 pub mod client_domains;
+#[cfg(feature = "legacy-completions")]
+pub mod client_legacy;
 pub mod client_management_key;
 pub mod completion;
 pub mod config;

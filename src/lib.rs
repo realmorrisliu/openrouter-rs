@@ -143,7 +143,7 @@
 //! |---------|--------|---------|
 //! | Domain-Oriented Client API | ✅ | [`client::OpenRouterClient`] |
 //! | Chat Completions | ✅ | [`api::chat`] |
-//! | Text Completions | ✅ | [`api::completion`] |
+//! | Legacy Text Completions (`legacy-completions`) | ✅ | `api::legacy::completion` |
 //! | Model Information | ✅ | [`api::models`] |
 //! | Streaming | ✅ | [`api::chat`] |
 //! | Reasoning Tokens | ✅ | [`api::chat`] |

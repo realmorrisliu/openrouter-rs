@@ -1,10 +1,12 @@
 use derive_builder::Builder;
 use futures_util::stream::BoxStream;
 
+#[cfg(feature = "legacy-completions")]
+use crate::api::legacy::completion;
 use crate::{
     api::{
-        api_keys, auth, chat, completion, credits, discovery, embeddings, generation, guardrails,
-        messages, models, responses,
+        api_keys, auth, chat, credits, discovery, embeddings, generation, guardrails, messages,
+        models, responses,
     },
     config::OpenRouterConfig,
     error::OpenRouterError,
@@ -123,6 +125,12 @@ impl OpenRouterClient {
     /// Domain client for management-governed endpoints.
     pub fn management(&self) -> ManagementClient<'_> {
         ManagementClient { client: self }
+    }
+
+    /// Domain client for legacy endpoint access (`legacy-completions` feature).
+    #[cfg(feature = "legacy-completions")]
+    pub fn legacy(&self) -> LegacyClient<'_> {
+        LegacyClient { client: self }
     }
 }
 
@@ -796,7 +804,7 @@ impl OpenRouterClient {
         }
     }
 
-    /// Send a completion request to a selected model (text-only format).
+    /// Send a legacy completion request to a selected model (text-only format).
     ///
     /// # Arguments
     ///
@@ -804,21 +812,25 @@ impl OpenRouterClient {
     ///
     /// # Returns
     ///
-    /// * `Result<completion::CompletionResponse, OpenRouterError>` - The response from the completion request, containing the generated text and other details.
+    /// * `Result<completion::CompletionsResponse, OpenRouterError>` - The response from the completion request, containing the generated text and other details.
     ///
     /// # Example
     ///
     /// ```
-    /// let client = OpenRouterClient::builder().api_key("your_api_key").build();
-    /// let request = completion::CompletionRequest::builder()
+    /// use openrouter_rs::api::legacy::completion::CompletionRequest;
+    ///
+    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
+    /// let request = CompletionRequest::builder()
     ///     .model("deepseek/deepseek-chat-v3-0324:free")
     ///     .prompt("Once upon a time")
     ///     .max_tokens(100)
     ///     .temperature(0.7)
     ///     .build()?;
-    /// let response = client.send_completion_request(&request).await?;
+    /// let response = client.legacy().completions().create(&request).await?;
     /// println!("{:?}", response);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
+    #[cfg(feature = "legacy-completions")]
     pub async fn send_completion_request(
         &self,
         request: &completion::CompletionRequest,
@@ -1516,5 +1528,40 @@ impl<'a> ManagementClient<'a> {
         limit: Option<u32>,
     ) -> Result<guardrails::GuardrailMemberAssignmentsResponse, OpenRouterError> {
         self.client.list_member_assignments(offset, limit).await
+    }
+}
+
+/// Domain client for legacy APIs (`legacy-completions` feature only).
+#[cfg(feature = "legacy-completions")]
+#[derive(Debug, Clone, Copy)]
+pub struct LegacyClient<'a> {
+    client: &'a OpenRouterClient,
+}
+
+#[cfg(feature = "legacy-completions")]
+impl<'a> LegacyClient<'a> {
+    /// Domain client for legacy text completions (`POST /completions`).
+    pub fn completions(&self) -> LegacyCompletionsClient<'a> {
+        LegacyCompletionsClient {
+            client: self.client,
+        }
+    }
+}
+
+/// Domain client for legacy text completions (`legacy-completions` feature only).
+#[cfg(feature = "legacy-completions")]
+#[derive(Debug, Clone, Copy)]
+pub struct LegacyCompletionsClient<'a> {
+    client: &'a OpenRouterClient,
+}
+
+#[cfg(feature = "legacy-completions")]
+impl<'a> LegacyCompletionsClient<'a> {
+    /// Create a legacy text completion (`POST /completions`).
+    pub async fn create(
+        &self,
+        request: &completion::CompletionRequest,
+    ) -> Result<CompletionsResponse, OpenRouterError> {
+        self.client.send_completion_request(request).await
     }
 }

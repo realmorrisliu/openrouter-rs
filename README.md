@@ -81,6 +81,32 @@ Available domains:
 - `client.messages()`
 - `client.models()`
 - `client.management()`
+- `client.legacy()` (requires `legacy-completions` feature)
+
+### 🧱 Legacy Completions (Feature-Gated)
+
+Legacy `POST /completions` support is isolated behind `legacy-completions` and explicit legacy namespace.
+
+```toml
+[dependencies]
+openrouter-rs = { version = "0.5.1", features = ["legacy-completions"] }
+```
+
+```rust
+use openrouter_rs::{OpenRouterClient, api::legacy::completion::CompletionRequest};
+
+let request = CompletionRequest::builder()
+    .model("deepseek/deepseek-chat-v3-0324:free")
+    .prompt("Once upon a time")
+    .build()?;
+
+let response = client.legacy().completions().create(&request).await?;
+```
+
+Migration mapping:
+- `api::completion::CompletionRequest` -> `api::legacy::completion::CompletionRequest`
+- `client.send_completion_request(&request)` -> `client.legacy().completions().create(&request)`
+- Recommended modern path: `api::chat::ChatCompletionRequest` + `client.chat().create(...)`
 
 ### 🧠 Advanced Reasoning Support
 
@@ -276,7 +302,7 @@ let key = client.management()
 |---------|---------|---------|
 | Domain-Oriented Client API | ✅ | [`OpenRouterClient`](https://docs.rs/openrouter-rs/latest/openrouter_rs/struct.OpenRouterClient.html) |
 | Chat Completions | ✅ | [`api::chat`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/chat/) |
-| Text Completions | ✅ | [`api::completion`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/completion/) |
+| Legacy Text Completions (`legacy-completions`) | ✅ | `api::legacy::completion` |
 | **Tool Calling** | ✅ | [`api::chat`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/chat/) |
 | **Typed Tools** | ✅ | [`types::typed_tool`](https://docs.rs/openrouter-rs/latest/openrouter_rs/types/typed_tool/) |
 | **Multi-Modal/Vision** | ✅ | [`api::chat`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/chat/) |
@@ -391,6 +417,9 @@ cargo run --example stream_chat_with_tools
 
 # Domain-oriented management client
 cargo run --example domain_management_api_keys
+
+# Legacy text completions (feature-gated)
+cargo run --features legacy-completions --example send_completion_request
 ```
 
 ## 🤝 Community & Support

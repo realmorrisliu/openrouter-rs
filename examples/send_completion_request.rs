@@ -1,5 +1,5 @@
 use openrouter_rs::OpenRouterClient;
-use openrouter_rs::api::completion::CompletionRequest;
+use openrouter_rs::api::legacy::completion::CompletionRequest;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -14,7 +14,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .temperature(0.7)
         .build()?;
 
-    let completion_response = client.send_completion_request(&completion_request).await?;
+    let completion_response = client
+        .legacy()
+        .completions()
+        .create(&completion_request)
+        .await?;
     let content = completion_response.choices[0].content().unwrap();
     println!("{content:?}");
 
