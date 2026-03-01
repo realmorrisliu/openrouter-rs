@@ -32,18 +32,23 @@ base_url = "https://profile.example/api/v1"
         .env_remove("OPENROUTER_PROFILE");
     let output = cmd.assert().success().get_output().stdout.clone();
     let json: Value = serde_json::from_slice(&output).expect("stdout should be JSON");
+    let data = json.get("data").expect("json envelope should have data");
 
-    assert_eq!(json.get("profile").and_then(Value::as_str), Some("default"));
     assert_eq!(
-        json.get("base_url").and_then(Value::as_str),
+        json.get("schema_version").and_then(Value::as_str),
+        Some("0.1")
+    );
+    assert_eq!(data.get("profile").and_then(Value::as_str), Some("default"));
+    assert_eq!(
+        data.get("base_url").and_then(Value::as_str),
         Some("https://profile.example/api/v1")
     );
     assert_eq!(
-        json.get("api_key_present").and_then(Value::as_bool),
+        data.get("api_key_present").and_then(Value::as_bool),
         Some(true)
     );
     assert_eq!(
-        json.get("management_key_present").and_then(Value::as_bool),
+        data.get("management_key_present").and_then(Value::as_bool),
         Some(true)
     );
 }
@@ -75,9 +80,10 @@ api_key = "file-api-key"
         .env("OPENROUTER_API_KEY", "env-api-key");
     let output = cmd.assert().success().get_output().stdout.clone();
     let json: Value = serde_json::from_slice(&output).expect("stdout should be JSON");
+    let data = json.get("data").expect("json envelope should have data");
 
     assert_eq!(
-        json.get("api_key_source").and_then(Value::as_str),
+        data.get("api_key_source").and_then(Value::as_str),
         Some("flag")
     );
 }

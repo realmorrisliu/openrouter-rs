@@ -5,20 +5,22 @@ use anyhow::{Result, anyhow, bail};
 use clap::Parser;
 use openrouter_rs::{
     OpenRouterClient,
-    api::{discovery, guardrails, models},
+    api::{credits, discovery, guardrails, models},
     types::{ModelCategory, PaginationOptions, SupportedParameters},
 };
 use serde::Serialize;
 
 use crate::{
     cli::{
-        Cli, Commands, ConfigCommands, GuardrailAssignmentCommands, GuardrailKeyAssignmentCommands,
-        GuardrailMemberAssignmentCommands, GuardrailsCommands, KeysCommands, ModelCategoryArg,
-        ModelsCommands, OutputFormat, PaginationArgs, ProfileCommands, ProvidersCommands,
-        SupportedParameterArg,
+        Cli, Commands, ConfigCommands, CreditsCommands, GuardrailAssignmentCommands,
+        GuardrailKeyAssignmentCommands, GuardrailMemberAssignmentCommands, GuardrailsCommands,
+        KeysCommands, ModelCategoryArg, ModelsCommands, OutputFormat, PaginationArgs,
+        ProfileCommands, ProvidersCommands, SupportedParameterArg, UsageCommands,
     },
     config::{Environment, ResolvedProfile, resolve_profile},
 };
+
+const OUTPUT_SCHEMA_VERSION: &str = "0.1";
 
 #[derive(Debug, Serialize)]
 struct ConfigSnapshot<'a> {
@@ -32,6 +34,24 @@ struct ConfigSnapshot<'a> {
     api_key_source: &'a config::ValueSource,
     management_key_present: bool,
     management_key_source: &'a config::ValueSource,
+}
+
+#[derive(Debug, Serialize)]
+struct JsonEnvelope<'a, T: Serialize + ?Sized> {
+    schema_version: &'static str,
+    data: &'a T,
+}
+
+#[derive(Debug, Serialize)]
+struct JsonErrorBody<'a> {
+    code: &'static str,
+    message: &'a str,
+}
+
+#[derive(Debug, Serialize)]
+struct JsonErrorEnvelope<'a> {
+    schema_version: &'static str,
+    error: JsonErrorBody<'a>,
 }
 
 fn snapshot_from_profile(profile: &ResolvedProfile) -> ConfigSnapshot<'_> {
@@ -51,10 +71,8 @@ fn snapshot_from_profile(profile: &ResolvedProfile) -> ConfigSnapshot<'_> {
 
 fn print_snapshot(snapshot: &ConfigSnapshot<'_>, output: OutputFormat) -> Result<()> {
     match output {
-        OutputFormat::Json => {
-            println!("{}", serde_json::to_string_pretty(snapshot)?);
-        }
-        OutputFormat::Text => {
+        OutputFormat::Json => print_json(snapshot)?,
+        OutputFormat::Table => {
             println!("profile: {}", snapshot.profile);
             println!("profile_source: {:?}", snapshot.profile_source);
             println!("config_path: {}", snapshot.config_path);
@@ -77,7 +95,11 @@ fn print_snapshot(snapshot: &ConfigSnapshot<'_>, output: OutputFormat) -> Result
 }
 
 fn print_json<T: Serialize + ?Sized>(value: &T) -> Result<()> {
-    println!("{}", serde_json::to_string_pretty(value)?);
+    let envelope = JsonEnvelope {
+        schema_version: OUTPUT_SCHEMA_VERSION,
+        data: value,
+    };
+    println!("{}", serde_json::to_string_pretty(&envelope)?);
     Ok(())
 }
 
@@ -186,7 +208,10 @@ fn build_api_client(resolved: &ResolvedProfile) -> Result<OpenRouterClient> {
 
 fn print_value<T: Serialize>(value: &T, output: OutputFormat) -> Result<()> {
     match output {
-        OutputFormat::Json | OutputFormat::Text => {
+        OutputFormat::Json => {
+            print_json(value)?;
+        }
+        OutputFormat::Table => {
             println!("{}", serde_json::to_string_pretty(value)?);
         }
     }
@@ -246,7 +271,7 @@ fn resolve_enforce_zdr_flag(enforce_zdr: bool, no_enforce_zdr: bool) -> Option<b
 fn print_models(models: &[models::Model], output: OutputFormat) -> Result<()> {
     match output {
         OutputFormat::Json => print_json(models)?,
-        OutputFormat::Text => {
+        OutputFormat::Table => {
             let rows = models
                 .iter()
                 .map(|model| {
@@ -277,7 +302,7 @@ fn print_models(models: &[models::Model], output: OutputFormat) -> Result<()> {
 fn print_model(model: &models::Model, output: OutputFormat) -> Result<()> {
     match output {
         OutputFormat::Json => print_json(model)?,
-        OutputFormat::Text => {
+        OutputFormat::Table => {
             println!("id: {}", model.id);
             println!("name: {}", model.name);
             println!("created: {}", model.created);
@@ -295,7 +320,7 @@ fn print_model(model: &models::Model, output: OutputFormat) -> Result<()> {
 fn print_endpoints(response: &models::EndpointData, output: OutputFormat) -> Result<()> {
     match output {
         OutputFormat::Json => print_json(response)?,
-        OutputFormat::Text => {
+        OutputFormat::Table => {
             let rows = response
                 .endpoints
                 .iter()
@@ -333,7 +358,7 @@ fn print_endpoints(response: &models::EndpointData, output: OutputFormat) -> Res
 fn print_providers(providers: &[discovery::Provider], output: OutputFormat) -> Result<()> {
     match output {
         OutputFormat::Json => print_json(providers)?,
-        OutputFormat::Text => {
+        OutputFormat::Table => {
             let rows = providers
                 .iter()
                 .map(|provider| {
@@ -353,8 +378,68 @@ fn print_providers(providers: &[discovery::Provider], output: OutputFormat) -> R
     Ok(())
 }
 
-async fn run() -> Result<()> {
-    let cli = Cli::parse();
+fn print_credits_table(credits: &credits::CreditsData) {
+    print_table(
+        &["total_credits", "total_usage"],
+        &[vec![
+            credits.total_credits.to_string(),
+            credits.total_usage.to_string(),
+        ]],
+    );
+}
+
+fn print_charge_table(charge: &credits::CoinbaseChargeData) {
+    print_table(
+        &[
+            "id",
+            "chain_id",
+            "sender",
+            "address_count",
+            "calldata_fields",
+        ],
+        &[vec![
+            charge.id.clone().unwrap_or_else(|| "-".to_string()),
+            charge.chain_id.to_string(),
+            charge.sender.clone(),
+            charge.addresses.len().to_string(),
+            charge.calldata.len().to_string(),
+        ]],
+    );
+}
+
+fn print_activity_table(activity: &[openrouter_rs::api::discovery::ActivityItem]) {
+    let rows = activity
+        .iter()
+        .map(|item| {
+            vec![
+                item.date.clone(),
+                item.model.clone(),
+                item.provider_name.clone(),
+                item.usage.to_string(),
+                item.requests.to_string(),
+                item.prompt_tokens.to_string(),
+                item.completion_tokens.to_string(),
+                item.reasoning_tokens.to_string(),
+            ]
+        })
+        .collect::<Vec<_>>();
+
+    print_table(
+        &[
+            "date",
+            "model",
+            "provider",
+            "usage",
+            "requests",
+            "prompt_tokens",
+            "completion_tokens",
+            "reasoning_tokens",
+        ],
+        &rows,
+    );
+}
+
+async fn run(cli: Cli) -> Result<()> {
     let env = Environment::from_process();
     let resolved = resolve_profile(&cli.global, &env)?;
 
@@ -372,18 +457,41 @@ async fn run() -> Result<()> {
             }
             ConfigCommands::Path => match cli.global.output {
                 OutputFormat::Json => {
-                    println!(
-                        "{}",
-                        serde_json::to_string_pretty(&serde_json::json!({
-                            "config_path": resolved.config_path.display().to_string()
-                        }))?
-                    );
+                    print_json(&serde_json::json!({
+                        "config_path": resolved.config_path.display().to_string()
+                    }))?;
                 }
-                OutputFormat::Text => {
+                OutputFormat::Table => {
                     println!("{}", resolved.config_path.display());
                 }
             },
         },
+        Commands::Credits { command } => {
+            let client = build_api_client(&resolved)?;
+            let management = client.management();
+
+            match command {
+                CreditsCommands::Show => {
+                    let credits = management.get_credits().await?;
+                    match cli.global.output {
+                        OutputFormat::Json => print_json(&credits)?,
+                        OutputFormat::Table => print_credits_table(&credits),
+                    }
+                }
+                CreditsCommands::Charge(args) => {
+                    let request = credits::CoinbaseChargeRequest::builder()
+                        .amount(args.amount)
+                        .sender(args.sender)
+                        .chain_id(args.chain_id)
+                        .build()?;
+                    let charge = management.create_coinbase_charge(&request).await?;
+                    match cli.global.output {
+                        OutputFormat::Json => print_json(&charge)?,
+                        OutputFormat::Table => print_charge_table(&charge),
+                    }
+                }
+            }
+        }
         Commands::Models { command } => {
             let client = build_api_client(&resolved)?;
             let models_client = client.models();
@@ -655,18 +763,92 @@ async fn run() -> Result<()> {
                 },
             }
         }
-        Commands::Usage => {
-            println!("usage command group is not implemented yet (planned in OR-22)");
+        Commands::Usage { command } => {
+            let client = build_management_client(&resolved)?;
+            let management = client.management();
+
+            match command {
+                UsageCommands::Activity(args) => {
+                    let activity = management.get_activity(args.date.as_deref()).await?;
+                    match cli.global.output {
+                        OutputFormat::Json => print_json(&activity)?,
+                        OutputFormat::Table => print_activity_table(&activity),
+                    }
+                }
+            }
         }
     }
 
     Ok(())
 }
 
+fn detect_output_from_args() -> OutputFormat {
+    let mut args = std::env::args().skip(1);
+
+    while let Some(arg) = args.next() {
+        if arg == "--output" {
+            if let Some(value) = args.next() {
+                return match value.as_str() {
+                    "json" => OutputFormat::Json,
+                    "table" | "text" => OutputFormat::Table,
+                    _ => OutputFormat::Table,
+                };
+            }
+        }
+
+        if let Some(value) = arg.strip_prefix("--output=") {
+            return match value {
+                "json" => OutputFormat::Json,
+                "table" | "text" => OutputFormat::Table,
+                _ => OutputFormat::Table,
+            };
+        }
+    }
+
+    OutputFormat::Table
+}
+
+fn print_error(error: &anyhow::Error, output: OutputFormat) {
+    match output {
+        OutputFormat::Table => {
+            eprintln!("error: {error:#}");
+        }
+        OutputFormat::Json => {
+            let body = JsonErrorEnvelope {
+                schema_version: OUTPUT_SCHEMA_VERSION,
+                error: JsonErrorBody {
+                    code: "cli_error",
+                    message: &format!("{error:#}"),
+                },
+            };
+            if let Ok(payload) = serde_json::to_string_pretty(&body) {
+                eprintln!("{payload}");
+            } else {
+                eprintln!(
+                    "{{\"schema_version\":\"0.1\",\"error\":{{\"code\":\"cli_error\",\"message\":\"serialization failure\"}}}}"
+                );
+            }
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() {
-    if let Err(error) = run().await {
-        eprintln!("error: {error:#}");
+    let requested_output = detect_output_from_args();
+
+    let cli = match Cli::try_parse() {
+        Ok(cli) => cli,
+        Err(error) => {
+            let exit_code = error.exit_code();
+            print_error(&anyhow!(error.to_string()), requested_output);
+            std::process::exit(exit_code);
+        }
+    };
+
+    let output = cli.global.output;
+
+    if let Err(error) = run(cli).await {
+        print_error(&error, output);
         std::process::exit(1);
     }
 }

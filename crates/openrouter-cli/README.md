@@ -7,6 +7,7 @@
 - OR-19: command bootstrap and config/profile resolution
 - OR-20: discovery commands for models/providers/endpoints
 - OR-21: management commands for API keys and guardrails
+- OR-22: usage and billing commands with stable output contracts
 
 ## Config And Profile Convention
 
@@ -101,4 +102,61 @@ openrouter-cli --management-key "$OPENROUTER_MANAGEMENT_KEY" keys delete sk-or-v
 
 # Update guardrail and clear allowlists
 openrouter-cli --management-key "$OPENROUTER_MANAGEMENT_KEY" guardrails update gr_123 --clear-allowed-providers --clear-allowed-models
+```
+
+## Usage And Billing Commands (OR-22)
+
+Supported command groups:
+
+- `credits show`
+- `credits charge --amount --sender --chain-id`
+- `usage activity [--date YYYY-MM-DD]`
+
+Examples:
+
+```bash
+# Show total credits and usage
+openrouter-cli --api-key "$OPENROUTER_API_KEY" credits show
+
+# Create Coinbase charge
+openrouter-cli \
+  --api-key "$OPENROUTER_API_KEY" \
+  credits charge \
+  --amount 25 \
+  --sender 0xYourWalletAddress \
+  --chain-id 1
+
+# Query usage activity for a specific day (requires management key)
+openrouter-cli \
+  --management-key "$OPENROUTER_MANAGEMENT_KEY" \
+  usage activity \
+  --date 2026-02-28
+```
+
+## Output Contract
+
+`--output` supports:
+
+- `table` (default)
+- `json`
+
+JSON output is wrapped with schema metadata for automation stability:
+
+```json
+{
+  "schema_version": "0.1",
+  "data": { "...": "..." }
+}
+```
+
+Error output in JSON mode follows:
+
+```json
+{
+  "schema_version": "0.1",
+  "error": {
+    "code": "cli_error",
+    "message": "..."
+  }
+}
 ```
