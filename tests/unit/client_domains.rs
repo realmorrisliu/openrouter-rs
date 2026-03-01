@@ -62,6 +62,25 @@ async fn test_models_domain_requires_api_key() {
 }
 
 #[tokio::test]
+async fn test_models_domain_renamed_methods_require_api_key() {
+    let client = OpenRouterClient::builder()
+        .build()
+        .expect("client should build");
+
+    let user_models = client.models().list_user_models().await;
+    assert!(matches!(
+        user_models,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+
+    let model_count = client.models().get_model_count().await;
+    assert!(matches!(
+        model_count,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+}
+
+#[tokio::test]
 async fn test_management_domain_requires_management_key() {
     let client = OpenRouterClient::builder()
         .api_key("user-key")

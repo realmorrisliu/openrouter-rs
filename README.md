@@ -70,9 +70,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 Use domain accessors for clearer API boundaries:
 
 ```rust
+use openrouter_rs::types::PaginationOptions;
+
 let response = client.chat().create(&chat_request).await?;
 let models = client.models().list().await?;
-let keys = client.management().list_api_keys(None, Some(false)).await?;
+let pagination = PaginationOptions::with_offset_and_limit(0, 25);
+let keys = client
+    .management()
+    .list_api_keys(Some(pagination), Some(false))
+    .await?;
 ```
 
 Available domains:
@@ -107,6 +113,14 @@ Migration mapping:
 - `api::completion::CompletionRequest` -> `api::legacy::completion::CompletionRequest`
 - `client.send_completion_request(&request)` -> `client.legacy().completions().create(&request)`
 - Recommended modern path: `api::chat::ChatCompletionRequest` + `client.chat().create(...)`
+
+### 🔁 0.6 Naming/Pagination Migration
+
+- `models().count()` -> `models().get_model_count()`
+- `models().list_for_user()` -> `models().list_user_models()`
+- `management().exchange_code_for_api_key(...)` -> `management().create_api_key_from_auth_code(...)`
+- `management().list_guardrails(offset, limit)` -> `management().list_guardrails(Some(PaginationOptions::with_offset_and_limit(offset, limit)))`
+- `management().list_api_keys(offset, include_disabled)` -> `management().list_api_keys(Some(PaginationOptions::with_offset(offset)), include_disabled)`
 
 ### 🧠 Advanced Reasoning Support
 
@@ -288,7 +302,7 @@ let create = auth::CreateAuthCodeRequest::builder()
 let auth_code = client.management().create_auth_code(&create).await?;
 
 let key = client.management()
-    .exchange_code_for_api_key(
+    .create_api_key_from_auth_code(
         &auth_code.id,
         Some("your_pkce_code_verifier"),
         Some(auth::CodeChallengeMethod::S256),

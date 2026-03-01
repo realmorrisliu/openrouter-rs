@@ -12,7 +12,7 @@ use openrouter_rs::{
         GuardrailKeyAssignmentsResponse, GuardrailListResponse, GuardrailMemberAssignmentsResponse,
         UnassignedCountResponse, UpdateGuardrailRequest,
     },
-    types::ApiResponse,
+    types::{ApiResponse, PaginationOptions},
 };
 
 struct CapturedRequest {
@@ -247,9 +247,13 @@ fn test_assignment_counter_response_deserialization() {
 async fn test_list_guardrails_with_pagination_and_auth_header() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
 
-    let result = guardrails::list_guardrails(&base_url, "mgmt-key", Some(10), Some(25))
-        .await
-        .expect("list guardrails should succeed");
+    let result = guardrails::list_guardrails(
+        &base_url,
+        "mgmt-key",
+        Some(PaginationOptions::with_offset_and_limit(10, 25)),
+    )
+    .await
+    .expect("list guardrails should succeed");
     assert_eq!(result.total_count, 0.0);
 
     let captured = rx
@@ -303,9 +307,13 @@ async fn test_bulk_assign_keys_encodes_id_and_sends_body() {
 async fn test_list_member_assignments_global_path() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
 
-    let result = guardrails::list_member_assignments(&base_url, "mgmt-key", Some(1), Some(2))
-        .await
-        .expect("list member assignments should succeed");
+    let result = guardrails::list_member_assignments(
+        &base_url,
+        "mgmt-key",
+        Some(PaginationOptions::with_offset_and_limit(1, 2)),
+    )
+    .await
+    .expect("list member assignments should succeed");
     assert_eq!(result.total_count, 0.0);
 
     let captured = rx

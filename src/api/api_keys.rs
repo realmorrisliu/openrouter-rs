@@ -1,9 +1,11 @@
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize};
 use surf::http::headers::AUTHORIZATION;
 
-use crate::{error::OpenRouterError, types::ApiResponse, utils::handle_error};
+use crate::{
+    error::OpenRouterError,
+    types::{ApiResponse, PaginationOptions},
+    utils::handle_error,
+};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ApiKey {
@@ -82,6 +84,14 @@ struct UpdateApiKeyRequest {
     limit: Option<f64>,
 }
 
+#[derive(Serialize)]
+struct ListApiKeysQuery {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    offset: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    include_disabled: Option<bool>,
+}
+
 /// Get information on the API key associated with the current authentication session
 ///
 /// # Arguments
@@ -118,7 +128,7 @@ pub async fn get_current_api_key(
 ///
 /// * `base_url` - The base URL of the OpenRouter API.
 /// * `management_key` - The management API key for authentication.
-/// * `offset` - Optional offset for the API keys.
+/// * `pagination` - Optional pagination options for the API keys list.
 /// * `include_disabled` - Optional flag to include disabled API keys.
 ///
 /// # Returns
@@ -127,22 +137,20 @@ pub async fn get_current_api_key(
 pub async fn list_api_keys(
     base_url: &str,
     management_key: &str,
-    offset: Option<f64>,
+    pagination: Option<PaginationOptions>,
     include_disabled: Option<bool>,
 ) -> Result<Vec<ApiKey>, OpenRouterError> {
     let url = format!("{base_url}/keys");
-    let mut query_params = HashMap::new();
-    if let Some(offset) = offset {
-        query_params.insert("offset", offset.to_string());
-    }
-    if let Some(include_disabled) = include_disabled {
-        query_params.insert("include_disabled", include_disabled.to_string());
-    }
-
-    let mut response = surf::get(url)
-        .header(AUTHORIZATION, format!("Bearer {management_key}"))
-        .query(&query_params)?
-        .await?;
+    let query = ListApiKeysQuery {
+        offset: pagination.and_then(|p| p.offset),
+        include_disabled,
+    };
+    let req = surf::get(url).header(AUTHORIZATION, format!("Bearer {management_key}"));
+    let mut response = if query.offset.is_none() && query.include_disabled.is_none() {
+        req.await?
+    } else {
+        req.query(&query)?.await?
+    };
 
     if response.status().is_success() {
         let api_response: ApiResponse<_> = response.body_json().await?;

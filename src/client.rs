@@ -11,7 +11,7 @@ use crate::{
     config::OpenRouterConfig,
     error::OpenRouterError,
     types::{
-        ModelCategory, SupportedParameters, completion::CompletionsResponse,
+        ModelCategory, PaginationOptions, SupportedParameters, completion::CompletionsResponse,
         stream::ToolAwareStream,
     },
 };
@@ -253,7 +253,7 @@ impl OpenRouterClient {
     ///
     /// # Arguments
     ///
-    /// * `offset` - Optional offset for the API keys.
+    /// * `pagination` - Optional pagination options for the API keys list.
     /// * `include_disabled` - Optional flag to include disabled API keys.
     ///
     /// # Returns
@@ -263,17 +263,21 @@ impl OpenRouterClient {
     /// # Example
     ///
     /// ```
-    /// let client = OpenRouterClient::builder().management_key("your_management_key").build();
-    /// let api_keys = client.list_api_keys(Some(0.0), Some(true)).await?;
+    /// # use openrouter_rs::{OpenRouterClient, types::PaginationOptions};
+    /// let client = OpenRouterClient::builder().management_key("your_management_key").build()?;
+    /// let pagination = PaginationOptions::with_offset(0);
+    /// let api_keys = client.list_api_keys(Some(pagination), Some(true)).await?;
     /// println!("{:?}", api_keys);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub async fn list_api_keys(
         &self,
-        offset: Option<f64>,
+        pagination: Option<PaginationOptions>,
         include_disabled: Option<bool>,
     ) -> Result<Vec<api_keys::ApiKey>, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
-            api_keys::list_api_keys(&self.base_url, management_key, offset, include_disabled).await
+            api_keys::list_api_keys(&self.base_url, management_key, pagination, include_disabled)
+                .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -355,11 +359,10 @@ impl OpenRouterClient {
     /// List guardrails (`GET /guardrails`). Requires a management key.
     pub async fn list_guardrails(
         &self,
-        offset: Option<u32>,
-        limit: Option<u32>,
+        pagination: Option<PaginationOptions>,
     ) -> Result<guardrails::GuardrailListResponse, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
-            guardrails::list_guardrails(&self.base_url, management_key, offset, limit).await
+            guardrails::list_guardrails(&self.base_url, management_key, pagination).await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -412,16 +415,14 @@ impl OpenRouterClient {
     pub async fn list_guardrail_key_assignments(
         &self,
         id: &str,
-        offset: Option<u32>,
-        limit: Option<u32>,
+        pagination: Option<PaginationOptions>,
     ) -> Result<guardrails::GuardrailKeyAssignmentsResponse, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
             guardrails::list_guardrail_key_assignments(
                 &self.base_url,
                 management_key,
                 id,
-                offset,
-                limit,
+                pagination,
             )
             .await
         } else {
@@ -466,16 +467,14 @@ impl OpenRouterClient {
     pub async fn list_guardrail_member_assignments(
         &self,
         id: &str,
-        offset: Option<u32>,
-        limit: Option<u32>,
+        pagination: Option<PaginationOptions>,
     ) -> Result<guardrails::GuardrailMemberAssignmentsResponse, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
             guardrails::list_guardrail_member_assignments(
                 &self.base_url,
                 management_key,
                 id,
-                offset,
-                limit,
+                pagination,
             )
             .await
         } else {
@@ -524,11 +523,10 @@ impl OpenRouterClient {
     /// List all key assignments (`GET /guardrails/assignments/keys`). Requires a management key.
     pub async fn list_key_assignments(
         &self,
-        offset: Option<u32>,
-        limit: Option<u32>,
+        pagination: Option<PaginationOptions>,
     ) -> Result<guardrails::GuardrailKeyAssignmentsResponse, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
-            guardrails::list_key_assignments(&self.base_url, management_key, offset, limit).await
+            guardrails::list_key_assignments(&self.base_url, management_key, pagination).await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -537,11 +535,10 @@ impl OpenRouterClient {
     /// List all member assignments (`GET /guardrails/assignments/members`). Requires a management key.
     pub async fn list_member_assignments(
         &self,
-        offset: Option<u32>,
-        limit: Option<u32>,
+        pagination: Option<PaginationOptions>,
     ) -> Result<guardrails::GuardrailMemberAssignmentsResponse, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
-            guardrails::list_member_assignments(&self.base_url, management_key, offset, limit).await
+            guardrails::list_member_assignments(&self.base_url, management_key, pagination).await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -1276,12 +1273,12 @@ impl<'a> ModelsClient<'a> {
     }
 
     /// List user-filtered models (`GET /models/user`).
-    pub async fn list_for_user(&self) -> Result<Vec<discovery::UserModel>, OpenRouterError> {
+    pub async fn list_user_models(&self) -> Result<Vec<discovery::UserModel>, OpenRouterError> {
         self.client.list_models_for_user().await
     }
 
-    /// Count available models (`GET /models/count`).
-    pub async fn count(&self) -> Result<discovery::ModelsCountData, OpenRouterError> {
+    /// Get available model count (`GET /models/count`).
+    pub async fn get_model_count(&self) -> Result<discovery::ModelsCountData, OpenRouterError> {
         self.client.count_models().await
     }
 
@@ -1350,10 +1347,12 @@ impl<'a> ManagementClient<'a> {
     /// List API keys (`GET /keys`).
     pub async fn list_api_keys(
         &self,
-        offset: Option<f64>,
+        pagination: Option<PaginationOptions>,
         include_disabled: Option<bool>,
     ) -> Result<Vec<api_keys::ApiKey>, OpenRouterError> {
-        self.client.list_api_keys(offset, include_disabled).await
+        self.client
+            .list_api_keys(pagination, include_disabled)
+            .await
     }
 
     /// Get an API key (`GET /keys/{hash}`).
@@ -1369,8 +1368,8 @@ impl<'a> ManagementClient<'a> {
         self.client.create_auth_code(request).await
     }
 
-    /// Exchange auth code for API key (`POST /auth/keys`).
-    pub async fn exchange_code_for_api_key(
+    /// Create an API key from auth code (`POST /auth/keys`).
+    pub async fn create_api_key_from_auth_code(
         &self,
         code: &str,
         code_verifier: Option<&str>,
@@ -1413,10 +1412,9 @@ impl<'a> ManagementClient<'a> {
     /// List guardrails (`GET /guardrails`).
     pub async fn list_guardrails(
         &self,
-        offset: Option<u32>,
-        limit: Option<u32>,
+        pagination: Option<PaginationOptions>,
     ) -> Result<guardrails::GuardrailListResponse, OpenRouterError> {
-        self.client.list_guardrails(offset, limit).await
+        self.client.list_guardrails(pagination).await
     }
 
     /// Create a guardrail (`POST /guardrails`).
@@ -1450,16 +1448,15 @@ impl<'a> ManagementClient<'a> {
     pub async fn list_guardrail_key_assignments(
         &self,
         id: &str,
-        offset: Option<u32>,
-        limit: Option<u32>,
+        pagination: Option<PaginationOptions>,
     ) -> Result<guardrails::GuardrailKeyAssignmentsResponse, OpenRouterError> {
         self.client
-            .list_guardrail_key_assignments(id, offset, limit)
+            .list_guardrail_key_assignments(id, pagination)
             .await
     }
 
-    /// Bulk assign key hashes to a guardrail.
-    pub async fn bulk_assign_keys_to_guardrail(
+    /// Create key assignments for a guardrail.
+    pub async fn create_guardrail_key_assignments(
         &self,
         id: &str,
         request: &guardrails::BulkKeyAssignmentRequest,
@@ -1467,8 +1464,8 @@ impl<'a> ManagementClient<'a> {
         self.client.bulk_assign_keys_to_guardrail(id, request).await
     }
 
-    /// Bulk unassign key hashes from a guardrail.
-    pub async fn bulk_unassign_keys_from_guardrail(
+    /// Delete key assignments from a guardrail.
+    pub async fn delete_guardrail_key_assignments(
         &self,
         id: &str,
         request: &guardrails::BulkKeyAssignmentRequest,
@@ -1482,16 +1479,15 @@ impl<'a> ManagementClient<'a> {
     pub async fn list_guardrail_member_assignments(
         &self,
         id: &str,
-        offset: Option<u32>,
-        limit: Option<u32>,
+        pagination: Option<PaginationOptions>,
     ) -> Result<guardrails::GuardrailMemberAssignmentsResponse, OpenRouterError> {
         self.client
-            .list_guardrail_member_assignments(id, offset, limit)
+            .list_guardrail_member_assignments(id, pagination)
             .await
     }
 
-    /// Bulk assign members to a guardrail.
-    pub async fn bulk_assign_members_to_guardrail(
+    /// Create member assignments for a guardrail.
+    pub async fn create_guardrail_member_assignments(
         &self,
         id: &str,
         request: &guardrails::BulkMemberAssignmentRequest,
@@ -1501,8 +1497,8 @@ impl<'a> ManagementClient<'a> {
             .await
     }
 
-    /// Bulk unassign members from a guardrail.
-    pub async fn bulk_unassign_members_from_guardrail(
+    /// Delete member assignments from a guardrail.
+    pub async fn delete_guardrail_member_assignments(
         &self,
         id: &str,
         request: &guardrails::BulkMemberAssignmentRequest,
@@ -1515,19 +1511,17 @@ impl<'a> ManagementClient<'a> {
     /// List global key assignments.
     pub async fn list_key_assignments(
         &self,
-        offset: Option<u32>,
-        limit: Option<u32>,
+        pagination: Option<PaginationOptions>,
     ) -> Result<guardrails::GuardrailKeyAssignmentsResponse, OpenRouterError> {
-        self.client.list_key_assignments(offset, limit).await
+        self.client.list_key_assignments(pagination).await
     }
 
     /// List global member assignments.
     pub async fn list_member_assignments(
         &self,
-        offset: Option<u32>,
-        limit: Option<u32>,
+        pagination: Option<PaginationOptions>,
     ) -> Result<guardrails::GuardrailMemberAssignmentsResponse, OpenRouterError> {
-        self.client.list_member_assignments(offset, limit).await
+        self.client.list_member_assignments(pagination).await
     }
 }
 

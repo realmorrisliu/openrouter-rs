@@ -4,7 +4,10 @@ use surf::http::headers::AUTHORIZATION;
 use urlencoding::encode;
 
 use crate::{
-    error::OpenRouterError, strip_option_vec_setter, types::ApiResponse, utils::handle_error,
+    error::OpenRouterError,
+    strip_option_vec_setter,
+    types::{ApiResponse, PaginationOptions},
+    utils::handle_error,
 };
 
 /// Guardrail model.
@@ -191,14 +194,13 @@ pub struct UnassignedCountResponse {
     pub unassigned_count: f64,
 }
 
-fn with_pagination(url: String, offset: Option<u32>, limit: Option<u32>) -> String {
-    let mut params = Vec::new();
-    if let Some(offset) = offset {
-        params.push(format!("offset={offset}"));
-    }
-    if let Some(limit) = limit {
-        params.push(format!("limit={limit}"));
-    }
+fn with_pagination(url: String, pagination: Option<PaginationOptions>) -> String {
+    let params = pagination
+        .map(PaginationOptions::to_query_pairs)
+        .unwrap_or_default()
+        .into_iter()
+        .map(|(key, value)| format!("{key}={value}"))
+        .collect::<Vec<_>>();
 
     if params.is_empty() {
         url
@@ -210,10 +212,9 @@ fn with_pagination(url: String, offset: Option<u32>, limit: Option<u32>) -> Stri
 pub async fn list_guardrails(
     base_url: &str,
     management_key: &str,
-    offset: Option<u32>,
-    limit: Option<u32>,
+    pagination: Option<PaginationOptions>,
 ) -> Result<GuardrailListResponse, OpenRouterError> {
-    let url = with_pagination(format!("{base_url}/guardrails"), offset, limit);
+    let url = with_pagination(format!("{base_url}/guardrails"), pagination);
     let mut response = surf::get(url)
         .header(AUTHORIZATION, format!("Bearer {management_key}"))
         .await?;
@@ -309,13 +310,11 @@ pub async fn list_guardrail_key_assignments(
     base_url: &str,
     management_key: &str,
     id: &str,
-    offset: Option<u32>,
-    limit: Option<u32>,
+    pagination: Option<PaginationOptions>,
 ) -> Result<GuardrailKeyAssignmentsResponse, OpenRouterError> {
     let url = with_pagination(
         format!("{base_url}/guardrails/{}/assignments/keys", encode(id)),
-        offset,
-        limit,
+        pagination,
     );
     let mut response = surf::get(url)
         .header(AUTHORIZATION, format!("Bearer {management_key}"))
@@ -376,13 +375,11 @@ pub async fn list_guardrail_member_assignments(
     base_url: &str,
     management_key: &str,
     id: &str,
-    offset: Option<u32>,
-    limit: Option<u32>,
+    pagination: Option<PaginationOptions>,
 ) -> Result<GuardrailMemberAssignmentsResponse, OpenRouterError> {
     let url = with_pagination(
         format!("{base_url}/guardrails/{}/assignments/members", encode(id)),
-        offset,
-        limit,
+        pagination,
     );
     let mut response = surf::get(url)
         .header(AUTHORIZATION, format!("Bearer {management_key}"))
@@ -442,13 +439,11 @@ pub async fn bulk_unassign_members_from_guardrail(
 pub async fn list_key_assignments(
     base_url: &str,
     management_key: &str,
-    offset: Option<u32>,
-    limit: Option<u32>,
+    pagination: Option<PaginationOptions>,
 ) -> Result<GuardrailKeyAssignmentsResponse, OpenRouterError> {
     let url = with_pagination(
         format!("{base_url}/guardrails/assignments/keys"),
-        offset,
-        limit,
+        pagination,
     );
     let mut response = surf::get(url)
         .header(AUTHORIZATION, format!("Bearer {management_key}"))
@@ -465,13 +460,11 @@ pub async fn list_key_assignments(
 pub async fn list_member_assignments(
     base_url: &str,
     management_key: &str,
-    offset: Option<u32>,
-    limit: Option<u32>,
+    pagination: Option<PaginationOptions>,
 ) -> Result<GuardrailMemberAssignmentsResponse, OpenRouterError> {
     let url = with_pagination(
         format!("{base_url}/guardrails/assignments/members"),
-        offset,
-        limit,
+        pagination,
     );
     let mut response = surf::get(url)
         .header(AUTHORIZATION, format!("Bearer {management_key}"))
