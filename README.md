@@ -145,6 +145,20 @@ Migration mapping:
 - `management().list_guardrails(offset, limit)` -> `management().list_guardrails(Some(PaginationOptions::with_offset_and_limit(offset, limit)))`
 - `management().list_api_keys(offset, include_disabled)` -> `management().list_api_keys(Some(PaginationOptions::with_offset(offset)), include_disabled)`
 
+`0.5.x` transitional bridge (pre-`0.6.0`) keeps deprecated compatibility aliases with warnings:
+
+| Deprecated (`0.5.x`) | Replacement |
+| --- | --- |
+| `OpenRouterClientBuilder::provisioning_key(...)` | `OpenRouterClientBuilder::management_key(...)` |
+| `OpenRouterClient::set_provisioning_key(...)` | `OpenRouterClient::set_management_key(...)` |
+| `OpenRouterClient::clear_provisioning_key()` | `OpenRouterClient::clear_management_key()` |
+| `api::completion::*` | `api::legacy::completion::*` |
+| `client.send_completion_request(&request)` | `client.legacy().completions().create(&request)` |
+| `models().count()` | `models().get_model_count()` |
+| `models().list_for_user()` | `models().list_user_models()` |
+| `management().exchange_code_for_api_key(...)` | `management().create_api_key_from_auth_code(...)` |
+| `list_api_keys(Some(offset_f64), ...)` | `list_api_keys(Some(PaginationOptions::with_offset(offset_u32)), ...)` |
+
 ### 🧠 Advanced Reasoning Support
 
 Leverage chain-of-thought processing with reasoning tokens:

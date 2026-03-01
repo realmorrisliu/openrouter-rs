@@ -149,3 +149,12 @@ pub mod responses;
 
 #[cfg(feature = "legacy-completions")]
 pub mod legacy;
+
+#[cfg(feature = "legacy-completions")]
+#[deprecated(
+    since = "0.5.2",
+    note = "use api::legacy::completion instead; api::completion will be removed in 0.6.0"
+)]
+pub mod completion {
+    pub use super::legacy::completion::*;
+}

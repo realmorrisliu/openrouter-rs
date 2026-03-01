@@ -49,6 +49,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `credits show`
     - `credits charge --amount --sender --chain-id`
     - `usage activity --date`
+- `0.5.x` deprecation bridge for planned `0.6.0` removals/renames:
+  - restored deprecated `provisioning_key` compatibility aliases:
+    - `OpenRouterClientBuilder::provisioning_key(...)`
+    - `OpenRouterClient::{set_provisioning_key, clear_provisioning_key}`
+  - restored deprecated `api::completion` module alias to `api::legacy::completion`
+  - added deprecated domain-method aliases:
+    - `models().count()` -> `models().get_model_count()`
+    - `models().list_for_user()` -> `models().list_user_models()`
+    - `management().exchange_code_for_api_key(...)` -> `management().create_api_key_from_auth_code(...)`
+  - `list_api_keys` now accepts legacy `Option<f64>` offset inputs as a deprecated compatibility bridge
+  - `legacy-completions` is re-enabled in default features for transitional `0.5.x` compatibility
 
 ### Changed
 - Breaking (planned for `0.6.0`) legacy completions isolation:
@@ -61,6 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - updated paginated API signatures (`api_keys`, `guardrails`, client wrappers) to use `PaginationOptions`
 - CLI output modes standardized on `table|json` (`table` default, `text` alias retained)
 - JSON CLI outputs now use versioned envelopes (`schema_version: "0.1"`) with structured JSON error payloads
+- deprecation warnings now point to concrete replacement APIs and planned removal in `0.6.0`
 
 ### Added
 - Unified streaming abstraction across chat/responses/messages:
