@@ -130,6 +130,11 @@ fn test_models_list_json_snapshot() {
     let output = cmd.assert().success().get_output().stdout.clone();
     let parsed: Value = serde_json::from_slice(&output).expect("stdout should be json");
 
+    assert_eq!(
+        parsed.get("schema_version").and_then(Value::as_str),
+        Some("0.1")
+    );
+
     let expected = json!([{
         "id": "openai/gpt-4.1",
         "name": "GPT-4.1",
@@ -158,7 +163,7 @@ fn test_models_list_json_snapshot() {
         },
         "per_request_limits": null
     }]);
-    assert_eq!(parsed, expected);
+    assert_eq!(parsed.get("data"), Some(&expected));
 
     let captured = rx
         .recv_timeout(Duration::from_secs(2))
@@ -203,10 +208,23 @@ fn test_models_show_json_snapshot() {
     let parsed: Value = serde_json::from_slice(&output).expect("stdout should be json");
 
     assert_eq!(
-        parsed.get("id").and_then(Value::as_str),
+        parsed.get("schema_version").and_then(Value::as_str),
+        Some("0.1")
+    );
+    assert_eq!(
+        parsed
+            .get("data")
+            .and_then(|value| value.get("id"))
+            .and_then(Value::as_str),
         Some("openai/gpt-4.1")
     );
-    assert_eq!(parsed.get("name").and_then(Value::as_str), Some("GPT-4.1"));
+    assert_eq!(
+        parsed
+            .get("data")
+            .and_then(|value| value.get("name"))
+            .and_then(Value::as_str),
+        Some("GPT-4.1")
+    );
 
     let captured = rx
         .recv_timeout(Duration::from_secs(2))
@@ -258,8 +276,13 @@ fn test_models_endpoints_json_snapshot() {
     let parsed: Value = serde_json::from_slice(&output).expect("stdout should be json");
 
     assert_eq!(
+        parsed.get("schema_version").and_then(Value::as_str),
+        Some("0.1")
+    );
+    assert_eq!(
         parsed
-            .get("endpoints")
+            .get("data")
+            .and_then(|value| value.get("endpoints"))
             .and_then(Value::as_array)
             .and_then(|values| values.first())
             .and_then(|item| item.get("provider_name"))
@@ -299,7 +322,15 @@ fn test_providers_list_json_snapshot() {
     let output = cmd.assert().success().get_output().stdout.clone();
     let parsed: Value = serde_json::from_slice(&output).expect("stdout should be json");
     assert_eq!(
-        parsed.get(0).and_then(|item| item.get("slug")),
+        parsed.get("schema_version").and_then(Value::as_str),
+        Some("0.1")
+    );
+    assert_eq!(
+        parsed
+            .get("data")
+            .and_then(Value::as_array)
+            .and_then(|values| values.first())
+            .and_then(|item| item.get("slug")),
         Some(&json!("openai"))
     );
 

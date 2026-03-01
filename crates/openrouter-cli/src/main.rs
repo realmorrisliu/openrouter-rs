@@ -2,7 +2,7 @@ mod cli;
 mod config;
 
 use anyhow::{Result, anyhow, bail};
-use clap::Parser;
+use clap::{Parser, error::ErrorKind};
 use openrouter_rs::{
     OpenRouterClient,
     api::{credits, discovery, guardrails, models},
@@ -840,7 +840,16 @@ async fn main() {
         Ok(cli) => cli,
         Err(error) => {
             let exit_code = error.exit_code();
-            print_error(&anyhow!(error.to_string()), requested_output);
+            if matches!(
+                error.kind(),
+                ErrorKind::DisplayHelp | ErrorKind::DisplayVersion
+            ) {
+                if let Err(print_error) = error.print() {
+                    eprintln!("error: failed to print clap output: {print_error:#}");
+                }
+            } else {
+                print_error(&anyhow!(error.to_string()), requested_output);
+            }
             std::process::exit(exit_code);
         }
     };
