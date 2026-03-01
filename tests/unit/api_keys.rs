@@ -6,7 +6,59 @@ use std::{
     time::Duration,
 };
 
-use openrouter_rs::api::api_keys;
+use openrouter_rs::api::api_keys::{self, ApiKeyDetails};
+
+#[test]
+fn test_api_key_details_deserializes_official_provisioning_field() {
+    let raw = r#"{
+        "label":"default",
+        "usage":1.5,
+        "is_free_tier":false,
+        "is_provisioning_key":true,
+        "rate_limit":{"requests":1000,"interval":"1m"},
+        "limit":100.0,
+        "limit_remaining":98.5
+    }"#;
+
+    let parsed: ApiKeyDetails =
+        serde_json::from_str(raw).expect("api key details should deserialize");
+    assert!(parsed.is_management_key);
+}
+
+#[test]
+fn test_api_key_details_deserializes_management_alias_field() {
+    let raw = r#"{
+        "label":"default",
+        "usage":1.5,
+        "is_free_tier":false,
+        "is_management_key":true,
+        "rate_limit":{"requests":1000,"interval":"1m"},
+        "limit":100.0,
+        "limit_remaining":98.5
+    }"#;
+
+    let parsed: ApiKeyDetails =
+        serde_json::from_str(raw).expect("api key details should deserialize from alias");
+    assert!(parsed.is_management_key);
+}
+
+#[test]
+fn test_api_key_details_deserializes_when_both_management_and_legacy_fields_exist() {
+    let raw = r#"{
+        "label":"default",
+        "usage":1.5,
+        "is_free_tier":false,
+        "is_management_key":true,
+        "is_provisioning_key":true,
+        "rate_limit":{"requests":1000,"interval":"1m"},
+        "limit":100.0,
+        "limit_remaining":98.5
+    }"#;
+
+    let parsed: ApiKeyDetails = serde_json::from_str(raw)
+        .expect("api key details should deserialize when both fields exist");
+    assert!(parsed.is_management_key);
+}
 
 #[tokio::test]
 async fn test_delete_api_key_uses_single_api_v1_prefix() {

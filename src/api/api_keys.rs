@@ -17,15 +17,50 @@ pub struct ApiKey {
     pub key: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Debug)]
 pub struct ApiKeyDetails {
     pub label: String,
     pub usage: f64,
     pub is_free_tier: bool,
-    pub is_provisioning_key: bool,
+    pub is_management_key: bool,
     pub rate_limit: RateLimit,
     pub limit: Option<f64>,
     pub limit_remaining: Option<f64>,
+}
+
+#[derive(Deserialize)]
+struct ApiKeyDetailsWire {
+    label: String,
+    usage: f64,
+    is_free_tier: bool,
+    #[serde(default)]
+    is_management_key: Option<bool>,
+    #[serde(default)]
+    is_provisioning_key: Option<bool>,
+    rate_limit: RateLimit,
+    limit: Option<f64>,
+    limit_remaining: Option<f64>,
+}
+
+impl<'de> Deserialize<'de> for ApiKeyDetails {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire = ApiKeyDetailsWire::deserialize(deserializer)?;
+        Ok(Self {
+            label: wire.label,
+            usage: wire.usage,
+            is_free_tier: wire.is_free_tier,
+            is_management_key: wire
+                .is_management_key
+                .or(wire.is_provisioning_key)
+                .unwrap_or(false),
+            rate_limit: wire.rate_limit,
+            limit: wire.limit,
+            limit_remaining: wire.limit_remaining,
+        })
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -77,12 +112,12 @@ pub async fn get_current_api_key(
     }
 }
 
-/// Returns a list of all API keys associated with the account. Requires a Provisioning API key.
+/// Returns a list of all API keys associated with the account. Requires a management API key.
 ///
 /// # Arguments
 ///
 /// * `base_url` - The base URL of the OpenRouter API.
-/// * `api_key` - The API key for authentication.
+/// * `management_key` - The management API key for authentication.
 /// * `offset` - Optional offset for the API keys.
 /// * `include_disabled` - Optional flag to include disabled API keys.
 ///
@@ -91,7 +126,7 @@ pub async fn get_current_api_key(
 /// * `Result<Vec<ApiKey>, OpenRouterError>` - A list of API keys.
 pub async fn list_api_keys(
     base_url: &str,
-    api_key: &str,
+    management_key: &str,
     offset: Option<f64>,
     include_disabled: Option<bool>,
 ) -> Result<Vec<ApiKey>, OpenRouterError> {
@@ -105,7 +140,7 @@ pub async fn list_api_keys(
     }
 
     let mut response = surf::get(url)
-        .header(AUTHORIZATION, format!("Bearer {api_key}"))
+        .header(AUTHORIZATION, format!("Bearer {management_key}"))
         .query(&query_params)?
         .await?;
 
@@ -118,12 +153,12 @@ pub async fn list_api_keys(
     }
 }
 
-/// Creates a new API key. Requires a Provisioning API key.
+/// Creates a new API key. Requires a management API key.
 ///
 /// # Arguments
 ///
 /// * `base_url` - The base URL of the OpenRouter API.
-/// * `api_key` - The API key for authentication.
+/// * `management_key` - The management API key for authentication.
 /// * `name` - The display name for the new API key.
 /// * `limit` - Optional credit limit for the new API key.
 ///
@@ -132,7 +167,7 @@ pub async fn list_api_keys(
 /// * `Result<ApiKey, OpenRouterError>` - The created API key.
 pub async fn create_api_key(
     base_url: &str,
-    api_key: &str,
+    management_key: &str,
     name: &str,
     limit: Option<f64>,
 ) -> Result<ApiKey, OpenRouterError> {
@@ -143,7 +178,7 @@ pub async fn create_api_key(
     };
 
     let mut response = surf::post(url)
-        .header(AUTHORIZATION, format!("Bearer {api_key}"))
+        .header(AUTHORIZATION, format!("Bearer {management_key}"))
         .body_json(&request)?
         .await?;
 
@@ -156,12 +191,12 @@ pub async fn create_api_key(
     }
 }
 
-/// Returns details about a specific API key. Requires a Provisioning API key.
+/// Returns details about a specific API key. Requires a management API key.
 ///
 /// # Arguments
 ///
 /// * `base_url` - The base URL of the OpenRouter API.
-/// * `api_key` - The API key for authentication.
+/// * `management_key` - The management API key for authentication.
 /// * `hash` - The hash of the API key to retrieve.
 ///
 /// # Returns
@@ -169,13 +204,13 @@ pub async fn create_api_key(
 /// * `Result<ApiKey, OpenRouterError>` - The details of the specified API key.
 pub async fn get_api_key(
     base_url: &str,
-    api_key: &str,
+    management_key: &str,
     hash: &str,
 ) -> Result<ApiKey, OpenRouterError> {
     let url = format!("{base_url}/keys/{hash}");
 
     let mut response = surf::get(&url)
-        .header(AUTHORIZATION, format!("Bearer {api_key}"))
+        .header(AUTHORIZATION, format!("Bearer {management_key}"))
         .await?;
 
     if response.status().is_success() {
@@ -187,12 +222,12 @@ pub async fn get_api_key(
     }
 }
 
-/// Deletes an API key. Requires a Provisioning API key.
+/// Deletes an API key. Requires a management API key.
 ///
 /// # Arguments
 ///
 /// * `base_url` - The base URL of the OpenRouter API.
-/// * `api_key` - The API key for authentication.
+/// * `management_key` - The management API key for authentication.
 /// * `hash` - The hash of the API key to delete.
 ///
 /// # Returns
@@ -200,13 +235,13 @@ pub async fn get_api_key(
 /// * `Result<bool, OpenRouterError>` - A boolean indicating whether the deletion was successful.
 pub async fn delete_api_key(
     base_url: &str,
-    api_key: &str,
+    management_key: &str,
     hash: &str,
 ) -> Result<bool, OpenRouterError> {
     let url = format!("{base_url}/keys/{hash}");
 
     let response = surf::delete(&url)
-        .header(AUTHORIZATION, format!("Bearer {api_key}"))
+        .header(AUTHORIZATION, format!("Bearer {management_key}"))
         .await?;
 
     if response.status().is_success() {
@@ -217,12 +252,12 @@ pub async fn delete_api_key(
     }
 }
 
-/// Updates an existing API key. Requires a Provisioning API key.
+/// Updates an existing API key. Requires a management API key.
 ///
 /// # Arguments
 ///
 /// * `base_url` - The base URL of the OpenRouter API.
-/// * `api_key` - The API key for authentication.
+/// * `management_key` - The management API key for authentication.
 /// * `hash` - The hash of the API key to update.
 /// * `name` - Optional new display name for the API key.
 /// * `disabled` - Optional flag to disable the API key.
@@ -233,7 +268,7 @@ pub async fn delete_api_key(
 /// * `Result<ApiKey, OpenRouterError>` - The updated API key.
 pub async fn update_api_key(
     base_url: &str,
-    api_key: &str,
+    management_key: &str,
     hash: &str,
     name: Option<String>,
     disabled: Option<bool>,
@@ -247,7 +282,7 @@ pub async fn update_api_key(
     };
 
     let mut response = surf::patch(&url)
-        .header(AUTHORIZATION, format!("Bearer {api_key}"))
+        .header(AUTHORIZATION, format!("Bearer {management_key}"))
         .body_json(&request)?
         .await?;
 
