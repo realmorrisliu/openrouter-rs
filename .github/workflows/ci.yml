@@ -58,3 +58,22 @@ jobs:
 
       - name: Cargo check (all targets/features)
         run: cargo check --all-targets --all-features
+
+  migration-smoke:
+    name: Migration Smoke Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Validate migration docs structure
+        run: ./scripts/check_migration_docs.sh
+
+      - name: Run migration smoke tests
+        run: cargo test --test migration_smoke --all-features
