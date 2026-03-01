@@ -66,21 +66,12 @@ impl Environment {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 struct CliConfigFile {
-    #[serde(default = "default_profile_name")]
-    default_profile: String,
+    #[serde(default)]
+    default_profile: Option<String>,
     #[serde(default)]
     profiles: HashMap<String, CliProfileConfig>,
-}
-
-impl Default for CliConfigFile {
-    fn default() -> Self {
-        Self {
-            default_profile: default_profile_name(),
-            profiles: HashMap::new(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -170,11 +161,17 @@ pub fn resolve_profile(global: &GlobalOptions, env: &Environment) -> Result<Reso
         (name, ValueSource::Flag)
     } else if let Some(name) = env.get(ENV_PROFILE) {
         (name.to_string(), ValueSource::Env)
-    } else if config_file_exists && !config_file.default_profile.trim().is_empty() {
-        (
-            config_file.default_profile.clone(),
-            ValueSource::ProfileConfig,
-        )
+    } else if config_file_exists {
+        if let Some(name) = config_file
+            .default_profile
+            .as_ref()
+            .map(|value| value.trim())
+            .filter(|value| !value.is_empty())
+        {
+            (name.to_string(), ValueSource::ProfileConfig)
+        } else {
+            (default_profile_name(), ValueSource::Default)
+        }
     } else {
         (default_profile_name(), ValueSource::Default)
     };
@@ -417,5 +414,27 @@ api_key = "prod-file-api-key"
             resolve_profile(&global, &Environment::default()).expect("resolution should succeed");
         assert_eq!(resolved.profile, "default");
         assert_eq!(resolved.profile_source, ValueSource::Default);
+    }
+
+    #[test]
+    fn test_existing_config_without_default_profile_uses_default_source() {
+        let temp_dir = TempDir::new().expect("temp dir should build");
+        let config_path = write_config(
+            &temp_dir,
+            r#"
+[profiles.default]
+api_key = "file-api-key"
+"#,
+        );
+
+        let mut global = global_options();
+        global.config = Some(config_path);
+
+        let resolved =
+            resolve_profile(&global, &Environment::default()).expect("resolution should succeed");
+        assert_eq!(resolved.profile, "default");
+        assert_eq!(resolved.profile_source, ValueSource::Default);
+        assert_eq!(resolved.api_key.as_deref(), Some("file-api-key"));
+        assert_eq!(resolved.api_key_source, ValueSource::ProfileConfig);
     }
 }
