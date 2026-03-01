@@ -198,11 +198,11 @@ let guardrails = client
 ## Feature Notes
 
 - Legacy text completions require the `legacy-completions` feature.
-- For versions where that feature is not in defaults, enable it explicitly:
+- On the target `0.6.x` line, enable it explicitly if needed:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.5.1", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.6", features = ["legacy-completions"] }
 ```
 
 ## Validation Tips
