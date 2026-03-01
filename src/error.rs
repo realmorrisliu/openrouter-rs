@@ -40,7 +40,7 @@
 //!     .api_key("invalid_key")
 //!     .build()?;
 //!
-//! match client.list_models().await {
+//! match client.models().list().await {
 //!     Ok(models) => println!("Found {} models", models.len()),
 //!     Err(OpenRouterError::ApiError { code, message }) => {
 //!         eprintln!("API error {}: {}", code, message);
@@ -61,7 +61,7 @@
 //! use surf::StatusCode;
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! match client.send_chat_completion(&request).await {
+//! match client.chat().create(&request).await {
 //!     Err(OpenRouterError::ApiError { code: StatusCode::TooManyRequests, .. }) => {
 //!         println!("Rate limited, retrying after delay...");
 //!         tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;

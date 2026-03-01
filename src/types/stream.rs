@@ -28,7 +28,7 @@
 //! use openrouter_rs::types::stream::{ToolAwareStream, StreamEvent};
 //!
 //! # async fn example(client: openrouter_rs::OpenRouterClient, request: openrouter_rs::api::chat::ChatCompletionRequest) -> Result<(), Box<dyn std::error::Error>> {
-//! let raw_stream = client.stream_chat_completion(&request).await?;
+//! let raw_stream = client.chat().stream(&request).await?;
 //! let mut stream = ToolAwareStream::new(raw_stream);
 //!
 //! while let Some(event) = stream.next().await {
@@ -160,7 +160,7 @@ impl ToolCallAccumulator {
 /// # async fn example(client: openrouter_rs::OpenRouterClient, request: openrouter_rs::api::chat::ChatCompletionRequest) -> Result<(), Box<dyn std::error::Error>> {
 /// use openrouter_rs::types::stream::ToolAwareStream;
 ///
-/// let raw = client.stream_chat_completion(&request).await?;
+/// let raw = client.chat().stream(&request).await?;
 /// let stream = ToolAwareStream::new(raw);
 /// # Ok(())
 /// # }

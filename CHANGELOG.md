@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - renamed `OpenRouterClient` builder/config surface from `provisioning_key` to `management_key`
   - renamed management-key helpers to `set_management_key` / `clear_management_key`
   - API-key management and governance endpoints consistently require `management_key`
+- Domain-oriented client surface:
+  - added domain accessors: `chat()`, `responses()`, `messages()`, `models()`, `management()`
+  - added typed domain clients with endpoint methods grouped by API domain
+  - added domain-oriented examples for chat and management workflows
 
 ## [0.5.1] - 2026-02-28
 
