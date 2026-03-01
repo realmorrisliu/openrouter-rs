@@ -10,6 +10,7 @@
 //! - **🏗️ Builder Pattern**: Ergonomic client and request construction
 //! - **🧭 Domain Clients**: Grouped API access via `chat()`, `responses()`, `messages()`, `models()`, `management()`
 //! - **📡 Streaming Support**: Real-time response streaming with `futures`
+//! - **🧩 Unified Streaming Events**: Shared stream event model across chat/responses/messages
 //! - **🧠 Reasoning Tokens**: Advanced support for chain-of-thought reasoning
 //! - **⚙️ Model Presets**: Pre-configured model groups for different use cases
 //! - **🎯 Full API Coverage**: Complete OpenRouter API endpoint support
@@ -146,6 +147,7 @@
 //! | Legacy Text Completions (`legacy-completions`) | ✅ | `api::legacy::completion` |
 //! | Model Information | ✅ | [`api::models`] |
 //! | Streaming | ✅ | [`api::chat`] |
+//! | Unified Streaming Events | ✅ | [`types::stream`] |
 //! | Reasoning Tokens | ✅ | [`api::chat`] |
 //! | API Key Management | ✅ | [`api::api_keys`] |
 //! | Credit Management | ✅ | [`api::credits`] |

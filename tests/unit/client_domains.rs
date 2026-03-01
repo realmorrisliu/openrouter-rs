@@ -18,6 +18,12 @@ async fn test_chat_domain_requires_api_key() {
 
     let result = client.chat().create(&request).await;
     assert!(matches!(result, Err(OpenRouterError::KeyNotConfigured)));
+
+    let stream_result = client.chat().stream_unified(&request).await;
+    assert!(matches!(
+        stream_result,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
 }
 
 #[tokio::test]
@@ -33,6 +39,12 @@ async fn test_responses_domain_requires_api_key() {
 
     let result = client.responses().create(&request).await;
     assert!(matches!(result, Err(OpenRouterError::KeyNotConfigured)));
+
+    let stream_result = client.responses().stream_unified(&request).await;
+    assert!(matches!(
+        stream_result,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
 }
 
 #[tokio::test]
@@ -49,6 +61,12 @@ async fn test_messages_domain_requires_api_key() {
 
     let result = client.messages().create(&request).await;
     assert!(matches!(result, Err(OpenRouterError::KeyNotConfigured)));
+
+    let stream_result = client.messages().stream_unified(&request).await;
+    assert!(matches!(
+        stream_result,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
 }
 
 #[tokio::test]
@@ -68,10 +86,16 @@ async fn test_models_domain_renamed_methods_require_api_key() {
         .expect("client should build");
 
     let user_models = client.models().list_user_models().await;
-    assert!(matches!(user_models, Err(OpenRouterError::KeyNotConfigured)));
+    assert!(matches!(
+        user_models,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
 
     let model_count = client.models().get_model_count().await;
-    assert!(matches!(model_count, Err(OpenRouterError::KeyNotConfigured)));
+    assert!(matches!(
+        model_count,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
 }
 
 #[tokio::test]
