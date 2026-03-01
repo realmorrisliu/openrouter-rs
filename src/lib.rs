@@ -8,6 +8,7 @@
 //! - **🔒 Type Safety**: Leverages Rust's type system for compile-time error prevention
 //! - **⚡ Async/Await**: Built on `tokio` for high-performance async operations  
 //! - **🏗️ Builder Pattern**: Ergonomic client and request construction
+//! - **🧭 Domain Clients**: Grouped API access via `chat()`, `responses()`, `messages()`, `models()`, `management()`
 //! - **📡 Streaming Support**: Real-time response streaming with `futures`
 //! - **🧠 Reasoning Tokens**: Advanced support for chain-of-thought reasoning
 //! - **⚙️ Model Presets**: Pre-configured model groups for different use cases
@@ -52,7 +53,7 @@
 //!         .build()?;
 //!
 //!     // Send request and get response
-//!     let response = client.send_chat_completion(&request).await?;
+//!     let response = client.chat().create(&request).await?;
 //!     println!("Response: {}", response.choices[0].content().unwrap_or(""));
 //!
 //!     Ok(())
@@ -75,7 +76,7 @@
 //!     .messages(vec![Message::new(Role::User, "Write a haiku about Rust")])
 //!     .build()?;
 //!
-//! let mut stream = client.stream_chat_completion(&request).await?;
+//! let mut stream = client.chat().stream(&request).await?;
 //!
 //! while let Some(result) = stream.next().await {
 //!     if let Ok(response) = result {
@@ -105,7 +106,7 @@
 //!     .reasoning_max_tokens(1000)      // Limit reasoning tokens
 //!     .build()?;
 //!
-//! let response = client.send_chat_completion(&request).await?;
+//! let response = client.chat().create(&request).await?;
 //!
 //! println!("Reasoning: {}", response.choices[0].reasoning().unwrap_or(""));
 //! println!("Answer: {}", response.choices[0].content().unwrap_or(""));
@@ -140,6 +141,7 @@
 //!
 //! | Feature | Status | Module |
 //! |---------|--------|---------|
+//! | Domain-Oriented Client API | ✅ | [`client::OpenRouterClient`] |
 //! | Chat Completions | ✅ | [`api::chat`] |
 //! | Text Completions | ✅ | [`api::completion`] |
 //! | Model Information | ✅ | [`api::models`] |

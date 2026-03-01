@@ -56,7 +56,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ])
         .build()?;
 
-    let response = client.send_chat_completion(&request).await?;
+    let response = client.chat().create(&request).await?;
     println!("{}", response.choices[0].content().unwrap_or(""));
 
     Ok(())
@@ -64,6 +64,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```
 
 ## ✨ Key Features
+
+### 🧭 Domain-Oriented Client Surface
+
+Use domain accessors for clearer API boundaries:
+
+```rust
+let response = client.chat().create(&chat_request).await?;
+let models = client.models().list().await?;
+let keys = client.management().list_api_keys(None, Some(false)).await?;
+```
+
+Available domains:
+- `client.chat()`
+- `client.responses()`
+- `client.messages()`
+- `client.models()`
+- `client.management()`
 
 ### 🧠 Advanced Reasoning Support
 
@@ -79,7 +96,7 @@ let request = ChatCompletionRequest::builder()
     .reasoning_max_tokens(2000)        // Control reasoning depth
     .build()?;
 
-let response = client.send_chat_completion(&request).await?;
+let response = client.chat().create(&request).await?;
 
 // Access both reasoning and final answer
 println!("🧠 Reasoning: {}", response.choices[0].reasoning().unwrap_or(""));
@@ -116,7 +133,7 @@ let request = ChatCompletionRequest::builder()
     .tools(vec![calculator])
     .build()?;
 
-let response = client.send_chat_completion(&request).await?;
+let response = client.chat().create(&request).await?;
 
 // Handle tool calls
 if let Some(tool_calls) = response.choices[0].tool_calls() {
@@ -181,7 +198,7 @@ Process responses as they arrive:
 ```rust
 use futures_util::StreamExt;
 
-let stream = client.stream_chat_completion(&request).await?;
+let stream = client.chat().stream(&request).await?;
 
 stream
     .filter_map(|event| async { event.ok() })
@@ -215,7 +232,7 @@ println!("Available models: {:?}", config.get_resolved_models());
 ```rust
 use openrouter_rs::error::OpenRouterError;
 
-match client.send_chat_completion(&request).await {
+match client.chat().create(&request).await {
     Ok(response) => println!("Success!"),
     Err(OpenRouterError::ModerationError { reasons, .. }) => {
         eprintln!("Content flagged: {:?}", reasons);
@@ -242,9 +259,9 @@ let create = auth::CreateAuthCodeRequest::builder()
     .code_challenge_method(auth::CodeChallengeMethod::S256)
     .build()?;
 
-let auth_code = client.create_auth_code(&create).await?;
+let auth_code = client.management().create_auth_code(&create).await?;
 
-let key = client
+let key = client.management()
     .exchange_code_for_api_key(
         &auth_code.id,
         Some("your_pkce_code_verifier"),
@@ -257,6 +274,7 @@ let key = client
 
 | Feature | Status | Module |
 |---------|---------|---------|
+| Domain-Oriented Client API | ✅ | [`OpenRouterClient`](https://docs.rs/openrouter-rs/latest/openrouter_rs/struct.OpenRouterClient.html) |
 | Chat Completions | ✅ | [`api::chat`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/chat/) |
 | Text Completions | ✅ | [`api::completion`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/completion/) |
 | **Tool Calling** | ✅ | [`api::chat`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/chat/) |
@@ -286,7 +304,8 @@ Management-key examples in this repo use `OPENROUTER_MANAGEMENT_KEY`.
 use openrouter_rs::types::ModelCategory;
 
 let models = client
-    .list_models_by_category(ModelCategory::Programming)
+    .models()
+    .list_by_category(ModelCategory::Programming)
     .await?;
 
 println!("Found {} programming models", models.len());
@@ -306,7 +325,7 @@ let client = OpenRouterClient::builder()
 ### Streaming with Reasoning
 
 ```rust
-let stream = client.stream_chat_completion(
+let stream = client.chat().stream(
     &ChatCompletionRequest::builder()
         .model("anthropic/claude-sonnet-4")
         .messages(vec![Message::new(Role::User, "Solve this step by step: 2x + 5 = 13")])
@@ -349,6 +368,9 @@ export OPENROUTER_API_KEY="your_key_here"
 # Basic chat completion
 cargo run --example send_chat_completion
 
+# Domain-oriented chat client
+cargo run --example domain_chat_completion
+
 # Tool calling (function calling)
 cargo run --example basic_tool_calling
 
@@ -366,6 +388,9 @@ cargo run --example stream_chat_with_reasoning
 
 # Streaming with tool calls
 cargo run --example stream_chat_with_tools
+
+# Domain-oriented management client
+cargo run --example domain_management_api_keys
 ```
 
 ## 🤝 Community & Support

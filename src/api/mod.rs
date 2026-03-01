@@ -40,7 +40,7 @@
 //! use openrouter_rs::types::ModelCategory;
 //!
 //! // Get all models in the programming category
-//! let models = client.list_models_by_category(ModelCategory::Programming).await?;
+//! let models = client.models().list_by_category(ModelCategory::Programming).await?;
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 //!
@@ -91,7 +91,7 @@
 //!     .messages(vec![Message::new(Role::User, "Hello!")])
 //!     .build()?;
 //!
-//! let response = client.send_chat_completion(&request).await?;
+//! let response = client.chat().create(&request).await?;
 //! # Ok(())
 //! # }
 //! ```
@@ -105,7 +105,7 @@
 //!     .api_key("your_key")
 //!     .build()?;
 //!
-//! let models = client.list_models().await?;
+//! let models = client.models().list().await?;
 //! println!("Found {} models", models.len());
 //! # Ok(())
 //! # }
@@ -119,7 +119,7 @@
 //! use openrouter_rs::error::OpenRouterError;
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! match client.send_chat_completion(&request).await {
+//! match client.chat().create(&request).await {
 //!     Ok(response) => println!("Success: {:?}", response),
 //!     Err(OpenRouterError::RateLimitExceeded) => {
 //!         println!("Rate limit hit, retrying later...");

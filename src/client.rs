@@ -100,6 +100,34 @@ impl OpenRouterClient {
         self.management_key = None;
     }
 
+    /// Domain client for chat completions and chat streaming.
+    pub fn chat(&self) -> ChatClient<'_> {
+        ChatClient { client: self }
+    }
+
+    /// Domain client for Responses API operations.
+    pub fn responses(&self) -> ResponsesClient<'_> {
+        ResponsesClient { client: self }
+    }
+
+    /// Domain client for Anthropic-compatible `/messages` operations.
+    pub fn messages(&self) -> MessagesClient<'_> {
+        MessagesClient { client: self }
+    }
+
+    /// Domain client for model/discovery/embedding operations.
+    pub fn models(&self) -> ModelsClient<'_> {
+        ModelsClient { client: self }
+    }
+
+    /// Domain client for management-governed endpoints.
+    pub fn management(&self) -> ManagementClient<'_> {
+        ManagementClient { client: self }
+    }
+}
+
+#[doc(hidden)]
+impl OpenRouterClient {
     /// Creates a new API key. Requires a management API key.
     ///
     /// # Arguments
@@ -1101,5 +1129,392 @@ impl OpenRouterClient {
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
+    }
+}
+
+/// Domain client for chat completions.
+#[derive(Debug, Clone, Copy)]
+pub struct ChatClient<'a> {
+    client: &'a OpenRouterClient,
+}
+
+impl<'a> ChatClient<'a> {
+    /// Create a chat completion (`POST /chat/completions`).
+    pub async fn create(
+        &self,
+        request: &chat::ChatCompletionRequest,
+    ) -> Result<CompletionsResponse, OpenRouterError> {
+        self.client.send_chat_completion(request).await
+    }
+
+    /// Stream chat completion chunks.
+    pub async fn stream(
+        &self,
+        request: &chat::ChatCompletionRequest,
+    ) -> Result<BoxStream<'static, Result<CompletionsResponse, OpenRouterError>>, OpenRouterError>
+    {
+        self.client.stream_chat_completion(request).await
+    }
+
+    /// Stream chat completion chunks with tool-call-aware aggregation.
+    pub async fn stream_tool_aware(
+        &self,
+        request: &chat::ChatCompletionRequest,
+    ) -> Result<ToolAwareStream, OpenRouterError> {
+        self.client.stream_chat_completion_tool_aware(request).await
+    }
+}
+
+/// Domain client for OpenRouter Responses API.
+#[derive(Debug, Clone, Copy)]
+pub struct ResponsesClient<'a> {
+    client: &'a OpenRouterClient,
+}
+
+impl<'a> ResponsesClient<'a> {
+    /// Create a response (`POST /responses`).
+    pub async fn create(
+        &self,
+        request: &responses::ResponsesRequest,
+    ) -> Result<responses::ResponsesResponse, OpenRouterError> {
+        self.client.create_response(request).await
+    }
+
+    /// Stream response events (`POST /responses`, `stream=true`).
+    pub async fn stream(
+        &self,
+        request: &responses::ResponsesRequest,
+    ) -> Result<
+        BoxStream<'static, Result<responses::ResponsesStreamEvent, OpenRouterError>>,
+        OpenRouterError,
+    > {
+        self.client.stream_response(request).await
+    }
+}
+
+/// Domain client for Anthropic-compatible Messages API.
+#[derive(Debug, Clone, Copy)]
+pub struct MessagesClient<'a> {
+    client: &'a OpenRouterClient,
+}
+
+impl<'a> MessagesClient<'a> {
+    /// Create a non-streaming message (`POST /messages`).
+    pub async fn create(
+        &self,
+        request: &messages::AnthropicMessagesRequest,
+    ) -> Result<messages::AnthropicMessagesResponse, OpenRouterError> {
+        self.client.create_message(request).await
+    }
+
+    /// Stream SSE events from `/messages`.
+    pub async fn stream(
+        &self,
+        request: &messages::AnthropicMessagesRequest,
+    ) -> Result<
+        BoxStream<'static, Result<messages::AnthropicMessagesSseEvent, OpenRouterError>>,
+        OpenRouterError,
+    > {
+        self.client.stream_messages(request).await
+    }
+}
+
+/// Domain client for model/discovery/embedding endpoints.
+#[derive(Debug, Clone, Copy)]
+pub struct ModelsClient<'a> {
+    client: &'a OpenRouterClient,
+}
+
+impl<'a> ModelsClient<'a> {
+    /// List all models (`GET /models`).
+    pub async fn list(&self) -> Result<Vec<models::Model>, OpenRouterError> {
+        self.client.list_models().await
+    }
+
+    /// List models by category (`GET /models?category=...`).
+    pub async fn list_by_category(
+        &self,
+        category: ModelCategory,
+    ) -> Result<Vec<models::Model>, OpenRouterError> {
+        self.client.list_models_by_category(category).await
+    }
+
+    /// List models by supported parameter (`GET /models?supported_parameters=...`).
+    pub async fn list_by_parameters(
+        &self,
+        supported_parameters: SupportedParameters,
+    ) -> Result<Vec<models::Model>, OpenRouterError> {
+        self.client
+            .list_models_by_parameters(supported_parameters)
+            .await
+    }
+
+    /// List model endpoints (`GET /models/{author}/{slug}/endpoints`).
+    pub async fn list_endpoints(
+        &self,
+        author: &str,
+        slug: &str,
+    ) -> Result<models::EndpointData, OpenRouterError> {
+        self.client.list_model_endpoints(author, slug).await
+    }
+
+    /// List providers (`GET /providers`).
+    pub async fn list_providers(&self) -> Result<Vec<discovery::Provider>, OpenRouterError> {
+        self.client.list_providers().await
+    }
+
+    /// List user-filtered models (`GET /models/user`).
+    pub async fn list_for_user(&self) -> Result<Vec<discovery::UserModel>, OpenRouterError> {
+        self.client.list_models_for_user().await
+    }
+
+    /// Count available models (`GET /models/count`).
+    pub async fn count(&self) -> Result<discovery::ModelsCountData, OpenRouterError> {
+        self.client.count_models().await
+    }
+
+    /// List ZDR-compatible endpoints (`GET /endpoints/zdr`).
+    pub async fn list_zdr_endpoints(
+        &self,
+    ) -> Result<Vec<discovery::PublicEndpoint>, OpenRouterError> {
+        self.client.list_zdr_endpoints().await
+    }
+
+    /// Create an embedding (`POST /embeddings`).
+    pub async fn create_embedding(
+        &self,
+        request: &embeddings::EmbeddingRequest,
+    ) -> Result<embeddings::EmbeddingResponse, OpenRouterError> {
+        self.client.create_embedding(request).await
+    }
+
+    /// List embedding models (`GET /embeddings/models`).
+    pub async fn list_embedding_models(&self) -> Result<Vec<models::Model>, OpenRouterError> {
+        self.client.list_embedding_models().await
+    }
+}
+
+/// Domain client for management endpoints.
+#[derive(Debug, Clone, Copy)]
+pub struct ManagementClient<'a> {
+    client: &'a OpenRouterClient,
+}
+
+impl<'a> ManagementClient<'a> {
+    /// Create a managed API key (`POST /keys`).
+    pub async fn create_api_key(
+        &self,
+        name: &str,
+        limit: Option<f64>,
+    ) -> Result<api_keys::ApiKey, OpenRouterError> {
+        self.client.create_api_key(name, limit).await
+    }
+
+    /// Get current key session info (`GET /key`).
+    pub async fn get_current_api_key_info(
+        &self,
+    ) -> Result<api_keys::ApiKeyDetails, OpenRouterError> {
+        self.client.get_current_api_key_info().await
+    }
+
+    /// Delete an API key (`DELETE /keys/{hash}`).
+    pub async fn delete_api_key(&self, hash: &str) -> Result<bool, OpenRouterError> {
+        self.client.delete_api_key(hash).await
+    }
+
+    /// Update an API key (`PATCH /keys/{hash}`).
+    pub async fn update_api_key(
+        &self,
+        hash: &str,
+        name: Option<String>,
+        disabled: Option<bool>,
+        limit: Option<f64>,
+    ) -> Result<api_keys::ApiKey, OpenRouterError> {
+        self.client
+            .update_api_key(hash, name, disabled, limit)
+            .await
+    }
+
+    /// List API keys (`GET /keys`).
+    pub async fn list_api_keys(
+        &self,
+        offset: Option<f64>,
+        include_disabled: Option<bool>,
+    ) -> Result<Vec<api_keys::ApiKey>, OpenRouterError> {
+        self.client.list_api_keys(offset, include_disabled).await
+    }
+
+    /// Get an API key (`GET /keys/{hash}`).
+    pub async fn get_api_key(&self, hash: &str) -> Result<api_keys::ApiKey, OpenRouterError> {
+        self.client.get_api_key(hash).await
+    }
+
+    /// Create OAuth auth code (`POST /auth/keys/code`).
+    pub async fn create_auth_code(
+        &self,
+        request: &auth::CreateAuthCodeRequest,
+    ) -> Result<auth::AuthCodeData, OpenRouterError> {
+        self.client.create_auth_code(request).await
+    }
+
+    /// Exchange auth code for API key (`POST /auth/keys`).
+    pub async fn exchange_code_for_api_key(
+        &self,
+        code: &str,
+        code_verifier: Option<&str>,
+        code_challenge_method: Option<auth::CodeChallengeMethod>,
+    ) -> Result<auth::AuthResponse, OpenRouterError> {
+        self.client
+            .exchange_code_for_api_key(code, code_verifier, code_challenge_method)
+            .await
+    }
+
+    /// Create a Coinbase charge (`POST /credits/coinbase`).
+    pub async fn create_coinbase_charge(
+        &self,
+        request: &credits::CoinbaseChargeRequest,
+    ) -> Result<credits::CoinbaseChargeData, OpenRouterError> {
+        self.client.create_coinbase_charge(request).await
+    }
+
+    /// Get credits (`GET /credits`).
+    pub async fn get_credits(&self) -> Result<credits::CreditsData, OpenRouterError> {
+        self.client.get_credits().await
+    }
+
+    /// Get generation metadata (`GET /generation?id=...`).
+    pub async fn get_generation(
+        &self,
+        id: impl Into<String>,
+    ) -> Result<generation::GenerationData, OpenRouterError> {
+        self.client.get_generation(id).await
+    }
+
+    /// Get endpoint usage activity (`GET /activity`).
+    pub async fn get_activity(
+        &self,
+        date: Option<&str>,
+    ) -> Result<Vec<discovery::ActivityItem>, OpenRouterError> {
+        self.client.get_activity(date).await
+    }
+
+    /// List guardrails (`GET /guardrails`).
+    pub async fn list_guardrails(
+        &self,
+        offset: Option<u32>,
+        limit: Option<u32>,
+    ) -> Result<guardrails::GuardrailListResponse, OpenRouterError> {
+        self.client.list_guardrails(offset, limit).await
+    }
+
+    /// Create a guardrail (`POST /guardrails`).
+    pub async fn create_guardrail(
+        &self,
+        request: &guardrails::CreateGuardrailRequest,
+    ) -> Result<guardrails::Guardrail, OpenRouterError> {
+        self.client.create_guardrail(request).await
+    }
+
+    /// Get a guardrail (`GET /guardrails/{id}`).
+    pub async fn get_guardrail(&self, id: &str) -> Result<guardrails::Guardrail, OpenRouterError> {
+        self.client.get_guardrail(id).await
+    }
+
+    /// Update a guardrail (`PATCH /guardrails/{id}`).
+    pub async fn update_guardrail(
+        &self,
+        id: &str,
+        request: &guardrails::UpdateGuardrailRequest,
+    ) -> Result<guardrails::Guardrail, OpenRouterError> {
+        self.client.update_guardrail(id, request).await
+    }
+
+    /// Delete a guardrail (`DELETE /guardrails/{id}`).
+    pub async fn delete_guardrail(&self, id: &str) -> Result<bool, OpenRouterError> {
+        self.client.delete_guardrail(id).await
+    }
+
+    /// List key assignments for a guardrail.
+    pub async fn list_guardrail_key_assignments(
+        &self,
+        id: &str,
+        offset: Option<u32>,
+        limit: Option<u32>,
+    ) -> Result<guardrails::GuardrailKeyAssignmentsResponse, OpenRouterError> {
+        self.client
+            .list_guardrail_key_assignments(id, offset, limit)
+            .await
+    }
+
+    /// Bulk assign key hashes to a guardrail.
+    pub async fn bulk_assign_keys_to_guardrail(
+        &self,
+        id: &str,
+        request: &guardrails::BulkKeyAssignmentRequest,
+    ) -> Result<guardrails::AssignedCountResponse, OpenRouterError> {
+        self.client.bulk_assign_keys_to_guardrail(id, request).await
+    }
+
+    /// Bulk unassign key hashes from a guardrail.
+    pub async fn bulk_unassign_keys_from_guardrail(
+        &self,
+        id: &str,
+        request: &guardrails::BulkKeyAssignmentRequest,
+    ) -> Result<guardrails::UnassignedCountResponse, OpenRouterError> {
+        self.client
+            .bulk_unassign_keys_from_guardrail(id, request)
+            .await
+    }
+
+    /// List member assignments for a guardrail.
+    pub async fn list_guardrail_member_assignments(
+        &self,
+        id: &str,
+        offset: Option<u32>,
+        limit: Option<u32>,
+    ) -> Result<guardrails::GuardrailMemberAssignmentsResponse, OpenRouterError> {
+        self.client
+            .list_guardrail_member_assignments(id, offset, limit)
+            .await
+    }
+
+    /// Bulk assign members to a guardrail.
+    pub async fn bulk_assign_members_to_guardrail(
+        &self,
+        id: &str,
+        request: &guardrails::BulkMemberAssignmentRequest,
+    ) -> Result<guardrails::AssignedCountResponse, OpenRouterError> {
+        self.client
+            .bulk_assign_members_to_guardrail(id, request)
+            .await
+    }
+
+    /// Bulk unassign members from a guardrail.
+    pub async fn bulk_unassign_members_from_guardrail(
+        &self,
+        id: &str,
+        request: &guardrails::BulkMemberAssignmentRequest,
+    ) -> Result<guardrails::UnassignedCountResponse, OpenRouterError> {
+        self.client
+            .bulk_unassign_members_from_guardrail(id, request)
+            .await
+    }
+
+    /// List global key assignments.
+    pub async fn list_key_assignments(
+        &self,
+        offset: Option<u32>,
+        limit: Option<u32>,
+    ) -> Result<guardrails::GuardrailKeyAssignmentsResponse, OpenRouterError> {
+        self.client.list_key_assignments(offset, limit).await
+    }
+
+    /// List global member assignments.
+    pub async fn list_member_assignments(
+        &self,
+        offset: Option<u32>,
+        limit: Option<u32>,
+    ) -> Result<guardrails::GuardrailMemberAssignmentsResponse, OpenRouterError> {
+        self.client.list_member_assignments(offset, limit).await
     }
 }
