@@ -13,6 +13,10 @@ readme = "README.md"
 keywords = ["openrouter", "ai", "sdk"]
 categories = ["api-bindings", "web-programming::http-client"]
 
+[workspace]
+members = [".", "crates/openrouter-cli"]
+resolver = "2"
+
 [features]
 default = []
 legacy-completions = []
