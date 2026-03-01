@@ -81,6 +81,7 @@ async fn test_domain_06_style_inference_surface_requires_api_key() {
 }
 
 #[tokio::test]
+#[allow(deprecated)]
 async fn test_flat_05_style_management_surface_requires_management_key() {
     let client = OpenRouterClient::builder()
         .api_key("user-key")
@@ -122,6 +123,7 @@ async fn test_domain_06_style_management_surface_requires_management_key() {
 
 #[tokio::test]
 #[cfg(feature = "legacy-completions")]
+#[allow(deprecated)]
 async fn test_legacy_completion_surface_smoke() {
     let client = OpenRouterClient::builder()
         .build()
