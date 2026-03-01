@@ -139,6 +139,8 @@ Migration mapping:
 
 ### 🔁 0.6 Naming/Pagination Migration
 
+Full migration guide: [MIGRATION.md](./MIGRATION.md)
+
 - `models().count()` -> `models().get_model_count()`
 - `models().list_for_user()` -> `models().list_user_models()`
 - `management().exchange_code_for_api_key(...)` -> `management().create_api_key_from_auth_code(...)`

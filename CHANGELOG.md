@@ -45,10 +45,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `keys`: `list/create/get/update/delete`
     - `guardrails`: `list/create/get/update/delete`
     - `guardrails assignments`: `keys|members` with `list/assign/unassign`
-  - added OR-22 usage/billing commands:
-    - `credits show`
-    - `credits charge --amount --sender --chain-id`
-    - `usage activity --date`
+- added OR-22 usage/billing commands:
+  - `credits show`
+  - `credits charge --amount --sender --chain-id`
+  - `usage activity --date`
 - `0.5.x` deprecation bridge for planned `0.6.0` removals/renames:
   - restored deprecated `provisioning_key` compatibility aliases:
     - `OpenRouterClientBuilder::provisioning_key(...)`
@@ -57,9 +57,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - added deprecated domain-method aliases:
     - `models().count()` -> `models().get_model_count()`
     - `models().list_for_user()` -> `models().list_user_models()`
-    - `management().exchange_code_for_api_key(...)` -> `management().create_api_key_from_auth_code(...)`
+  - `management().exchange_code_for_api_key(...)` -> `management().create_api_key_from_auth_code(...)`
   - `list_api_keys` now accepts legacy `Option<f64>` offset inputs as a deprecated compatibility bridge
   - `legacy-completions` is re-enabled in default features for transitional `0.5.x` compatibility
+- Migration guidance for `0.5.x` -> `0.6.0`:
+  - added `MIGRATION.md` with old->new API mapping tables
+  - documented top migration recipes with before/after snippets across auth, models, management, and legacy completions
+  - linked migration guide from README
 
 ### Changed
 - Breaking (planned for `0.6.0`) legacy completions isolation:
