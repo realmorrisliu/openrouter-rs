@@ -68,10 +68,16 @@ async fn test_models_domain_renamed_methods_require_api_key() {
         .expect("client should build");
 
     let user_models = client.models().list_user_models().await;
-    assert!(matches!(user_models, Err(OpenRouterError::KeyNotConfigured)));
+    assert!(matches!(
+        user_models,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
 
     let model_count = client.models().get_model_count().await;
-    assert!(matches!(model_count, Err(OpenRouterError::KeyNotConfigured)));
+    assert!(matches!(
+        model_count,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
 }
 
 #[tokio::test]
