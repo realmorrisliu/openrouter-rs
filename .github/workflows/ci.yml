@@ -38,6 +38,9 @@ jobs:
       - name: Run unit tests
         run: cargo test --test unit
 
+      - name: Run CLI foundation tests
+        run: cargo test -p openrouter-cli
+
   msrv-check:
     name: MSRV Check (1.85.0)
     runs-on: ubuntu-latest

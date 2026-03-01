@@ -467,6 +467,25 @@ cargo run --example domain_management_api_keys
 cargo run --features legacy-completions --example send_completion_request
 ```
 
+### Run CLI (Foundation)
+
+```bash
+# Show CLI help
+cargo run -p openrouter-cli -- --help
+
+# Show resolved profile/config/auth sources
+cargo run -p openrouter-cli -- --output json profile show
+```
+
+CLI config priority is deterministic:
+
+- flags (`--api-key`, `--management-key`, `--base-url`)
+- environment (`OPENROUTER_API_KEY`, `OPENROUTER_MANAGEMENT_KEY`, `OPENROUTER_BASE_URL`)
+- profile values in `profiles.toml`
+- defaults
+
+See [`crates/openrouter-cli/README.md`](crates/openrouter-cli/README.md) for full config/profile conventions.
+
 ## 🤝 Community & Support
 
 ### 🐛 Found a Bug?
@@ -513,7 +532,7 @@ If this SDK helps your project, consider:
 - [ ] **WebSocket Support** - Real-time bidirectional communication
 - [ ] **Retry Strategies** - Automatic retry with exponential backoff
 - [ ] **Caching Layer** - Response caching for improved performance
-- [ ] **CLI Tool** - Command-line interface for quick testing
+- [ ] **CLI Tool** - Command-line interface for quick testing (foundation landed; command groups in progress)
 - [ ] **Middleware System** - Request/response interceptors
 
 ## 📜 License

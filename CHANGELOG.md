@@ -32,6 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - added domain accessors: `chat()`, `responses()`, `messages()`, `models()`, `management()`
   - added typed domain clients with endpoint methods grouped by API domain
   - added domain-oriented examples for chat and management workflows
+- `openrouter-cli` foundation (workspace crate):
+  - added command bootstrap with `--help`, `profile show`, and `config show/path`
+  - added deterministic config/auth resolution order: flags > env > profile config > defaults
+  - added profile/config path conventions and CLI-specific tests
 
 ### Changed
 - Breaking (planned for `0.6.0`) legacy completions isolation:
@@ -52,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - new `error::{ApiErrorContext, ApiErrorKind}`
   - `OpenRouterError::Api(...)` now consistently carries status/api_code/message/request_id
   - added retryability helpers via `ApiErrorContext::is_retryable()`
+- CI now runs `cargo test -p openrouter-cli` for CLI startup/config coverage
 
 ### Fixed
 - Unified messages tool-start events now preserve `content_block_start.index` to keep tool chunks correlatable.
