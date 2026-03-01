@@ -53,6 +53,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `OpenRouterError::Api(...)` now consistently carries status/api_code/message/request_id
   - added retryability helpers via `ApiErrorContext::is_retryable()`
 
+### Fixed
+- Unified messages tool-start events now preserve `content_block_start.index` to keep tool chunks correlatable.
+- Unified responses stream now only terminates on `response.completed` (avoids premature close on non-terminal `*.completed` events).
+
 ## [0.5.1] - 2026-02-28
 
 ### Added

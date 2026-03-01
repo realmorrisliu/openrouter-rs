@@ -217,6 +217,65 @@ async fn test_unified_responses_stream_mixed_sequence() {
 }
 
 #[tokio::test]
+async fn test_unified_responses_stream_non_terminal_completed_suffix_stays_open() {
+    let events = vec![
+        Ok(responses_event(
+            "response.output_text.delta",
+            json!({ "delta": "Hello " }),
+        )),
+        Ok(responses_event(
+            "response.tool.completed",
+            json!({ "tool": "get_weather" }),
+        )),
+        Ok(responses_event(
+            "response.output_text.delta",
+            json!({ "delta": "world" }),
+        )),
+        Ok(responses_event(
+            "response.completed",
+            json!({
+                "response": {
+                    "id": "resp_terminal",
+                    "model": "openai/gpt-5",
+                    "status": "completed"
+                }
+            }),
+        )),
+    ];
+
+    let mut stream = adapt_responses_stream(stream::iter(events).boxed());
+    let unified: Vec<UnifiedStreamEvent> = stream.by_ref().collect().await;
+
+    assert_eq!(unified.len(), 4);
+    assert!(matches!(unified[0], UnifiedStreamEvent::ContentDelta(_)));
+    match &unified[1] {
+        UnifiedStreamEvent::ToolDelta(data) => {
+            assert_eq!(
+                data.get("tool").and_then(|value| value.as_str()),
+                Some("get_weather")
+            );
+        }
+        other => panic!("expected ToolDelta event, got {other:?}"),
+    }
+    assert!(matches!(unified[2], UnifiedStreamEvent::ContentDelta(_)));
+    match &unified[3] {
+        UnifiedStreamEvent::Done {
+            source,
+            id,
+            model,
+            finish_reason,
+            ..
+        } => {
+            assert_eq!(*source, UnifiedStreamSource::Responses);
+            assert_eq!(id.as_deref(), Some("resp_terminal"));
+            assert_eq!(model.as_deref(), Some("openai/gpt-5"));
+            assert_eq!(finish_reason.as_deref(), Some("completed"));
+        }
+        other => panic!("expected Done event, got {other:?}"),
+    }
+}
+
+#[tokio::test]
 async fn test_unified_messages_stream_mixed_sequence() {
     let events = vec![
         Ok(AnthropicMessagesSseEvent {
@@ -346,6 +405,63 @@ async fn test_unified_messages_tool_delta_preserves_content_block_index() {
                     .and_then(|delta| delta.get("partial_json"))
                     .and_then(|value| value.as_str()),
                 Some("{\"city\":\"S")
+            );
+        }
+        other => panic!("expected ToolDelta event, got {other:?}"),
+    }
+    assert!(matches!(
+        unified[1],
+        UnifiedStreamEvent::Done {
+            source: UnifiedStreamSource::Messages,
+            ..
+        }
+    ));
+}
+
+#[tokio::test]
+async fn test_unified_messages_tool_start_preserves_content_block_index() {
+    let events = vec![
+        Ok(AnthropicMessagesSseEvent {
+            event: "content_block_start".to_string(),
+            data: AnthropicMessagesStreamEvent::ContentBlockStart {
+                index: 3,
+                content_block: Box::new(AnthropicContentPart::ToolUse {
+                    id: "toolu_2".to_string(),
+                    name: "get_weather".to_string(),
+                    input: Some(json!({ "city": "SF" })),
+                    cache_control: None,
+                }),
+            },
+        }),
+        Ok(AnthropicMessagesSseEvent {
+            event: "message_stop".to_string(),
+            data: AnthropicMessagesStreamEvent::MessageStop,
+        }),
+    ];
+
+    let mut stream = adapt_messages_stream(stream::iter(events).boxed());
+    let unified: Vec<UnifiedStreamEvent> = stream.by_ref().collect().await;
+
+    assert_eq!(unified.len(), 2);
+    match &unified[0] {
+        UnifiedStreamEvent::ToolDelta(payload) => {
+            assert_eq!(
+                payload.get("index").and_then(|value| value.as_u64()),
+                Some(3)
+            );
+            assert_eq!(
+                payload
+                    .get("content_block")
+                    .and_then(|block| block.get("id"))
+                    .and_then(|value| value.as_str()),
+                Some("toolu_2")
+            );
+            assert_eq!(
+                payload
+                    .get("content_block")
+                    .and_then(|block| block.get("name"))
+                    .and_then(|value| value.as_str()),
+                Some("get_weather")
             );
         }
         other => panic!("expected ToolDelta event, got {other:?}"),
