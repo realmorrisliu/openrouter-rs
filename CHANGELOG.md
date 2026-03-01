@@ -41,6 +41,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `providers list`
     - `models list` supports `--category` and `--supported-parameter` filters
   - discovery command output now supports both machine-readable JSON and human-readable table text
+  - added OR-21 management commands:
+    - `keys`: `list/create/get/update/delete`
+    - `guardrails`: `list/create/get/update/delete`
+    - `guardrails assignments`: `keys|members` with `list/assign/unassign`
 
 ### Changed
 - Breaking (planned for `0.6.0`) legacy completions isolation:
@@ -66,6 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Unified messages tool-start events now preserve `content_block_start.index` to keep tool chunks correlatable.
 - Unified responses stream now only terminates on `response.completed` (avoids premature close on non-terminal `*.completed` events).
+- `guardrails update` now supports explicit allowlist clearing via `--clear-allowed-providers` and `--clear-allowed-models`.
 
 ## [0.5.1] - 2026-02-28
 

@@ -6,6 +6,7 @@
 
 - OR-19: command bootstrap and config/profile resolution
 - OR-20: discovery commands for models/providers/endpoints
+- OR-21: management commands for API keys and guardrails
 
 ## Config And Profile Convention
 
@@ -74,4 +75,30 @@ openrouter-cli --api-key "$OPENROUTER_API_KEY" models endpoints openai/gpt-4.1
 
 # List providers
 openrouter-cli --api-key "$OPENROUTER_API_KEY" providers list
+```
+
+## Management Commands (OR-21)
+
+`openrouter-cli` supports management workflows:
+
+- `keys list|create|get|update|delete`
+- `guardrails list|create|get|update|delete`
+- `guardrails assignments keys list|assign|unassign`
+- `guardrails assignments members list|assign|unassign`
+
+Examples:
+
+```bash
+# List keys
+openrouter-cli --management-key "$OPENROUTER_MANAGEMENT_KEY" keys list --include-disabled
+
+# Create and update key
+openrouter-cli --management-key "$OPENROUTER_MANAGEMENT_KEY" keys create --name "ci-bot" --limit 100
+openrouter-cli --management-key "$OPENROUTER_MANAGEMENT_KEY" keys update sk-or-v1-hash --disable
+
+# Delete key (requires explicit confirmation)
+openrouter-cli --management-key "$OPENROUTER_MANAGEMENT_KEY" keys delete sk-or-v1-hash --yes
+
+# Update guardrail and clear allowlists
+openrouter-cli --management-key "$OPENROUTER_MANAGEMENT_KEY" guardrails update gr_123 --clear-allowed-providers --clear-allowed-models
 ```

@@ -5,15 +5,17 @@ use anyhow::{Result, anyhow, bail};
 use clap::Parser;
 use openrouter_rs::{
     OpenRouterClient,
-    api::{discovery, models},
-    types::{ModelCategory, SupportedParameters},
+    api::{discovery, guardrails, models},
+    types::{ModelCategory, PaginationOptions, SupportedParameters},
 };
 use serde::Serialize;
 
 use crate::{
     cli::{
-        Cli, Commands, ConfigCommands, ModelCategoryArg, ModelsCommands, OutputFormat,
-        ProfileCommands, ProvidersCommands, SupportedParameterArg,
+        Cli, Commands, ConfigCommands, GuardrailAssignmentCommands, GuardrailKeyAssignmentCommands,
+        GuardrailMemberAssignmentCommands, GuardrailsCommands, KeysCommands, ModelCategoryArg,
+        ModelsCommands, OutputFormat, PaginationArgs, ProfileCommands, ProvidersCommands,
+        SupportedParameterArg,
     },
     config::{Environment, ResolvedProfile, resolve_profile},
 };
@@ -180,6 +182,65 @@ fn build_api_client(resolved: &ResolvedProfile) -> Result<OpenRouterClient> {
         builder.management_key(management_key);
     }
     Ok(builder.build()?)
+}
+
+fn print_value<T: Serialize>(value: &T, output: OutputFormat) -> Result<()> {
+    match output {
+        OutputFormat::Json | OutputFormat::Text => {
+            println!("{}", serde_json::to_string_pretty(value)?);
+        }
+    }
+    Ok(())
+}
+
+fn require_yes(yes: bool, action: &str) -> Result<()> {
+    if yes {
+        return Ok(());
+    }
+    bail!("refusing to {action} without --yes");
+}
+
+fn pagination_from_args(args: &PaginationArgs) -> Option<PaginationOptions> {
+    match (args.offset, args.limit) {
+        (None, None) => None,
+        (offset, limit) => Some(PaginationOptions::new(offset, limit)),
+    }
+}
+
+fn build_management_client(resolved: &ResolvedProfile) -> Result<OpenRouterClient> {
+    let Some(management_key) = resolved.management_key.as_deref() else {
+        bail!(
+            "management key is required for this command; set --management-key, OPENROUTER_MANAGEMENT_KEY, or profile.management_key"
+        );
+    };
+
+    let mut builder = OpenRouterClient::builder();
+    builder.base_url(resolved.base_url.clone());
+    builder.management_key(management_key);
+    if let Some(api_key) = resolved.api_key.as_deref() {
+        builder.api_key(api_key);
+    }
+    Ok(builder.build()?)
+}
+
+fn resolve_disabled_flag(disable: bool, enable: bool) -> Option<bool> {
+    if disable {
+        Some(true)
+    } else if enable {
+        Some(false)
+    } else {
+        None
+    }
+}
+
+fn resolve_enforce_zdr_flag(enforce_zdr: bool, no_enforce_zdr: bool) -> Option<bool> {
+    if enforce_zdr {
+        Some(true)
+    } else if no_enforce_zdr {
+        Some(false)
+    } else {
+        None
+    }
 }
 
 fn print_models(models: &[models::Model], output: OutputFormat) -> Result<()> {
@@ -366,11 +427,233 @@ async fn run() -> Result<()> {
                 }
             }
         }
-        Commands::Keys => {
-            println!("keys command group is not implemented yet (planned in OR-21)");
+        Commands::Keys { command } => {
+            let client = build_management_client(&resolved)?;
+            let management = client.management();
+
+            match command {
+                KeysCommands::List(args) => {
+                    let pagination = args.offset.map(PaginationOptions::with_offset);
+                    let include_disabled = if args.include_disabled {
+                        Some(true)
+                    } else {
+                        None
+                    };
+                    let response = management
+                        .list_api_keys(pagination, include_disabled)
+                        .await?;
+                    print_value(&response, cli.global.output)?;
+                }
+                KeysCommands::Create(args) => {
+                    let response = management.create_api_key(&args.name, args.limit).await?;
+                    print_value(&response, cli.global.output)?;
+                }
+                KeysCommands::Get(args) => {
+                    let response = management.get_api_key(&args.hash).await?;
+                    print_value(&response, cli.global.output)?;
+                }
+                KeysCommands::Update(args) => {
+                    let disabled = resolve_disabled_flag(args.disable, args.enable);
+                    if args.name.is_none() && args.limit.is_none() && disabled.is_none() {
+                        bail!(
+                            "no update fields provided; use --name, --limit, --enable, or --disable"
+                        );
+                    }
+
+                    let response = management
+                        .update_api_key(&args.hash, args.name, disabled, args.limit)
+                        .await?;
+                    print_value(&response, cli.global.output)?;
+                }
+                KeysCommands::Delete(args) => {
+                    require_yes(args.yes, "delete key")?;
+                    let deleted = management.delete_api_key(&args.hash).await?;
+                    print_value(
+                        &serde_json::json!({
+                            "hash": args.hash,
+                            "deleted": deleted,
+                        }),
+                        cli.global.output,
+                    )?;
+                }
+            }
         }
-        Commands::Guardrails => {
-            println!("guardrails command group is not implemented yet (planned in OR-21)");
+        Commands::Guardrails { command } => {
+            let client = build_management_client(&resolved)?;
+            let management = client.management();
+
+            match command {
+                GuardrailsCommands::List(args) => {
+                    let pagination = pagination_from_args(&args);
+                    let response = management.list_guardrails(pagination).await?;
+                    print_value(&response, cli.global.output)?;
+                }
+                GuardrailsCommands::Create(args) => {
+                    let mut builder = guardrails::CreateGuardrailRequest::builder();
+                    builder.name(args.name);
+
+                    if let Some(description) = args.description {
+                        builder.description(description);
+                    }
+                    if let Some(limit_usd) = args.limit_usd {
+                        builder.limit_usd(limit_usd);
+                    }
+                    if let Some(reset_interval) = args.reset_interval {
+                        builder.reset_interval(reset_interval);
+                    }
+                    if !args.allowed_providers.is_empty() {
+                        builder.allowed_providers(args.allowed_providers);
+                    }
+                    if !args.allowed_models.is_empty() {
+                        builder.allowed_models(args.allowed_models);
+                    }
+                    if args.enforce_zdr {
+                        builder.enforce_zdr(true);
+                    }
+
+                    let request = builder.build()?;
+                    let response = management.create_guardrail(&request).await?;
+                    print_value(&response, cli.global.output)?;
+                }
+                GuardrailsCommands::Get(args) => {
+                    let response = management.get_guardrail(&args.id).await?;
+                    print_value(&response, cli.global.output)?;
+                }
+                GuardrailsCommands::Update(args) => {
+                    let enforce_zdr =
+                        resolve_enforce_zdr_flag(args.enforce_zdr, args.no_enforce_zdr);
+
+                    if args.name.is_none()
+                        && args.description.is_none()
+                        && args.limit_usd.is_none()
+                        && args.reset_interval.is_none()
+                        && args.allowed_providers.is_empty()
+                        && args.allowed_models.is_empty()
+                        && !args.clear_allowed_providers
+                        && !args.clear_allowed_models
+                        && enforce_zdr.is_none()
+                    {
+                        bail!("no update fields provided; pass at least one update argument");
+                    }
+
+                    let mut builder = guardrails::UpdateGuardrailRequest::builder();
+                    if let Some(name) = args.name {
+                        builder.name(name);
+                    }
+                    if let Some(description) = args.description {
+                        builder.description(description);
+                    }
+                    if let Some(limit_usd) = args.limit_usd {
+                        builder.limit_usd(limit_usd);
+                    }
+                    if let Some(reset_interval) = args.reset_interval {
+                        builder.reset_interval(reset_interval);
+                    }
+                    if args.clear_allowed_providers {
+                        builder.allowed_providers(Vec::<String>::new());
+                    } else if !args.allowed_providers.is_empty() {
+                        builder.allowed_providers(args.allowed_providers);
+                    }
+                    if args.clear_allowed_models {
+                        builder.allowed_models(Vec::<String>::new());
+                    } else if !args.allowed_models.is_empty() {
+                        builder.allowed_models(args.allowed_models);
+                    }
+                    if let Some(enforce_zdr) = enforce_zdr {
+                        builder.enforce_zdr(enforce_zdr);
+                    }
+
+                    let request = builder.build()?;
+                    let response = management.update_guardrail(&args.id, &request).await?;
+                    print_value(&response, cli.global.output)?;
+                }
+                GuardrailsCommands::Delete(args) => {
+                    require_yes(args.yes, "delete guardrail")?;
+                    let deleted = management.delete_guardrail(&args.id).await?;
+                    print_value(
+                        &serde_json::json!({
+                            "id": args.id,
+                            "deleted": deleted,
+                        }),
+                        cli.global.output,
+                    )?;
+                }
+                GuardrailsCommands::Assignments { command } => match command {
+                    GuardrailAssignmentCommands::Keys { command } => match command {
+                        GuardrailKeyAssignmentCommands::List(args) => {
+                            let pagination = pagination_from_args(&args.pagination);
+                            if let Some(guardrail_id) = args.guardrail_id {
+                                let response = management
+                                    .list_guardrail_key_assignments(&guardrail_id, pagination)
+                                    .await?;
+                                print_value(&response, cli.global.output)?;
+                            } else {
+                                let response = management.list_key_assignments(pagination).await?;
+                                print_value(&response, cli.global.output)?;
+                            }
+                        }
+                        GuardrailKeyAssignmentCommands::Assign(args) => {
+                            let request = guardrails::BulkKeyAssignmentRequest::builder()
+                                .key_hashes(args.key_hashes)
+                                .build()?;
+                            let response = management
+                                .create_guardrail_key_assignments(&args.guardrail_id, &request)
+                                .await?;
+                            print_value(&response, cli.global.output)?;
+                        }
+                        GuardrailKeyAssignmentCommands::Unassign(args) => {
+                            require_yes(args.yes, "unassign keys from guardrail")?;
+                            let request = guardrails::BulkKeyAssignmentRequest::builder()
+                                .key_hashes(args.request.key_hashes)
+                                .build()?;
+                            let response = management
+                                .delete_guardrail_key_assignments(
+                                    &args.request.guardrail_id,
+                                    &request,
+                                )
+                                .await?;
+                            print_value(&response, cli.global.output)?;
+                        }
+                    },
+                    GuardrailAssignmentCommands::Members { command } => match command {
+                        GuardrailMemberAssignmentCommands::List(args) => {
+                            let pagination = pagination_from_args(&args.pagination);
+                            if let Some(guardrail_id) = args.guardrail_id {
+                                let response = management
+                                    .list_guardrail_member_assignments(&guardrail_id, pagination)
+                                    .await?;
+                                print_value(&response, cli.global.output)?;
+                            } else {
+                                let response =
+                                    management.list_member_assignments(pagination).await?;
+                                print_value(&response, cli.global.output)?;
+                            }
+                        }
+                        GuardrailMemberAssignmentCommands::Assign(args) => {
+                            let request = guardrails::BulkMemberAssignmentRequest::builder()
+                                .member_user_ids(args.member_user_ids)
+                                .build()?;
+                            let response = management
+                                .create_guardrail_member_assignments(&args.guardrail_id, &request)
+                                .await?;
+                            print_value(&response, cli.global.output)?;
+                        }
+                        GuardrailMemberAssignmentCommands::Unassign(args) => {
+                            require_yes(args.yes, "unassign members from guardrail")?;
+                            let request = guardrails::BulkMemberAssignmentRequest::builder()
+                                .member_user_ids(args.request.member_user_ids)
+                                .build()?;
+                            let response = management
+                                .delete_guardrail_member_assignments(
+                                    &args.request.guardrail_id,
+                                    &request,
+                                )
+                                .await?;
+                            print_value(&response, cli.global.output)?;
+                        }
+                    },
+                },
+            }
         }
         Commands::Usage => {
             println!("usage command group is not implemented yet (planned in OR-22)");
