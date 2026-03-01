@@ -9,6 +9,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build()?;
 
     let api_keys = client
+        .management()
         .list_api_keys(Some(PaginationOptions::with_offset(0)), Some(true))
         .await?;
     println!("{api_keys:?}");

@@ -40,39 +40,14 @@ pub struct OpenRouterClient {
     config: Option<OpenRouterConfig>,
 }
 
-#[doc(hidden)]
-pub trait IntoApiKeyPagination {
-    fn into_pagination_options(self) -> Option<PaginationOptions>;
-}
-
-impl IntoApiKeyPagination for Option<PaginationOptions> {
-    fn into_pagination_options(self) -> Option<PaginationOptions> {
-        self
-    }
-}
-
-impl IntoApiKeyPagination for PaginationOptions {
-    fn into_pagination_options(self) -> Option<PaginationOptions> {
-        Some(self)
-    }
-}
-
-impl IntoApiKeyPagination for Option<u32> {
-    fn into_pagination_options(self) -> Option<PaginationOptions> {
-        self.map(PaginationOptions::with_offset)
-    }
-}
-
-impl IntoApiKeyPagination for Option<f64> {
-    fn into_pagination_options(self) -> Option<PaginationOptions> {
-        self.and_then(|value| {
-            if value.is_finite() && value >= 0.0 {
-                Some(PaginationOptions::with_offset(value.trunc() as u32))
-            } else {
-                None
-            }
-        })
-    }
+fn legacy_offset_to_pagination(offset: Option<f64>) -> Option<PaginationOptions> {
+    offset.and_then(|value| {
+        if value.is_finite() && value >= 0.0 {
+            Some(PaginationOptions::with_offset(value.trunc() as u32))
+        } else {
+            None
+        }
+    })
 }
 
 impl OpenRouterClientBuilder {
@@ -314,11 +289,24 @@ impl OpenRouterClient {
         }
     }
 
+    async fn list_api_keys_paginated(
+        &self,
+        pagination: Option<PaginationOptions>,
+        include_disabled: Option<bool>,
+    ) -> Result<Vec<api_keys::ApiKey>, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            api_keys::list_api_keys(&self.base_url, management_key, pagination, include_disabled)
+                .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
     /// Returns a list of all API keys associated with the account. Requires a management API key.
     ///
     /// # Arguments
     ///
-    /// * `pagination` - Optional pagination options for the API keys list.
+    /// * `offset` - Optional legacy offset value for the API keys list.
     /// * `include_disabled` - Optional flag to include disabled API keys.
     ///
     /// # Returns
@@ -328,28 +316,23 @@ impl OpenRouterClient {
     /// # Example
     ///
     /// ```
-    /// # use openrouter_rs::{OpenRouterClient, types::PaginationOptions};
+    /// # use openrouter_rs::OpenRouterClient;
     /// let client = OpenRouterClient::builder().management_key("your_management_key").build()?;
-    /// let pagination = PaginationOptions::with_offset(0);
-    /// let api_keys = client.list_api_keys(Some(pagination), Some(true)).await?;
+    /// let api_keys = client.list_api_keys(Some(0.0), Some(true)).await?;
     /// println!("{:?}", api_keys);
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
-    pub async fn list_api_keys<P>(
+    #[deprecated(
+        since = "0.5.2",
+        note = "use client.management().list_api_keys(Some(PaginationOptions::with_offset(...)), include_disabled) for the 0.6-style API"
+    )]
+    pub async fn list_api_keys(
         &self,
-        pagination: P,
+        offset: Option<f64>,
         include_disabled: Option<bool>,
-    ) -> Result<Vec<api_keys::ApiKey>, OpenRouterError>
-    where
-        P: IntoApiKeyPagination,
-    {
-        let pagination = pagination.into_pagination_options();
-        if let Some(management_key) = &self.management_key {
-            api_keys::list_api_keys(&self.base_url, management_key, pagination, include_disabled)
-                .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
+    ) -> Result<Vec<api_keys::ApiKey>, OpenRouterError> {
+        self.list_api_keys_paginated(legacy_offset_to_pagination(offset), include_disabled)
+            .await
     }
 
     /// Returns details about a specific API key. Requires a management API key.
@@ -1485,16 +1468,13 @@ impl<'a> ManagementClient<'a> {
     }
 
     /// List API keys (`GET /keys`).
-    pub async fn list_api_keys<P>(
+    pub async fn list_api_keys(
         &self,
-        pagination: P,
+        pagination: Option<PaginationOptions>,
         include_disabled: Option<bool>,
-    ) -> Result<Vec<api_keys::ApiKey>, OpenRouterError>
-    where
-        P: IntoApiKeyPagination,
-    {
+    ) -> Result<Vec<api_keys::ApiKey>, OpenRouterError> {
         self.client
-            .list_api_keys(pagination, include_disabled)
+            .list_api_keys_paginated(pagination, include_disabled)
             .await
     }
 
