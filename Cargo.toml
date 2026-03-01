@@ -18,7 +18,7 @@ members = [".", "crates/openrouter-cli"]
 resolver = "2"
 
 [features]
-default = []
+default = ["legacy-completions"]
 legacy-completions = []
 
 [dependencies]

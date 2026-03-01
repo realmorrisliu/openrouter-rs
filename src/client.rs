@@ -40,6 +40,51 @@ pub struct OpenRouterClient {
     config: Option<OpenRouterConfig>,
 }
 
+#[doc(hidden)]
+pub trait IntoApiKeyPagination {
+    fn into_pagination_options(self) -> Option<PaginationOptions>;
+}
+
+impl IntoApiKeyPagination for Option<PaginationOptions> {
+    fn into_pagination_options(self) -> Option<PaginationOptions> {
+        self
+    }
+}
+
+impl IntoApiKeyPagination for PaginationOptions {
+    fn into_pagination_options(self) -> Option<PaginationOptions> {
+        Some(self)
+    }
+}
+
+impl IntoApiKeyPagination for Option<u32> {
+    fn into_pagination_options(self) -> Option<PaginationOptions> {
+        self.map(PaginationOptions::with_offset)
+    }
+}
+
+impl IntoApiKeyPagination for Option<f64> {
+    fn into_pagination_options(self) -> Option<PaginationOptions> {
+        self.and_then(|value| {
+            if value.is_finite() && value >= 0.0 {
+                Some(PaginationOptions::with_offset(value.trunc() as u32))
+            } else {
+                None
+            }
+        })
+    }
+}
+
+impl OpenRouterClientBuilder {
+    #[deprecated(
+        since = "0.5.2",
+        note = "renamed to management_key(...); provisioning_key(...) will be removed in 0.6.0"
+    )]
+    pub fn provisioning_key(&mut self, provisioning_key: impl Into<String>) -> &mut Self {
+        self.management_key(provisioning_key)
+    }
+}
+
 impl OpenRouterClient {
     pub fn builder() -> OpenRouterClientBuilder {
         OpenRouterClientBuilder::default()
@@ -104,6 +149,22 @@ impl OpenRouterClient {
     /// ```
     pub fn clear_management_key(&mut self) {
         self.management_key = None;
+    }
+
+    #[deprecated(
+        since = "0.5.2",
+        note = "renamed to set_management_key(...); set_provisioning_key(...) will be removed in 0.6.0"
+    )]
+    pub fn set_provisioning_key(&mut self, provisioning_key: impl Into<String>) {
+        self.set_management_key(provisioning_key);
+    }
+
+    #[deprecated(
+        since = "0.5.2",
+        note = "renamed to clear_management_key(); clear_provisioning_key() will be removed in 0.6.0"
+    )]
+    pub fn clear_provisioning_key(&mut self) {
+        self.clear_management_key();
     }
 
     /// Domain client for chat completions and chat streaming.
@@ -274,11 +335,15 @@ impl OpenRouterClient {
     /// println!("{:?}", api_keys);
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
-    pub async fn list_api_keys(
+    pub async fn list_api_keys<P>(
         &self,
-        pagination: Option<PaginationOptions>,
+        pagination: P,
         include_disabled: Option<bool>,
-    ) -> Result<Vec<api_keys::ApiKey>, OpenRouterError> {
+    ) -> Result<Vec<api_keys::ApiKey>, OpenRouterError>
+    where
+        P: IntoApiKeyPagination,
+    {
+        let pagination = pagination.into_pagination_options();
         if let Some(management_key) = &self.management_key {
             api_keys::list_api_keys(&self.base_url, management_key, pagination, include_disabled)
                 .await
@@ -859,6 +924,10 @@ impl OpenRouterClient {
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     #[cfg(feature = "legacy-completions")]
+    #[deprecated(
+        since = "0.5.2",
+        note = "use client.legacy().completions().create(request); send_completion_request() will be removed in 0.6.0"
+    )]
     pub async fn send_completion_request(
         &self,
         request: &completion::CompletionRequest,
@@ -1332,9 +1401,25 @@ impl<'a> ModelsClient<'a> {
         self.client.list_models_for_user().await
     }
 
+    #[deprecated(
+        since = "0.5.2",
+        note = "renamed to list_user_models(); list_for_user() will be removed in 0.6.0"
+    )]
+    pub async fn list_for_user(&self) -> Result<Vec<discovery::UserModel>, OpenRouterError> {
+        self.list_user_models().await
+    }
+
     /// Get available model count (`GET /models/count`).
     pub async fn get_model_count(&self) -> Result<discovery::ModelsCountData, OpenRouterError> {
         self.client.count_models().await
+    }
+
+    #[deprecated(
+        since = "0.5.2",
+        note = "renamed to get_model_count(); count() will be removed in 0.6.0"
+    )]
+    pub async fn count(&self) -> Result<discovery::ModelsCountData, OpenRouterError> {
+        self.get_model_count().await
     }
 
     /// List ZDR-compatible endpoints (`GET /endpoints/zdr`).
@@ -1400,11 +1485,14 @@ impl<'a> ManagementClient<'a> {
     }
 
     /// List API keys (`GET /keys`).
-    pub async fn list_api_keys(
+    pub async fn list_api_keys<P>(
         &self,
-        pagination: Option<PaginationOptions>,
+        pagination: P,
         include_disabled: Option<bool>,
-    ) -> Result<Vec<api_keys::ApiKey>, OpenRouterError> {
+    ) -> Result<Vec<api_keys::ApiKey>, OpenRouterError>
+    where
+        P: IntoApiKeyPagination,
+    {
         self.client
             .list_api_keys(pagination, include_disabled)
             .await
@@ -1432,6 +1520,20 @@ impl<'a> ManagementClient<'a> {
     ) -> Result<auth::AuthResponse, OpenRouterError> {
         self.client
             .exchange_code_for_api_key(code, code_verifier, code_challenge_method)
+            .await
+    }
+
+    #[deprecated(
+        since = "0.5.2",
+        note = "renamed to create_api_key_from_auth_code(...); exchange_code_for_api_key(...) will be removed in 0.6.0"
+    )]
+    pub async fn exchange_code_for_api_key(
+        &self,
+        code: &str,
+        code_verifier: Option<&str>,
+        code_challenge_method: Option<auth::CodeChallengeMethod>,
+    ) -> Result<auth::AuthResponse, OpenRouterError> {
+        self.create_api_key_from_auth_code(code, code_verifier, code_challenge_method)
             .await
     }
 
@@ -1607,6 +1709,7 @@ pub struct LegacyCompletionsClient<'a> {
 #[cfg(feature = "legacy-completions")]
 impl<'a> LegacyCompletionsClient<'a> {
     /// Create a legacy text completion (`POST /completions`).
+    #[allow(deprecated)]
     pub async fn create(
         &self,
         request: &completion::CompletionRequest,
