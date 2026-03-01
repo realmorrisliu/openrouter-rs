@@ -569,7 +569,7 @@ pub fn adapt_responses_stream(
                         emitted = true;
                     }
 
-                    if event_type == "response.completed" || event_type.ends_with(".completed") {
+                    if event_type == "response.completed" {
                         state.done_emitted = true;
                         state.pending.push_back(UnifiedStreamEvent::Done {
                             source: UnifiedStreamSource::Responses,
@@ -663,7 +663,8 @@ pub fn adapt_messages_stream(
                             }
                         }
                         AnthropicMessagesStreamEvent::ContentBlockStart {
-                            content_block, ..
+                            index,
+                            content_block,
                         } => match *content_block {
                             AnthropicContentPart::Thinking { thinking, .. } => {
                                 state
@@ -672,8 +673,13 @@ pub fn adapt_messages_stream(
                             }
                             AnthropicContentPart::ToolUse { .. }
                             | AnthropicContentPart::ServerToolUse { .. } => {
+                                let content_block_value =
+                                    serde_json::to_value(content_block).unwrap_or(Value::Null);
                                 state.pending.push_back(UnifiedStreamEvent::ToolDelta(
-                                    serde_json::to_value(content_block).unwrap_or(Value::Null),
+                                    serde_json::json!({
+                                        "index": index,
+                                        "content_block": content_block_value,
+                                    }),
                                 ));
                             }
                             _ => {}

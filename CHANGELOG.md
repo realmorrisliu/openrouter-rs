@@ -58,6 +58,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - added retryability helpers via `ApiErrorContext::is_retryable()`
 - CI now runs `cargo test -p openrouter-cli` for CLI startup/config coverage
 
+### Fixed
+- Unified messages tool-start events now preserve `content_block_start.index` to keep tool chunks correlatable.
+- Unified responses stream now only terminates on `response.completed` (avoids premature close on non-terminal `*.completed` events).
+
 ## [0.5.1] - 2026-02-28
 
 ### Added
