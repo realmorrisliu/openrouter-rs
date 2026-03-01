@@ -161,6 +161,13 @@ Full migration guide: [MIGRATION.md](./MIGRATION.md)
 | `management().exchange_code_for_api_key(...)` | `management().create_api_key_from_auth_code(...)` |
 | `list_api_keys(Some(offset_f64), ...)` | `list_api_keys(Some(PaginationOptions::with_offset(offset_u32)), ...)` |
 
+Migration validation commands for contributors:
+
+```bash
+./scripts/check_migration_docs.sh
+cargo test --test migration_smoke --all-features
+```
+
 ### 🧠 Advanced Reasoning Support
 
 Leverage chain-of-thought processing with reasoning tokens:

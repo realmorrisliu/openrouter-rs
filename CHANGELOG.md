@@ -64,6 +64,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - added `MIGRATION.md` with old->new API mapping tables
   - documented top migration recipes with before/after snippets across auth, models, management, and legacy completions
   - linked migration guide from README
+- Migration verification harness:
+  - added `tests/migration_smoke.rs` covering representative flat (`0.5`-style) and domain (`0.6`-style) call paths
+  - added `scripts/check_migration_docs.sh` to validate migration mapping sections/snippets in docs
+  - CI now runs a dedicated `Migration Smoke Checks` job (`docs check + cargo test --test migration_smoke --all-features`)
+  - documented migration validation commands in README for contributors
 
 ### Changed
 - Breaking (planned for `0.6.0`) legacy completions isolation:
