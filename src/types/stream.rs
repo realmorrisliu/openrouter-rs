@@ -678,7 +678,7 @@ pub fn adapt_messages_stream(
                             }
                             _ => {}
                         },
-                        AnthropicMessagesStreamEvent::ContentBlockDelta { delta, .. } => {
+                        AnthropicMessagesStreamEvent::ContentBlockDelta { index, delta } => {
                             let delta_type = delta
                                 .get("type")
                                 .and_then(Value::as_str)
@@ -703,9 +703,12 @@ pub fn adapt_messages_stream(
                                 || delta_type.contains("json")
                                 || delta.get("partial_json").is_some()
                             {
-                                state
-                                    .pending
-                                    .push_back(UnifiedStreamEvent::ToolDelta(delta));
+                                state.pending.push_back(UnifiedStreamEvent::ToolDelta(
+                                    serde_json::json!({
+                                        "index": index,
+                                        "delta": delta
+                                    }),
+                                ));
                             } else {
                                 state.pending.push_back(UnifiedStreamEvent::Raw {
                                     source: UnifiedStreamSource::Messages,

@@ -156,6 +156,22 @@ async fn test_normalized_moderation_error_shape() {
             assert_eq!(api_error.api_code, Some(400));
             assert_eq!(api_error.request_id.as_deref(), Some("req_mod"));
             assert!(!api_error.is_retryable());
+            assert_eq!(
+                api_error
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("provider_name"))
+                    .and_then(|value| value.as_str()),
+                Some("openai")
+            );
+            assert_eq!(
+                api_error
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("model_slug"))
+                    .and_then(|value| value.as_str()),
+                Some("gpt-4.1")
+            );
             match api_error.kind {
                 ApiErrorKind::Moderation {
                     reasons,

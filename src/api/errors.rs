@@ -52,12 +52,17 @@ fn build_api_error(
     let (kind, normalized_metadata) = match metadata {
         Some(ApiErrorMetadata::ModerationError(moderation)) => (
             ApiErrorKind::Moderation {
-                reasons: moderation.reasons,
-                flagged_input: moderation.flagged_input,
-                provider_name: moderation.provider_name,
-                model_slug: moderation.model_slug,
+                reasons: moderation.reasons.clone(),
+                flagged_input: moderation.flagged_input.clone(),
+                provider_name: moderation.provider_name.clone(),
+                model_slug: moderation.model_slug.clone(),
             },
-            None,
+            Some(serde_json::json!({
+                "reasons": moderation.reasons,
+                "flagged_input": moderation.flagged_input,
+                "provider_name": moderation.provider_name,
+                "model_slug": moderation.model_slug,
+            })),
         ),
         Some(ApiErrorMetadata::ProviderError(provider)) => (
             ApiErrorKind::Provider {

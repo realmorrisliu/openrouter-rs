@@ -303,3 +303,58 @@ async fn test_unified_messages_stream_error_then_done() {
     assert!(matches!(unified[0], UnifiedStreamEvent::Error(_)));
     assert!(matches!(unified[1], UnifiedStreamEvent::Done { .. }));
 }
+
+#[tokio::test]
+async fn test_unified_messages_tool_delta_preserves_content_block_index() {
+    let events = vec![
+        Ok(AnthropicMessagesSseEvent {
+            event: "content_block_delta".to_string(),
+            data: AnthropicMessagesStreamEvent::ContentBlockDelta {
+                index: 2,
+                delta: json!({
+                    "type": "input_json_delta",
+                    "partial_json": "{\"city\":\"S"
+                }),
+            },
+        }),
+        Ok(AnthropicMessagesSseEvent {
+            event: "message_stop".to_string(),
+            data: AnthropicMessagesStreamEvent::MessageStop,
+        }),
+    ];
+
+    let mut stream = adapt_messages_stream(stream::iter(events).boxed());
+    let unified: Vec<UnifiedStreamEvent> = stream.by_ref().collect().await;
+
+    assert_eq!(unified.len(), 2);
+    match &unified[0] {
+        UnifiedStreamEvent::ToolDelta(payload) => {
+            assert_eq!(
+                payload.get("index").and_then(|value| value.as_u64()),
+                Some(2)
+            );
+            assert_eq!(
+                payload
+                    .get("delta")
+                    .and_then(|delta| delta.get("type"))
+                    .and_then(|value| value.as_str()),
+                Some("input_json_delta")
+            );
+            assert_eq!(
+                payload
+                    .get("delta")
+                    .and_then(|delta| delta.get("partial_json"))
+                    .and_then(|value| value.as_str()),
+                Some("{\"city\":\"S")
+            );
+        }
+        other => panic!("expected ToolDelta event, got {other:?}"),
+    }
+    assert!(matches!(
+        unified[1],
+        UnifiedStreamEvent::Done {
+            source: UnifiedStreamSource::Messages,
+            ..
+        }
+    ));
+}
