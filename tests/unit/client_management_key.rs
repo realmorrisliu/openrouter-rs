@@ -21,7 +21,7 @@ async fn test_guardrails_endpoints_require_management_key() {
         .build()
         .expect("client should build");
 
-    let result = client.list_guardrails(None, None).await;
+    let result = client.list_guardrails(None).await;
     assert!(
         matches!(result, Err(OpenRouterError::KeyNotConfigured)),
         "list_guardrails should require management_key"

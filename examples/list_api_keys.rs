@@ -1,4 +1,4 @@
-use openrouter_rs::OpenRouterClient;
+use openrouter_rs::{OpenRouterClient, types::PaginationOptions};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -8,7 +8,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .management_key(management_key)
         .build()?;
 
-    let api_keys = client.list_api_keys(Some(0.0), Some(true)).await?;
+    let api_keys = client
+        .list_api_keys(Some(PaginationOptions::with_offset(0)), Some(true))
+        .await?;
     println!("{api_keys:?}");
 
     Ok(())

@@ -16,6 +16,7 @@ pub mod discovery;
 pub mod embeddings;
 pub mod guardrails;
 pub mod messages;
+pub mod pagination;
 pub mod provider;
 pub mod response_format;
 pub mod responses;
