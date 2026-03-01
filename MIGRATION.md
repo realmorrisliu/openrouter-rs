@@ -4,7 +4,7 @@ This guide is for users upgrading from the `0.5.x` API surface to the planned `0
 
 ## Quick Checklist
 
-1. Replace `provisioning_key` naming with `management_key`.
+1. Replace `provisioning_key` naming with `management_key` (`OpenRouterClientBuilder::management_key`, `OpenRouterClient::set_management_key`, `OpenRouterClient::clear_management_key`).
 2. Move legacy completions usage to `api::legacy::completion` and `client.legacy().completions()`.
 3. Move from flat client calls to domain clients (`chat()`, `responses()`, `messages()`, `models()`, `management()`).
 4. Replace old pagination shapes with `types::PaginationOptions`.
