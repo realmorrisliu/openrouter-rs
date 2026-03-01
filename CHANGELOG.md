@@ -43,6 +43,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - introduced shared `types::PaginationOptions` for paginated endpoints
   - updated paginated API signatures (`api_keys`, `guardrails`, client wrappers) to use `PaginationOptions`
 
+### Added
+- Unified streaming abstraction across chat/responses/messages:
+  - new `types::stream::{UnifiedStreamEvent, UnifiedStreamSource, UnifiedStream}`
+  - adapters: `adapt_chat_stream`, `adapt_responses_stream`, `adapt_messages_stream`
+  - new domain methods: `chat().stream_unified(...)`, `responses().stream_unified(...)`, `messages().stream_unified(...)`
+- Normalized API error model:
+  - new `error::{ApiErrorContext, ApiErrorKind}`
+  - `OpenRouterError::Api(...)` now consistently carries status/api_code/message/request_id
+  - added retryability helpers via `ApiErrorContext::is_retryable()`
+
 ## [0.5.1] - 2026-02-28
 
 ### Added

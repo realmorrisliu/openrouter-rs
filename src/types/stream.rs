@@ -48,17 +48,24 @@
 //! # }
 //! ```
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, VecDeque};
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
 use futures_util::stream::BoxStream;
 use futures_util::{Stream, StreamExt};
+use serde_json::Value;
 
 use crate::error::OpenRouterError;
 use crate::types::completion::{
-    CompletionsResponse, FinishReason, FunctionCall, PartialToolCall, ReasoningDetail,
-    ResponseUsage, ToolCall,
+    CompletionsResponse, FunctionCall, PartialToolCall, ReasoningDetail, ResponseUsage, ToolCall,
+};
+use crate::{
+    api::{
+        messages::{AnthropicContentPart, AnthropicMessagesSseEvent, AnthropicMessagesStreamEvent},
+        responses::ResponsesStreamEvent,
+    },
+    types::completion::FinishReason,
 };
 
 /// Events emitted by [`ToolAwareStream`].
@@ -326,4 +333,431 @@ impl Stream for ToolAwareStream {
             Poll::Pending => Poll::Pending,
         }
     }
+}
+
+/// Source stream family for a [`UnifiedStreamEvent`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UnifiedStreamSource {
+    Chat,
+    Responses,
+    Messages,
+}
+
+/// Unified stream event model across chat/responses/messages APIs.
+#[derive(Debug)]
+pub enum UnifiedStreamEvent {
+    /// Text content delta from the model.
+    ContentDelta(String),
+    /// Reasoning/thinking delta.
+    ReasoningDelta(String),
+    /// Structured reasoning detail blocks (chat stream only).
+    ReasoningDetailsDelta(Vec<ReasoningDetail>),
+    /// Tool-related delta payload (format depends on source API).
+    ToolDelta(Value),
+    /// Source-specific event payload when no common projection applies.
+    Raw {
+        source: UnifiedStreamSource,
+        event_type: String,
+        data: Value,
+    },
+    /// Terminal event for a stream source.
+    Done {
+        source: UnifiedStreamSource,
+        id: Option<String>,
+        model: Option<String>,
+        finish_reason: Option<String>,
+        usage: Option<Value>,
+    },
+    /// Transport/parsing/runtime error from the underlying stream.
+    Error(OpenRouterError),
+}
+
+/// A unified stream type across all streaming APIs.
+pub type UnifiedStream = BoxStream<'static, UnifiedStreamEvent>;
+
+#[derive(Debug, Default)]
+struct StreamMeta {
+    id: Option<String>,
+    model: Option<String>,
+    finish_reason: Option<String>,
+    usage: Option<Value>,
+}
+
+fn finish_reason_to_string(reason: &FinishReason) -> &'static str {
+    match reason {
+        FinishReason::ToolCalls => "tool_calls",
+        FinishReason::Stop => "stop",
+        FinishReason::Length => "length",
+        FinishReason::ContentFilter => "content_filter",
+        FinishReason::Error => "error",
+    }
+}
+
+/// Adapt a chat-completions SSE stream to [`UnifiedStreamEvent`].
+pub fn adapt_chat_stream(
+    inner: BoxStream<'static, Result<CompletionsResponse, OpenRouterError>>,
+) -> UnifiedStream {
+    struct State {
+        inner: BoxStream<'static, Result<CompletionsResponse, OpenRouterError>>,
+        pending: VecDeque<UnifiedStreamEvent>,
+        done_emitted: bool,
+        meta: StreamMeta,
+    }
+
+    let state = State {
+        inner,
+        pending: VecDeque::new(),
+        done_emitted: false,
+        meta: StreamMeta::default(),
+    };
+
+    futures_util::stream::unfold(state, |mut state| async move {
+        loop {
+            if let Some(event) = state.pending.pop_front() {
+                return Some((event, state));
+            }
+
+            if state.done_emitted {
+                return None;
+            }
+
+            match state.inner.next().await {
+                Some(Ok(response)) => {
+                    state.meta.id = Some(response.id.clone());
+                    state.meta.model = Some(response.model.clone());
+                    if let Some(usage) = response.usage {
+                        state.meta.usage = serde_json::to_value(usage).ok();
+                    }
+
+                    for choice in &response.choices {
+                        if let Some(content) = choice.content() {
+                            if !content.is_empty() {
+                                state.pending.push_back(UnifiedStreamEvent::ContentDelta(
+                                    content.to_string(),
+                                ));
+                            }
+                        }
+
+                        if let Some(reasoning) = choice.reasoning() {
+                            if !reasoning.is_empty() {
+                                state.pending.push_back(UnifiedStreamEvent::ReasoningDelta(
+                                    reasoning.to_string(),
+                                ));
+                            }
+                        }
+
+                        if let Some(reasoning_details) = choice.reasoning_details() {
+                            if !reasoning_details.is_empty() {
+                                state
+                                    .pending
+                                    .push_back(UnifiedStreamEvent::ReasoningDetailsDelta(
+                                        reasoning_details.to_vec(),
+                                    ));
+                            }
+                        }
+
+                        if let Some(partials) = choice.partial_tool_calls() {
+                            for partial in partials {
+                                state.pending.push_back(UnifiedStreamEvent::ToolDelta(
+                                    serde_json::to_value(partial).unwrap_or(Value::Null),
+                                ));
+                            }
+                        }
+
+                        if let Some(reason) = choice.finish_reason() {
+                            state.meta.finish_reason =
+                                Some(finish_reason_to_string(reason).to_string());
+                        }
+                    }
+                }
+                Some(Err(error)) => {
+                    state.pending.push_back(UnifiedStreamEvent::Error(error));
+                }
+                None => {
+                    state.done_emitted = true;
+                    state.pending.push_back(UnifiedStreamEvent::Done {
+                        source: UnifiedStreamSource::Chat,
+                        id: state.meta.id.take(),
+                        model: state.meta.model.take(),
+                        finish_reason: state.meta.finish_reason.take(),
+                        usage: state.meta.usage.take(),
+                    });
+                }
+            }
+        }
+    })
+    .boxed()
+}
+
+/// Adapt a Responses API SSE stream to [`UnifiedStreamEvent`].
+pub fn adapt_responses_stream(
+    inner: BoxStream<'static, Result<ResponsesStreamEvent, OpenRouterError>>,
+) -> UnifiedStream {
+    struct State {
+        inner: BoxStream<'static, Result<ResponsesStreamEvent, OpenRouterError>>,
+        pending: VecDeque<UnifiedStreamEvent>,
+        done_emitted: bool,
+        meta: StreamMeta,
+    }
+
+    let state = State {
+        inner,
+        pending: VecDeque::new(),
+        done_emitted: false,
+        meta: StreamMeta::default(),
+    };
+
+    futures_util::stream::unfold(state, |mut state| async move {
+        loop {
+            if let Some(event) = state.pending.pop_front() {
+                return Some((event, state));
+            }
+
+            if state.done_emitted {
+                return None;
+            }
+
+            match state.inner.next().await {
+                Some(Ok(event)) => {
+                    let event_type = event.event_type.clone();
+                    let data_value = serde_json::to_value(&event.data).unwrap_or(Value::Null);
+                    let mut emitted = false;
+
+                    if let Some(response) = event.data.get("response") {
+                        if let Some(id) = response.get("id").and_then(Value::as_str) {
+                            state.meta.id = Some(id.to_string());
+                        }
+                        if let Some(model) = response.get("model").and_then(Value::as_str) {
+                            state.meta.model = Some(model.to_string());
+                        }
+                        if let Some(status) = response.get("status").and_then(Value::as_str) {
+                            state.meta.finish_reason = Some(status.to_string());
+                        }
+                        if let Some(usage) = response.get("usage") {
+                            state.meta.usage = Some(usage.clone());
+                        }
+                    }
+
+                    if event_type.contains("output_text.delta") {
+                        if let Some(delta) = event.data.get("delta").and_then(Value::as_str) {
+                            state
+                                .pending
+                                .push_back(UnifiedStreamEvent::ContentDelta(delta.to_string()));
+                            emitted = true;
+                        }
+                    }
+
+                    if !emitted && event_type.contains("reasoning") {
+                        let reasoning = event
+                            .data
+                            .get("delta")
+                            .and_then(Value::as_str)
+                            .or_else(|| event.data.get("text").and_then(Value::as_str))
+                            .or_else(|| event.data.get("reasoning").and_then(Value::as_str));
+                        if let Some(reasoning) = reasoning {
+                            state.pending.push_back(UnifiedStreamEvent::ReasoningDelta(
+                                reasoning.to_string(),
+                            ));
+                            emitted = true;
+                        }
+                    }
+
+                    if !emitted && event_type.contains("tool") {
+                        state
+                            .pending
+                            .push_back(UnifiedStreamEvent::ToolDelta(data_value.clone()));
+                        emitted = true;
+                    }
+
+                    if event_type == "response.completed" || event_type.ends_with(".completed") {
+                        state.done_emitted = true;
+                        state.pending.push_back(UnifiedStreamEvent::Done {
+                            source: UnifiedStreamSource::Responses,
+                            id: state.meta.id.take(),
+                            model: state.meta.model.take(),
+                            finish_reason: state.meta.finish_reason.take(),
+                            usage: state.meta.usage.take(),
+                        });
+                        continue;
+                    }
+
+                    if !emitted {
+                        state.pending.push_back(UnifiedStreamEvent::Raw {
+                            source: UnifiedStreamSource::Responses,
+                            event_type,
+                            data: data_value,
+                        });
+                    }
+                }
+                Some(Err(error)) => {
+                    state.pending.push_back(UnifiedStreamEvent::Error(error));
+                }
+                None => {
+                    state.done_emitted = true;
+                    state.pending.push_back(UnifiedStreamEvent::Done {
+                        source: UnifiedStreamSource::Responses,
+                        id: state.meta.id.take(),
+                        model: state.meta.model.take(),
+                        finish_reason: state.meta.finish_reason.take(),
+                        usage: state.meta.usage.take(),
+                    });
+                }
+            }
+        }
+    })
+    .boxed()
+}
+
+/// Adapt a Messages API SSE stream to [`UnifiedStreamEvent`].
+pub fn adapt_messages_stream(
+    inner: BoxStream<'static, Result<AnthropicMessagesSseEvent, OpenRouterError>>,
+) -> UnifiedStream {
+    struct State {
+        inner: BoxStream<'static, Result<AnthropicMessagesSseEvent, OpenRouterError>>,
+        pending: VecDeque<UnifiedStreamEvent>,
+        done_emitted: bool,
+        meta: StreamMeta,
+    }
+
+    let state = State {
+        inner,
+        pending: VecDeque::new(),
+        done_emitted: false,
+        meta: StreamMeta::default(),
+    };
+
+    futures_util::stream::unfold(state, |mut state| async move {
+        loop {
+            if let Some(event) = state.pending.pop_front() {
+                return Some((event, state));
+            }
+
+            if state.done_emitted {
+                return None;
+            }
+
+            match state.inner.next().await {
+                Some(Ok(event)) => {
+                    let event_name = event.event.clone();
+                    match event.data {
+                        AnthropicMessagesStreamEvent::MessageStart { message } => {
+                            state.meta.id = message.id.clone();
+                            state.meta.model = message.model.clone();
+                            if let Some(usage) = message.usage {
+                                state.meta.usage = serde_json::to_value(usage).ok();
+                            }
+                        }
+                        AnthropicMessagesStreamEvent::MessageDelta { delta, usage } => {
+                            state.meta.usage = Some(usage);
+                            if let Some(reason) = delta.get("stop_reason").and_then(Value::as_str) {
+                                state.meta.finish_reason = Some(reason.to_string());
+                            }
+                            let text = delta
+                                .get("text")
+                                .and_then(Value::as_str)
+                                .or_else(|| delta.get("output_text").and_then(Value::as_str));
+                            if let Some(text) = text {
+                                state
+                                    .pending
+                                    .push_back(UnifiedStreamEvent::ContentDelta(text.to_string()));
+                            }
+                        }
+                        AnthropicMessagesStreamEvent::ContentBlockStart {
+                            content_block, ..
+                        } => match *content_block {
+                            AnthropicContentPart::Thinking { thinking, .. } => {
+                                state
+                                    .pending
+                                    .push_back(UnifiedStreamEvent::ReasoningDelta(thinking));
+                            }
+                            AnthropicContentPart::ToolUse { .. }
+                            | AnthropicContentPart::ServerToolUse { .. } => {
+                                state.pending.push_back(UnifiedStreamEvent::ToolDelta(
+                                    serde_json::to_value(content_block).unwrap_or(Value::Null),
+                                ));
+                            }
+                            _ => {}
+                        },
+                        AnthropicMessagesStreamEvent::ContentBlockDelta { index, delta } => {
+                            let delta_type = delta
+                                .get("type")
+                                .and_then(Value::as_str)
+                                .unwrap_or_default();
+                            if delta_type.contains("text_delta") {
+                                if let Some(text) = delta.get("text").and_then(Value::as_str) {
+                                    state.pending.push_back(UnifiedStreamEvent::ContentDelta(
+                                        text.to_string(),
+                                    ));
+                                }
+                            } else if delta_type.contains("thinking") {
+                                let reasoning = delta
+                                    .get("thinking")
+                                    .and_then(Value::as_str)
+                                    .or_else(|| delta.get("text").and_then(Value::as_str));
+                                if let Some(reasoning) = reasoning {
+                                    state.pending.push_back(UnifiedStreamEvent::ReasoningDelta(
+                                        reasoning.to_string(),
+                                    ));
+                                }
+                            } else if delta_type.contains("tool")
+                                || delta_type.contains("json")
+                                || delta.get("partial_json").is_some()
+                            {
+                                state.pending.push_back(UnifiedStreamEvent::ToolDelta(
+                                    serde_json::json!({
+                                        "index": index,
+                                        "delta": delta
+                                    }),
+                                ));
+                            } else {
+                                state.pending.push_back(UnifiedStreamEvent::Raw {
+                                    source: UnifiedStreamSource::Messages,
+                                    event_type: event_name,
+                                    data: delta,
+                                });
+                            }
+                        }
+                        AnthropicMessagesStreamEvent::MessageStop => {
+                            state.done_emitted = true;
+                            state.pending.push_back(UnifiedStreamEvent::Done {
+                                source: UnifiedStreamSource::Messages,
+                                id: state.meta.id.take(),
+                                model: state.meta.model.take(),
+                                finish_reason: state.meta.finish_reason.take(),
+                                usage: state.meta.usage.take(),
+                            });
+                        }
+                        AnthropicMessagesStreamEvent::Error { error } => {
+                            let message = error
+                                .get("message")
+                                .and_then(Value::as_str)
+                                .map(ToOwned::to_owned)
+                                .unwrap_or_else(|| error.to_string());
+                            state.pending.push_back(UnifiedStreamEvent::Error(
+                                OpenRouterError::Unknown(format!(
+                                    "messages stream error event: {message}"
+                                )),
+                            ));
+                        }
+                        AnthropicMessagesStreamEvent::ContentBlockStop { .. }
+                        | AnthropicMessagesStreamEvent::Ping => {}
+                    }
+                }
+                Some(Err(error)) => {
+                    state.pending.push_back(UnifiedStreamEvent::Error(error));
+                }
+                None => {
+                    state.done_emitted = true;
+                    state.pending.push_back(UnifiedStreamEvent::Done {
+                        source: UnifiedStreamSource::Messages,
+                        id: state.meta.id.take(),
+                        model: state.meta.model.take(),
+                        finish_reason: state.meta.finish_reason.take(),
+                        usage: state.meta.usage.take(),
+                    });
+                }
+            }
+        }
+    })
+    .boxed()
 }
