@@ -24,10 +24,11 @@
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 //!
-//! ### Text Completions ([`completion`])
-//! Legacy text completion API for prompt-based interactions:
-//! - Simple text-in, text-out interface
-//! - Backward compatibility with older applications
+//! ### Legacy Text Completions (`legacy-completions` feature)
+//! Legacy prompt-based completions are isolated behind an explicit namespace:
+//! - module path: `api::legacy::completion`
+//! - client path: `client.legacy().completions().create(...)`
+//! - intended only for migration/backward compatibility
 //!
 //! ### Model Information ([`models`])
 //! Retrieve information about available models:
@@ -136,7 +137,6 @@
 pub mod api_keys;
 pub mod auth;
 pub mod chat;
-pub mod completion;
 pub mod credits;
 pub mod discovery;
 pub mod embeddings;
@@ -146,3 +146,6 @@ pub mod guardrails;
 pub mod messages;
 pub mod models;
 pub mod responses;
+
+#[cfg(feature = "legacy-completions")]
+pub mod legacy;
