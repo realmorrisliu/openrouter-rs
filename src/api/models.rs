@@ -148,7 +148,6 @@ pub async fn list_model_endpoints(
     let encoded_author = encode(author);
     let encoded_slug = encode(slug);
     let url = format!("{base_url}/models/{encoded_author}/{encoded_slug}/endpoints");
-    println!("URL: {url}");
 
     let mut response = surf::get(&url)
         .header(AUTHORIZATION, format!("Bearer {api_key}"))

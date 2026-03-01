@@ -36,6 +36,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - added command bootstrap with `--help`, `profile show`, and `config show/path`
   - added deterministic config/auth resolution order: flags > env > profile config > defaults
   - added profile/config path conventions and CLI-specific tests
+  - added OR-20 discovery commands:
+    - `models list|show|endpoints`
+    - `providers list`
+    - `models list` supports `--category` and `--supported-parameter` filters
+  - discovery command output now supports both machine-readable JSON and human-readable table text
 
 ### Changed
 - Breaking (planned for `0.6.0`) legacy completions isolation:

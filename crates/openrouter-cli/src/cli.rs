@@ -49,6 +49,106 @@ pub enum ConfigCommands {
     Path,
 }
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq, ValueEnum)]
+pub enum ModelCategoryArg {
+    Roleplay,
+    Programming,
+    Marketing,
+    #[value(name = "marketing/seo", alias = "marketing-seo")]
+    MarketingSeo,
+    Technology,
+    Science,
+    Translation,
+    Legal,
+    Finance,
+    Health,
+    Trivia,
+    Academia,
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq, ValueEnum)]
+pub enum SupportedParameterArg {
+    #[value(name = "tools")]
+    Tools,
+    #[value(name = "temperature")]
+    Temperature,
+    #[value(name = "top_p")]
+    TopP,
+    #[value(name = "top_k")]
+    TopK,
+    #[value(name = "min_p")]
+    MinP,
+    #[value(name = "top_a")]
+    TopA,
+    #[value(name = "frequency_penalty")]
+    FrequencyPenalty,
+    #[value(name = "presence_penalty")]
+    PresencePenalty,
+    #[value(name = "repetition_penalty")]
+    RepetitionPenalty,
+    #[value(name = "max_tokens")]
+    MaxTokens,
+    #[value(name = "logit_bias")]
+    LogitBias,
+    #[value(name = "logprobs")]
+    Logprobs,
+    #[value(name = "top_logprobs")]
+    TopLogprobs,
+    #[value(name = "seed")]
+    Seed,
+    #[value(name = "response_format")]
+    ResponseFormat,
+    #[value(name = "structured_outputs")]
+    StructuredOutputs,
+    #[value(name = "stop")]
+    Stop,
+    #[value(name = "include_reasoning")]
+    IncludeReasoning,
+    #[value(name = "reasoning")]
+    Reasoning,
+    #[value(name = "web_search_options")]
+    WebSearchOptions,
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct ModelsListArgs {
+    /// Filter models by category.
+    #[arg(long, value_enum, conflicts_with = "supported_parameter")]
+    pub category: Option<ModelCategoryArg>,
+
+    /// Filter models by supported parameter.
+    #[arg(long, value_enum, conflicts_with = "category")]
+    pub supported_parameter: Option<SupportedParameterArg>,
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct ModelsShowArgs {
+    /// Model ID (for example: openai/gpt-4.1).
+    pub model_id: String,
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct ModelsEndpointsArgs {
+    /// Model ID (for example: openai/gpt-4.1).
+    pub model_id: String,
+}
+
+#[derive(Debug, Clone, Subcommand)]
+pub enum ModelsCommands {
+    /// List models.
+    List(ModelsListArgs),
+    /// Show a single model by model ID.
+    Show(ModelsShowArgs),
+    /// List endpoints for a specific model.
+    Endpoints(ModelsEndpointsArgs),
+}
+
+#[derive(Debug, Clone, Subcommand)]
+pub enum ProvidersCommands {
+    /// List providers.
+    List,
+}
+
 #[derive(Debug, Clone, Subcommand)]
 pub enum Commands {
     /// Profile-related commands.
@@ -61,8 +161,16 @@ pub enum Commands {
         #[command(subcommand)]
         command: ConfigCommands,
     },
-    /// Discovery command group placeholder (planned in OR-20).
-    Models,
+    /// Model discovery commands.
+    Models {
+        #[command(subcommand)]
+        command: ModelsCommands,
+    },
+    /// Provider discovery commands.
+    Providers {
+        #[command(subcommand)]
+        command: ProvidersCommands,
+    },
     /// Management command group placeholder (planned in OR-21).
     Keys,
     /// Guardrail command group placeholder (planned in OR-21).
