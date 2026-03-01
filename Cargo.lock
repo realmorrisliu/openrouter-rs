@@ -1431,6 +1431,7 @@ version = "0.5.1"
 dependencies = [
  "anyhow",
  "derive_builder",
+ "dotenvy",
  "dotenvy_macro",
  "futures-util",
  "schemars",

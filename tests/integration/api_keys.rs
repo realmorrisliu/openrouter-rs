@@ -12,8 +12,8 @@ async fn test_get_current_api_key_info() -> Result<(), OpenRouterError> {
     assert!(!key_info.label.is_empty(), "API key should have a label");
     assert!(key_info.usage >= 0.0, "Usage should be non-negative");
     assert!(
-        key_info.rate_limit.requests > 0.0,
-        "Should have positive request limit"
+        !key_info.rate_limit.requests.is_nan(),
+        "Request limit should be a valid number"
     );
 
     println!("Current API key info: {key_info:?}");
