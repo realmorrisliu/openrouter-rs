@@ -8,10 +8,18 @@ MIGRATION_PATH="${ROOT_DIR}/MIGRATION.md"
 require_pattern() {
   local pattern="$1"
   local file="$2"
-  if ! rg -F --quiet "$pattern" "$file"; then
-    echo "Missing required migration pattern in ${file}: ${pattern}" >&2
-    exit 1
+  if command -v rg >/dev/null 2>&1; then
+    if rg -F --quiet "$pattern" "$file"; then
+      return 0
+    fi
+  elif grep -F -q "$pattern" "$file"; then
+    return 0
   fi
+
+  if [[ -f "$file" ]]; then
+    echo "Missing required migration pattern in ${file}: ${pattern}" >&2
+  fi
+  exit 1
 }
 
 if [[ ! -f "$README_PATH" ]]; then
@@ -37,7 +45,11 @@ if [[ -f "$MIGRATION_PATH" ]]; then
   require_pattern "api::legacy::completion" "$MIGRATION_PATH"
   require_pattern "client.legacy().completions().create" "$MIGRATION_PATH"
 
-  recipe_count="$(rg -n "^### [0-9]+\\)" "$MIGRATION_PATH" | wc -l | tr -d ' ')"
+  if command -v rg >/dev/null 2>&1; then
+    recipe_count="$(rg -n "^### [0-9]+\\)" "$MIGRATION_PATH" | wc -l | tr -d ' ')"
+  else
+    recipe_count="$(grep -E -n "^### [0-9]+\\)" "$MIGRATION_PATH" | wc -l | tr -d ' ')"
+  fi
   if [[ "$recipe_count" -ne 10 ]]; then
     echo "Expected 10 numbered migration recipes in MIGRATION.md, found ${recipe_count}" >&2
     exit 1
