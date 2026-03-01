@@ -1,75 +1,99 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde_json::Value;
 use surf::StatusCode;
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ApiErrorResponse {
+use crate::error::{ApiErrorContext, ApiErrorKind, OpenRouterError};
+
+#[derive(Deserialize, Debug)]
+struct ApiErrorResponse {
     error: ApiError,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ApiError {
-    code: StatusCode,
+#[derive(Deserialize, Debug)]
+struct ApiError {
+    code: Option<i64>,
     message: String,
     metadata: Option<ApiErrorMetadata>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 #[serde(untagged)]
-pub enum ApiErrorMetadata {
+enum ApiErrorMetadata {
     ModerationError(ModerationErrorMetadata),
     ProviderError(ProviderErrorMetadata),
-    Raw(serde_json::Value),
+    Raw(Value),
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ModerationErrorMetadata {
+#[derive(Deserialize, Debug)]
+struct ModerationErrorMetadata {
     reasons: Vec<String>,
     flagged_input: String,
     provider_name: String,
     model_slug: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ProviderErrorMetadata {
+#[derive(Deserialize, Debug)]
+struct ProviderErrorMetadata {
     provider_name: String,
-    raw: serde_json::Value,
+    raw: Value,
 }
 
-impl From<ApiErrorResponse> for crate::error::OpenRouterError {
-    fn from(api_error_response: ApiErrorResponse) -> Self {
-        let ApiError {
-            code,
-            message,
-            metadata,
-        } = api_error_response.error;
+fn build_api_error(
+    status: StatusCode,
+    request_id: Option<String>,
+    api_error: ApiError,
+) -> OpenRouterError {
+    let ApiError {
+        code,
+        message,
+        metadata,
+    } = api_error;
 
-        match metadata {
-            Some(ApiErrorMetadata::ModerationError(moderation_error)) => {
-                crate::error::OpenRouterError::ModerationError {
-                    code,
-                    message,
-                    reasons: moderation_error.reasons,
-                    flagged_input: moderation_error.flagged_input,
-                    provider_name: moderation_error.provider_name,
-                    model_slug: moderation_error.model_slug,
-                }
-            }
-            Some(ApiErrorMetadata::ProviderError(provider_error)) => {
-                crate::error::OpenRouterError::ProviderError {
-                    code,
-                    message,
-                    provider_name: provider_error.provider_name,
-                    raw: provider_error.raw,
-                }
-            }
-            Some(ApiErrorMetadata::Raw(raw_metadata)) => {
-                crate::error::OpenRouterError::ApiErrorWithMetadata {
-                    code,
-                    message,
-                    metadata: raw_metadata,
-                }
-            }
-            None => crate::error::OpenRouterError::ApiError { code, message },
-        }
+    let (kind, normalized_metadata) = match metadata {
+        Some(ApiErrorMetadata::ModerationError(moderation)) => (
+            ApiErrorKind::Moderation {
+                reasons: moderation.reasons,
+                flagged_input: moderation.flagged_input,
+                provider_name: moderation.provider_name,
+                model_slug: moderation.model_slug,
+            },
+            None,
+        ),
+        Some(ApiErrorMetadata::ProviderError(provider)) => (
+            ApiErrorKind::Provider {
+                provider_name: provider.provider_name,
+                raw: provider.raw.clone(),
+            },
+            Some(provider.raw),
+        ),
+        Some(ApiErrorMetadata::Raw(raw)) => (ApiErrorKind::Generic, Some(raw)),
+        None => (ApiErrorKind::Generic, None),
+    };
+
+    OpenRouterError::Api(Box::new(ApiErrorContext {
+        status,
+        api_code: code,
+        message,
+        request_id,
+        metadata: normalized_metadata,
+        kind,
+    }))
+}
+
+pub fn parse_api_error(
+    status: StatusCode,
+    request_id: Option<String>,
+    text: &str,
+) -> OpenRouterError {
+    match serde_json::from_str::<ApiErrorResponse>(text) {
+        Ok(payload) => build_api_error(status, request_id, payload.error),
+        Err(_) => OpenRouterError::Api(Box::new(ApiErrorContext {
+            status,
+            api_code: Some(i64::from(u16::from(status))),
+            message: text.to_string(),
+            request_id,
+            metadata: None,
+            kind: ApiErrorKind::Generic,
+        })),
     }
 }

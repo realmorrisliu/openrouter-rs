@@ -8,12 +8,12 @@
 //!
 //! ### HTTP Request Errors
 //! - **`HttpRequest`**: Network-level failures (connectivity, timeouts)
-//! - **`ApiError`**: HTTP status code errors from the API
+//! - **`Api`**: Normalized API failures from the OpenRouter API
 //!
-//! ### OpenRouter API Errors  
-//! - **`ModerationError`**: Content moderation violations
-//! - **`ProviderError`**: Issues with specific model providers
-//! - **`ApiErrorWithMetadata`**: API errors with additional context
+//! ### OpenRouter API Errors
+//! - **`ApiErrorContext`**: status/code/message/request-id/metadata envelope
+//! - **`ApiErrorKind::Moderation`**: Content moderation violations
+//! - **`ApiErrorKind::Provider`**: Provider-specific upstream failures
 //!
 //! ### Configuration Errors
 //! - **`ConfigError`**: Configuration parsing or validation issues
@@ -42,8 +42,8 @@
 //!
 //! match client.models().list().await {
 //!     Ok(models) => println!("Found {} models", models.len()),
-//!     Err(OpenRouterError::ApiError { code, message }) => {
-//!         eprintln!("API error {}: {}", code, message);
+//!     Err(OpenRouterError::Api(api_error)) => {
+//!         eprintln!("API error {}: {}", api_error.status, api_error.message);
 //!     }
 //!     Err(OpenRouterError::HttpRequest(e)) => {
 //!         eprintln!("Network error: {}", e);
@@ -58,11 +58,10 @@
 //!
 //! ```rust
 //! use openrouter_rs::error::OpenRouterError;
-//! use surf::StatusCode;
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! match client.chat().create(&request).await {
-//!     Err(OpenRouterError::ApiError { code: StatusCode::TooManyRequests, .. }) => {
+//!     Err(OpenRouterError::Api(api_error)) if api_error.is_retryable() => {
 //!         println!("Rate limited, retrying after delay...");
 //!         tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
 //!         // Retry logic here
@@ -107,6 +106,76 @@ use serde_json::Value;
 use surf::StatusCode;
 use thiserror::Error;
 
+/// Normalized API error category.
+#[derive(Debug, Clone)]
+pub enum ApiErrorKind {
+    /// Generic API error payload without specialized metadata.
+    Generic,
+    /// Moderation rejection with structured moderation metadata.
+    Moderation {
+        reasons: Vec<String>,
+        flagged_input: String,
+        provider_name: String,
+        model_slug: String,
+    },
+    /// Provider-side failure metadata.
+    Provider { provider_name: String, raw: Value },
+}
+
+/// Normalized API error payload used across all endpoint modules.
+#[derive(Debug, Clone)]
+pub struct ApiErrorContext {
+    pub status: StatusCode,
+    pub api_code: Option<i64>,
+    pub message: String,
+    pub request_id: Option<String>,
+    pub metadata: Option<Value>,
+    pub kind: ApiErrorKind,
+}
+
+impl ApiErrorContext {
+    /// Returns true if the request is typically retryable.
+    pub fn is_retryable(&self) -> bool {
+        matches!(
+            self.status,
+            StatusCode::RequestTimeout
+                | StatusCode::TooManyRequests
+                | StatusCode::InternalServerError
+                | StatusCode::BadGateway
+                | StatusCode::ServiceUnavailable
+                | StatusCode::GatewayTimeout
+        )
+    }
+
+    pub fn is_client_error(&self) -> bool {
+        self.status.is_client_error()
+    }
+
+    pub fn is_server_error(&self) -> bool {
+        self.status.is_server_error()
+    }
+}
+
+impl std::fmt::Display for ApiErrorContext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(api_code) = self.api_code {
+            write!(
+                f,
+                "API error {} (api_code={}): {}",
+                self.status, api_code, self.message
+            )?;
+        } else {
+            write!(f, "API error {}: {}", self.status, self.message)?;
+        }
+
+        if let Some(request_id) = &self.request_id {
+            write!(f, " [request_id={}]", request_id)?;
+        }
+
+        Ok(())
+    }
+}
+
 /// Comprehensive error type for OpenRouter SDK operations
 ///
 /// This enum covers all possible error conditions that can occur when
@@ -117,18 +186,20 @@ use thiserror::Error;
 /// # Examples
 ///
 /// ```rust
-/// use openrouter_rs::error::OpenRouterError;
-/// use surf::StatusCode;
+/// use openrouter_rs::error::{ApiErrorKind, OpenRouterError};
 ///
 /// // Pattern matching on specific error types
 /// fn handle_error(error: OpenRouterError) {
 ///     match error {
-///         OpenRouterError::ApiError { code: StatusCode::Unauthorized, .. } => {
+///         OpenRouterError::Api(api_error) if api_error.status == surf::StatusCode::Unauthorized => {
 ///             println!("Check your API key");
 ///         }
-///         OpenRouterError::ModerationError { reasons, .. } => {
-///             println!("Content flagged for: {:?}", reasons);
-///         }
+///         OpenRouterError::Api(api_error) => match &api_error.kind {
+///             ApiErrorKind::Moderation { reasons, .. } => {
+///                 println!("Content flagged for: {:?}", reasons);
+///             }
+///             _ => println!("Other API error: {}", api_error),
+///         },
 ///         OpenRouterError::ConfigError(msg) => {
 ///             println!("Configuration issue: {}", msg);
 ///         }
@@ -143,35 +214,8 @@ pub enum OpenRouterError {
     HttpRequest(surf::Error),
 
     // API response errors
-    #[error("API error: {code}, message: {message}")]
-    ApiError { code: StatusCode, message: String },
-
-    #[error(
-        "Moderation error: {message}, reasons: {reasons:?}, flagged input: {flagged_input}, provider: {provider_name}, model: {model_slug}"
-    )]
-    ModerationError {
-        code: StatusCode,
-        message: String,
-        reasons: Vec<String>,
-        flagged_input: String,
-        provider_name: String,
-        model_slug: String,
-    },
-
-    #[error("Provider error: {message}, provider: {provider_name}, raw: {raw:?}")]
-    ProviderError {
-        code: StatusCode,
-        message: String,
-        provider_name: String,
-        raw: Value,
-    },
-
-    #[error("API error with metadata: {message}, metadata: {metadata:?}")]
-    ApiErrorWithMetadata {
-        code: StatusCode,
-        message: String,
-        metadata: Value,
-    },
+    #[error("{0}")]
+    Api(Box<ApiErrorContext>),
 
     // Configuration errors
     #[error("Config error: {0}")]
