@@ -11,8 +11,12 @@ use crate::{
     config::OpenRouterConfig,
     error::OpenRouterError,
     types::{
-        ModelCategory, PaginationOptions, SupportedParameters, completion::CompletionsResponse,
-        stream::ToolAwareStream,
+        ModelCategory, PaginationOptions, SupportedParameters,
+        completion::CompletionsResponse,
+        stream::{
+            ToolAwareStream, UnifiedStream, adapt_chat_stream, adapt_messages_stream,
+            adapt_responses_stream,
+        },
     },
 };
 
@@ -703,6 +707,15 @@ impl OpenRouterClient {
         Ok(ToolAwareStream::new(raw_stream))
     }
 
+    /// Stream chat completion events through the unified stream abstraction.
+    pub async fn stream_chat_completion_unified(
+        &self,
+        request: &chat::ChatCompletionRequest,
+    ) -> Result<UnifiedStream, OpenRouterError> {
+        let raw_stream = self.stream_chat_completion(request).await?;
+        Ok(adapt_chat_stream(raw_stream))
+    }
+
     /// Create a non-streaming response using the OpenRouter Responses API.
     ///
     /// # Arguments
@@ -760,6 +773,15 @@ impl OpenRouterClient {
         }
     }
 
+    /// Stream Responses API events through the unified stream abstraction.
+    pub async fn stream_response_unified(
+        &self,
+        request: &responses::ResponsesRequest,
+    ) -> Result<UnifiedStream, OpenRouterError> {
+        let raw_stream = self.stream_response(request).await?;
+        Ok(adapt_responses_stream(raw_stream))
+    }
+
     /// Create a non-streaming message using the Anthropic-compatible `/messages` API.
     pub async fn create_message(
         &self,
@@ -799,6 +821,15 @@ impl OpenRouterClient {
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
+    }
+
+    /// Stream Messages API events through the unified stream abstraction.
+    pub async fn stream_messages_unified(
+        &self,
+        request: &messages::AnthropicMessagesRequest,
+    ) -> Result<UnifiedStream, OpenRouterError> {
+        let raw_stream = self.stream_messages(request).await?;
+        Ok(adapt_messages_stream(raw_stream))
     }
 
     /// Send a legacy completion request to a selected model (text-only format).
@@ -1172,6 +1203,14 @@ impl<'a> ChatClient<'a> {
     ) -> Result<ToolAwareStream, OpenRouterError> {
         self.client.stream_chat_completion_tool_aware(request).await
     }
+
+    /// Stream chat events using the unified stream abstraction.
+    pub async fn stream_unified(
+        &self,
+        request: &chat::ChatCompletionRequest,
+    ) -> Result<UnifiedStream, OpenRouterError> {
+        self.client.stream_chat_completion_unified(request).await
+    }
 }
 
 /// Domain client for OpenRouter Responses API.
@@ -1199,6 +1238,14 @@ impl<'a> ResponsesClient<'a> {
     > {
         self.client.stream_response(request).await
     }
+
+    /// Stream response events using the unified stream abstraction.
+    pub async fn stream_unified(
+        &self,
+        request: &responses::ResponsesRequest,
+    ) -> Result<UnifiedStream, OpenRouterError> {
+        self.client.stream_response_unified(request).await
+    }
 }
 
 /// Domain client for Anthropic-compatible Messages API.
@@ -1225,6 +1272,14 @@ impl<'a> MessagesClient<'a> {
         OpenRouterError,
     > {
         self.client.stream_messages(request).await
+    }
+
+    /// Stream messages events using the unified stream abstraction.
+    pub async fn stream_unified(
+        &self,
+        request: &messages::AnthropicMessagesRequest,
+    ) -> Result<UnifiedStream, OpenRouterError> {
+        self.client.stream_messages_unified(request).await
     }
 }
 

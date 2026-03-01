@@ -20,6 +20,7 @@ A **type-safe**, **async** Rust SDK for the [OpenRouter API](https://openrouter.
 - **🛠️ Tool Calling**: Function calling with typed tools and automatic JSON schema generation
 - **🖼️ Vision Support**: Multi-modal content for image analysis with vision models
 - **📡 Streaming**: Real-time response streaming with `futures`
+- **🧩 Unified Streaming Events**: One event model across chat/responses/messages streams
 - **🏗️ Builder Pattern**: Ergonomic client and request construction
 - **⚙️ Smart Presets**: Curated model groups for programming, reasoning, and free tiers
 - **🎯 Complete Coverage**: All OpenRouter API endpoints supported
@@ -88,6 +89,28 @@ Available domains:
 - `client.models()`
 - `client.management()`
 - `client.legacy()` (requires `legacy-completions` feature)
+
+### 🧩 Unified Streaming Events
+
+```rust
+use futures_util::StreamExt;
+use openrouter_rs::types::stream::UnifiedStreamEvent;
+
+let mut stream = client.chat().stream_unified(&request).await?;
+
+while let Some(event) = stream.next().await {
+    match event {
+        UnifiedStreamEvent::ContentDelta(text) => print!("{text}"),
+        UnifiedStreamEvent::ReasoningDelta(text) => eprint!("[reasoning]{text}"),
+        UnifiedStreamEvent::Done { .. } => break,
+        UnifiedStreamEvent::Error(err) => {
+            eprintln!("stream error: {err}");
+            break;
+        }
+        _ => {}
+    }
+}
+```
 
 ### 🧱 Legacy Completions (Feature-Gated)
 
@@ -322,6 +345,7 @@ let key = client.management()
 | **Multi-Modal/Vision** | ✅ | [`api::chat`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/chat/) |
 | **Reasoning Tokens** | ✅ | [`api::chat`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/chat/) |
 | Streaming Responses | ✅ | [`api::chat`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/chat/) |
+| Unified Streaming Events | ✅ | [`types::stream`](https://docs.rs/openrouter-rs/latest/openrouter_rs/types/stream/) |
 | **Streaming Tool Calls** | ✅ | [`types::stream`](https://docs.rs/openrouter-rs/latest/openrouter_rs/types/stream/) |
 | Responses API | ✅ | [`api::responses`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/responses/) |
 | Anthropic Messages API | ✅ | [`api::messages`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/messages/) |

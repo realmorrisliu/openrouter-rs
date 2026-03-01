@@ -21,3 +21,4 @@ pub mod provider;
 pub mod response_format;
 pub mod responses;
 pub mod stream;
+pub mod unified_stream;
