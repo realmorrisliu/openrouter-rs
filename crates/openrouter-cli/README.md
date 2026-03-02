@@ -160,3 +160,33 @@ Error output in JSON mode follows:
   }
 }
 ```
+
+## CLI Live Smoke Tests
+
+This repo includes an opt-in CLI live smoke suite (`tests/live_smoke.rs`) for real API verification.
+
+Environment switches:
+
+- `OPENROUTER_CLI_RUN_LIVE=1`: enable live tests.
+- `OPENROUTER_CLI_RUN_LIVE_WRITE=1`: also enable write-path lifecycle checks (create/delete keys and guardrails).
+
+Required secrets:
+
+- `OPENROUTER_API_KEY` (read smoke)
+- `OPENROUTER_MANAGEMENT_KEY` (usage activity and write smoke)
+
+Local examples:
+
+```bash
+# Read-only live smoke
+OPENROUTER_CLI_RUN_LIVE=1 \
+OPENROUTER_API_KEY=... \
+cargo test -p openrouter-cli --test live_smoke -- --nocapture --test-threads=1
+
+# Include write lifecycle smoke
+OPENROUTER_CLI_RUN_LIVE=1 \
+OPENROUTER_CLI_RUN_LIVE_WRITE=1 \
+OPENROUTER_API_KEY=... \
+OPENROUTER_MANAGEMENT_KEY=... \
+cargo test -p openrouter-cli --test live_smoke -- --nocapture --test-threads=1
+```
