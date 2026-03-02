@@ -7,8 +7,8 @@ Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted fro
 
 - Official OpenAPI endpoints: `36` method+path entries.
 - SDK implementation coverage (`src/api` + domain client): `36 / 36` (`100%`).
-- Live integration coverage (`tests/integration`): `10 / 36` endpoints currently exercised.
-  - Covered live now: `POST /chat/completions`, `POST /messages`, `POST /responses`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`
+- Live integration coverage (`tests/integration`): `12 / 36` endpoints currently exercised.
+  - Covered live now: `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`
 
 Legend:
 
@@ -30,8 +30,8 @@ Legend:
 | `POST /chat/completions` | `client.chat().create(...)` / `client.chat().stream(...)` | Yes | Contract | Yes | Keep |
 | `GET /credits` | `client.get_credits()` / `client.management().get_credits()` | Yes | None | No | P2 |
 | `POST /credits/coinbase` | `client.create_coinbase_charge(...)` / `client.management().create_coinbase_charge(...)` | Yes | None | No | P2 |
-| `POST /embeddings` | `client.create_embedding(...)` / `client.models().create_embedding(...)` | Yes | Contract | No | P1 |
-| `GET /embeddings/models` | `client.list_embedding_models()` / `client.models().list_embedding_models()` | Yes | None | No | P1 |
+| `POST /embeddings` | `client.create_embedding(...)` / `client.models().create_embedding(...)` | Yes | Contract | Yes | Keep |
+| `GET /embeddings/models` | `client.list_embedding_models()` / `client.models().list_embedding_models()` | Yes | None | Yes | Keep |
 | `GET /endpoints/zdr` | `client.models().list_zdr_endpoints(...)` | Yes | Contract | Yes | Keep |
 | `GET /generation` | `client.get_generation(...)` / `client.management().get_generation(...)` | Yes | None | No | P2 |
 | `GET /guardrails` | `client.management().list_guardrails(...)` | Yes | Path | No | P1 |
@@ -71,9 +71,8 @@ The endpoint below is intentionally kept as legacy compatibility and is not part
 
 ## Incremental Test Plan
 
-1. P1: add live integration tests for `/embeddings` and `/embeddings/models`.
-2. P1: add management-key live suite for guardrails and keys in a dedicated workflow gate (manual + weekly, no PR auto-trigger).
-3. P2: keep `/credits`, `/credits/coinbase`, `/generation`, `/auth/keys*` as controlled scenarios (manual or mocked contract-first) due cost/side effects.
+1. P1: add management-key live suite for guardrails and keys in a dedicated workflow gate (manual + weekly, no PR auto-trigger).
+2. P2: keep `/credits`, `/credits/coinbase`, `/generation`, `/auth/keys*` as controlled scenarios (manual or mocked contract-first) due cost/side effects.
 
 ## Reproduce Snapshot
 

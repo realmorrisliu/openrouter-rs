@@ -15,6 +15,7 @@ The integration suite loads model selection in this order:
 - `OPENROUTER_INTEGRATION_TIER`: `stable` (default) or `hot`.
 - `OPENROUTER_TEST_MODEL_POOL_FILE`: path to a model-pool JSON file.
 - `OPENROUTER_TEST_CHAT_MODEL`: force the primary chat model.
+- `OPENROUTER_TEST_EMBEDDINGS_MODEL`: force the primary embeddings model.
 - `OPENROUTER_TEST_MESSAGES_MODEL`: force the primary Messages API model.
 - `OPENROUTER_TEST_RESPONSES_MODEL`: force the primary Responses API model.
 - `OPENROUTER_TEST_REASONING_MODEL`: force the primary reasoning model.
