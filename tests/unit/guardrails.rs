@@ -8,9 +8,9 @@ use std::{
 
 use openrouter_rs::{
     api::guardrails::{
-        self, AssignedCountResponse, BulkKeyAssignmentRequest, CreateGuardrailRequest, Guardrail,
-        GuardrailKeyAssignmentsResponse, GuardrailListResponse, GuardrailMemberAssignmentsResponse,
-        UnassignedCountResponse, UpdateGuardrailRequest,
+        self, AssignedCountResponse, BulkKeyAssignmentRequest, BulkMemberAssignmentRequest,
+        CreateGuardrailRequest, Guardrail, GuardrailKeyAssignmentsResponse, GuardrailListResponse,
+        GuardrailMemberAssignmentsResponse, UnassignedCountResponse, UpdateGuardrailRequest,
     },
     types::{ApiResponse, PaginationOptions},
 };
@@ -342,6 +342,158 @@ async fn test_delete_guardrail_uses_id_path() {
     assert_eq!(
         captured.request_line,
         "DELETE /api/v1/guardrails/gr%2Ftest%201 HTTP/1.1"
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_bulk_unassign_keys_encodes_id_and_sends_body() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"unassigned_count":2}"#);
+    let request = BulkKeyAssignmentRequest::builder()
+        .key_hashes(vec!["hash_1".to_string(), "hash_2".to_string()])
+        .build()
+        .expect("bulk unassignment request should build");
+
+    let response = guardrails::bulk_unassign_keys_from_guardrail(
+        &base_url,
+        "mgmt-key",
+        "team/prod 1",
+        &request,
+    )
+    .await
+    .expect("bulk unassign should succeed");
+    assert_eq!(response.unassigned_count, 2.0);
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "POST /api/v1/guardrails/team%2Fprod%201/assignments/keys/remove HTTP/1.1"
+    );
+    let request_lower = captured.request_text.to_ascii_lowercase();
+    assert!(
+        request_lower.contains("authorization: bearer mgmt-key")
+            || request_lower.contains("authorization:bearer mgmt-key"),
+        "authorization header should include management key, request:\n{}",
+        captured.request_text
+    );
+
+    let request_json: serde_json::Value =
+        serde_json::from_str(&captured.body_text).expect("request body should be valid JSON");
+    assert_eq!(request_json["key_hashes"][0], "hash_1");
+    assert_eq!(request_json["key_hashes"][1], "hash_2");
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_bulk_assign_members_encodes_id_and_sends_body() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"assigned_count":1}"#);
+    let request = BulkMemberAssignmentRequest::builder()
+        .member_user_ids(vec!["user_1".to_string()])
+        .build()
+        .expect("bulk member assignment request should build");
+
+    let response = guardrails::bulk_assign_members_to_guardrail(
+        &base_url,
+        "mgmt-key",
+        "team/prod 1",
+        &request,
+    )
+    .await
+    .expect("bulk assign members should succeed");
+    assert_eq!(response.assigned_count, 1.0);
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "POST /api/v1/guardrails/team%2Fprod%201/assignments/members HTTP/1.1"
+    );
+    let request_lower = captured.request_text.to_ascii_lowercase();
+    assert!(
+        request_lower.contains("authorization: bearer mgmt-key")
+            || request_lower.contains("authorization:bearer mgmt-key"),
+        "authorization header should include management key, request:\n{}",
+        captured.request_text
+    );
+
+    let request_json: serde_json::Value =
+        serde_json::from_str(&captured.body_text).expect("request body should be valid JSON");
+    assert_eq!(request_json["member_user_ids"][0], "user_1");
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_bulk_unassign_members_encodes_id_and_sends_body() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"unassigned_count":1}"#);
+    let request = BulkMemberAssignmentRequest::builder()
+        .member_user_ids(vec!["user_1".to_string()])
+        .build()
+        .expect("bulk member unassignment request should build");
+
+    let response = guardrails::bulk_unassign_members_from_guardrail(
+        &base_url,
+        "mgmt-key",
+        "team/prod 1",
+        &request,
+    )
+    .await
+    .expect("bulk unassign members should succeed");
+    assert_eq!(response.unassigned_count, 1.0);
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "POST /api/v1/guardrails/team%2Fprod%201/assignments/members/remove HTTP/1.1"
+    );
+    let request_lower = captured.request_text.to_ascii_lowercase();
+    assert!(
+        request_lower.contains("authorization: bearer mgmt-key")
+            || request_lower.contains("authorization:bearer mgmt-key"),
+        "authorization header should include management key, request:\n{}",
+        captured.request_text
+    );
+
+    let request_json: serde_json::Value =
+        serde_json::from_str(&captured.body_text).expect("request body should be valid JSON");
+    assert_eq!(request_json["member_user_ids"][0], "user_1");
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_list_key_assignments_global_path() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
+
+    let result = guardrails::list_key_assignments(
+        &base_url,
+        "mgmt-key",
+        Some(PaginationOptions::with_offset_and_limit(1, 2)),
+    )
+    .await
+    .expect("list key assignments should succeed");
+    assert_eq!(result.total_count, 0.0);
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/guardrails/assignments/keys?offset=1&limit=2 HTTP/1.1"
+    );
+    let request_lower = captured.request_text.to_ascii_lowercase();
+    assert!(
+        request_lower.contains("authorization: bearer mgmt-key")
+            || request_lower.contains("authorization:bearer mgmt-key"),
+        "authorization header should include management key, request:\n{}",
+        captured.request_text
     );
 
     server.join().expect("server thread should finish");

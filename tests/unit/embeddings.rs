@@ -1,5 +1,13 @@
+use std::{
+    io::{Read, Write},
+    net::TcpListener,
+    sync::mpsc,
+    thread,
+    time::Duration,
+};
+
 use openrouter_rs::api::embeddings::{
-    EmbeddingContentPart, EmbeddingInput, EmbeddingMultimodalInput, EmbeddingRequest,
+    self, EmbeddingContentPart, EmbeddingInput, EmbeddingMultimodalInput, EmbeddingRequest,
     EmbeddingResponse, EmbeddingVector,
 };
 
@@ -91,4 +99,68 @@ fn test_embedding_response_base64_deserialization() {
         EmbeddingVector::Base64(value) => assert_eq!(value, "AAAAAA=="),
         EmbeddingVector::Float(_) => panic!("expected base64 vector"),
     }
+}
+
+#[tokio::test]
+async fn test_list_embedding_models_path_and_auth_header() {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("listener should bind");
+    let addr = listener
+        .local_addr()
+        .expect("listener should have local addr");
+    let (tx, rx) = mpsc::channel::<String>();
+
+    let server = thread::spawn(move || {
+        let (mut stream, _) = listener
+            .accept()
+            .expect("server should accept one connection");
+        let mut request_bytes = Vec::new();
+        let mut chunk = [0_u8; 1024];
+
+        loop {
+            let read = stream.read(&mut chunk).expect("server should read request");
+            if read == 0 {
+                break;
+            }
+            request_bytes.extend_from_slice(&chunk[..read]);
+            if request_bytes.windows(4).any(|window| window == b"\r\n\r\n") {
+                break;
+            }
+        }
+
+        let request_text = String::from_utf8_lossy(&request_bytes).to_string();
+        tx.send(request_text)
+            .expect("server should send request text");
+
+        let response = r#"{"data":[]}"#;
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            response.len(),
+            response
+        );
+        stream
+            .write_all(response.as_bytes())
+            .expect("server should write response");
+    });
+
+    let base_url = format!("http://{addr}/api/v1");
+    let models = embeddings::list_embedding_models(&base_url, "api-key")
+        .await
+        .expect("list embedding models should succeed");
+    assert!(models.is_empty(), "response payload should parse");
+
+    let request_text = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    let request_line = request_text.lines().next().unwrap_or_default().to_string();
+    assert_eq!(request_line, "GET /api/v1/embeddings/models HTTP/1.1");
+
+    let request_lower = request_text.to_ascii_lowercase();
+    assert!(
+        request_lower.contains("authorization: bearer api-key")
+            || request_lower.contains("authorization:bearer api-key"),
+        "authorization header should include API key, request:\n{}",
+        request_text
+    );
+
+    server.join().expect("server thread should finish");
 }

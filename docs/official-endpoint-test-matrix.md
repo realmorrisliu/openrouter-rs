@@ -28,12 +28,12 @@ Legend:
 | `POST /auth/keys` | `client.management().create_api_key_from_auth_code(...)` | Yes | Path | No | P2 |
 | `POST /auth/keys/code` | `client.management().create_auth_code(...)` | Yes | Path | No | P2 |
 | `POST /chat/completions` | `client.chat().create(...)` / `client.chat().stream(...)` | Yes | Contract | Yes | Keep |
-| `GET /credits` | `client.get_credits()` / `client.management().get_credits()` | Yes | None | No | P2 |
-| `POST /credits/coinbase` | `client.create_coinbase_charge(...)` / `client.management().create_coinbase_charge(...)` | Yes | None | No | P2 |
+| `GET /credits` | `client.get_credits()` / `client.management().get_credits()` | Yes | Path | No | P2 |
+| `POST /credits/coinbase` | `client.create_coinbase_charge(...)` / `client.management().create_coinbase_charge(...)` | Yes | Path | No | P2 |
 | `POST /embeddings` | `client.create_embedding(...)` / `client.models().create_embedding(...)` | Yes | Contract | Yes | Keep |
-| `GET /embeddings/models` | `client.list_embedding_models()` / `client.models().list_embedding_models()` | Yes | None | Yes | Keep |
+| `GET /embeddings/models` | `client.list_embedding_models()` / `client.models().list_embedding_models()` | Yes | Path | Yes | Keep |
 | `GET /endpoints/zdr` | `client.models().list_zdr_endpoints(...)` | Yes | Contract | Yes | Keep |
-| `GET /generation` | `client.get_generation(...)` / `client.management().get_generation(...)` | Yes | None | No | P2 |
+| `GET /generation` | `client.get_generation(...)` / `client.management().get_generation(...)` | Yes | Path | No | P2 |
 | `GET /guardrails` | `client.management().list_guardrails(...)` | Yes | Path | Yes | Keep |
 | `POST /guardrails` | `client.management().create_guardrail(...)` | Yes | Contract | Yes | Keep |
 | `GET /guardrails/{id}` | `client.management().get_guardrail(...)` | Yes | Contract | Yes | Keep |
@@ -41,20 +41,20 @@ Legend:
 | `DELETE /guardrails/{id}` | `client.management().delete_guardrail(...)` | Yes | Path | Yes | Keep |
 | `GET /guardrails/{id}/assignments/keys` | `client.management().list_guardrail_key_assignments(...)` | Yes | Contract | No | P1 |
 | `POST /guardrails/{id}/assignments/keys` | `client.management().create_guardrail_key_assignments(...)` | Yes | Path | No | P1 |
-| `POST /guardrails/{id}/assignments/keys/remove` | `client.management().delete_guardrail_key_assignments(...)` | Yes | None | No | P1 |
+| `POST /guardrails/{id}/assignments/keys/remove` | `client.management().delete_guardrail_key_assignments(...)` | Yes | Path | No | P1 |
 | `GET /guardrails/{id}/assignments/members` | `client.management().list_guardrail_member_assignments(...)` | Yes | Contract | No | P1 |
-| `POST /guardrails/{id}/assignments/members` | `client.management().create_guardrail_member_assignments(...)` | Yes | None | No | P1 |
-| `POST /guardrails/{id}/assignments/members/remove` | `client.management().delete_guardrail_member_assignments(...)` | Yes | None | No | P1 |
-| `GET /guardrails/assignments/keys` | `client.management().list_key_assignments(...)` | Yes | None | No | P1 |
+| `POST /guardrails/{id}/assignments/members` | `client.management().create_guardrail_member_assignments(...)` | Yes | Path | No | P1 |
+| `POST /guardrails/{id}/assignments/members/remove` | `client.management().delete_guardrail_member_assignments(...)` | Yes | Path | No | P1 |
+| `GET /guardrails/assignments/keys` | `client.management().list_key_assignments(...)` | Yes | Path | No | P1 |
 | `GET /guardrails/assignments/members` | `client.management().list_member_assignments(...)` | Yes | Path | No | P1 |
 | `GET /key` | `client.get_current_api_key_info()` / `client.management().get_current_api_key_info()` | Yes | Contract | Yes | Keep |
 | `GET /keys` | `client.list_api_keys(...)` / `client.management().list_api_keys(...)` | Yes | Path | Yes | Keep |
-| `POST /keys` | `client.create_api_key(...)` / `client.management().create_api_key(...)` | Yes | None | Yes | Keep |
-| `GET /keys/{hash}` | `client.get_api_key(...)` / `client.management().get_api_key(...)` | Yes | None | Yes | Keep |
-| `PATCH /keys/{hash}` | `client.update_api_key(...)` / `client.management().update_api_key(...)` | Yes | None | Yes | Keep |
+| `POST /keys` | `client.create_api_key(...)` / `client.management().create_api_key(...)` | Yes | Path | Yes | Keep |
+| `GET /keys/{hash}` | `client.get_api_key(...)` / `client.management().get_api_key(...)` | Yes | Path | Yes | Keep |
+| `PATCH /keys/{hash}` | `client.update_api_key(...)` / `client.management().update_api_key(...)` | Yes | Path | Yes | Keep |
 | `DELETE /keys/{hash}` | `client.delete_api_key(...)` / `client.management().delete_api_key(...)` | Yes | Path | Yes | Keep |
 | `GET /models` | `client.list_models()` / `client.models().list()` | Yes | Contract | Yes | Keep |
-| `GET /models/{author}/{slug}/endpoints` | `client.list_model_endpoints(...)` / `client.models().list_endpoints(...)` | Yes | None | Yes | Keep |
+| `GET /models/{author}/{slug}/endpoints` | `client.list_model_endpoints(...)` / `client.models().list_endpoints(...)` | Yes | Path | Yes | Keep |
 | `GET /models/count` | `client.count_models()` / `client.models().get_model_count()` | Yes | Contract | Yes | Keep |
 | `GET /models/user` | `client.list_models_for_user()` / `client.models().list_user_models()` | Yes | Path | Yes | Keep |
 | `GET /providers` | `client.list_providers()` / `client.models().list_providers()` | Yes | Contract | Yes | Keep |
