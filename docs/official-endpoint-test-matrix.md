@@ -7,8 +7,8 @@ Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted fro
 
 - Official OpenAPI endpoints: `36` method+path entries.
 - SDK implementation coverage (`src/api` + domain client): `36 / 36` (`100%`).
-- Live integration coverage (`tests/integration`): `4 / 36` endpoints currently exercised.
-  - Covered live now: `POST /chat/completions`, `POST /responses`, `GET /models`, `GET /key`
+- Live integration coverage (`tests/integration`): `5 / 36` endpoints currently exercised.
+  - Covered live now: `POST /chat/completions`, `POST /messages`, `POST /responses`, `GET /models`, `GET /key`
 
 Legend:
 
@@ -58,7 +58,7 @@ Legend:
 | `GET /models/count` | `client.count_models()` / `client.models().get_model_count()` | Yes | Contract | No | P1 |
 | `GET /models/user` | `client.list_models_for_user()` / `client.models().list_user_models()` | Yes | Path | No | P1 |
 | `GET /providers` | `client.list_providers()` / `client.models().list_providers()` | Yes | Contract | No | P1 |
-| `POST /messages` | `client.messages().create(...)` / `client.messages().stream(...)` | Yes | Path | No | P0 |
+| `POST /messages` | `client.messages().create(...)` / `client.messages().stream(...)` | Yes | Path | Yes | Keep |
 | `POST /responses` | `client.responses().create(...)` / `client.responses().stream(...)` | Yes | Contract | Yes | Keep |
 
 ## Supplemental (Legacy)
@@ -71,10 +71,9 @@ The endpoint below is intentionally kept as legacy compatibility and is not part
 
 ## Incremental Test Plan
 
-1. P0: add live integration tests for `/messages` (non-stream + stream).
-2. P1: add live integration tests for `/embeddings`, `/embeddings/models`, `/providers`, `/models/user`, `/models/count`, `/endpoints/zdr`.
-3. P1: add management-key live suite for guardrails and keys in a dedicated workflow gate (manual + weekly, no PR auto-trigger).
-4. P2: keep `/credits`, `/credits/coinbase`, `/generation`, `/auth/keys*` as controlled scenarios (manual or mocked contract-first) due cost/side effects.
+1. P1: add live integration tests for `/embeddings`, `/embeddings/models`, `/providers`, `/models/user`, `/models/count`, `/endpoints/zdr`.
+2. P1: add management-key live suite for guardrails and keys in a dedicated workflow gate (manual + weekly, no PR auto-trigger).
+3. P2: keep `/credits`, `/credits/coinbase`, `/generation`, `/auth/keys*` as controlled scenarios (manual or mocked contract-first) due cost/side effects.
 
 ## Reproduce Snapshot
 
