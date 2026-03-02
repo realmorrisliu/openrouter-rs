@@ -386,6 +386,9 @@ let key = client.management()
 | Credit Management | ✅ | [`api::credits`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/credits/) |
 | Authentication | ✅ | [`api::auth`](https://docs.rs/openrouter-rs/latest/openrouter_rs/api/auth/) |
 
+Detailed endpoint-level implementation and test status matrix:
+- [`docs/official-endpoint-test-matrix.md`](docs/official-endpoint-test-matrix.md)
+
 `/activity` requires a management key; in this SDK set it with `.management_key(...)`.
 `/guardrails*` endpoints also require a management key; in this SDK set it with `.management_key(...)`.
 Management-key examples in this repo use `OPENROUTER_MANAGEMENT_KEY`.
