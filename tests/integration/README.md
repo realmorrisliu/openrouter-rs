@@ -9,6 +9,7 @@ The integration suite loads model selection in this order:
 ## Required environment variables
 
 - `OPENROUTER_API_KEY`: required for any live integration API call.
+- `OPENROUTER_MANAGEMENT_KEY`: required for management smoke tests.
 
 ## Optional environment variables
 
@@ -22,6 +23,20 @@ The integration suite loads model selection in this order:
 - `OPENROUTER_TEST_STABLE_MODELS`: comma-separated stable regression model list.
 - `OPENROUTER_TEST_HOT_MODELS`: comma-separated hot-model sweep list.
 - `OPENROUTER_TEST_HOT_MODELS_LIMIT`: max models to run in hot sweep.
+- `OPENROUTER_RUN_MANAGEMENT_TESTS`: set to `1`/`true` to enable management smoke lifecycle tests.
+
+## Running management smoke tests
+
+Management smoke tests are opt-in and include cleanup-protected create/update/delete calls for:
+
+- `keys`: create -> list/get -> update -> delete
+- `guardrails`: create -> list/get -> update -> delete
+
+Example:
+
+```bash
+OPENROUTER_MANAGEMENT_KEY=... OPENROUTER_RUN_MANAGEMENT_TESTS=1 cargo test --test integration management:: -- --nocapture
+```
 
 ## Pool refresh
 

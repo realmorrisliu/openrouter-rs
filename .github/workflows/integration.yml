@@ -23,12 +23,11 @@ permissions:
 
 jobs:
   integration:
-    name: Run live integration tests
+    name: Run core live integration tests
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-      OPENROUTER_PROVISIONING_KEY: ${{ secrets.OPENROUTER_PROVISIONING_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -67,4 +66,36 @@ jobs:
             echo "OPENROUTER_API_KEY secret is not configured; skipping integration tests."
             exit 0
           fi
-          cargo test --test integration -- --nocapture
+          cargo test --test integration -- --nocapture --skip management::
+
+  management-smoke:
+    name: Run management-key smoke integration tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      OPENROUTER_MANAGEMENT_KEY: ${{ secrets.OPENROUTER_MANAGEMENT_KEY }}
+      OPENROUTER_PROVISIONING_KEY: ${{ secrets.OPENROUTER_PROVISIONING_KEY }}
+      OPENROUTER_RUN_MANAGEMENT_TESTS: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run management smoke tests (or skip when secret missing)
+        run: |
+          if [ -z "${OPENROUTER_MANAGEMENT_KEY}" ] && [ -n "${OPENROUTER_PROVISIONING_KEY}" ]; then
+            OPENROUTER_MANAGEMENT_KEY="${OPENROUTER_PROVISIONING_KEY}"
+            export OPENROUTER_MANAGEMENT_KEY
+          fi
+
+          if [ -z "${OPENROUTER_MANAGEMENT_KEY}" ]; then
+            echo "OPENROUTER_MANAGEMENT_KEY secret is not configured; skipping management smoke tests."
+            exit 0
+          fi
+
+          cargo test --test integration management:: -- --nocapture
