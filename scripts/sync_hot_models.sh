@@ -68,6 +68,12 @@ extract_hot_from_models_endpoint() {
     | head -n "$TOP_N"
 }
 
+extract_all_model_ids_from_models_endpoint() {
+  local models_json="$1"
+
+  jq -r '.data // [] | .[] | .id // empty' "$models_json" | awk '!seen[$0]++'
+}
+
 read_existing_string() {
   local jq_path="$1"
   if [ -f "$OUTPUT_FILE" ]; then
@@ -89,17 +95,37 @@ models_dump="$TMP_DIR/models.json"
 source_label="rankings"
 source_endpoint="$RANKINGS_URL"
 hot_models=()
+rankings_candidates=()
+models_fetched=false
+allowlist_file="$TMP_DIR/model_allowlist.txt"
 
 if fetch_url "$RANKINGS_URL" "$rankings_dump"; then
   while IFS= read -r model; do
-    [ -n "$model" ] && hot_models+=("$model")
+    [ -n "$model" ] && rankings_candidates+=("$model")
   done < <(extract_hot_from_rankings "$rankings_dump")
+fi
+
+if [ "${#rankings_candidates[@]}" -gt 0 ]; then
+  if fetch_url "$MODELS_URL" "$models_dump"; then
+    models_fetched=true
+    extract_all_model_ids_from_models_endpoint "$models_dump" >"$allowlist_file"
+
+    for model in "${rankings_candidates[@]}"; do
+      if rg -F -x -q "$model" "$allowlist_file"; then
+        hot_models+=("$model")
+      fi
+    done
+  fi
 fi
 
 if [ "${#hot_models[@]}" -eq 0 ]; then
   source_label="models-endpoint-fallback"
   source_endpoint="$MODELS_URL"
-  if fetch_url "$MODELS_URL" "$models_dump"; then
+  if [ "$models_fetched" = false ] && fetch_url "$MODELS_URL" "$models_dump"; then
+    models_fetched=true
+  fi
+
+  if [ "$models_fetched" = true ]; then
     while IFS= read -r model; do
       [ -n "$model" ] && hot_models+=("$model")
     done < <(extract_hot_from_models_endpoint "$models_dump")
