@@ -1,7 +1,17 @@
 name: Integration Tests
 
 on:
+  pull_request:
   workflow_dispatch:
+    inputs:
+      tier:
+        description: "Integration tier"
+        required: false
+        default: stable
+        type: choice
+        options:
+          - stable
+          - hot
   schedule:
     - cron: "0 6 * * 1"
 
@@ -30,7 +40,29 @@ jobs:
       - name: Cache Rust artifacts
         uses: Swatinem/rust-cache@v2
 
+      - name: Resolve integration tier
+        id: tier
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_TIER: ${{ github.event.inputs.tier }}
+        run: |
+          tier="stable"
+          if [ "${EVENT_NAME}" = "schedule" ]; then
+            tier="hot"
+          elif [ "${EVENT_NAME}" = "workflow_dispatch" ] && [ "${DISPATCH_TIER}" = "hot" ]; then
+            tier="hot"
+          fi
+          echo "tier=${tier}" >> "$GITHUB_OUTPUT"
+          echo "Running integration tier: ${tier}"
+
+      - name: Refresh hot model pool
+        if: steps.tier.outputs.tier == 'hot'
+        run: ./scripts/sync_hot_models.sh
+
       - name: Run integration tests (or skip when secret missing)
+        env:
+          OPENROUTER_INTEGRATION_TIER: ${{ steps.tier.outputs.tier }}
+          OPENROUTER_TEST_HOT_MODELS_LIMIT: "10"
         run: |
           if [ -z "${OPENROUTER_API_KEY}" ]; then
             echo "OPENROUTER_API_KEY secret is not configured; skipping integration tests."

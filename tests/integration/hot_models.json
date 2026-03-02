@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-03-02T00:00:00Z",
+  "source": {
+    "type": "bootstrap",
+    "endpoint": "https://openrouter.ai/rankings",
+    "top_n": 10
+  },
+  "stable": {
+    "chat": "x-ai/grok-code-fast-1",
+    "reasoning": "deepseek/deepseek-r1",
+    "regression": [
+      "x-ai/grok-code-fast-1",
+      "openai/gpt-4o-mini",
+      "deepseek/deepseek-r1"
+    ]
+  },
+  "hot": {
+    "models": [
+      "minimax/minimax-m2.5",
+      "google/gemini-3-flash-preview",
+      "deepseek/deepseek-v3.2",
+      "moonshotai/kimi-k2.5",
+      "anthropic/claude-opus-4.6",
+      "x-ai/grok-4.1-fast",
+      "anthropic/claude-sonnet-4.6",
+      "z-ai/glm-5",
+      "arcee-ai/trinity-large-preview:free",
+      "anthropic/claude-sonnet-4.5"
+    ]
+  }
+}

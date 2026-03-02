@@ -509,6 +509,22 @@ CLI config priority is deterministic:
 
 See [`crates/openrouter-cli/README.md`](crates/openrouter-cli/README.md) for full config/profile conventions.
 
+### Run Integration Tests
+
+```bash
+# Run stable tier (default)
+OPENROUTER_API_KEY=sk-or-v1-... cargo test --test integration -- --nocapture
+
+# Run hot-model sweep tier
+OPENROUTER_API_KEY=sk-or-v1-... OPENROUTER_INTEGRATION_TIER=hot cargo test --test integration -- --nocapture
+```
+
+Model selection and tier env details:
+
+- [`tests/integration/README.md`](tests/integration/README.md)
+- [`tests/integration/hot_models.json`](tests/integration/hot_models.json)
+- [`scripts/sync_hot_models.sh`](scripts/sync_hot_models.sh)
+
 ## 🤝 Community & Support
 
 ### 🐛 Found a Bug?
