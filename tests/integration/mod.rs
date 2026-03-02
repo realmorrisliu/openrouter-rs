@@ -5,6 +5,7 @@ fn dummy_test() {
 
 pub mod api_keys;
 pub mod chat;
+pub mod discovery;
 pub mod messages;
 pub mod model_pool;
 pub mod models;
