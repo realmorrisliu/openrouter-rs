@@ -1,4 +1,15 @@
-use openrouter_rs::{api::models::EndpointData, types::ApiResponse};
+use std::{
+    io::{Read, Write},
+    net::TcpListener,
+    sync::mpsc,
+    thread,
+    time::Duration,
+};
+
+use openrouter_rs::{
+    api::models::{self, EndpointData},
+    types::ApiResponse,
+};
 
 #[test]
 fn test_model_endpoints_pricing_allows_missing_optional_fields() {
@@ -42,4 +53,85 @@ fn test_model_endpoints_pricing_allows_missing_optional_fields() {
     assert_eq!(pricing.completion, "0.000002");
     assert!(pricing.request.is_none());
     assert!(pricing.image.is_none());
+}
+
+#[tokio::test]
+async fn test_list_model_endpoints_encodes_author_slug_and_auth_header() {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("listener should bind");
+    let addr = listener
+        .local_addr()
+        .expect("listener should have local addr");
+    let (tx, rx) = mpsc::channel::<String>();
+
+    let server = thread::spawn(move || {
+        let (mut stream, _) = listener
+            .accept()
+            .expect("server should accept one connection");
+        let mut request_bytes = Vec::new();
+        let mut chunk = [0_u8; 1024];
+
+        loop {
+            let read = stream.read(&mut chunk).expect("server should read request");
+            if read == 0 {
+                break;
+            }
+            request_bytes.extend_from_slice(&chunk[..read]);
+            if request_bytes.windows(4).any(|window| window == b"\r\n\r\n") {
+                break;
+            }
+        }
+
+        let request_text = String::from_utf8_lossy(&request_bytes).to_string();
+        tx.send(request_text)
+            .expect("server should send request text");
+
+        let response = r#"{
+            "data": {
+                "id": "author/slug",
+                "name": "Test Endpoint",
+                "created": 1735689600,
+                "description": "Test endpoint data",
+                "architecture": {
+                    "tokenizer": "test-tokenizer",
+                    "instruct_type": "chat",
+                    "modality": "text->text"
+                },
+                "endpoints": []
+            }
+        }"#;
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            response.len(),
+            response
+        );
+        stream
+            .write_all(response.as_bytes())
+            .expect("server should write response");
+    });
+
+    let base_url = format!("http://{addr}/api/v1");
+    let endpoint_data =
+        models::list_model_endpoints(&base_url, "api-key", "team/prod", "model alpha")
+            .await
+            .expect("list model endpoints should succeed");
+    assert_eq!(endpoint_data.id, "author/slug");
+
+    let request_text = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    let request_line = request_text.lines().next().unwrap_or_default().to_string();
+    assert_eq!(
+        request_line,
+        "GET /api/v1/models/team%2Fprod/model%20alpha/endpoints HTTP/1.1"
+    );
+
+    let request_lower = request_text.to_ascii_lowercase();
+    assert!(
+        request_lower.contains("authorization: bearer api-key")
+            || request_lower.contains("authorization:bearer api-key"),
+        "authorization header should include API key, request:\n{}",
+        request_text
+    );
+
+    server.join().expect("server thread should finish");
 }
