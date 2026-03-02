@@ -2,6 +2,8 @@ use openrouter_rs::error::OpenRouterError;
 
 use super::test_utils::{create_test_client, rate_limit_delay};
 
+const MAX_MODEL_ENDPOINT_PROBES: usize = 12;
+
 #[tokio::test]
 #[allow(clippy::result_large_err)]
 async fn test_list_providers_live() -> Result<(), OpenRouterError> {
@@ -99,6 +101,9 @@ async fn test_list_model_endpoints_live() -> Result<(), OpenRouterError> {
         if author.trim().is_empty() || slug.trim().is_empty() {
             continue;
         }
+        if attempted >= MAX_MODEL_ENDPOINT_PROBES {
+            break;
+        }
 
         attempted += 1;
         rate_limit_delay().await;
@@ -138,7 +143,7 @@ async fn test_list_model_endpoints_live() -> Result<(), OpenRouterError> {
     }
 
     panic!(
-        "failed to validate model endpoints after trying {attempted} models; last failure: {}",
+        "failed to validate model endpoints after trying {attempted}/{MAX_MODEL_ENDPOINT_PROBES} models; last failure: {}",
         last_failure.unwrap_or_else(|| "no parseable model ids were found".to_string()),
     );
 }
