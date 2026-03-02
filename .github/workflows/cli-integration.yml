@@ -1,0 +1,74 @@
+name: CLI Integration Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      include_write:
+        description: "Run write-path lifecycle smoke checks (keys/guardrails create-delete)"
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+  schedule:
+    - cron: "30 6 * * 1"
+
+concurrency:
+  group: cli-integration-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  cli-live:
+    name: Run CLI live smoke tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      OPENROUTER_MANAGEMENT_KEY: ${{ secrets.OPENROUTER_MANAGEMENT_KEY }}
+      OPENROUTER_CLI_RUN_LIVE: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Resolve write smoke scope
+        id: scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_INCLUDE_WRITE: ${{ github.event.inputs.include_write }}
+        run: |
+          include_write="false"
+          if [ "${EVENT_NAME}" = "schedule" ]; then
+            include_write="true"
+          elif [ "${EVENT_NAME}" = "workflow_dispatch" ] && [ "${DISPATCH_INCLUDE_WRITE}" = "true" ]; then
+            include_write="true"
+          fi
+
+          echo "include_write=${include_write}" >> "$GITHUB_OUTPUT"
+          echo "CLI live write smoke: ${include_write}"
+
+      - name: Run CLI live smoke tests (or skip when secret missing)
+        env:
+          OPENROUTER_CLI_RUN_LIVE_WRITE: ${{ steps.scope.outputs.include_write }}
+        run: |
+          if [ -z "${OPENROUTER_API_KEY}" ]; then
+            echo "OPENROUTER_API_KEY secret is not configured; skipping CLI live smoke tests."
+            exit 0
+          fi
+
+          if [ "${OPENROUTER_CLI_RUN_LIVE_WRITE}" = "true" ] && [ -z "${OPENROUTER_MANAGEMENT_KEY}" ]; then
+            echo "OPENROUTER_MANAGEMENT_KEY secret is not configured; disabling write smoke tests."
+            OPENROUTER_CLI_RUN_LIVE_WRITE="false"
+            export OPENROUTER_CLI_RUN_LIVE_WRITE
+          fi
+
+          cargo test -p openrouter-cli --test live_smoke -- --nocapture --test-threads=1
