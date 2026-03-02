@@ -90,8 +90,9 @@ async fn test_list_model_endpoints_live() -> Result<(), OpenRouterError> {
     assert!(!models.is_empty(), "models list should not be empty");
 
     let mut last_failure = None;
+    let mut attempted = 0usize;
 
-    for model in models.iter().take(3) {
+    for model in &models {
         let Some((author, slug)) = model.id.split_once('/') else {
             continue;
         };
@@ -99,6 +100,7 @@ async fn test_list_model_endpoints_live() -> Result<(), OpenRouterError> {
             continue;
         }
 
+        attempted += 1;
         rate_limit_delay().await;
         match client.models().list_endpoints(author, slug).await {
             Ok(endpoint_data) => {
@@ -136,7 +138,7 @@ async fn test_list_model_endpoints_live() -> Result<(), OpenRouterError> {
     }
 
     panic!(
-        "failed to validate model endpoints for sampled models; last failure: {}",
-        last_failure.unwrap_or_else(|| "no parseable model ids were found".to_string())
+        "failed to validate model endpoints after trying {attempted} models; last failure: {}",
+        last_failure.unwrap_or_else(|| "no parseable model ids were found".to_string()),
     );
 }
