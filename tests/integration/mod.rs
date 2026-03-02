@@ -7,5 +7,6 @@ pub mod api_keys;
 pub mod chat;
 pub mod model_pool;
 pub mod models;
+pub mod responses;
 pub mod test_utils;
 pub mod tools;
