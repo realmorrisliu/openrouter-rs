@@ -18,6 +18,7 @@ pub mod embeddings;
 pub mod error_model;
 pub mod guardrails;
 pub mod messages;
+pub mod models;
 pub mod pagination;
 pub mod provider;
 pub mod response_format;

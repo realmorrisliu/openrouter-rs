@@ -7,8 +7,8 @@ Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted fro
 
 - Official OpenAPI endpoints: `36` method+path entries.
 - SDK implementation coverage (`src/api` + domain client): `36 / 36` (`100%`).
-- Live integration coverage (`tests/integration`): `5 / 36` endpoints currently exercised.
-  - Covered live now: `POST /chat/completions`, `POST /messages`, `POST /responses`, `GET /models`, `GET /key`
+- Live integration coverage (`tests/integration`): `10 / 36` endpoints currently exercised.
+  - Covered live now: `POST /chat/completions`, `POST /messages`, `POST /responses`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`
 
 Legend:
 
@@ -32,7 +32,7 @@ Legend:
 | `POST /credits/coinbase` | `client.create_coinbase_charge(...)` / `client.management().create_coinbase_charge(...)` | Yes | None | No | P2 |
 | `POST /embeddings` | `client.create_embedding(...)` / `client.models().create_embedding(...)` | Yes | Contract | No | P1 |
 | `GET /embeddings/models` | `client.list_embedding_models()` / `client.models().list_embedding_models()` | Yes | None | No | P1 |
-| `GET /endpoints/zdr` | `client.models().list_zdr_endpoints(...)` | Yes | Contract | No | P1 |
+| `GET /endpoints/zdr` | `client.models().list_zdr_endpoints(...)` | Yes | Contract | Yes | Keep |
 | `GET /generation` | `client.get_generation(...)` / `client.management().get_generation(...)` | Yes | None | No | P2 |
 | `GET /guardrails` | `client.management().list_guardrails(...)` | Yes | Path | No | P1 |
 | `POST /guardrails` | `client.management().create_guardrail(...)` | Yes | Contract | No | P1 |
@@ -54,10 +54,10 @@ Legend:
 | `PATCH /keys/{hash}` | `client.update_api_key(...)` / `client.management().update_api_key(...)` | Yes | None | No | P1 |
 | `DELETE /keys/{hash}` | `client.delete_api_key(...)` / `client.management().delete_api_key(...)` | Yes | Path | No | P1 |
 | `GET /models` | `client.list_models()` / `client.models().list()` | Yes | Contract | Yes | Keep |
-| `GET /models/{author}/{slug}/endpoints` | `client.list_model_endpoints(...)` / `client.models().list_endpoints(...)` | Yes | None | No | P1 |
-| `GET /models/count` | `client.count_models()` / `client.models().get_model_count()` | Yes | Contract | No | P1 |
-| `GET /models/user` | `client.list_models_for_user()` / `client.models().list_user_models()` | Yes | Path | No | P1 |
-| `GET /providers` | `client.list_providers()` / `client.models().list_providers()` | Yes | Contract | No | P1 |
+| `GET /models/{author}/{slug}/endpoints` | `client.list_model_endpoints(...)` / `client.models().list_endpoints(...)` | Yes | None | Yes | Keep |
+| `GET /models/count` | `client.count_models()` / `client.models().get_model_count()` | Yes | Contract | Yes | Keep |
+| `GET /models/user` | `client.list_models_for_user()` / `client.models().list_user_models()` | Yes | Path | Yes | Keep |
+| `GET /providers` | `client.list_providers()` / `client.models().list_providers()` | Yes | Contract | Yes | Keep |
 | `POST /messages` | `client.messages().create(...)` / `client.messages().stream(...)` | Yes | Path | Yes | Keep |
 | `POST /responses` | `client.responses().create(...)` / `client.responses().stream(...)` | Yes | Contract | Yes | Keep |
 
@@ -71,7 +71,7 @@ The endpoint below is intentionally kept as legacy compatibility and is not part
 
 ## Incremental Test Plan
 
-1. P1: add live integration tests for `/embeddings`, `/embeddings/models`, `/providers`, `/models/user`, `/models/count`, `/endpoints/zdr`.
+1. P1: add live integration tests for `/embeddings` and `/embeddings/models`.
 2. P1: add management-key live suite for guardrails and keys in a dedicated workflow gate (manual + weekly, no PR auto-trigger).
 3. P2: keep `/credits`, `/credits/coinbase`, `/generation`, `/auth/keys*` as controlled scenarios (manual or mocked contract-first) due cost/side effects.
 

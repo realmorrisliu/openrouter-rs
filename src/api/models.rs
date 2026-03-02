@@ -62,8 +62,10 @@ pub struct Endpoint {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct EndpointPricing {
-    pub request: String,
-    pub image: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub request: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub image: Option<String>,
     pub prompt: String,
     pub completion: String,
 }
