@@ -23,12 +23,48 @@ pub fn get_test_api_key() -> String {
         .expect("OPENROUTER_API_KEY environment variable not set for integration tests")
 }
 
+pub fn get_test_management_key() -> Option<String> {
+    load_integration_env_file();
+
+    env::var("OPENROUTER_MANAGEMENT_KEY")
+        .ok()
+        .map(|key| key.trim().to_string())
+        .filter(|key| !key.is_empty())
+}
+
 #[allow(clippy::result_large_err)]
 pub fn create_test_client() -> Result<OpenRouterClient, OpenRouterError> {
     OpenRouterClient::builder()
         .api_key(get_test_api_key())
         .base_url("https://openrouter.ai/api/v1")
         .build()
+}
+
+#[allow(clippy::result_large_err)]
+pub fn create_management_test_client() -> Result<Option<OpenRouterClient>, OpenRouterError> {
+    let Some(management_key) = get_test_management_key() else {
+        return Ok(None);
+    };
+
+    OpenRouterClient::builder()
+        .management_key(management_key)
+        .base_url("https://openrouter.ai/api/v1")
+        .build()
+        .map(Some)
+}
+
+pub fn should_run_management_tests() -> bool {
+    load_integration_env_file();
+
+    env::var("OPENROUTER_RUN_MANAGEMENT_TESTS")
+        .ok()
+        .map(|raw| {
+            matches!(
+                raw.trim().to_ascii_lowercase().as_str(),
+                "1" | "true" | "yes" | "on"
+            )
+        })
+        .unwrap_or(false)
 }
 
 pub async fn rate_limit_delay() {

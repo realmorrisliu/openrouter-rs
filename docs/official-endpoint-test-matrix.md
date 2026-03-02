@@ -7,8 +7,8 @@ Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted fro
 
 - Official OpenAPI endpoints: `36` method+path entries.
 - SDK implementation coverage (`src/api` + domain client): `36 / 36` (`100%`).
-- Live integration coverage (`tests/integration`): `12 / 36` endpoints currently exercised.
-  - Covered live now: `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`
+- Live integration coverage (`tests/integration`): `22 / 36` endpoints currently exercised.
+  - Covered live now: `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`
 
 Legend:
 
@@ -34,11 +34,11 @@ Legend:
 | `GET /embeddings/models` | `client.list_embedding_models()` / `client.models().list_embedding_models()` | Yes | None | Yes | Keep |
 | `GET /endpoints/zdr` | `client.models().list_zdr_endpoints(...)` | Yes | Contract | Yes | Keep |
 | `GET /generation` | `client.get_generation(...)` / `client.management().get_generation(...)` | Yes | None | No | P2 |
-| `GET /guardrails` | `client.management().list_guardrails(...)` | Yes | Path | No | P1 |
-| `POST /guardrails` | `client.management().create_guardrail(...)` | Yes | Contract | No | P1 |
-| `GET /guardrails/{id}` | `client.management().get_guardrail(...)` | Yes | Contract | No | P1 |
-| `PATCH /guardrails/{id}` | `client.management().update_guardrail(...)` | Yes | Contract | No | P1 |
-| `DELETE /guardrails/{id}` | `client.management().delete_guardrail(...)` | Yes | Path | No | P1 |
+| `GET /guardrails` | `client.management().list_guardrails(...)` | Yes | Path | Yes | Keep |
+| `POST /guardrails` | `client.management().create_guardrail(...)` | Yes | Contract | Yes | Keep |
+| `GET /guardrails/{id}` | `client.management().get_guardrail(...)` | Yes | Contract | Yes | Keep |
+| `PATCH /guardrails/{id}` | `client.management().update_guardrail(...)` | Yes | Contract | Yes | Keep |
+| `DELETE /guardrails/{id}` | `client.management().delete_guardrail(...)` | Yes | Path | Yes | Keep |
 | `GET /guardrails/{id}/assignments/keys` | `client.management().list_guardrail_key_assignments(...)` | Yes | Contract | No | P1 |
 | `POST /guardrails/{id}/assignments/keys` | `client.management().create_guardrail_key_assignments(...)` | Yes | Path | No | P1 |
 | `POST /guardrails/{id}/assignments/keys/remove` | `client.management().delete_guardrail_key_assignments(...)` | Yes | None | No | P1 |
@@ -48,11 +48,11 @@ Legend:
 | `GET /guardrails/assignments/keys` | `client.management().list_key_assignments(...)` | Yes | None | No | P1 |
 | `GET /guardrails/assignments/members` | `client.management().list_member_assignments(...)` | Yes | Path | No | P1 |
 | `GET /key` | `client.get_current_api_key_info()` / `client.management().get_current_api_key_info()` | Yes | Contract | Yes | Keep |
-| `GET /keys` | `client.list_api_keys(...)` / `client.management().list_api_keys(...)` | Yes | Path | No | P1 |
-| `POST /keys` | `client.create_api_key(...)` / `client.management().create_api_key(...)` | Yes | None | No | P1 |
-| `GET /keys/{hash}` | `client.get_api_key(...)` / `client.management().get_api_key(...)` | Yes | None | No | P1 |
-| `PATCH /keys/{hash}` | `client.update_api_key(...)` / `client.management().update_api_key(...)` | Yes | None | No | P1 |
-| `DELETE /keys/{hash}` | `client.delete_api_key(...)` / `client.management().delete_api_key(...)` | Yes | Path | No | P1 |
+| `GET /keys` | `client.list_api_keys(...)` / `client.management().list_api_keys(...)` | Yes | Path | Yes | Keep |
+| `POST /keys` | `client.create_api_key(...)` / `client.management().create_api_key(...)` | Yes | None | Yes | Keep |
+| `GET /keys/{hash}` | `client.get_api_key(...)` / `client.management().get_api_key(...)` | Yes | None | Yes | Keep |
+| `PATCH /keys/{hash}` | `client.update_api_key(...)` / `client.management().update_api_key(...)` | Yes | None | Yes | Keep |
+| `DELETE /keys/{hash}` | `client.delete_api_key(...)` / `client.management().delete_api_key(...)` | Yes | Path | Yes | Keep |
 | `GET /models` | `client.list_models()` / `client.models().list()` | Yes | Contract | Yes | Keep |
 | `GET /models/{author}/{slug}/endpoints` | `client.list_model_endpoints(...)` / `client.models().list_endpoints(...)` | Yes | None | Yes | Keep |
 | `GET /models/count` | `client.count_models()` / `client.models().get_model_count()` | Yes | Contract | Yes | Keep |
@@ -71,8 +71,9 @@ The endpoint below is intentionally kept as legacy compatibility and is not part
 
 ## Incremental Test Plan
 
-1. P1: add management-key live suite for guardrails and keys in a dedicated workflow gate (manual + weekly, no PR auto-trigger).
-2. P2: keep `/credits`, `/credits/coinbase`, `/generation`, `/auth/keys*` as controlled scenarios (manual or mocked contract-first) due cost/side effects.
+1. P1: add management-key live coverage for assignment endpoints (`/guardrails/*/assignments/*` and `/guardrails/assignments/*`).
+2. P1: add management-key live smoke coverage for `/activity`.
+3. P2: keep `/credits`, `/credits/coinbase`, `/generation`, `/auth/keys*` as controlled scenarios (manual or mocked contract-first) due cost/side effects.
 
 ## Reproduce Snapshot
 
