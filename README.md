@@ -148,12 +148,7 @@ Full migration guide: [MIGRATION.md](./MIGRATION.md)
 - `management().list_guardrails(offset, limit)` -> `management().list_guardrails(Some(PaginationOptions::with_offset_and_limit(offset, limit)))`
 - `client.list_api_keys(offset, include_disabled)` -> `management().list_api_keys(Some(PaginationOptions::with_offset(offset)), include_disabled)`
 
-Remaining `0.5.x` transitional aliases (scheduled for removal in `0.6.0`):
-
-| Deprecated (`0.5.x`) | Replacement |
-| --- | --- |
-| `models().count()` | `models().get_model_count()` |
-| `models().list_for_user()` | `models().list_user_models()` |
+`0.6.0` removes the transitional aliases above; use the canonical method names shown in the mapping list.
 
 Migration validation commands for contributors:
 

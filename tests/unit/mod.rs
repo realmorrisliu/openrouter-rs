@@ -13,7 +13,6 @@ pub mod client_management_key;
 pub mod completion;
 pub mod config;
 pub mod credits;
-pub mod deprecation_bridge;
 pub mod discovery;
 pub mod embeddings;
 pub mod error_model;
