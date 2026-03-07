@@ -32,6 +32,9 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all --check
 
+      - name: Cargo check (default features)
+        run: cargo check --all-targets
+
       - name: Run clippy (deny warnings)
         run: cargo clippy --all-targets --all-features -- -D warnings
 
@@ -55,6 +58,9 @@ jobs:
 
       - name: Cache Rust artifacts
         uses: Swatinem/rust-cache@v2
+
+      - name: Cargo check (all targets/default features)
+        run: cargo check --all-targets
 
       - name: Cargo check (all targets/features)
         run: cargo check --all-targets --all-features

@@ -115,6 +115,7 @@ while let Some(event) = stream.next().await {
 ### 🧱 Legacy Completions (Feature-Gated)
 
 Legacy `POST /completions` support is isolated behind `legacy-completions` and explicit legacy namespace.
+`legacy-completions` is opt-in (not included in default features).
 
 ```toml
 [dependencies]
