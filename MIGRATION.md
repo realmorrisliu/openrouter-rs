@@ -1,6 +1,7 @@
 # Migration Guide: 0.5.x -> 0.6.0
 
-This guide is for users upgrading from the `0.5.x` API surface to the planned `0.6.0` API surface.
+This guide is for users upgrading from the `0.5.x` API surface to `0.6.0`.
+All "Before" snippets in this document represent compatibility aliases removed in `0.6.0`.
 
 ## Quick Checklist
 
