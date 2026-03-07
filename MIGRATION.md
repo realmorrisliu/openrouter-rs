@@ -11,6 +11,22 @@ All "Before" snippets in this document represent compatibility aliases removed i
 4. Replace old pagination shapes with `types::PaginationOptions`.
 5. Update renamed domain methods (`count`, `list_for_user`, `exchange_code_for_api_key`).
 
+## Removed in 0.6.0
+
+These compatibility aliases were removed and must be migrated:
+
+| Removed API | Replacement |
+| --- | --- |
+| `OpenRouterClientBuilder::provisioning_key(...)` | `OpenRouterClientBuilder::management_key(...)` |
+| `OpenRouterClient::set_provisioning_key(...)` | `OpenRouterClient::set_management_key(...)` |
+| `OpenRouterClient::clear_provisioning_key()` | `OpenRouterClient::clear_management_key()` |
+| `OpenRouterClient::list_api_keys(Some(offset_f64), include_disabled)` | `client.management().list_api_keys(Some(PaginationOptions::with_offset(offset_u32)), include_disabled)` |
+| `ManagementClient::exchange_code_for_api_key(...)` | `ManagementClient::create_api_key_from_auth_code(...)` |
+| `api::completion::*` | `api::legacy::completion::*` |
+| `OpenRouterClient::send_completion_request(...)` | `client.legacy().completions().create(...)` |
+| `ModelsClient::list_for_user()` | `ModelsClient::list_user_models()` |
+| `ModelsClient::count()` | `ModelsClient::get_model_count()` |
+
 ## Breaking-Change Mapping
 
 | Area | Old Usage | New Usage (`0.6.0` target) |

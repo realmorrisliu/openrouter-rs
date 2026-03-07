@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed in 0.6.0
+- Removed management-key compatibility aliases:
+  - `OpenRouterClientBuilder::provisioning_key(...)`
+  - `OpenRouterClient::{set_provisioning_key, clear_provisioning_key}`
+- Removed deprecated flat API-key pagination shim:
+  - `OpenRouterClient::list_api_keys(offset: Option<f64>, include_disabled: Option<bool>)`
+- Removed deprecated management auth-code alias:
+  - `ManagementClient::exchange_code_for_api_key(...)`
+- Removed deprecated legacy-completion compatibility entrypoints:
+  - `api::completion::*`
+  - `OpenRouterClient::send_completion_request(...)`
+- Removed deprecated model-domain aliases:
+  - `ModelsClient::list_for_user()`
+  - `ModelsClient::count()`
+
+### Changed
+- `legacy-completions` is now opt-in (no longer in default crate features).
+- Migration docs and smoke coverage now align with the final canonical 0.6 API surface.
+
 ## [0.5.2] - 2026-03-01
 
 ### Added

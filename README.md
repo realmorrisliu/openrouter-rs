@@ -578,7 +578,14 @@ This is a **third-party SDK** not officially affiliated with OpenRouter. Use at 
 
 ## 📈 Release History
 
-### Version 0.5.2 *(Latest)*
+### Version 0.6.0 *(Upcoming)*
+
+- ❗ **Breaking**: Removed all 0.5.x compatibility aliases; canonical APIs only (`management_key`, domain clients, `PaginationOptions`)
+- 🧭 **Breaking**: Legacy completions now only via explicit surface (`api::legacy::completion` + `client.legacy().completions().create(...)`)
+- ⚙️ **Changed**: `legacy-completions` feature is opt-in (not part of default features)
+- 📚 **Migration**: Finalized migration guide and smoke-test coverage for removed/renamed APIs
+
+### Version 0.5.2 *(Latest stable)*
 
 - 🧭 **Added**: Domain-oriented SDK surface and major OpenRouter coverage expansion (`messages`, discovery/activity, guardrails, auth code flow)
 - 🛠️ **Added**: `openrouter-cli v0.1` foundation with discovery, management, and usage/billing command groups
