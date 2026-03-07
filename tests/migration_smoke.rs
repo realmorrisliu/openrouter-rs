@@ -81,7 +81,6 @@ async fn test_domain_06_style_inference_surface_requires_api_key() {
 }
 
 #[tokio::test]
-#[allow(deprecated)]
 async fn test_flat_05_style_management_surface_requires_management_key() {
     let client = OpenRouterClient::builder()
         .api_key("user-key")
@@ -91,8 +90,8 @@ async fn test_flat_05_style_management_surface_requires_management_key() {
     let created = client.create_api_key("migration-smoke", Some(10.0)).await;
     assert!(matches!(created, Err(OpenRouterError::KeyNotConfigured)));
 
-    let listed = client.list_api_keys(Some(0.0), Some(false)).await;
-    assert!(matches!(listed, Err(OpenRouterError::KeyNotConfigured)));
+    let deleted = client.delete_api_key("key_hash").await;
+    assert!(matches!(deleted, Err(OpenRouterError::KeyNotConfigured)));
 
     let activity = client.get_activity(None).await;
     assert!(matches!(activity, Err(OpenRouterError::KeyNotConfigured)));
