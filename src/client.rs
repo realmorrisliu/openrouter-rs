@@ -1266,25 +1266,9 @@ impl<'a> ModelsClient<'a> {
         self.client.list_models_for_user().await
     }
 
-    #[deprecated(
-        since = "0.5.2",
-        note = "renamed to list_user_models(); list_for_user() will be removed in 0.6.0"
-    )]
-    pub async fn list_for_user(&self) -> Result<Vec<discovery::UserModel>, OpenRouterError> {
-        self.list_user_models().await
-    }
-
     /// Get available model count (`GET /models/count`).
     pub async fn get_model_count(&self) -> Result<discovery::ModelsCountData, OpenRouterError> {
         self.client.count_models().await
-    }
-
-    #[deprecated(
-        since = "0.5.2",
-        note = "renamed to get_model_count(); count() will be removed in 0.6.0"
-    )]
-    pub async fn count(&self) -> Result<discovery::ModelsCountData, OpenRouterError> {
-        self.get_model_count().await
     }
 
     /// List ZDR-compatible endpoints (`GET /endpoints/zdr`).
