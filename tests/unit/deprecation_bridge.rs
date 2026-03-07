@@ -19,16 +19,3 @@ async fn test_models_legacy_aliases_forward_to_renamed_methods() {
         Err(OpenRouterError::KeyNotConfigured)
     ));
 }
-
-#[test]
-#[allow(deprecated)]
-#[cfg(feature = "legacy-completions")]
-fn test_legacy_completion_module_path_alias_compiles() {
-    let request = openrouter_rs::api::completion::CompletionRequest::builder()
-        .model("openai/gpt-4.1")
-        .prompt("hello")
-        .build()
-        .expect("completion request should build");
-
-    let _ = request;
-}

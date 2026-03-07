@@ -811,55 +811,6 @@ impl OpenRouterClient {
         Ok(adapt_messages_stream(raw_stream))
     }
 
-    /// Send a legacy completion request to a selected model (text-only format).
-    ///
-    /// # Arguments
-    ///
-    /// * `request` - The completion request built using CompletionRequest::builder().
-    ///
-    /// # Returns
-    ///
-    /// * `Result<completion::CompletionsResponse, OpenRouterError>` - The response from the completion request, containing the generated text and other details.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use openrouter_rs::api::legacy::completion::CompletionRequest;
-    ///
-    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
-    /// let request = CompletionRequest::builder()
-    ///     .model("deepseek/deepseek-chat-v3-0324:free")
-    ///     .prompt("Once upon a time")
-    ///     .max_tokens(100)
-    ///     .temperature(0.7)
-    ///     .build()?;
-    /// let response = client.legacy().completions().create(&request).await?;
-    /// println!("{:?}", response);
-    /// # Ok::<(), Box<dyn std::error::Error>>(())
-    /// ```
-    #[cfg(feature = "legacy-completions")]
-    #[deprecated(
-        since = "0.5.2",
-        note = "use client.legacy().completions().create(request); send_completion_request() will be removed in 0.6.0"
-    )]
-    pub async fn send_completion_request(
-        &self,
-        request: &completion::CompletionRequest,
-    ) -> Result<CompletionsResponse, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            completion::send_completion_request(
-                &self.base_url,
-                api_key,
-                &self.x_title,
-                &self.http_referer,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
     /// Submit an embeddings request.
     ///
     /// # Arguments
@@ -1606,11 +1557,21 @@ pub struct LegacyCompletionsClient<'a> {
 #[cfg(feature = "legacy-completions")]
 impl<'a> LegacyCompletionsClient<'a> {
     /// Create a legacy text completion (`POST /completions`).
-    #[allow(deprecated)]
     pub async fn create(
         &self,
         request: &completion::CompletionRequest,
     ) -> Result<CompletionsResponse, OpenRouterError> {
-        self.client.send_completion_request(request).await
+        if let Some(api_key) = &self.client.api_key {
+            completion::send_completion_request(
+                &self.client.base_url,
+                api_key,
+                &self.client.x_title,
+                &self.client.http_referer,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
     }
 }
