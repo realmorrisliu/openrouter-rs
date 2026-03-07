@@ -151,8 +151,6 @@ Remaining `0.5.x` transitional aliases (scheduled for removal in `0.6.0`):
 
 | Deprecated (`0.5.x`) | Replacement |
 | --- | --- |
-| `api::completion::*` | `api::legacy::completion::*` |
-| `client.send_completion_request(&request)` | `client.legacy().completions().create(&request)` |
 | `models().count()` | `models().get_model_count()` |
 | `models().list_for_user()` | `models().list_user_models()` |
 

@@ -122,7 +122,6 @@ async fn test_domain_06_style_management_surface_requires_management_key() {
 
 #[tokio::test]
 #[cfg(feature = "legacy-completions")]
-#[allow(deprecated)]
 async fn test_legacy_completion_surface_smoke() {
     let client = OpenRouterClient::builder()
         .build()
@@ -133,12 +132,6 @@ async fn test_legacy_completion_surface_smoke() {
         .prompt("hello")
         .build()
         .expect("completion request should build");
-
-    let legacy_result = client.send_completion_request(&request).await;
-    assert!(matches!(
-        legacy_result,
-        Err(OpenRouterError::KeyNotConfigured)
-    ));
 
     let domain_result = client.legacy().completions().create(&request).await;
     assert!(matches!(
