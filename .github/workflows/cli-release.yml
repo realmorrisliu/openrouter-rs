@@ -88,9 +88,6 @@ jobs:
           - os: macos-14
             target: aarch64-apple-darwin
             exe_suffix: ""
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            exe_suffix: ".exe"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
