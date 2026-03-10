@@ -37,6 +37,8 @@ pub fn create_test_client() -> Result<OpenRouterClient, OpenRouterError> {
     OpenRouterClient::builder()
         .api_key(get_test_api_key())
         .base_url("https://openrouter.ai/api/v1")
+        .x_title("openrouter-rs")
+        .http_referer("https://github.com/realmorrisliu/openrouter-rs")
         .build()
 }
 
@@ -49,6 +51,8 @@ pub fn create_management_test_client() -> Result<Option<OpenRouterClient>, OpenR
     OpenRouterClient::builder()
         .management_key(management_key)
         .base_url("https://openrouter.ai/api/v1")
+        .x_title("openrouter-rs")
+        .http_referer("https://github.com/realmorrisliu/openrouter-rs")
         .build()
         .map(Some)
 }

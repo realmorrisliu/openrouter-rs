@@ -237,6 +237,7 @@ pub async fn create_response(
         .body_json(&request)?;
 
     if let Some(x_title) = x_title {
+        surf_req = surf_req.header("X-OpenRouter-Title", x_title);
         surf_req = surf_req.header("X-Title", x_title);
     }
     if let Some(http_referer) = http_referer {
@@ -270,6 +271,7 @@ pub async fn stream_response(
         .body_json(&request)?;
 
     if let Some(x_title) = x_title {
+        surf_req = surf_req.header("X-OpenRouter-Title", x_title);
         surf_req = surf_req.header("X-Title", x_title);
     }
     if let Some(http_referer) = http_referer {
