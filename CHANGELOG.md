@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Removed in 0.6.0
+## [0.6.0] - 2026-03-10
+
+### Removed
 - Removed management-key compatibility aliases:
   - `OpenRouterClientBuilder::provisioning_key(...)`
   - `OpenRouterClient::{set_provisioning_key, clear_provisioning_key}`

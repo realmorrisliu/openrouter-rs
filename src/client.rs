@@ -34,7 +34,10 @@ pub struct OpenRouterClient {
     management_key: Option<String>,
     #[builder(setter(into, strip_option), default)]
     http_referer: Option<String>,
-    #[builder(setter(into, strip_option), default)]
+    #[builder(
+        setter(into, strip_option),
+        default = "Some(String::from(\"openrouter-rs\"))"
+    )]
     x_title: Option<String>,
     #[builder(setter(into, strip_option), default)]
     config: Option<OpenRouterConfig>,
