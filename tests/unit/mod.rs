@@ -5,6 +5,7 @@ fn dummy_test() {
 
 pub mod api_keys;
 pub mod auth;
+pub mod chat_api;
 pub mod chat_request;
 pub mod client_domains;
 #[cfg(feature = "legacy-completions")]

@@ -14,7 +14,7 @@ use openrouter_rs::api::{
         AnthropicMessagesRequest, AnthropicMessagesResponse, AnthropicMessagesStreamEvent,
         AnthropicOutputConfig, AnthropicOutputEffort, AnthropicRole, AnthropicSystemPrompt,
         AnthropicSystemTextBlock, AnthropicThinking, AnthropicTool, AnthropicToolChoice,
-        stream_messages,
+        create_message, stream_messages,
     },
 };
 use serde_json::json;
@@ -282,6 +282,125 @@ async fn test_stream_messages_parses_event_and_data_lines() {
         }
         _ => panic!("expected content_block_delta"),
     }
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_create_message_sets_stream_false_and_headers() {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("listener should bind");
+    let addr = listener
+        .local_addr()
+        .expect("listener should have local addr");
+    let (tx, rx) = mpsc::channel::<(String, String, String)>();
+
+    let server = thread::spawn(move || {
+        let (mut stream, _) = listener
+            .accept()
+            .expect("server should accept one connection");
+        let mut request_bytes = Vec::new();
+        let mut chunk = [0_u8; 1024];
+        let header_end = loop {
+            let read = stream.read(&mut chunk).expect("server should read request");
+            if read == 0 {
+                break None;
+            }
+            request_bytes.extend_from_slice(&chunk[..read]);
+            if let Some(pos) = request_bytes
+                .windows(4)
+                .position(|window| window == b"\r\n\r\n")
+            {
+                break Some(pos + 4);
+            }
+        }
+        .expect("request should contain header terminator");
+
+        let header_text = String::from_utf8_lossy(&request_bytes[..header_end]).to_string();
+        let request_line = header_text.lines().next().unwrap_or_default().to_string();
+        let content_length = header_text
+            .lines()
+            .find_map(|line| {
+                let lower = line.to_ascii_lowercase();
+                if lower.starts_with("content-length:") {
+                    line.split(':').nth(1)?.trim().parse::<usize>().ok()
+                } else {
+                    None
+                }
+            })
+            .unwrap_or(0);
+
+        let mut body_bytes = request_bytes[header_end..].to_vec();
+        while body_bytes.len() < content_length {
+            let read = stream
+                .read(&mut chunk)
+                .expect("server should read request body");
+            if read == 0 {
+                break;
+            }
+            body_bytes.extend_from_slice(&chunk[..read]);
+        }
+        let body_text = String::from_utf8_lossy(&body_bytes[..content_length]).to_string();
+        tx.send((request_line, header_text, body_text))
+            .expect("server should send request details");
+
+        let response_body = r#"{"id":"msg_1","type":"message","role":"assistant","content":[],"model":"anthropic/claude-sonnet-4"}"#;
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            response_body.len(),
+            response_body
+        );
+        stream
+            .write_all(response.as_bytes())
+            .expect("server should write response");
+    });
+
+    let request = AnthropicMessagesRequest::builder()
+        .model("anthropic/claude-sonnet-4")
+        .max_tokens(128)
+        .messages(vec![AnthropicMessage::user("hello")])
+        .build()
+        .expect("messages request should build");
+    let x_title = Some("openrouter-rs-tests".to_string());
+    let http_referer = Some("https://github.com/realmorrisliu/openrouter-rs".to_string());
+
+    let base_url = format!("http://{addr}/api/v1");
+    let response = create_message(&base_url, "api-key", &x_title, &http_referer, &request)
+        .await
+        .expect("create_message should succeed");
+    assert_eq!(response.id.as_deref(), Some("msg_1"));
+    assert_eq!(response.object_type.as_deref(), Some("message"));
+
+    let (request_line, header_text, request_body) = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request details");
+    assert_eq!(request_line, "POST /api/v1/messages HTTP/1.1");
+
+    let headers_lower = header_text.to_ascii_lowercase();
+    assert!(
+        headers_lower.contains("authorization: bearer api-key")
+            || headers_lower.contains("authorization:bearer api-key"),
+        "authorization header should include API key, headers:\n{header_text}"
+    );
+    assert!(
+        headers_lower.contains("x-openrouter-title: openrouter-rs-tests")
+            || headers_lower.contains("x-openrouter-title:openrouter-rs-tests"),
+        "x-openrouter-title header should be present, headers:\n{header_text}"
+    );
+    assert!(
+        headers_lower.contains("x-title: openrouter-rs-tests")
+            || headers_lower.contains("x-title:openrouter-rs-tests"),
+        "x-title header should be present, headers:\n{header_text}"
+    );
+    assert!(
+        headers_lower.contains("http-referer: https://github.com/realmorrisliu/openrouter-rs")
+            || headers_lower
+                .contains("http-referer:https://github.com/realmorrisliu/openrouter-rs"),
+        "http-referer header should be present, headers:\n{header_text}"
+    );
+
+    let request_json: serde_json::Value =
+        serde_json::from_str(&request_body).expect("request body should be valid json");
+    assert_eq!(request_json["stream"], false);
 
     server.join().expect("server thread should finish");
 }
