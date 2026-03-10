@@ -7,18 +7,30 @@ description: Prepare and publish a new openrouter-rs version with consistent ver
 
 ## Overview
 
-Use this skill to run the full `openrouter-rs` release workflow without missing version sync points.
-Always update `Cargo.toml`, `CHANGELOG.md`, and README release sections together before tagging.
+Use this skill to run the full release workflow for:
+- `openrouter-rs` (SDK)
+- `openrouter-cli` (CLI crate)
+
+Always update versioned files/docs together before tagging.
+
+## Unified Publish Policy (Required)
+
+Use GitHub Actions as the single publish path for both SDK and CLI releases.
+
+- Do not run local `cargo publish` as the default release path.
+- Publish by pushing release tags and letting workflows perform verify/publish/release jobs.
+- Local `cargo publish` is emergency-only fallback.
 
 ## Release Inputs
 
 Collect these values first:
 
-- Target version (for example `0.5.1`)
+- Target package (`openrouter-rs` or `openrouter-cli`)
+- Target version (for example `0.6.0` or `0.1.0`)
 - Release date in `YYYY-MM-DD`
 - Summary bullets grouped by `Added`, `Changed`, `Fixed` (reuse from `CHANGELOG.md` when possible)
 
-## Update Versioned Files
+## Update Versioned Files (SDK: openrouter-rs)
 
 Apply updates in this order to avoid drift.
 
@@ -36,6 +48,17 @@ Apply updates in this order to avoid drift.
 
 Use [references/release-targets.md](references/release-targets.md) to verify exact files and grep checks.
 
+## Update Versioned Files (CLI: openrouter-cli)
+
+When target is `openrouter-cli`:
+
+1. Update `crates/openrouter-cli/Cargo.toml` version.
+2. Ensure `openrouter-rs` dependency has both `path` and `version`.
+3. Update `crates/openrouter-cli/README.md` installation snippets/versioned URLs if present.
+4. Ensure CLI release workflow contract remains valid:
+- tag pattern: `openrouter-cli-v*.*.*`
+- tag version matches `crates/openrouter-cli/Cargo.toml`.
+
 ## Validate Before Commit
 
 Run local checks in this order:
@@ -45,6 +68,11 @@ Run local checks in this order:
 3. `cargo test --test unit`
 4. `bash .agents/skills/openrouter-rs-release/scripts/verify_release_sync.sh <version>`
 
+For CLI releases, also run:
+
+1. `cargo test -p openrouter-cli`
+2. `cargo package -p openrouter-cli --locked`
+
 If `verify_release_sync.sh` reports mismatch, fix files before commit/tag.
 
 ## Commit, Tag, and Publish
@@ -53,11 +81,19 @@ When all checks pass:
 
 1. Commit release prep changes.
 2. Push to `main` via PR according to repo policy.
-3. Create and push the release tag: `v<version>`.
-4. Confirm GitHub Actions `Release` workflow passes:
+3. Create and push release tag:
+- SDK: `v<version>`
+- CLI: `openrouter-cli-v<version>`
+4. Confirm GitHub Actions release workflow passes:
+- SDK workflow: `Release`
 - verify job
 - crates.io publish (requires `CARGO_REGISTRY_TOKEN`)
 - GitHub release creation
+- CLI workflow: `CLI Release`
+- verify job
+- crates.io publish (`openrouter-cli`, requires `CARGO_REGISTRY_TOKEN`)
+- binary build matrix + `SHA256SUMS`
+- GitHub release assets upload
 
 ## Release Note Composition
 
@@ -69,6 +105,7 @@ Use `CHANGELOG.md` as the source of truth.
 
 ## Quick Execution Checklist
 
+- SDK checklist:
 - [ ] `Cargo.toml` version bumped
 - [ ] README installation version updated
 - [ ] `src/lib.rs` pinned crate snippet updated (if present)
@@ -77,4 +114,11 @@ Use `CHANGELOG.md` as the source of truth.
 - [ ] local checks passed (`fmt`, `clippy`, `unit`)
 - [ ] version sync script passed
 - [ ] tag `v<version>` pushed
-- [ ] release workflow green
+- [ ] `Release` workflow green
+
+- CLI checklist:
+- [ ] `crates/openrouter-cli/Cargo.toml` version bumped
+- [ ] CLI README install notes updated
+- [ ] local checks passed (`cargo test -p openrouter-cli`, `cargo package -p openrouter-cli --locked`)
+- [ ] tag `openrouter-cli-v<version>` pushed
+- [ ] `CLI Release` workflow green (publish + binaries + checksums)
