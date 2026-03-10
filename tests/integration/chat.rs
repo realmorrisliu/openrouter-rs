@@ -27,7 +27,7 @@ async fn test_basic_chat_completion() -> Result<(), OpenRouterError> {
             Role::User,
             "Please reply with a short greeting in English.",
         )])
-        .max_tokens(10)
+        .max_tokens(32)
         .temperature(0.1)
         .build()?;
 
