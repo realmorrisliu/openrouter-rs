@@ -23,6 +23,21 @@ Install from local source:
 cargo install --path crates/openrouter-cli
 ```
 
+Install prebuilt binaries from GitHub Releases:
+
+```bash
+VERSION=0.1.0
+curl -L -o openrouter-cli.tar.gz \
+  "https://github.com/realmorrisliu/openrouter-rs/releases/download/openrouter-cli-v${VERSION}/openrouter-cli-${VERSION}-x86_64-unknown-linux-gnu.tar.gz"
+curl -L -o SHA256SUMS \
+  "https://github.com/realmorrisliu/openrouter-rs/releases/download/openrouter-cli-v${VERSION}/SHA256SUMS"
+grep "openrouter-cli-${VERSION}-x86_64-unknown-linux-gnu.tar.gz" SHA256SUMS | sha256sum -c -
+tar -xzf openrouter-cli.tar.gz
+./openrouter-cli --help
+```
+
+For macOS and Windows, use the matching target archive from the same release tag.
+
 ## Config And Profile Convention
 
 By default, config is loaded from:
