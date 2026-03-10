@@ -1,6 +1,6 @@
 # Official Endpoint Test Matrix
 
-Snapshot date: 2026-03-02  
+Snapshot date: 2026-03-10  
 Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)
 
 ## Coverage Summary
@@ -48,7 +48,7 @@ Legend:
 | `GET /guardrails/assignments/keys` | `client.management().list_key_assignments(...)` | Yes | Path | No | P1 |
 | `GET /guardrails/assignments/members` | `client.management().list_member_assignments(...)` | Yes | Path | No | P1 |
 | `GET /key` | `client.get_current_api_key_info()` / `client.management().get_current_api_key_info()` | Yes | Contract | Yes | Keep |
-| `GET /keys` | `client.list_api_keys(...)` / `client.management().list_api_keys(...)` | Yes | Path | Yes | Keep |
+| `GET /keys` | `client.management().list_api_keys(...)` | Yes | Path | Yes | Keep |
 | `POST /keys` | `client.create_api_key(...)` / `client.management().create_api_key(...)` | Yes | Path | Yes | Keep |
 | `GET /keys/{hash}` | `client.get_api_key(...)` / `client.management().get_api_key(...)` | Yes | Path | Yes | Keep |
 | `PATCH /keys/{hash}` | `client.update_api_key(...)` / `client.management().update_api_key(...)` | Yes | Path | Yes | Keep |

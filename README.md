@@ -33,7 +33,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-openrouter-rs = "0.5.2"
+openrouter-rs = "0.6.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -119,7 +119,7 @@ Legacy `POST /completions` support is isolated behind `legacy-completions` and e
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.5.2", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.6.0", features = ["legacy-completions"] }
 ```
 
 ```rust
@@ -408,6 +408,9 @@ let client = OpenRouterClient::builder()
     .build()?;
 ```
 
+By default, the SDK sends `X-Title: openrouter-rs` so requests are attributed in OpenRouter activity logs.
+Set `.x_title(...)` to override this value for your app.
+
 ### Streaming with Reasoning
 
 ```rust
@@ -578,14 +581,14 @@ This is a **third-party SDK** not officially affiliated with OpenRouter. Use at 
 
 ## 📈 Release History
 
-### Version 0.6.0 *(Upcoming)*
+### Version 0.6.0 *(Latest)*
 
 - ❗ **Breaking**: Removed all 0.5.x compatibility aliases; canonical APIs only (`management_key`, domain clients, `PaginationOptions`)
 - 🧭 **Breaking**: Legacy completions now only via explicit surface (`api::legacy::completion` + `client.legacy().completions().create(...)`)
 - ⚙️ **Changed**: `legacy-completions` feature is opt-in (not part of default features)
 - 📚 **Migration**: Finalized migration guide and smoke-test coverage for removed/renamed APIs
 
-### Version 0.5.2 *(Latest stable)*
+### Version 0.5.2
 
 - 🧭 **Added**: Domain-oriented SDK surface and major OpenRouter coverage expansion (`messages`, discovery/activity, guardrails, auth code flow)
 - 🛠️ **Added**: `openrouter-cli v0.1` foundation with discovery, management, and usage/billing command groups
