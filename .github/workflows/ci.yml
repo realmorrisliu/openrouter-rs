@@ -44,6 +44,9 @@ jobs:
       - name: Run CLI foundation tests
         run: cargo test -p openrouter-cli
 
+      - name: Validate CLI package contents
+        run: cargo package -p openrouter-cli --locked
+
   msrv-check:
     name: MSRV Check (1.85.0)
     runs-on: ubuntu-latest

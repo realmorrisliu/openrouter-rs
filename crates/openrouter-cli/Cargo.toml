@@ -6,11 +6,16 @@ rust-version = "1.85"
 description = "CLI for OpenRouter account and SDK workflows"
 license = "MIT"
 repository = "https://github.com/realmorrisliu/openrouter-rs"
+homepage = "https://github.com/realmorrisliu/openrouter-rs"
+documentation = "https://github.com/realmorrisliu/openrouter-rs/tree/main/crates/openrouter-cli"
+readme = "README.md"
+keywords = ["openrouter", "cli", "ai"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 anyhow = "1.0.86"
 clap = { version = "4.5.37", features = ["derive"] }
-openrouter-rs = { path = "../.." }
+openrouter-rs = { version = "0.6.0", path = "../.." }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1", features = ["full"] }

@@ -9,6 +9,20 @@
 - OR-21: management commands for API keys and guardrails
 - OR-22: usage and billing commands with stable output contracts
 
+## Installation
+
+Install from crates.io:
+
+```bash
+cargo install openrouter-cli
+```
+
+Install from local source:
+
+```bash
+cargo install --path crates/openrouter-cli
+```
+
 ## Config And Profile Convention
 
 By default, config is loaded from:
