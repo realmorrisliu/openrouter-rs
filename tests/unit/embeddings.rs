@@ -164,3 +164,124 @@ async fn test_list_embedding_models_path_and_auth_header() {
 
     server.join().expect("server thread should finish");
 }
+
+#[tokio::test]
+async fn test_create_embedding_path_body_and_headers() {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("listener should bind");
+    let addr = listener
+        .local_addr()
+        .expect("listener should have local addr");
+    let (tx, rx) = mpsc::channel::<(String, String, String)>();
+
+    let server = thread::spawn(move || {
+        let (mut stream, _) = listener
+            .accept()
+            .expect("server should accept one connection");
+        let mut request_bytes = Vec::new();
+        let mut chunk = [0_u8; 1024];
+        let header_end = loop {
+            let read = stream.read(&mut chunk).expect("server should read request");
+            if read == 0 {
+                break None;
+            }
+            request_bytes.extend_from_slice(&chunk[..read]);
+            if let Some(pos) = request_bytes
+                .windows(4)
+                .position(|window| window == b"\r\n\r\n")
+            {
+                break Some(pos + 4);
+            }
+        }
+        .expect("request should contain header terminator");
+
+        let header_text = String::from_utf8_lossy(&request_bytes[..header_end]).to_string();
+        let request_line = header_text.lines().next().unwrap_or_default().to_string();
+        let content_length = header_text
+            .lines()
+            .find_map(|line| {
+                let lower = line.to_ascii_lowercase();
+                if lower.starts_with("content-length:") {
+                    line.split(':').nth(1)?.trim().parse::<usize>().ok()
+                } else {
+                    None
+                }
+            })
+            .unwrap_or(0);
+
+        let mut body_bytes = request_bytes[header_end..].to_vec();
+        while body_bytes.len() < content_length {
+            let read = stream
+                .read(&mut chunk)
+                .expect("server should read request body");
+            if read == 0 {
+                break;
+            }
+            body_bytes.extend_from_slice(&chunk[..read]);
+        }
+        let body_text = String::from_utf8_lossy(&body_bytes[..content_length]).to_string();
+        tx.send((request_line, header_text, body_text))
+            .expect("server should send request details");
+
+        let response_body = r#"{"id":"emb-001","object":"list","data":[{"object":"embedding","embedding":[0.1,0.2],"index":0}],"model":"openai/text-embedding-3-large"}"#;
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            response_body.len(),
+            response_body
+        );
+        stream
+            .write_all(response.as_bytes())
+            .expect("server should write response");
+    });
+
+    let request = EmbeddingRequest::builder()
+        .model("openai/text-embedding-3-large")
+        .input("hello embeddings")
+        .build()
+        .expect("embedding request should build");
+
+    let base_url = format!("http://{addr}/api/v1");
+    let x_title = Some("openrouter-rs-tests".to_string());
+    let http_referer = Some("https://github.com/realmorrisliu/openrouter-rs".to_string());
+    let response =
+        embeddings::create_embedding(&base_url, "api-key", &x_title, &http_referer, &request)
+            .await
+            .expect("create embedding should succeed");
+    assert_eq!(response.object, "list");
+    assert_eq!(response.model, "openai/text-embedding-3-large");
+    assert_eq!(response.data.len(), 1);
+
+    let (request_line, header_text, body_text) = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(request_line, "POST /api/v1/embeddings HTTP/1.1");
+
+    let headers_lower = header_text.to_ascii_lowercase();
+    assert!(
+        headers_lower.contains("authorization: bearer api-key")
+            || headers_lower.contains("authorization:bearer api-key"),
+        "authorization header should include API key, headers:\n{header_text}"
+    );
+    assert!(
+        headers_lower.contains("x-openrouter-title: openrouter-rs-tests")
+            || headers_lower.contains("x-openrouter-title:openrouter-rs-tests"),
+        "x-openrouter-title header should be present, headers:\n{header_text}"
+    );
+    assert!(
+        headers_lower.contains("x-title: openrouter-rs-tests")
+            || headers_lower.contains("x-title:openrouter-rs-tests"),
+        "x-title header should be present, headers:\n{header_text}"
+    );
+    assert!(
+        headers_lower.contains("http-referer: https://github.com/realmorrisliu/openrouter-rs")
+            || headers_lower
+                .contains("http-referer:https://github.com/realmorrisliu/openrouter-rs"),
+        "http-referer header should be present, headers:\n{header_text}"
+    );
+
+    let request_json: serde_json::Value =
+        serde_json::from_str(&body_text).expect("request body should be valid JSON");
+    assert_eq!(request_json["model"], "openai/text-embedding-3-large");
+    assert_eq!(request_json["input"], "hello embeddings");
+
+    server.join().expect("server thread should finish");
+}

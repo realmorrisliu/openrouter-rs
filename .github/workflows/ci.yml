@@ -41,6 +41,11 @@ jobs:
       - name: Run unit tests
         run: cargo test --test unit
 
+      - name: Run deterministic integration subsets
+        run: |
+          cargo test --test integration model_pool:: -- --nocapture
+          cargo test --test integration tools:: -- --nocapture
+
       - name: Run CLI foundation tests
         run: cargo test -p openrouter-cli
 

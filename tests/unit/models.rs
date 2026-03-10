@@ -8,8 +8,66 @@ use std::{
 
 use openrouter_rs::{
     api::models::{self, EndpointData},
-    types::ApiResponse,
+    types::{ApiResponse, ModelCategory, SupportedParameters},
 };
+
+struct CapturedRequest {
+    request_line: String,
+    request_text: String,
+}
+
+fn spawn_json_server(
+    response_body: &str,
+) -> (
+    String,
+    mpsc::Receiver<CapturedRequest>,
+    thread::JoinHandle<()>,
+) {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("listener should bind");
+    let addr = listener
+        .local_addr()
+        .expect("listener should have local addr");
+    let body = response_body.to_string();
+    let (tx, rx) = mpsc::channel::<CapturedRequest>();
+
+    let server = thread::spawn(move || {
+        let (mut stream, _) = listener
+            .accept()
+            .expect("server should accept one connection");
+        let mut request_bytes = Vec::new();
+        let mut chunk = [0_u8; 1024];
+
+        loop {
+            let read = stream.read(&mut chunk).expect("server should read request");
+            if read == 0 {
+                break;
+            }
+            request_bytes.extend_from_slice(&chunk[..read]);
+            if request_bytes.windows(4).any(|window| window == b"\r\n\r\n") {
+                break;
+            }
+        }
+
+        let request_text = String::from_utf8_lossy(&request_bytes).to_string();
+        let request_line = request_text.lines().next().unwrap_or_default().to_string();
+        tx.send(CapturedRequest {
+            request_line,
+            request_text,
+        })
+        .expect("server should send request");
+
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        );
+        stream
+            .write_all(response.as_bytes())
+            .expect("server should write response");
+    });
+
+    (format!("http://{addr}/api/v1"), rx, server)
+}
 
 #[test]
 fn test_model_endpoints_pricing_allows_missing_optional_fields() {
@@ -132,6 +190,92 @@ async fn test_list_model_endpoints_encodes_author_slug_and_auth_header() {
         "authorization header should include API key, request:\n{}",
         request_text
     );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_list_models_default_path_and_auth_header() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"data":[]}"#);
+
+    let models = models::list_models(&base_url, "api-key", None, None)
+        .await
+        .expect("list models should succeed");
+    assert!(models.is_empty(), "response payload should parse");
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(captured.request_line, "GET /api/v1/models HTTP/1.1");
+    let request_lower = captured.request_text.to_ascii_lowercase();
+    assert!(
+        request_lower.contains("authorization: bearer api-key")
+            || request_lower.contains("authorization:bearer api-key"),
+        "authorization header should include API key, request:\n{}",
+        captured.request_text
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_list_models_with_category_query() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"data":[]}"#);
+
+    let models = models::list_models(&base_url, "api-key", Some(ModelCategory::Programming), None)
+        .await
+        .expect("list models by category should succeed");
+    assert!(models.is_empty(), "response payload should parse");
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/models?category=programming HTTP/1.1"
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_list_models_with_supported_parameters_query() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"data":[]}"#);
+
+    let models = models::list_models(&base_url, "api-key", None, Some(SupportedParameters::TopP))
+        .await
+        .expect("list models by supported parameter should succeed");
+    assert!(models.is_empty(), "response payload should parse");
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/models?supported_parameters=top_p HTTP/1.1"
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_list_models_ignores_filters_when_both_are_set() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"data":[]}"#);
+
+    let models = models::list_models(
+        &base_url,
+        "api-key",
+        Some(ModelCategory::Programming),
+        Some(SupportedParameters::TopP),
+    )
+    .await
+    .expect("list models should succeed");
+    assert!(models.is_empty(), "response payload should parse");
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(captured.request_line, "GET /api/v1/models HTTP/1.1");
 
     server.join().expect("server thread should finish");
 }

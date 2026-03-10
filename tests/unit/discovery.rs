@@ -13,6 +13,64 @@ use openrouter_rs::{
     types::ApiResponse,
 };
 
+struct CapturedRequest {
+    request_line: String,
+    request_text: String,
+}
+
+fn spawn_json_server(
+    response_body: &str,
+) -> (
+    String,
+    mpsc::Receiver<CapturedRequest>,
+    thread::JoinHandle<()>,
+) {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("listener should bind");
+    let addr = listener
+        .local_addr()
+        .expect("listener should have local addr");
+    let body = response_body.to_string();
+    let (tx, rx) = mpsc::channel::<CapturedRequest>();
+
+    let server = thread::spawn(move || {
+        let (mut stream, _) = listener
+            .accept()
+            .expect("server should accept one connection");
+        let mut request_bytes = Vec::new();
+        let mut chunk = [0_u8; 1024];
+
+        loop {
+            let read = stream.read(&mut chunk).expect("server should read request");
+            if read == 0 {
+                break;
+            }
+            request_bytes.extend_from_slice(&chunk[..read]);
+            if request_bytes.windows(4).any(|window| window == b"\r\n\r\n") {
+                break;
+            }
+        }
+
+        let request_text = String::from_utf8_lossy(&request_bytes).to_string();
+        let request_line = request_text.lines().next().unwrap_or_default().to_string();
+        tx.send(CapturedRequest {
+            request_line,
+            request_text,
+        })
+        .expect("server should send request");
+
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        );
+        stream
+            .write_all(response.as_bytes())
+            .expect("server should write response");
+    });
+
+    (format!("http://{addr}/api/v1"), rx, server)
+}
+
 #[test]
 fn test_providers_response_deserialization() {
     let raw = r#"{
@@ -276,6 +334,106 @@ async fn test_get_activity_with_date_query_and_auth_header() {
         request_lower.contains("authorization: bearer mgmt-key")
             || request_lower.contains("authorization:bearer mgmt-key"),
         "authorization header should include management key, request:\n{request_text}"
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_list_providers_request_path_and_auth_header() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"data":[]}"#);
+
+    let providers = discovery::list_providers(&base_url, "api-key")
+        .await
+        .expect("providers request should succeed");
+    assert!(providers.is_empty(), "response payload should parse");
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(captured.request_line, "GET /api/v1/providers HTTP/1.1");
+
+    let request_lower = captured.request_text.to_ascii_lowercase();
+    assert!(
+        request_lower.contains("authorization: bearer api-key")
+            || request_lower.contains("authorization:bearer api-key"),
+        "authorization header should include API key, request:\n{}",
+        captured.request_text
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_count_models_request_path_and_auth_header() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"data":{"count":123}}"#);
+
+    let count = discovery::count_models(&base_url, "api-key")
+        .await
+        .expect("models/count request should succeed");
+    assert_eq!(count.count, 123);
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(captured.request_line, "GET /api/v1/models/count HTTP/1.1");
+
+    let request_lower = captured.request_text.to_ascii_lowercase();
+    assert!(
+        request_lower.contains("authorization: bearer api-key")
+            || request_lower.contains("authorization:bearer api-key"),
+        "authorization header should include API key, request:\n{}",
+        captured.request_text
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_list_zdr_endpoints_request_path_and_auth_header() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"data":[]}"#);
+
+    let endpoints = discovery::list_zdr_endpoints(&base_url, "api-key")
+        .await
+        .expect("endpoints/zdr request should succeed");
+    assert!(endpoints.is_empty(), "response payload should parse");
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(captured.request_line, "GET /api/v1/endpoints/zdr HTTP/1.1");
+
+    let request_lower = captured.request_text.to_ascii_lowercase();
+    assert!(
+        request_lower.contains("authorization: bearer api-key")
+            || request_lower.contains("authorization:bearer api-key"),
+        "authorization header should include API key, request:\n{}",
+        captured.request_text
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_get_activity_without_date_uses_base_path() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"data":[]}"#);
+
+    let items = discovery::get_activity(&base_url, "mgmt-key", None)
+        .await
+        .expect("activity request without date should succeed");
+    assert!(items.is_empty(), "response payload should parse");
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(captured.request_line, "GET /api/v1/activity HTTP/1.1");
+
+    let request_lower = captured.request_text.to_ascii_lowercase();
+    assert!(
+        request_lower.contains("authorization: bearer mgmt-key")
+            || request_lower.contains("authorization:bearer mgmt-key"),
+        "authorization header should include management key, request:\n{}",
+        captured.request_text
     );
 
     server.join().expect("server thread should finish");

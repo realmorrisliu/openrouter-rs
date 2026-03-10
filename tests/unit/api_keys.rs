@@ -154,6 +154,34 @@ fn test_api_key_details_deserializes_when_both_management_and_legacy_fields_exis
 }
 
 #[tokio::test]
+async fn test_get_current_api_key_path_and_auth_header() {
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":{"label":"default","usage":1.5,"is_free_tier":false,"is_management_key":true,"rate_limit":{"requests":1000,"interval":"1m"},"limit":100.0,"limit_remaining":98.5}}"#,
+    );
+
+    let details = api_keys::get_current_api_key(&base_url, "api-key")
+        .await
+        .expect("get current key should succeed");
+    assert_eq!(details.label, "default");
+    assert!(details.is_management_key);
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(captured.request_line, "GET /api/v1/key HTTP/1.1");
+
+    let request_lower = captured.request_text.to_ascii_lowercase();
+    assert!(
+        request_lower.contains("authorization: bearer api-key")
+            || request_lower.contains("authorization:bearer api-key"),
+        "authorization header should include API key, request:\n{}",
+        captured.request_text
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
 async fn test_delete_api_key_uses_single_api_v1_prefix() {
     let listener = TcpListener::bind("127.0.0.1:0").expect("listener should bind");
     let addr = listener
