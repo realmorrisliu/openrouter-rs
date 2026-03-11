@@ -1429,7 +1429,6 @@ dependencies = [
 name = "openrouter-rs"
 version = "0.6.0"
 dependencies = [
- "anyhow",
  "derive_builder",
  "dotenvy",
  "dotenvy_macro",

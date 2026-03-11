@@ -118,7 +118,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     if matches!(finish_reason, Some(FinishReason::ToolCalls)) {
                         println!("\n--- Simulating tool execution ---\n");
 
-                        let mut messages = request.messages().clone();
+                        let mut messages = request.messages().to_vec();
                         // Add the assistant's response with tool calls
                         messages.push(Message::assistant_with_tool_calls("", tool_calls.clone()));
 

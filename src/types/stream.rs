@@ -186,7 +186,7 @@ pub struct ToolAwareStream {
     /// Tool call fragments accumulated by tool call index.
     tool_accumulators: BTreeMap<u32, ToolCallAccumulator>,
     /// Buffered events ready to be yielded.
-    pending_events: Vec<StreamEvent>,
+    pending_events: VecDeque<StreamEvent>,
     /// Last seen response ID.
     last_id: String,
     /// Last seen model name.
@@ -205,7 +205,7 @@ impl ToolAwareStream {
         Self {
             inner,
             tool_accumulators: BTreeMap::new(),
-            pending_events: Vec::new(),
+            pending_events: VecDeque::new(),
             last_id: String::new(),
             last_model: String::new(),
             last_usage: None,
@@ -234,7 +234,7 @@ impl ToolAwareStream {
             if let Some(content) = choice.content() {
                 if !content.is_empty() {
                     self.pending_events
-                        .push(StreamEvent::ContentDelta(content.to_string()));
+                        .push_back(StreamEvent::ContentDelta(content.to_string()));
                 }
             }
 
@@ -242,7 +242,7 @@ impl ToolAwareStream {
             if let Some(reasoning) = choice.reasoning() {
                 if !reasoning.is_empty() {
                     self.pending_events
-                        .push(StreamEvent::ReasoningDelta(reasoning.to_string()));
+                        .push_back(StreamEvent::ReasoningDelta(reasoning.to_string()));
                 }
             }
 
@@ -250,7 +250,7 @@ impl ToolAwareStream {
             if let Some(details) = choice.reasoning_details() {
                 if !details.is_empty() {
                     self.pending_events
-                        .push(StreamEvent::ReasoningDetailsDelta(details.to_vec()));
+                        .push_back(StreamEvent::ReasoningDetailsDelta(details.to_vec()));
                 }
             }
 
@@ -276,7 +276,7 @@ impl ToolAwareStream {
             .filter_map(|acc| acc.into_tool_call())
             .collect();
 
-        self.pending_events.push(StreamEvent::Done {
+        self.pending_events.push_back(StreamEvent::Done {
             tool_calls,
             finish_reason: self.last_finish_reason.take(),
             usage: self.last_usage.take(),
@@ -294,7 +294,7 @@ impl Stream for ToolAwareStream {
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         // Drain any buffered events first
         if !self.pending_events.is_empty() {
-            return Poll::Ready(Some(self.pending_events.remove(0)));
+            return Poll::Ready(self.pending_events.pop_front());
         }
 
         if self.finished {
@@ -308,7 +308,7 @@ impl Stream for ToolAwareStream {
 
                 // Return the first pending event if any
                 if !self.pending_events.is_empty() {
-                    Poll::Ready(Some(self.pending_events.remove(0)))
+                    Poll::Ready(self.pending_events.pop_front())
                 } else {
                     // No events from this chunk (e.g., empty delta), poll again
                     cx.waker().wake_by_ref();
@@ -322,7 +322,7 @@ impl Stream for ToolAwareStream {
                     self.finalize();
                     // Return the Done event
                     if !self.pending_events.is_empty() {
-                        Poll::Ready(Some(self.pending_events.remove(0)))
+                        Poll::Ready(self.pending_events.pop_front())
                     } else {
                         Poll::Ready(None)
                     }

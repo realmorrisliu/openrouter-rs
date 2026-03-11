@@ -800,8 +800,8 @@ impl ChatCompletionRequest {
     }
 
     /// Get the tools defined in this request
-    pub fn tools(&self) -> Option<&Vec<crate::types::Tool>> {
-        self.tools.as_ref()
+    pub fn tools(&self) -> Option<&[crate::types::Tool]> {
+        self.tools.as_deref()
     }
 
     /// Get the tool choice setting
@@ -815,7 +815,7 @@ impl ChatCompletionRequest {
     }
 
     /// Get the messages in this request
-    pub fn messages(&self) -> &Vec<Message> {
+    pub fn messages(&self) -> &[Message] {
         &self.messages
     }
 
