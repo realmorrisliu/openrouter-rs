@@ -26,7 +26,7 @@
 //!
 //! ### Basic Chat Completion
 //!
-//! ```rust
+//! ```no_run
 //! use openrouter_rs::{
 //!     OpenRouterClient,
 //!     api::chat::{ChatCompletionRequest, Message},
@@ -63,9 +63,9 @@
 //!
 //! ### Streaming Responses
 //!
-//! ```rust
+//! ```no_run
 //! use futures_util::StreamExt;
-//! use openrouter_rs::{OpenRouterClient, api::chat::*};
+//! use openrouter_rs::{OpenRouterClient, api::chat::*, types::Role};
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! let client = OpenRouterClient::builder()
@@ -92,7 +92,7 @@
 //!
 //! ### Reasoning Tokens (Chain-of-Thought)
 //!
-//! ```rust
+//! ```no_run
 //! use openrouter_rs::{OpenRouterClient, api::chat::*, types::{Role, Effort}};
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {

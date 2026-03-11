@@ -32,7 +32,7 @@
 //!
 //! ### Basic Error Handling
 //!
-//! ```rust
+//! ```no_run
 //! use openrouter_rs::{OpenRouterClient, error::OpenRouterError};
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
@@ -56,10 +56,19 @@
 //!
 //! ### Rate Limiting Handling
 //!
-//! ```rust
+//! ```no_run
 //! use openrouter_rs::error::OpenRouterError;
+//! use openrouter_rs::{OpenRouterClient, api::chat::{ChatCompletionRequest, Message}, types::Role};
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+//! let client = OpenRouterClient::builder()
+//!     .api_key("your_api_key")
+//!     .build()?;
+//! let request = ChatCompletionRequest::builder()
+//!     .model("google/gemini-2.5-flash")
+//!     .messages(vec![Message::new(Role::User, "Hello!")])
+//!     .build()?;
+//!
 //! match client.chat().create(&request).await {
 //!     Err(OpenRouterError::Api(api_error)) if api_error.is_retryable() => {
 //!         println!("Rate limited, retrying after delay...");
@@ -80,10 +89,6 @@
 //!
 //! match load_config("./config.toml") {
 //!     Ok(config) => println!("Config loaded successfully"),
-//!     Err(OpenRouterError::ConfigNotFound(path)) => {
-//!         println!("Config file not found at: {}", path.display());
-//!         // Use default configuration
-//!     }
 //!     Err(OpenRouterError::ConfigError(msg)) => {
 //!         eprintln!("Invalid configuration: {}", msg);
 //!     }

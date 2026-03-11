@@ -61,8 +61,10 @@ impl OpenRouterClient {
     /// # Example
     ///
     /// ```
-    /// let mut client = OpenRouterClient::builder().build();
+    /// # use openrouter_rs::OpenRouterClient;
+    /// let mut client = OpenRouterClient::builder().build()?;
     /// client.set_api_key("your_api_key");
+    /// # Ok::<(), openrouter_rs::error::OpenRouterError>(())
     /// ```
     pub fn set_api_key(&mut self, api_key: impl Into<String>) {
         self.api_key = Some(api_key.into());
@@ -73,8 +75,10 @@ impl OpenRouterClient {
     /// # Example
     ///
     /// ```
-    /// let mut client = OpenRouterClient::builder().api_key("your_api_key").build();
+    /// # use openrouter_rs::OpenRouterClient;
+    /// let mut client = OpenRouterClient::builder().api_key("your_api_key").build()?;
     /// client.clear_api_key();
+    /// # Ok::<(), openrouter_rs::error::OpenRouterError>(())
     /// ```
     pub fn clear_api_key(&mut self) {
         self.api_key = None;
@@ -89,8 +93,10 @@ impl OpenRouterClient {
     /// # Example
     ///
     /// ```
-    /// let mut client = OpenRouterClient::builder().build();
+    /// # use openrouter_rs::OpenRouterClient;
+    /// let mut client = OpenRouterClient::builder().build()?;
     /// client.set_management_key("your_management_key");
+    /// # Ok::<(), openrouter_rs::error::OpenRouterError>(())
     /// ```
     pub fn set_management_key(&mut self, management_key: impl Into<String>) {
         self.management_key = Some(management_key.into());
@@ -101,9 +107,11 @@ impl OpenRouterClient {
     /// # Example
     ///
     /// ```
-    /// let mut client = OpenRouterClient::builder().build();
+    /// # use openrouter_rs::OpenRouterClient;
+    /// let mut client = OpenRouterClient::builder().build()?;
     /// client.set_management_key("your_management_key");
     /// client.clear_management_key();
+    /// # Ok::<(), openrouter_rs::error::OpenRouterError>(())
     /// ```
     pub fn clear_management_key(&mut self) {
         self.management_key = None;
@@ -156,10 +164,14 @@ impl OpenRouterClient {
     ///
     /// # Example
     ///
-    /// ```
-    /// let client = OpenRouterClient::builder().management_key("your_management_key").build();
+    /// ```no_run
+    /// # use openrouter_rs::OpenRouterClient;
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = OpenRouterClient::builder().management_key("your_management_key").build()?;
     /// let api_key = client.create_api_key("New API Key", Some(100.0)).await?;
     /// println!("{:?}", api_key);
+    /// # Ok(())
+    /// # }
     /// ```
     pub async fn create_api_key(
         &self,
@@ -181,10 +193,14 @@ impl OpenRouterClient {
     ///
     /// # Example
     ///
-    /// ```
-    /// let client = OpenRouterClient::builder().api_key("your_api_key").build();
+    /// ```no_run
+    /// # use openrouter_rs::OpenRouterClient;
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
     /// let api_key_details = client.get_current_api_key_info().await?;
     /// println!("{:?}", api_key_details);
+    /// # Ok(())
+    /// # }
     /// ```
     pub async fn get_current_api_key_info(
         &self,
@@ -208,10 +224,14 @@ impl OpenRouterClient {
     ///
     /// # Example
     ///
-    /// ```
-    /// let client = OpenRouterClient::builder().management_key("your_management_key").build();
+    /// ```no_run
+    /// # use openrouter_rs::OpenRouterClient;
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = OpenRouterClient::builder().management_key("your_management_key").build()?;
     /// let success = client.delete_api_key("api_key_hash").await?;
     /// println!("Deletion successful: {}", success);
+    /// # Ok(())
+    /// # }
     /// ```
     pub async fn delete_api_key(&self, hash: &str) -> Result<bool, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
@@ -236,10 +256,14 @@ impl OpenRouterClient {
     ///
     /// # Example
     ///
-    /// ```
-    /// let client = OpenRouterClient::builder().management_key("your_management_key").build();
+    /// ```no_run
+    /// # use openrouter_rs::OpenRouterClient;
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = OpenRouterClient::builder().management_key("your_management_key").build()?;
     /// let updated_api_key = client.update_api_key("api_key_hash", Some("Updated Name".to_string()), Some(false), Some(200.0)).await?;
     /// println!("{:?}", updated_api_key);
+    /// # Ok(())
+    /// # }
     /// ```
     pub async fn update_api_key(
         &self,
@@ -281,10 +305,14 @@ impl OpenRouterClient {
     ///
     /// # Example
     ///
-    /// ```
-    /// let client = OpenRouterClient::builder().management_key("your_management_key").build();
+    /// ```no_run
+    /// # use openrouter_rs::OpenRouterClient;
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = OpenRouterClient::builder().management_key("your_management_key").build()?;
     /// let api_key = client.get_api_key("api_key_hash").await?;
     /// println!("{:?}", api_key);
+    /// # Ok(())
+    /// # }
     /// ```
     pub async fn get_api_key(&self, hash: &str) -> Result<api_keys::ApiKey, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
@@ -544,10 +572,18 @@ impl OpenRouterClient {
     ///
     /// # Example
     ///
-    /// ```
-    /// let client = OpenRouterClient::builder().api_key("your_api_key").build();
-    /// let auth_response = client.exchange_code_for_api_key("auth_code", Some("code_verifier"), Some(auth::CodeChallengeMethod::S256)).await?;
+    /// ```no_run
+    /// # use openrouter_rs::{OpenRouterClient, api::auth};
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
+    /// let auth_response = client.exchange_code_for_api_key(
+    ///     "auth_code",
+    ///     Some("code_verifier"),
+    ///     Some(auth::CodeChallengeMethod::S256),
+    /// ).await?;
     /// println!("{:?}", auth_response);
+    /// # Ok(())
+    /// # }
     /// ```
     pub async fn exchange_code_for_api_key(
         &self,
@@ -571,16 +607,20 @@ impl OpenRouterClient {
     ///
     /// # Example
     ///
-    /// ```
-    /// let client = OpenRouterClient::builder().api_key("your_api_key").build();
+    /// ```no_run
+    /// # use openrouter_rs::{OpenRouterClient, api::chat::{self, Message}, types::Role};
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
     /// let request = chat::ChatCompletionRequest::builder()
     ///     .model("deepseek/deepseek-chat-v3-0324:free")
-    ///     .messages(vec![chat::Message::new(chat::Role::User, "What is the meaning of life?")])
+    ///     .messages(vec![Message::new(Role::User, "What is the meaning of life?")])
     ///     .max_tokens(100)
     ///     .temperature(0.7)
     ///     .build()?;
     /// let response = client.send_chat_completion(&request).await?;
     /// println!("{:?}", response);
+    /// # Ok(())
+    /// # }
     /// ```
     pub async fn send_chat_completion(
         &self,
@@ -612,11 +652,14 @@ impl OpenRouterClient {
     ///
     /// # Example
     ///
-    /// ```
-    /// let client = OpenRouterClient::builder().api_key("your_api_key").build();
+    /// ```no_run
+    /// # use futures_util::StreamExt;
+    /// # use openrouter_rs::{OpenRouterClient, api::chat::{self, Message}, types::Role};
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
     /// let request = chat::ChatCompletionRequest::builder()
     ///     .model("deepseek/deepseek-chat-v3-0324:free")
-    ///     .messages(vec![chat::Message::new(chat::Role::User, "Tell me a joke.")])
+    ///     .messages(vec![Message::new(Role::User, "Tell me a joke.")])
     ///     .max_tokens(50)
     ///     .temperature(0.5)
     ///     .build()?;
@@ -627,6 +670,8 @@ impl OpenRouterClient {
     ///         Err(e) => eprintln!("Error: {:?}", e),
     ///     }
     /// }
+    /// # Ok(())
+    /// # }
     /// ```
     pub async fn stream_chat_completion(
         &self,
@@ -862,8 +907,10 @@ impl OpenRouterClient {
     ///
     /// # Example
     ///
-    /// ```
-    /// let client = OpenRouterClient::builder().api_key("your_api_key").build();
+    /// ```no_run
+    /// # use openrouter_rs::{OpenRouterClient, api::credits};
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
     /// let request = credits::CoinbaseChargeRequest::builder()
     ///     .amount(100.0)
     ///     .sender("sender_address")
@@ -871,6 +918,8 @@ impl OpenRouterClient {
     ///     .build()?;
     /// let response = client.create_coinbase_charge(&request).await?;
     /// println!("{:?}", response);
+    /// # Ok(())
+    /// # }
     /// ```
     pub async fn create_coinbase_charge(
         &self,
@@ -891,10 +940,14 @@ impl OpenRouterClient {
     ///
     /// # Example
     ///
-    /// ```
-    /// let client = OpenRouterClient::builder().api_key("your_api_key").build();
+    /// ```no_run
+    /// # use openrouter_rs::OpenRouterClient;
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
     /// let credits_data = client.get_credits().await?;
     /// println!("{:?}", credits_data);
+    /// # Ok(())
+    /// # }
     /// ```
     pub async fn get_credits(&self) -> Result<credits::CreditsData, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
@@ -916,13 +969,14 @@ impl OpenRouterClient {
     ///
     /// # Example
     ///
-    /// ```
-    /// let client = OpenRouterClient::builder().api_key("your_api_key").build();
-    /// let request = generation::GenerationRequest::builder()
-    ///     .id("generation_id")
-    ///     .build()?;
-    /// let generation_data = client.get_generation(&request).await?;
+    /// ```no_run
+    /// # use openrouter_rs::OpenRouterClient;
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
+    /// let generation_data = client.get_generation("generation_id").await?;
     /// println!("{:?}", generation_data);
+    /// # Ok(())
+    /// # }
     /// ```
     pub async fn get_generation(
         &self,
@@ -943,10 +997,14 @@ impl OpenRouterClient {
     ///
     /// # Example
     ///
-    /// ```
-    /// let client = OpenRouterClient::builder().api_key("your_api_key").build();
+    /// ```no_run
+    /// # use openrouter_rs::OpenRouterClient;
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
     /// let models = client.list_models().await?;
     /// println!("{:?}", models);
+    /// # Ok(())
+    /// # }
     /// ```
     pub async fn list_models(&self) -> Result<Vec<models::Model>, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
@@ -968,10 +1026,14 @@ impl OpenRouterClient {
     ///
     /// # Example
     ///
-    /// ```
-    /// let client = OpenRouterClient::builder().api_key("your_api_key").build();
-    /// let models = client.list_models_by_category(ModelCategory::TextCompletion).await?;
+    /// ```no_run
+    /// # use openrouter_rs::{OpenRouterClient, types::ModelCategory};
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
+    /// let models = client.list_models_by_category(ModelCategory::Programming).await?;
     /// println!("{:?}", models);
+    /// # Ok(())
+    /// # }
     /// ```
     pub async fn list_models_by_category(
         &self,
@@ -996,10 +1058,14 @@ impl OpenRouterClient {
     ///
     /// # Example
     ///
-    /// ```
-    /// let client = OpenRouterClient::builder().api_key("your_api_key").build();
+    /// ```no_run
+    /// # use openrouter_rs::{OpenRouterClient, types::SupportedParameters};
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
     /// let models = client.list_models_by_parameters(SupportedParameters::Tools).await?;
     /// println!("{:?}", models);
+    /// # Ok(())
+    /// # }
     /// ```
     pub async fn list_models_by_parameters(
         &self,
@@ -1025,10 +1091,14 @@ impl OpenRouterClient {
     ///
     /// # Example
     ///
-    /// ```
-    /// let client = OpenRouterClient::builder().api_key("your_api_key").build();
+    /// ```no_run
+    /// # use openrouter_rs::OpenRouterClient;
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
     /// let endpoint_data = client.list_model_endpoints("author_name", "model_slug").await?;
     /// println!("{:?}", endpoint_data);
+    /// # Ok(())
+    /// # }
     /// ```
     pub async fn list_model_endpoints(
         &self,
