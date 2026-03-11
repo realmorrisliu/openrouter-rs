@@ -42,6 +42,9 @@ impl ModelConfig {
     ///
     /// # Example
     /// ```rust
+    /// use openrouter_rs::config::ModelConfig;
+    /// use std::collections::HashMap;
+    ///
     /// let mut config = ModelConfig {
     ///     enable: vec!["preset:programming".into()],
     ///     presets: {
@@ -83,6 +86,8 @@ impl ModelConfig {
     ///
     /// # Example
     /// ```rust
+    /// use openrouter_rs::config::ModelConfig;
+    ///
     /// let config = ModelConfig {
     ///     resolved_models: vec!["anthropic/claude-sonnet-4".into()],
     ///     ..Default::default()

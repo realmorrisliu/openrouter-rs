@@ -107,6 +107,7 @@ impl ToolCall {
     /// # Examples
     ///
     /// ```rust
+    /// use openrouter_rs::types::{ToolCall, completion::FunctionCall};
     /// use openrouter_rs::types::typed_tool::TypedTool;
     /// use serde::{Deserialize, Serialize};
     /// use schemars::JsonSchema;
@@ -121,8 +122,18 @@ impl ToolCall {
     ///     fn description() -> &'static str { "Get weather" }
     /// }
     ///
-    /// // Parse tool call parameters
+    /// let tool_call = ToolCall {
+    ///     id: "call_123".to_string(),
+    ///     type_: "function".to_string(),
+    ///     function: FunctionCall {
+    ///         name: "get_weather".to_string(),
+    ///         arguments: r#"{"location":"Paris"}"#.to_string(),
+    ///     },
+    ///     index: None,
+    /// };
+    ///
     /// let params: WeatherParams = tool_call.parse_params()?;
+    /// # Ok::<(), openrouter_rs::error::OpenRouterError>(())
     /// ```
     pub fn parse_params<T>(&self) -> Result<T, crate::error::OpenRouterError>
     where
@@ -137,10 +148,30 @@ impl ToolCall {
     /// # Examples
     ///
     /// ```rust
+    /// # use openrouter_rs::types::{ToolCall, completion::FunctionCall};
+    /// # use openrouter_rs::types::typed_tool::TypedTool;
+    /// # use serde::{Deserialize, Serialize};
+    /// # use schemars::JsonSchema;
+    /// # #[derive(Serialize, Deserialize, JsonSchema)]
+    /// # struct WeatherParams { location: String }
+    /// # impl TypedTool for WeatherParams {
+    /// #     fn name() -> &'static str { "get_weather" }
+    /// #     fn description() -> &'static str { "Get weather" }
+    /// # }
+    /// # let tool_call = ToolCall {
+    /// #     id: "call_123".to_string(),
+    /// #     type_: "function".to_string(),
+    /// #     function: FunctionCall {
+    /// #         name: "get_weather".to_string(),
+    /// #         arguments: r#"{"location":"Paris"}"#.to_string(),
+    /// #     },
+    /// #     index: None,
+    /// # };
     /// if tool_call.is_tool::<WeatherParams>() {
     ///     let params = tool_call.parse_params::<WeatherParams>()?;
     ///     // Handle weather tool
     /// }
+    /// # Ok::<(), openrouter_rs::error::OpenRouterError>(())
     /// ```
     pub fn is_tool<T>(&self) -> bool
     where
@@ -154,6 +185,16 @@ impl ToolCall {
     /// # Examples
     ///
     /// ```rust
+    /// # use openrouter_rs::types::{ToolCall, completion::FunctionCall};
+    /// # let tool_call = ToolCall {
+    /// #     id: "call_123".to_string(),
+    /// #     type_: "function".to_string(),
+    /// #     function: FunctionCall {
+    /// #         name: "get_weather".to_string(),
+    /// #         arguments: "{}".to_string(),
+    /// #     },
+    /// #     index: None,
+    /// # };
     /// match tool_call.name() {
     ///     "get_weather" => { /* handle weather */ }
     ///     "calculator" => { /* handle calculator */ }
@@ -169,6 +210,16 @@ impl ToolCall {
     /// # Examples
     ///
     /// ```rust
+    /// # use openrouter_rs::types::{ToolCall, completion::FunctionCall};
+    /// # let tool_call = ToolCall {
+    /// #     id: "call_123".to_string(),
+    /// #     type_: "function".to_string(),
+    /// #     function: FunctionCall {
+    /// #         name: "get_weather".to_string(),
+    /// #         arguments: r#"{"location":"Paris"}"#.to_string(),
+    /// #     },
+    /// #     index: None,
+    /// # };
     /// println!("Raw arguments: {}", tool_call.arguments_json());
     /// ```
     pub fn arguments_json(&self) -> &str {
@@ -180,6 +231,16 @@ impl ToolCall {
     /// # Examples
     ///
     /// ```rust
+    /// # use openrouter_rs::types::{ToolCall, completion::FunctionCall};
+    /// # let tool_call = ToolCall {
+    /// #     id: "call_123".to_string(),
+    /// #     type_: "function".to_string(),
+    /// #     function: FunctionCall {
+    /// #         name: "get_weather".to_string(),
+    /// #         arguments: "{}".to_string(),
+    /// #     },
+    /// #     index: None,
+    /// # };
     /// println!("Tool call ID: {}", tool_call.id());
     /// ```
     pub fn id(&self) -> &str {
@@ -191,6 +252,16 @@ impl ToolCall {
     /// # Examples
     ///
     /// ```rust
+    /// # use openrouter_rs::types::{ToolCall, completion::FunctionCall};
+    /// # let tool_call = ToolCall {
+    /// #     id: "call_123".to_string(),
+    /// #     type_: "function".to_string(),
+    /// #     function: FunctionCall {
+    /// #         name: "get_weather".to_string(),
+    /// #         arguments: "{}".to_string(),
+    /// #     },
+    /// #     index: None,
+    /// # };
     /// assert_eq!(tool_call.tool_type(), "function");
     /// ```
     pub fn tool_type(&self) -> &str {

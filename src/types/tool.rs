@@ -37,10 +37,10 @@
 //! use openrouter_rs::types::tool::ToolChoice;
 //!
 //! // Model chooses whether to use tools
-//! let auto_choice = ToolChoice::Auto;
+//! let auto_choice = ToolChoice::auto();
 //!
 //! // Force model to use tools
-//! let required_choice = ToolChoice::Required;
+//! let required_choice = ToolChoice::required();
 //!
 //! // Force specific tool
 //! let specific_choice = ToolChoice::force_tool("get_weather");
@@ -217,13 +217,13 @@ impl FunctionDefinitionBuilder {
 /// use openrouter_rs::types::tool::ToolChoice;
 ///
 /// // Let model decide
-/// let auto = ToolChoice::Auto;
+/// let auto = ToolChoice::auto();
 ///
 /// // Prevent tool use
-/// let none = ToolChoice::None;
+/// let none = ToolChoice::none();
 ///
 /// // Require tool use
-/// let required = ToolChoice::Required;
+/// let required = ToolChoice::required();
 ///
 /// // Force specific tool
 /// let specific = ToolChoice::force_tool("get_weather");

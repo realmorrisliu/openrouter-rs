@@ -680,6 +680,8 @@ impl ChatCompletionRequestBuilder {
     /// # Examples
     ///
     /// ```rust
+    /// use openrouter_rs::api::chat::{ChatCompletionRequest, Message};
+    /// use openrouter_rs::types::Role;
     /// use openrouter_rs::types::typed_tool::TypedTool;
     /// use serde::{Deserialize, Serialize};
     /// use schemars::JsonSchema;
@@ -696,6 +698,7 @@ impl ChatCompletionRequestBuilder {
     ///
     /// let request = ChatCompletionRequest::builder()
     ///     .model("anthropic/claude-sonnet-4")
+    ///     .messages(vec![Message::new(Role::User, "What is the weather in Paris?")])
     ///     .typed_tool::<WeatherParams>()
     ///     .build()?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
@@ -713,6 +716,8 @@ impl ChatCompletionRequestBuilder {
     /// # Examples
     ///
     /// ```rust
+    /// # use openrouter_rs::api::chat::{ChatCompletionRequest, Message};
+    /// # use openrouter_rs::types::Role;
     /// # use openrouter_rs::types::typed_tool::TypedTool;
     /// # use serde::{Deserialize, Serialize};
     /// # use schemars::JsonSchema;
@@ -731,6 +736,7 @@ impl ChatCompletionRequestBuilder {
     ///
     /// let request = ChatCompletionRequest::builder()
     ///     .model("anthropic/claude-sonnet-4")
+    ///     .messages(vec![Message::new(Role::User, "Need weather and calculator help")])
     ///     .typed_tools_batch(&[
     ///         WeatherParams::create_tool(),
     ///         CalculatorParams::create_tool(),
@@ -753,6 +759,8 @@ impl ChatCompletionRequestBuilder {
     /// # Examples
     ///
     /// ```rust
+    /// # use openrouter_rs::api::chat::{ChatCompletionRequest, Message};
+    /// # use openrouter_rs::types::Role;
     /// # use openrouter_rs::types::typed_tool::TypedTool;
     /// # use serde::{Deserialize, Serialize};
     /// # use schemars::JsonSchema;
@@ -765,6 +773,7 @@ impl ChatCompletionRequestBuilder {
     ///
     /// let request = ChatCompletionRequest::builder()
     ///     .model("anthropic/claude-sonnet-4")
+    ///     .messages(vec![Message::new(Role::User, "What is the weather in Paris?")])
     ///     .force_typed_tool::<WeatherParams>()
     ///     .build()?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())

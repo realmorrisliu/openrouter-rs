@@ -69,24 +69,23 @@
 //! ```rust
 //! use openrouter_rs::types::{ReasoningConfig, Effort};
 //!
-//! let reasoning = ReasoningConfig::builder()
-//!     .enabled(true)
+//! let reasoning = ReasoningConfig::enabled()
 //!     .effort(Effort::High)
 //!     .max_tokens(1000)
-//!     .build()?;
-//! # Ok::<(), Box<dyn std::error::Error>>(())
+//!     .exclude(false);
 //! ```
 //!
 //! ### ProviderPreferences
 //! Specify preferences for model provider selection:
 //!
 //! ```rust
-//! use openrouter_rs::types::ProviderPreferences;
+//! use openrouter_rs::types::{DataCollectionPolicy, ProviderPreferences};
 //!
 //! let prefs = ProviderPreferences {
-//!     allow_fallbacks: true,
-//!     require_parameters: Some(vec!["tools".to_string()]),
-//!     data_collection: Some("deny".to_string()),
+//!     allow_fallbacks: Some(true),
+//!     require_parameters: Some(true),
+//!     data_collection: Some(DataCollectionPolicy::Deny),
+//!     ..Default::default()
 //! };
 //! ```
 //!
@@ -99,8 +98,8 @@
 //!
 //! // Filter models by use case
 //! let programming_models = ModelCategory::Programming;
-//! let reasoning_models = ModelCategory::Reasoning;
-//! let image_models = ModelCategory::Image;
+//! let roleplay_models = ModelCategory::Roleplay;
+//! let science_models = ModelCategory::Science;
 //! ```
 //!
 //! ## 🏗️ Builder Patterns
@@ -110,13 +109,10 @@
 //! ```rust
 //! use openrouter_rs::types::{ReasoningConfig, Effort};
 //!
-//! let config = ReasoningConfig::builder()
-//!     .enabled(true)
+//! let config = ReasoningConfig::enabled()
 //!     .effort(Effort::High)
 //!     .max_tokens(2000)
-//!     .exclude(false)
-//!     .build()?;
-//! # Ok::<(), Box<dyn std::error::Error>>(())
+//!     .exclude(false);
 //! ```
 //!
 //! ## 🔄 Serialization Support
@@ -218,12 +214,13 @@ impl Display for Role {
 ///
 /// ```rust
 /// use openrouter_rs::types::Effort;
-/// use openrouter_rs::api::chat::ChatCompletionRequest;
+/// use openrouter_rs::api::chat::{ChatCompletionRequest, Message};
+/// use openrouter_rs::types::Role;
 ///
 /// let request = ChatCompletionRequest::builder()
 ///     .model("deepseek/deepseek-r1")
-///     .reasoning_effort(Effort::High)  // Maximum reasoning depth
-///     // ... other fields
+///     .messages(vec![Message::new(Role::User, "Solve 2x + 5 = 13")])
+///     .reasoning_effort(Effort::High)
 ///     .build()?;
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```

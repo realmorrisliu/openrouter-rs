@@ -37,12 +37,18 @@
 //! - Filter by supported parameters
 //! - Get detailed model specifications
 //!
-//! ```rust
-//! use openrouter_rs::types::ModelCategory;
+//! ```no_run
+//! use openrouter_rs::{OpenRouterClient, types::ModelCategory};
+//!
+//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+//! let client = OpenRouterClient::builder()
+//!     .api_key("your_key")
+//!     .build()?;
 //!
 //! // Get all models in the programming category
 //! let models = client.models().list_by_category(ModelCategory::Programming).await?;
 //! # Ok::<(), Box<dyn std::error::Error>>(())
+//! # }
 //! ```
 //!
 //! ### API Key Management ([`api_keys`])
@@ -78,7 +84,7 @@
 //! ## 🚀 Quick Examples
 //!
 //! ### Basic Chat
-//! ```rust
+//! ```no_run
 //! use openrouter_rs::{OpenRouterClient, api::chat::*};
 //! use openrouter_rs::types::Role;
 //!
@@ -98,7 +104,7 @@
 //! ```
 //!
 //! ### Model Discovery
-//! ```rust
+//! ```no_run
 //! use openrouter_rs::OpenRouterClient;
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
@@ -116,16 +122,27 @@
 //!
 //! All API methods return `Result` types that should be handled appropriately:
 //!
-//! ```rust
+//! ```no_run
 //! use openrouter_rs::error::OpenRouterError;
+//! use openrouter_rs::{OpenRouterClient, api::chat::{ChatCompletionRequest, Message}, types::Role};
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+//! let client = OpenRouterClient::builder()
+//!     .api_key("your_key")
+//!     .build()?;
+//! let request = ChatCompletionRequest::builder()
+//!     .model("google/gemini-2.5-flash")
+//!     .messages(vec![Message::new(Role::User, "Hello!")])
+//!     .build()?;
+//!
 //! match client.chat().create(&request).await {
 //!     Ok(response) => println!("Success: {:?}", response),
-//!     Err(OpenRouterError::RateLimitExceeded) => {
+//!     Err(OpenRouterError::Api(api_error)) if api_error.is_retryable() => {
 //!         println!("Rate limit hit, retrying later...");
 //!     }
-//!     Err(OpenRouterError::InvalidApiKey) => {
+//!     Err(OpenRouterError::Api(api_error))
+//!         if api_error.status == surf::StatusCode::Unauthorized =>
+//!     {
 //!         println!("Check your API key configuration");
 //!     }
 //!     Err(e) => println!("Other error: {}", e),
