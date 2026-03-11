@@ -893,6 +893,8 @@ pub async fn send_chat_completion(
 pub async fn stream_chat_completion(
     base_url: &str,
     api_key: &str,
+    x_title: &Option<String>,
+    http_referer: &Option<String>,
     request: &ChatCompletionRequest,
 ) -> Result<BoxStream<'static, Result<CompletionsResponse, OpenRouterError>>, OpenRouterError> {
     let url = format!("{base_url}/chat/completions");
@@ -900,10 +902,19 @@ pub async fn stream_chat_completion(
     // Ensure that the request is streaming to get a continuous response
     let request = request.stream(true);
 
-    let response = surf::post(url)
+    let mut surf_req = surf::post(url)
         .header(AUTHORIZATION, format!("Bearer {api_key}"))
-        .body_json(&request)?
-        .await?;
+        .body_json(&request)?;
+
+    if let Some(x_title) = x_title {
+        surf_req = surf_req.header("X-OpenRouter-Title", x_title);
+        surf_req = surf_req.header("X-Title", x_title);
+    }
+    if let Some(http_referer) = http_referer {
+        surf_req = surf_req.header("HTTP-Referer", http_referer);
+    }
+
+    let response = surf_req.await?;
 
     if response.status().is_success() {
         let lines = response
