@@ -103,8 +103,7 @@ where
                         }
 
                         if let Some(event) = line.strip_prefix("event:") {
-                            event_name =
-                                Some(event.strip_prefix(' ').unwrap_or(event).to_string());
+                            event_name = Some(event.strip_prefix(' ').unwrap_or(event).to_string());
                             continue;
                         }
 
@@ -116,7 +115,10 @@ where
                         }
                     }
                     Some(Err(error)) => {
-                        return Some((Err(OpenRouterError::Io(error)), (lines, None, String::new())));
+                        return Some((
+                            Err(OpenRouterError::Io(error)),
+                            (lines, None, String::new()),
+                        ));
                     }
                     None => {
                         if data.is_empty() {
