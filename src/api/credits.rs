@@ -2,9 +2,12 @@ use std::collections::HashMap;
 
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
-use surf::http::headers::AUTHORIZATION;
 
-use crate::{error::OpenRouterError, types::ApiResponse, utils::handle_error};
+use crate::{
+    error::OpenRouterError,
+    types::ApiResponse,
+    utils::{handle_error, with_bearer_auth},
+};
 
 #[derive(Serialize, Deserialize, Debug, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
@@ -63,8 +66,7 @@ pub async fn create_coinbase_charge(
 ) -> Result<CoinbaseChargeData, OpenRouterError> {
     let url = format!("{base_url}/credits/coinbase");
 
-    let mut response = surf::post(url)
-        .header(AUTHORIZATION, format!("Bearer {api_key}"))
+    let mut response = with_bearer_auth(surf::post(url), api_key)
         .body_json(request)?
         .await?;
 
@@ -90,9 +92,7 @@ pub async fn create_coinbase_charge(
 pub async fn get_credits(base_url: &str, api_key: &str) -> Result<CreditsData, OpenRouterError> {
     let url = format!("{base_url}/credits");
 
-    let mut response = surf::get(url)
-        .header(AUTHORIZATION, format!("Bearer {api_key}"))
-        .await?;
+    let mut response = with_bearer_auth(surf::get(url), api_key).await?;
 
     if response.status().is_success() {
         let credits_response: ApiResponse<_> = response.body_json().await?;

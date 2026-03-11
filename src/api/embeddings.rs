@@ -1,12 +1,11 @@
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
-use surf::http::headers::AUTHORIZATION;
 
 use crate::{
     api::models,
     error::OpenRouterError,
     types::{ApiResponse, ProviderPreferences},
-    utils::handle_error,
+    utils::{handle_error, with_bearer_auth, with_client_request_headers},
 };
 
 /// Supported embedding encoding formats.
@@ -177,17 +176,9 @@ pub async fn create_embedding(
 ) -> Result<EmbeddingResponse, OpenRouterError> {
     let url = format!("{base_url}/embeddings");
 
-    let mut surf_req = surf::post(url)
-        .header(AUTHORIZATION, format!("Bearer {api_key}"))
-        .body_json(request)?;
-
-    if let Some(x_title) = x_title {
-        surf_req = surf_req.header("X-OpenRouter-Title", x_title);
-        surf_req = surf_req.header("X-Title", x_title);
-    }
-    if let Some(http_referer) = http_referer {
-        surf_req = surf_req.header("HTTP-Referer", http_referer);
-    }
+    let surf_req =
+        with_client_request_headers(surf::post(url), api_key, x_title, http_referer)
+            .body_json(request)?;
 
     let mut response = surf_req.await?;
 
@@ -207,9 +198,7 @@ pub async fn list_embedding_models(
 ) -> Result<Vec<models::Model>, OpenRouterError> {
     let url = format!("{base_url}/embeddings/models");
 
-    let mut response = surf::get(url)
-        .header(AUTHORIZATION, format!("Bearer {api_key}"))
-        .await?;
+    let mut response = with_bearer_auth(surf::get(url), api_key).await?;
 
     if response.status().is_success() {
         let models_response: ApiResponse<Vec<models::Model>> = response.body_json().await?;

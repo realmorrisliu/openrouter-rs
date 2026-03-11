@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
-use surf::http::headers::AUTHORIZATION;
 
-use crate::{error::OpenRouterError, types::ApiResponse, utils::handle_error};
+use crate::{
+    error::OpenRouterError,
+    types::ApiResponse,
+    utils::{handle_error, with_bearer_auth},
+};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GenerationData {
@@ -52,9 +55,7 @@ pub async fn get_generation(
     let id = id.into();
     let url = format!("{base_url}/generation?id={id}");
 
-    let mut response = surf::get(url)
-        .header(AUTHORIZATION, format!("Bearer {api_key}"))
-        .await?;
+    let mut response = with_bearer_auth(surf::get(url), api_key).await?;
 
     if response.status().is_success() {
         let generation_response: ApiResponse<_> = response.body_json().await?;

@@ -4,7 +4,6 @@ use derive_builder::Builder;
 use futures_util::{AsyncBufReadExt, StreamExt, stream::BoxStream};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use surf::http::headers::AUTHORIZATION;
 
 use crate::{
     error::OpenRouterError,
@@ -12,7 +11,7 @@ use crate::{
     types::{
         ProviderPreferences, ReasoningConfig, ResponseFormat, Role, completion::CompletionsResponse,
     },
-    utils::handle_error,
+    utils::{handle_error, with_client_request_headers},
 };
 
 /// Image URL with optional detail level for vision models.
@@ -852,17 +851,9 @@ pub async fn send_chat_completion(
     // Ensure that the request is not streaming to get a single response
     let request = request.stream(false);
 
-    let mut surf_req = surf::post(url)
-        .header(AUTHORIZATION, format!("Bearer {api_key}"))
-        .body_json(&request)?;
-
-    if let Some(x_title) = x_title {
-        surf_req = surf_req.header("X-OpenRouter-Title", x_title);
-        surf_req = surf_req.header("X-Title", x_title);
-    }
-    if let Some(http_referer) = http_referer {
-        surf_req = surf_req.header("HTTP-Referer", http_referer);
-    }
+    let surf_req =
+        with_client_request_headers(surf::post(url), api_key, x_title, http_referer)
+            .body_json(&request)?;
 
     let mut response = surf_req.await?;
 
@@ -902,17 +893,9 @@ pub async fn stream_chat_completion(
     // Ensure that the request is streaming to get a continuous response
     let request = request.stream(true);
 
-    let mut surf_req = surf::post(url)
-        .header(AUTHORIZATION, format!("Bearer {api_key}"))
-        .body_json(&request)?;
-
-    if let Some(x_title) = x_title {
-        surf_req = surf_req.header("X-OpenRouter-Title", x_title);
-        surf_req = surf_req.header("X-Title", x_title);
-    }
-    if let Some(http_referer) = http_referer {
-        surf_req = surf_req.header("HTTP-Referer", http_referer);
-    }
+    let surf_req =
+        with_client_request_headers(surf::post(url), api_key, x_title, http_referer)
+            .body_json(&request)?;
 
     let response = surf_req.await?;
 
