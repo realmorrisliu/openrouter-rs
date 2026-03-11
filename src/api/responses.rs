@@ -4,14 +4,13 @@ use derive_builder::Builder;
 use futures_util::{AsyncBufReadExt, StreamExt, stream::BoxStream};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use surf::http::headers::AUTHORIZATION;
 
 use crate::{
     api::chat::{Plugin, TraceOptions},
     error::OpenRouterError,
     strip_option_map_setter, strip_option_vec_setter,
     types::ProviderPreferences,
-    utils::handle_error,
+    utils::{handle_error, with_client_request_headers},
 };
 
 /// Request body for the OpenRouter Responses API (`POST /responses`).
@@ -232,17 +231,8 @@ pub async fn create_response(
     let url = format!("{base_url}/responses");
     let request = request.stream(false);
 
-    let mut surf_req = surf::post(url)
-        .header(AUTHORIZATION, format!("Bearer {api_key}"))
+    let surf_req = with_client_request_headers(surf::post(url), api_key, x_title, http_referer)
         .body_json(&request)?;
-
-    if let Some(x_title) = x_title {
-        surf_req = surf_req.header("X-OpenRouter-Title", x_title);
-        surf_req = surf_req.header("X-Title", x_title);
-    }
-    if let Some(http_referer) = http_referer {
-        surf_req = surf_req.header("HTTP-Referer", http_referer);
-    }
 
     let mut response = surf_req.await?;
 
@@ -266,17 +256,8 @@ pub async fn stream_response(
     let url = format!("{base_url}/responses");
     let request = request.stream(true);
 
-    let mut surf_req = surf::post(url)
-        .header(AUTHORIZATION, format!("Bearer {api_key}"))
+    let surf_req = with_client_request_headers(surf::post(url), api_key, x_title, http_referer)
         .body_json(&request)?;
-
-    if let Some(x_title) = x_title {
-        surf_req = surf_req.header("X-OpenRouter-Title", x_title);
-        surf_req = surf_req.header("X-Title", x_title);
-    }
-    if let Some(http_referer) = http_referer {
-        surf_req = surf_req.header("HTTP-Referer", http_referer);
-    }
 
     let response = surf_req.await?;
 

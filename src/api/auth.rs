@@ -1,8 +1,11 @@
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
-use surf::http::headers::AUTHORIZATION;
 
-use crate::{error::OpenRouterError, types::ApiResponse, utils::handle_error};
+use crate::{
+    error::OpenRouterError,
+    types::ApiResponse,
+    utils::{handle_error, with_bearer_auth},
+};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct AuthRequest {
@@ -124,8 +127,7 @@ pub async fn create_auth_code(
     request: &CreateAuthCodeRequest,
 ) -> Result<AuthCodeData, OpenRouterError> {
     let url = format!("{base_url}/auth/keys/code");
-    let mut response = surf::post(url)
-        .header(AUTHORIZATION, format!("Bearer {api_key}"))
+    let mut response = with_bearer_auth(surf::post(url), api_key)
         .body_json(request)?
         .await?;
 

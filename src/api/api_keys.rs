@@ -1,10 +1,9 @@
 use serde::{Deserialize, Serialize};
-use surf::http::headers::AUTHORIZATION;
 
 use crate::{
     error::OpenRouterError,
     types::{ApiResponse, PaginationOptions},
-    utils::handle_error,
+    utils::{handle_error, with_bearer_auth},
 };
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -108,10 +107,7 @@ pub async fn get_current_api_key(
 ) -> Result<ApiKeyDetails, OpenRouterError> {
     let url = format!("{base_url}/key");
 
-    let mut response = surf::get(url)
-        .header(AUTHORIZATION, format!("Bearer {api_key}"))
-        .send()
-        .await?;
+    let mut response = with_bearer_auth(surf::get(url), api_key).send().await?;
 
     if response.status().is_success() {
         let api_response: ApiResponse<_> = response.body_json().await?;
@@ -145,7 +141,7 @@ pub async fn list_api_keys(
         offset: pagination.and_then(|p| p.offset),
         include_disabled,
     };
-    let req = surf::get(url).header(AUTHORIZATION, format!("Bearer {management_key}"));
+    let req = with_bearer_auth(surf::get(url), management_key);
     let mut response = if query.offset.is_none() && query.include_disabled.is_none() {
         req.await?
     } else {
@@ -185,8 +181,7 @@ pub async fn create_api_key(
         limit,
     };
 
-    let mut response = surf::post(url)
-        .header(AUTHORIZATION, format!("Bearer {management_key}"))
+    let mut response = with_bearer_auth(surf::post(url), management_key)
         .body_json(&request)?
         .await?;
 
@@ -217,9 +212,7 @@ pub async fn get_api_key(
 ) -> Result<ApiKey, OpenRouterError> {
     let url = format!("{base_url}/keys/{hash}");
 
-    let mut response = surf::get(&url)
-        .header(AUTHORIZATION, format!("Bearer {management_key}"))
-        .await?;
+    let mut response = with_bearer_auth(surf::get(&url), management_key).await?;
 
     if response.status().is_success() {
         let api_response: ApiResponse<_> = response.body_json().await?;
@@ -248,9 +241,7 @@ pub async fn delete_api_key(
 ) -> Result<bool, OpenRouterError> {
     let url = format!("{base_url}/keys/{hash}");
 
-    let response = surf::delete(&url)
-        .header(AUTHORIZATION, format!("Bearer {management_key}"))
-        .await?;
+    let response = with_bearer_auth(surf::delete(&url), management_key).await?;
 
     if response.status().is_success() {
         Ok(true)
@@ -289,8 +280,7 @@ pub async fn update_api_key(
         limit,
     };
 
-    let mut response = surf::patch(&url)
-        .header(AUTHORIZATION, format!("Bearer {management_key}"))
+    let mut response = with_bearer_auth(surf::patch(&url), management_key)
         .body_json(&request)?
         .await?;
 

@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
-use surf::http::headers::AUTHORIZATION;
 
 use crate::{
     error::OpenRouterError,
@@ -10,7 +9,7 @@ use crate::{
     types::{
         ProviderPreferences, ReasoningConfig, ResponseFormat, completion::CompletionsResponse,
     },
-    utils::handle_error,
+    utils::{handle_error, with_client_request_headers},
 };
 
 #[derive(Serialize, Deserialize, Debug, Builder)]
@@ -141,17 +140,8 @@ pub async fn send_completion_request(
 ) -> Result<CompletionsResponse, OpenRouterError> {
     let url = format!("{base_url}/completions");
 
-    let mut surf_req = surf::post(url)
-        .header(AUTHORIZATION, format!("Bearer {api_key}"))
+    let surf_req = with_client_request_headers(surf::post(url), api_key, x_title, http_referer)
         .body_json(request)?;
-
-    if let Some(x_title) = x_title {
-        surf_req = surf_req.header("X-OpenRouter-Title", x_title);
-        surf_req = surf_req.header("X-Title", x_title);
-    }
-    if let Some(http_referer) = http_referer {
-        surf_req = surf_req.header("HTTP-Referer", http_referer);
-    }
 
     let mut response = surf_req.await?;
 

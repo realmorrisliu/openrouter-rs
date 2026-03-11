@@ -1,13 +1,12 @@
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
-use surf::http::headers::AUTHORIZATION;
 use urlencoding::encode;
 
 use crate::{
     error::OpenRouterError,
     strip_option_vec_setter,
     types::{ApiResponse, PaginationOptions},
-    utils::handle_error,
+    utils::{handle_error, with_bearer_auth},
 };
 
 /// Guardrail model.
@@ -215,9 +214,7 @@ pub async fn list_guardrails(
     pagination: Option<PaginationOptions>,
 ) -> Result<GuardrailListResponse, OpenRouterError> {
     let url = with_pagination(format!("{base_url}/guardrails"), pagination);
-    let mut response = surf::get(url)
-        .header(AUTHORIZATION, format!("Bearer {management_key}"))
-        .await?;
+    let mut response = with_bearer_auth(surf::get(url), management_key).await?;
 
     if response.status().is_success() {
         Ok(response.body_json().await?)
@@ -233,8 +230,7 @@ pub async fn create_guardrail(
     request: &CreateGuardrailRequest,
 ) -> Result<Guardrail, OpenRouterError> {
     let url = format!("{base_url}/guardrails");
-    let mut response = surf::post(url)
-        .header(AUTHORIZATION, format!("Bearer {management_key}"))
+    let mut response = with_bearer_auth(surf::post(url), management_key)
         .body_json(request)?
         .await?;
 
@@ -253,9 +249,7 @@ pub async fn get_guardrail(
     id: &str,
 ) -> Result<Guardrail, OpenRouterError> {
     let url = format!("{base_url}/guardrails/{}", encode(id));
-    let mut response = surf::get(url)
-        .header(AUTHORIZATION, format!("Bearer {management_key}"))
-        .await?;
+    let mut response = with_bearer_auth(surf::get(url), management_key).await?;
 
     if response.status().is_success() {
         let payload: ApiResponse<Guardrail> = response.body_json().await?;
@@ -273,8 +267,7 @@ pub async fn update_guardrail(
     request: &UpdateGuardrailRequest,
 ) -> Result<Guardrail, OpenRouterError> {
     let url = format!("{base_url}/guardrails/{}", encode(id));
-    let mut response = surf::patch(url)
-        .header(AUTHORIZATION, format!("Bearer {management_key}"))
+    let mut response = with_bearer_auth(surf::patch(url), management_key)
         .body_json(request)?
         .await?;
 
@@ -293,9 +286,7 @@ pub async fn delete_guardrail(
     id: &str,
 ) -> Result<bool, OpenRouterError> {
     let url = format!("{base_url}/guardrails/{}", encode(id));
-    let mut response = surf::delete(url)
-        .header(AUTHORIZATION, format!("Bearer {management_key}"))
-        .await?;
+    let mut response = with_bearer_auth(surf::delete(url), management_key).await?;
 
     if response.status().is_success() {
         let payload: DeleteGuardrailResponse = response.body_json().await?;
@@ -316,9 +307,7 @@ pub async fn list_guardrail_key_assignments(
         format!("{base_url}/guardrails/{}/assignments/keys", encode(id)),
         pagination,
     );
-    let mut response = surf::get(url)
-        .header(AUTHORIZATION, format!("Bearer {management_key}"))
-        .await?;
+    let mut response = with_bearer_auth(surf::get(url), management_key).await?;
 
     if response.status().is_success() {
         Ok(response.body_json().await?)
@@ -335,8 +324,7 @@ pub async fn bulk_assign_keys_to_guardrail(
     request: &BulkKeyAssignmentRequest,
 ) -> Result<AssignedCountResponse, OpenRouterError> {
     let url = format!("{base_url}/guardrails/{}/assignments/keys", encode(id));
-    let mut response = surf::post(url)
-        .header(AUTHORIZATION, format!("Bearer {management_key}"))
+    let mut response = with_bearer_auth(surf::post(url), management_key)
         .body_json(request)?
         .await?;
 
@@ -358,8 +346,7 @@ pub async fn bulk_unassign_keys_from_guardrail(
         "{base_url}/guardrails/{}/assignments/keys/remove",
         encode(id)
     );
-    let mut response = surf::post(url)
-        .header(AUTHORIZATION, format!("Bearer {management_key}"))
+    let mut response = with_bearer_auth(surf::post(url), management_key)
         .body_json(request)?
         .await?;
 
@@ -381,9 +368,7 @@ pub async fn list_guardrail_member_assignments(
         format!("{base_url}/guardrails/{}/assignments/members", encode(id)),
         pagination,
     );
-    let mut response = surf::get(url)
-        .header(AUTHORIZATION, format!("Bearer {management_key}"))
-        .await?;
+    let mut response = with_bearer_auth(surf::get(url), management_key).await?;
 
     if response.status().is_success() {
         Ok(response.body_json().await?)
@@ -400,8 +385,7 @@ pub async fn bulk_assign_members_to_guardrail(
     request: &BulkMemberAssignmentRequest,
 ) -> Result<AssignedCountResponse, OpenRouterError> {
     let url = format!("{base_url}/guardrails/{}/assignments/members", encode(id));
-    let mut response = surf::post(url)
-        .header(AUTHORIZATION, format!("Bearer {management_key}"))
+    let mut response = with_bearer_auth(surf::post(url), management_key)
         .body_json(request)?
         .await?;
 
@@ -423,8 +407,7 @@ pub async fn bulk_unassign_members_from_guardrail(
         "{base_url}/guardrails/{}/assignments/members/remove",
         encode(id)
     );
-    let mut response = surf::post(url)
-        .header(AUTHORIZATION, format!("Bearer {management_key}"))
+    let mut response = with_bearer_auth(surf::post(url), management_key)
         .body_json(request)?
         .await?;
 
@@ -445,9 +428,7 @@ pub async fn list_key_assignments(
         format!("{base_url}/guardrails/assignments/keys"),
         pagination,
     );
-    let mut response = surf::get(url)
-        .header(AUTHORIZATION, format!("Bearer {management_key}"))
-        .await?;
+    let mut response = with_bearer_auth(surf::get(url), management_key).await?;
 
     if response.status().is_success() {
         Ok(response.body_json().await?)
@@ -466,9 +447,7 @@ pub async fn list_member_assignments(
         format!("{base_url}/guardrails/assignments/members"),
         pagination,
     );
-    let mut response = surf::get(url)
-        .header(AUTHORIZATION, format!("Bearer {management_key}"))
-        .await?;
+    let mut response = with_bearer_auth(surf::get(url), management_key).await?;
 
     if response.status().is_success() {
         Ok(response.body_json().await?)

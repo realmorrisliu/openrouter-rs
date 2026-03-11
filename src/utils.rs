@@ -1,5 +1,6 @@
 use crate::{api::errors::parse_api_error, error::OpenRouterError};
 use surf::Response;
+use surf::http::headers::AUTHORIZATION;
 
 #[macro_export]
 macro_rules! strip_option_vec_setter {
@@ -33,6 +34,35 @@ macro_rules! strip_option_map_setter {
             self
         }
     };
+}
+
+pub fn with_bearer_auth(req: surf::RequestBuilder, api_key: &str) -> surf::RequestBuilder {
+    req.header(AUTHORIZATION, format!("Bearer {api_key}"))
+}
+
+pub fn with_request_metadata(
+    mut req: surf::RequestBuilder,
+    x_title: &Option<String>,
+    http_referer: &Option<String>,
+) -> surf::RequestBuilder {
+    if let Some(x_title) = x_title {
+        req = req.header("X-OpenRouter-Title", x_title);
+        req = req.header("X-Title", x_title);
+    }
+    if let Some(http_referer) = http_referer {
+        req = req.header("HTTP-Referer", http_referer);
+    }
+
+    req
+}
+
+pub fn with_client_request_headers(
+    req: surf::RequestBuilder,
+    api_key: &str,
+    x_title: &Option<String>,
+    http_referer: &Option<String>,
+) -> surf::RequestBuilder {
+    with_request_metadata(with_bearer_auth(req, api_key), x_title, http_referer)
 }
 
 pub async fn handle_error(mut response: Response) -> Result<(), OpenRouterError> {

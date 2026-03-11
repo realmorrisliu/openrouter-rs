@@ -1,11 +1,10 @@
 use serde::{Deserialize, Serialize};
-use surf::http::headers::AUTHORIZATION;
 use urlencoding::encode;
 
 use crate::{
     error::OpenRouterError,
     types::{ApiResponse, ModelCategory, SupportedParameters},
-    utils::handle_error,
+    utils::{handle_error, with_bearer_auth},
 };
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -119,7 +118,7 @@ pub async fn list_models(
         supported_parameters,
     };
 
-    let req = surf::get(url).header(AUTHORIZATION, format!("Bearer {api_key}"));
+    let req = with_bearer_auth(surf::get(url), api_key);
     let mut response = if query.category.is_none() && query.supported_parameters.is_none() {
         req.await?
     } else {
@@ -157,9 +156,7 @@ pub async fn list_model_endpoints(
     let encoded_slug = encode(slug);
     let url = format!("{base_url}/models/{encoded_author}/{encoded_slug}/endpoints");
 
-    let mut response = surf::get(&url)
-        .header(AUTHORIZATION, format!("Bearer {api_key}"))
-        .await?;
+    let mut response = with_bearer_auth(surf::get(&url), api_key).await?;
 
     if response.status().is_success() {
         let endpoint_list_response: ApiResponse<_> = response.body_json().await?;
