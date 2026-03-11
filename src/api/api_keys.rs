@@ -286,8 +286,7 @@ pub async fn update_api_key(
         .await?;
 
     if response.status().is_success() {
-        let api_response: ApiResponse<_> =
-            parse_json_response(response, "API key update").await?;
+        let api_response: ApiResponse<_> = parse_json_response(response, "API key update").await?;
         Ok(api_response.data)
     } else {
         handle_error(response).await?;
