@@ -187,9 +187,10 @@ async fn test_stream_chat_completion_sets_stream_true_and_parses_sse() {
     let x_title = Some("openrouter-rs-tests".to_string());
     let http_referer = Some("https://github.com/realmorrisliu/openrouter-rs".to_string());
 
-    let mut stream = stream_chat_completion(&base_url, "api-key", &x_title, &http_referer, &request)
-        .await
-        .expect("stream_chat_completion should succeed");
+    let mut stream =
+        stream_chat_completion(&base_url, "api-key", &x_title, &http_referer, &request)
+            .await
+            .expect("stream_chat_completion should succeed");
     let mut chunks = Vec::new();
     while let Some(item) = stream.next().await {
         chunks.push(item.expect("stream chunk should parse"));
