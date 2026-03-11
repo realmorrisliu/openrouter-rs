@@ -11,7 +11,7 @@ use crate::{
     types::{
         ProviderPreferences, ReasoningConfig, ResponseFormat, Role, completion::CompletionsResponse,
     },
-    utils::{handle_error, with_client_request_headers},
+    utils::{handle_error, parse_sse_frames, with_client_request_headers},
 };
 
 /// Image URL with optional detail level for vision models.
@@ -900,15 +900,14 @@ pub async fn stream_chat_completion(
     let response = surf_req.await?;
 
     if response.status().is_success() {
-        let lines = response
-            .lines()
+        let lines = parse_sse_frames(response.lines())
             .filter_map(async |line| match line {
-                Ok(line) => line
-                    .strip_prefix("data: ")
-                    .filter(|line| *line != "[DONE]")
-                    .map(serde_json::from_str::<CompletionsResponse>)
-                    .map(|event| event.map_err(OpenRouterError::Serialization)),
-                Err(error) => Some(Err(OpenRouterError::Io(error))),
+                Ok(frame) if frame.data == "[DONE]" => None,
+                Ok(frame) => Some(
+                    serde_json::from_str::<CompletionsResponse>(&frame.data)
+                        .map_err(OpenRouterError::Serialization),
+                ),
+                Err(error) => Some(Err(error)),
             })
             .boxed();
 

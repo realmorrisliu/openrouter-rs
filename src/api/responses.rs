@@ -10,7 +10,7 @@ use crate::{
     error::OpenRouterError,
     strip_option_map_setter, strip_option_vec_setter,
     types::ProviderPreferences,
-    utils::{handle_error, with_client_request_headers},
+    utils::{handle_error, parse_sse_frames, with_client_request_headers},
 };
 
 /// Request body for the OpenRouter Responses API (`POST /responses`).
@@ -264,15 +264,14 @@ pub async fn stream_response(
     let response = surf_req.await?;
 
     if response.status().is_success() {
-        let lines = response
-            .lines()
+        let lines = parse_sse_frames(response.lines())
             .filter_map(async |line| match line {
-                Ok(line) => line
-                    .strip_prefix("data: ")
-                    .filter(|line| *line != "[DONE]")
-                    .map(serde_json::from_str::<ResponsesStreamEvent>)
-                    .map(|event| event.map_err(OpenRouterError::Serialization)),
-                Err(error) => Some(Err(OpenRouterError::Io(error))),
+                Ok(frame) if frame.data == "[DONE]" => None,
+                Ok(frame) => Some(
+                    serde_json::from_str::<ResponsesStreamEvent>(&frame.data)
+                        .map_err(OpenRouterError::Serialization),
+                ),
+                Err(error) => Some(Err(error)),
             })
             .boxed();
 

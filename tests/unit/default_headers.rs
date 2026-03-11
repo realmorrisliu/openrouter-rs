@@ -234,6 +234,7 @@ async fn test_explicit_x_title_overrides_default() {
 async fn test_default_x_title_header_is_sent_for_streaming_chat() {
     let (base_url, rx, server) = spawn_sse_server(concat!(
         "data: {\"id\":\"gen-stream-001\",\"choices\":[{\"delta\":{\"role\":\"assistant\",\"content\":\"Hello\"},\"index\":0}],\"created\":1700000000,\"model\":\"test-model\",\"object\":\"chat.completion.chunk\"}\r\n",
+        "\r\n",
         "data: [DONE]\r\n",
         "\r\n"
     ));
