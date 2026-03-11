@@ -41,6 +41,9 @@ jobs:
       - name: Run unit tests
         run: cargo test --test unit
 
+      - name: Run doctests
+        run: cargo test --doc
+
       - name: Run deterministic integration subsets
         run: |
           cargo test --test integration model_pool:: -- --nocapture
