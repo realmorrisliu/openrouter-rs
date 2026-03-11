@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use derive_builder::Builder;
-use futures_util::{AsyncBufReadExt, StreamExt, stream, stream::BoxStream};
+use futures_util::{AsyncBufReadExt, StreamExt, stream::BoxStream};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
@@ -10,7 +10,7 @@ use crate::{
     error::OpenRouterError,
     strip_option_vec_setter,
     types::ProviderPreferences,
-    utils::{handle_error, with_client_request_headers},
+    utils::{handle_error, parse_sse_frames, with_client_request_headers},
 };
 
 /// Role for Anthropic-compatible messages.
@@ -705,49 +705,22 @@ pub async fn stream_messages(
     let response = surf_req.await?;
 
     if response.status().is_success() {
-        let lines = response.lines();
-        let stream = stream::unfold(
-            (lines, None::<String>),
-            |(mut lines, mut current_event)| async move {
-                loop {
-                    match lines.next().await {
-                        Some(Ok(line)) => {
-                            if line.is_empty() || line.starts_with(':') {
-                                continue;
-                            }
-                            if let Some(event_name) = line.strip_prefix("event: ") {
-                                current_event = Some(event_name.to_string());
-                                continue;
-                            }
-                            if let Some(data) = line.strip_prefix("data: ") {
-                                if data == "[DONE]" {
-                                    return None;
-                                }
-                                let parsed =
-                                    serde_json::from_str::<AnthropicMessagesStreamEvent>(data)
-                                        .map_err(OpenRouterError::Serialization)
-                                        .map(|payload| {
-                                            let event =
-                                                current_event.clone().unwrap_or_else(|| {
-                                                    payload.event_type().to_string()
-                                                });
-                                            AnthropicMessagesSseEvent {
-                                                event,
-                                                data: payload,
-                                            }
-                                        });
-                                return Some((parsed, (lines, None)));
-                            }
-                        }
-                        Some(Err(error)) => {
-                            return Some((Err(OpenRouterError::Io(error)), (lines, current_event)));
-                        }
-                        None => return None,
-                    }
-                }
-            },
-        )
-        .boxed();
+        let stream = parse_sse_frames(response.lines())
+            .filter_map(async |frame| match frame {
+                Ok(frame) if frame.data == "[DONE]" => None,
+                Ok(frame) => Some(
+                    serde_json::from_str::<AnthropicMessagesStreamEvent>(&frame.data)
+                        .map_err(OpenRouterError::Serialization)
+                        .map(|payload| AnthropicMessagesSseEvent {
+                            event: frame
+                                .event
+                                .unwrap_or_else(|| payload.event_type().to_string()),
+                            data: payload,
+                        }),
+                ),
+                Err(error) => Some(Err(error)),
+            })
+            .boxed();
 
         Ok(stream)
     } else {

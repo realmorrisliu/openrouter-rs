@@ -1,3 +1,5 @@
+use futures_util::{Stream, StreamExt, stream, stream::BoxStream};
+
 use crate::{api::errors::parse_api_error, error::OpenRouterError};
 use surf::Response;
 use surf::http::headers::AUTHORIZATION;
@@ -63,6 +65,79 @@ pub fn with_client_request_headers(
     http_referer: &Option<String>,
 ) -> surf::RequestBuilder {
     with_request_metadata(with_bearer_auth(req, api_key), x_title, http_referer)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct SseFrame {
+    pub event: Option<String>,
+    pub data: String,
+}
+
+pub(crate) fn parse_sse_frames<S>(lines: S) -> BoxStream<'static, Result<SseFrame, OpenRouterError>>
+where
+    S: Stream<Item = std::io::Result<String>> + Send + Unpin + 'static,
+{
+    stream::unfold(
+        (lines, None::<String>, String::new()),
+        |(mut lines, mut event_name, mut data)| async move {
+            loop {
+                match lines.next().await {
+                    Some(Ok(line)) => {
+                        if line.is_empty() {
+                            if data.is_empty() {
+                                event_name = None;
+                                continue;
+                            }
+
+                            return Some((
+                                Ok(SseFrame {
+                                    event: event_name.take(),
+                                    data: std::mem::take(&mut data),
+                                }),
+                                (lines, None, String::new()),
+                            ));
+                        }
+
+                        if line.starts_with(':') {
+                            continue;
+                        }
+
+                        if let Some(event) = line.strip_prefix("event:") {
+                            event_name = Some(event.strip_prefix(' ').unwrap_or(event).to_string());
+                            continue;
+                        }
+
+                        if let Some(chunk) = line.strip_prefix("data:") {
+                            if !data.is_empty() {
+                                data.push('\n');
+                            }
+                            data.push_str(chunk.strip_prefix(' ').unwrap_or(chunk));
+                        }
+                    }
+                    Some(Err(error)) => {
+                        return Some((
+                            Err(OpenRouterError::Io(error)),
+                            (lines, None, String::new()),
+                        ));
+                    }
+                    None => {
+                        if data.is_empty() {
+                            return None;
+                        }
+
+                        return Some((
+                            Ok(SseFrame {
+                                event: event_name.take(),
+                                data: std::mem::take(&mut data),
+                            }),
+                            (lines, None, String::new()),
+                        ));
+                    }
+                }
+            }
+        },
+    )
+    .boxed()
 }
 
 pub async fn handle_error(mut response: Response) -> Result<(), OpenRouterError> {

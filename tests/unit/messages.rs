@@ -287,6 +287,99 @@ async fn test_stream_messages_parses_event_and_data_lines() {
 }
 
 #[tokio::test]
+async fn test_stream_messages_parses_multiline_sse_frames() {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("listener should bind");
+    let addr = listener
+        .local_addr()
+        .expect("listener should have local addr");
+
+    let server = thread::spawn(move || {
+        let (mut stream, _) = listener
+            .accept()
+            .expect("server should accept one connection");
+
+        let mut request_bytes = Vec::new();
+        let mut chunk = [0_u8; 1024];
+
+        loop {
+            let read = stream.read(&mut chunk).expect("server should read request");
+            if read == 0 {
+                break;
+            }
+            request_bytes.extend_from_slice(&chunk[..read]);
+            if request_bytes.windows(4).any(|window| window == b"\r\n\r\n") {
+                break;
+            }
+        }
+
+        let response_body = concat!(
+            ": keep-alive\r\n",
+            "event: message_start\r\n",
+            "data: {\r\n",
+            "data:   \"type\":\"message_start\",\r\n",
+            "data:   \"message\":{\r\n",
+            "data:     \"id\":\"msg_2\",\r\n",
+            "data:     \"type\":\"message\",\r\n",
+            "data:     \"role\":\"assistant\",\r\n",
+            "data:     \"content\":[],\r\n",
+            "data:     \"model\":\"anthropic/claude-sonnet-4\",\r\n",
+            "data:     \"usage\":{\"input_tokens\":1,\"output_tokens\":0}\r\n",
+            "data:   }\r\n",
+            "data: }\r\n",
+            "\r\n",
+            "event: content_block_delta\r\n",
+            "data: {\r\n",
+            "data:   \"type\":\"content_block_delta\",\r\n",
+            "data:   \"index\":0,\r\n",
+            "data:   \"delta\":{\"type\":\"text_delta\",\"text\":\"Hello multiline\"}\r\n",
+            "data: }\r\n",
+            "\r\n",
+            "data: [DONE]\r\n",
+            "\r\n"
+        );
+
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{}",
+            response_body.len(),
+            response_body
+        );
+        stream
+            .write_all(response.as_bytes())
+            .expect("server should write response");
+    });
+
+    let request = AnthropicMessagesRequest::builder()
+        .model("anthropic/claude-sonnet-4")
+        .max_tokens(128)
+        .messages(vec![AnthropicMessage::user("hello")])
+        .build()
+        .expect("messages request should build");
+
+    let base_url = format!("http://{addr}/api/v1");
+    let mut stream = stream_messages(&base_url, "test-key", &None, &None, &request)
+        .await
+        .expect("stream_messages should succeed");
+
+    let mut events = Vec::new();
+    while let Some(item) = stream.next().await {
+        events.push(item.expect("stream item should parse"));
+    }
+
+    assert_eq!(events.len(), 2);
+    assert_eq!(events[0].event, "message_start");
+    assert_eq!(events[1].event, "content_block_delta");
+
+    match &events[1].data {
+        AnthropicMessagesStreamEvent::ContentBlockDelta { delta, .. } => {
+            assert_eq!(delta["text"], "Hello multiline");
+        }
+        _ => panic!("expected content_block_delta"),
+    }
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
 async fn test_create_message_sets_stream_false_and_headers() {
     let listener = TcpListener::bind("127.0.0.1:0").expect("listener should bind");
     let addr = listener

@@ -172,6 +172,7 @@ async fn test_stream_chat_completion_sets_stream_true_and_parses_sse() {
     let (base_url, rx, server) = spawn_server(
         concat!(
             "data: {\"id\":\"gen-stream-001\",\"choices\":[{\"delta\":{\"role\":\"assistant\",\"content\":\"Hello\"},\"index\":0}],\"created\":1700000000,\"model\":\"test-model\",\"object\":\"chat.completion.chunk\"}\r\n",
+            "\r\n",
             "data: [DONE]\r\n",
             "\r\n"
         ),
@@ -237,6 +238,47 @@ async fn test_stream_chat_completion_sets_stream_true_and_parses_sse() {
     let request_json: serde_json::Value =
         serde_json::from_str(&captured.body_text).expect("request body should be valid JSON");
     assert_eq!(request_json["stream"], true);
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_stream_chat_completion_parses_multiline_sse_data_frames() {
+    let (base_url, _rx, server) = spawn_server(
+        concat!(
+            ": keep-alive\r\n",
+            "event: message\r\n",
+            "data: {\r\n",
+            "data:   \"id\":\"gen-stream-002\",\r\n",
+            "data:   \"choices\":[{\"delta\":{\"role\":\"assistant\",\"content\":\"Hello again\"},\"index\":0}],\r\n",
+            "data:   \"created\":1700000001,\r\n",
+            "data:   \"model\":\"test-model\",\r\n",
+            "data:   \"object\":\"chat.completion.chunk\"\r\n",
+            "data: }\r\n",
+            "\r\n",
+            "data: [DONE]\r\n",
+            "\r\n"
+        ),
+        "text/event-stream",
+    );
+
+    let request = ChatCompletionRequestBuilder::default()
+        .model("openai/gpt-4o-mini")
+        .messages(vec![Message::new(Role::User, "hello")])
+        .build()
+        .expect("chat request should build");
+
+    let mut stream = stream_chat_completion(&base_url, "api-key", &None, &None, &request)
+        .await
+        .expect("stream_chat_completion should succeed");
+    let mut chunks = Vec::new();
+    while let Some(item) = stream.next().await {
+        chunks.push(item.expect("stream chunk should parse"));
+    }
+
+    assert_eq!(chunks.len(), 1);
+    assert_eq!(chunks[0].id, "gen-stream-002");
+    assert_eq!(chunks[0].choices[0].content(), Some("Hello again"));
 
     server.join().expect("server thread should finish");
 }

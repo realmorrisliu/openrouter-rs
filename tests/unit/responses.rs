@@ -314,6 +314,7 @@ async fn test_stream_response_sets_stream_true_and_parses_sse() {
     let (base_url, rx, server) = spawn_server(
         concat!(
             "data: {\"type\":\"response.output_text.delta\",\"sequence_number\":1,\"delta\":\"Hi\"}\r\n",
+            "\r\n",
             "data: [DONE]\r\n",
             "\r\n"
         ),
@@ -350,6 +351,49 @@ async fn test_stream_response_sets_stream_true_and_parses_sse() {
     let request_json: serde_json::Value =
         serde_json::from_str(&captured.body_text).expect("request body should be valid JSON");
     assert_eq!(request_json["stream"], true);
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_stream_response_parses_multiline_sse_data_frames() {
+    let (base_url, _rx, server) = spawn_server(
+        concat!(
+            ": keep-alive\r\n",
+            "event: response.output_text.delta\r\n",
+            "data: {\r\n",
+            "data:   \"type\":\"response.output_text.delta\",\r\n",
+            "data:   \"sequence_number\":2,\r\n",
+            "data:   \"delta\":\"Hello from multiline SSE\"\r\n",
+            "data: }\r\n",
+            "\r\n",
+            "data: [DONE]\r\n",
+            "\r\n"
+        ),
+        "text/event-stream",
+    );
+
+    let request = ResponsesRequest::builder()
+        .model("openai/gpt-5")
+        .input(json!([{"role":"user","content":"hello"}]))
+        .build()
+        .expect("responses request should build");
+
+    let mut stream = stream_response(&base_url, "api-key", &None, &None, &request)
+        .await
+        .expect("stream response should succeed");
+    let mut events = Vec::new();
+    while let Some(item) = stream.next().await {
+        events.push(item.expect("stream event should parse"));
+    }
+
+    assert_eq!(events.len(), 1);
+    assert_eq!(events[0].event_type, "response.output_text.delta");
+    assert_eq!(events[0].sequence_number, Some(2));
+    assert_eq!(
+        events[0].data.get("delta").and_then(|value| value.as_str()),
+        Some("Hello from multiline SSE")
+    );
 
     server.join().expect("server thread should finish");
 }
