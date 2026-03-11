@@ -1,4 +1,6 @@
-use openrouter_rs::config::OpenRouterConfig;
+use std::collections::HashMap;
+
+use openrouter_rs::config::{ModelConfig, OpenRouterConfig};
 
 #[test]
 fn test_default_config() {
@@ -70,4 +72,43 @@ fn test_default_config() {
 
     // Verify resolution of model presets (22 unique models after deduplication)
     assert_eq!(config.models.resolved_models.len(), 22)
+}
+
+#[test]
+fn test_model_resolution_preserves_enable_order_while_deduping() {
+    let mut config = ModelConfig {
+        enable: vec![
+            "preset:alpha".to_string(),
+            "model/c".to_string(),
+            "preset:beta".to_string(),
+            "preset:alpha".to_string(),
+        ],
+        presets: HashMap::from([
+            (
+                "alpha".to_string(),
+                vec!["model/a".to_string(), "model/b".to_string()],
+            ),
+            (
+                "beta".to_string(),
+                vec![
+                    "model/b".to_string(),
+                    "model/d".to_string(),
+                    "model/a".to_string(),
+                ],
+            ),
+        ]),
+        resolved_models: Vec::new(),
+    };
+
+    config.resolve();
+
+    assert_eq!(
+        config.resolved_models,
+        vec![
+            "model/a".to_string(),
+            "model/b".to_string(),
+            "model/c".to_string(),
+            "model/d".to_string(),
+        ]
+    );
 }

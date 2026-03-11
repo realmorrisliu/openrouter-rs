@@ -59,7 +59,8 @@ impl ModelConfig {
     /// assert!(config.is_enabled("anthropic/claude-sonnet-4"));
     /// ```
     pub fn resolve(&mut self) {
-        let mut new_models = HashSet::new();
+        let mut seen = HashSet::new();
+        let mut resolved_models = Vec::new();
 
         for entry in &self.enable {
             if let Some(preset_name) = entry.strip_prefix("preset:") {
@@ -69,17 +70,23 @@ impl ModelConfig {
                 if let Some(models) = self.presets.get(preset) {
                     for model in models {
                         if filter.is_empty() || model.contains(filter) {
-                            new_models.insert(model.to_string());
+                            let model_id = model.to_string();
+                            if seen.insert(model_id.clone()) {
+                                resolved_models.push(model_id);
+                            }
                         }
                     }
                 }
             } else {
                 // Directly add single model
-                new_models.insert(entry.to_string());
+                let model_id = entry.to_string();
+                if seen.insert(model_id.clone()) {
+                    resolved_models.push(model_id);
+                }
             }
         }
 
-        self.resolved_models = new_models.into_iter().collect();
+        self.resolved_models = resolved_models;
     }
 
     /// Checks if a specific model is enabled
