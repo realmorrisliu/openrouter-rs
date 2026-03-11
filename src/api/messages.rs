@@ -10,7 +10,7 @@ use crate::{
     error::OpenRouterError,
     strip_option_vec_setter,
     types::ProviderPreferences,
-    utils::{handle_error, parse_sse_frames, with_client_request_headers},
+    utils::{handle_error, parse_json_response, parse_sse_frames, with_client_request_headers},
 };
 
 /// Role for Anthropic-compatible messages.
@@ -677,10 +677,11 @@ pub async fn create_message(
         with_client_request_headers(surf::post(url), api_key, x_title, http_referer)
             .body_json(&request)?;
 
-    let mut response = surf_req.await?;
+    let response = surf_req.await?;
 
     if response.status().is_success() {
-        let response_data: AnthropicMessagesResponse = response.body_json().await?;
+        let response_data: AnthropicMessagesResponse =
+            parse_json_response(response, "messages API").await?;
         Ok(response_data)
     } else {
         handle_error(response).await?;

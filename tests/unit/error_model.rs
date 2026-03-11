@@ -86,6 +86,69 @@ async fn test_normalized_generic_api_error_shape() {
 }
 
 #[tokio::test]
+async fn test_unreadable_error_body_preserves_read_failure_context() {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("listener should bind");
+    let addr = listener
+        .local_addr()
+        .expect("listener should have local addr");
+
+    let server = thread::spawn(move || {
+        let (mut stream, _) = listener
+            .accept()
+            .expect("server should accept one connection");
+        let mut request_bytes = Vec::new();
+        let mut chunk = [0_u8; 1024];
+        loop {
+            let read = stream.read(&mut chunk).expect("server should read request");
+            if read == 0 {
+                break;
+            }
+            request_bytes.extend_from_slice(&chunk[..read]);
+            if request_bytes.windows(4).any(|window| window == b"\r\n\r\n") {
+                break;
+            }
+        }
+
+        let partial_body = "{\"error\":";
+        let response = format!(
+            "HTTP/1.1 500 Internal Server Error\r\nContent-Type: application/json\r\nx-request-id: req_truncated\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            partial_body.len() + 32,
+            partial_body
+        );
+        stream
+            .write_all(response.as_bytes())
+            .expect("server should write partial response");
+    });
+
+    let base_url = format!("http://{addr}/api/v1");
+    let error = models::list_models(&base_url, "test-key", None, None)
+        .await
+        .expect_err("request should fail");
+
+    match error {
+        OpenRouterError::Api(api_error) => {
+            assert_eq!(api_error.status, StatusCode::InternalServerError);
+            assert_eq!(api_error.request_id.as_deref(), Some("req_truncated"));
+            assert!(api_error.message.contains("Failed to read error response body"));
+            assert_eq!(
+                api_error
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("body_read_error"))
+                    .and_then(|value| value.as_str())
+                    .map(|value| !value.is_empty()),
+                Some(true)
+            );
+        }
+        other => panic!("expected Api error, got {other:?}"),
+    }
+
+    server
+        .join()
+        .expect("server thread should join in reasonable time");
+}
+
+#[tokio::test]
 async fn test_normalized_provider_error_shape() {
     let (base_url, server) = spawn_error_server(
         "502 Bad Gateway",

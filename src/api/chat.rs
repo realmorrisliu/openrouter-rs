@@ -11,7 +11,7 @@ use crate::{
     types::{
         ProviderPreferences, ReasoningConfig, ResponseFormat, Role, completion::CompletionsResponse,
     },
-    utils::{handle_error, parse_sse_frames, with_client_request_headers},
+    utils::{handle_error, parse_json_response, parse_sse_frames, with_client_request_headers},
 };
 
 /// Image URL with optional detail level for vision models.
@@ -855,15 +855,10 @@ pub async fn send_chat_completion(
         with_client_request_headers(surf::post(url), api_key, x_title, http_referer)
             .body_json(&request)?;
 
-    let mut response = surf_req.await?;
+    let response = surf_req.await?;
 
     if response.status().is_success() {
-        let body_text = response.body_string().await?;
-        let chat_response: CompletionsResponse = serde_json::from_str(&body_text).map_err(|e| {
-            eprintln!("Failed to deserialize response: {e}\nBody: {body_text}");
-            OpenRouterError::Serialization(e)
-        })?;
-        Ok(chat_response)
+        parse_json_response(response, "chat completion").await
     } else {
         handle_error(response).await?;
         unreachable!()
