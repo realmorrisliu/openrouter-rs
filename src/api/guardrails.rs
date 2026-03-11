@@ -6,7 +6,7 @@ use crate::{
     error::OpenRouterError,
     strip_option_vec_setter,
     types::{ApiResponse, PaginationOptions},
-    utils::{handle_error, with_bearer_auth},
+    utils::{handle_error, parse_json_response, with_bearer_auth},
 };
 
 /// Guardrail model.
@@ -214,10 +214,10 @@ pub async fn list_guardrails(
     pagination: Option<PaginationOptions>,
 ) -> Result<GuardrailListResponse, OpenRouterError> {
     let url = with_pagination(format!("{base_url}/guardrails"), pagination);
-    let mut response = with_bearer_auth(surf::get(url), management_key).await?;
+    let response = with_bearer_auth(surf::get(url), management_key).await?;
 
     if response.status().is_success() {
-        Ok(response.body_json().await?)
+        parse_json_response(response, "guardrail list").await
     } else {
         handle_error(response).await?;
         unreachable!()
@@ -230,12 +230,13 @@ pub async fn create_guardrail(
     request: &CreateGuardrailRequest,
 ) -> Result<Guardrail, OpenRouterError> {
     let url = format!("{base_url}/guardrails");
-    let mut response = with_bearer_auth(surf::post(url), management_key)
+    let response = with_bearer_auth(surf::post(url), management_key)
         .body_json(request)?
         .await?;
 
     if response.status().is_success() {
-        let payload: ApiResponse<Guardrail> = response.body_json().await?;
+        let payload: ApiResponse<Guardrail> =
+            parse_json_response(response, "guardrail creation").await?;
         Ok(payload.data)
     } else {
         handle_error(response).await?;
@@ -249,10 +250,11 @@ pub async fn get_guardrail(
     id: &str,
 ) -> Result<Guardrail, OpenRouterError> {
     let url = format!("{base_url}/guardrails/{}", encode(id));
-    let mut response = with_bearer_auth(surf::get(url), management_key).await?;
+    let response = with_bearer_auth(surf::get(url), management_key).await?;
 
     if response.status().is_success() {
-        let payload: ApiResponse<Guardrail> = response.body_json().await?;
+        let payload: ApiResponse<Guardrail> =
+            parse_json_response(response, "guardrail lookup").await?;
         Ok(payload.data)
     } else {
         handle_error(response).await?;
@@ -267,12 +269,13 @@ pub async fn update_guardrail(
     request: &UpdateGuardrailRequest,
 ) -> Result<Guardrail, OpenRouterError> {
     let url = format!("{base_url}/guardrails/{}", encode(id));
-    let mut response = with_bearer_auth(surf::patch(url), management_key)
+    let response = with_bearer_auth(surf::patch(url), management_key)
         .body_json(request)?
         .await?;
 
     if response.status().is_success() {
-        let payload: ApiResponse<Guardrail> = response.body_json().await?;
+        let payload: ApiResponse<Guardrail> =
+            parse_json_response(response, "guardrail update").await?;
         Ok(payload.data)
     } else {
         handle_error(response).await?;
@@ -286,10 +289,11 @@ pub async fn delete_guardrail(
     id: &str,
 ) -> Result<bool, OpenRouterError> {
     let url = format!("{base_url}/guardrails/{}", encode(id));
-    let mut response = with_bearer_auth(surf::delete(url), management_key).await?;
+    let response = with_bearer_auth(surf::delete(url), management_key).await?;
 
     if response.status().is_success() {
-        let payload: DeleteGuardrailResponse = response.body_json().await?;
+        let payload: DeleteGuardrailResponse =
+            parse_json_response(response, "guardrail deletion").await?;
         Ok(payload.deleted)
     } else {
         handle_error(response).await?;
@@ -307,10 +311,10 @@ pub async fn list_guardrail_key_assignments(
         format!("{base_url}/guardrails/{}/assignments/keys", encode(id)),
         pagination,
     );
-    let mut response = with_bearer_auth(surf::get(url), management_key).await?;
+    let response = with_bearer_auth(surf::get(url), management_key).await?;
 
     if response.status().is_success() {
-        Ok(response.body_json().await?)
+        parse_json_response(response, "guardrail key assignments").await
     } else {
         handle_error(response).await?;
         unreachable!()
@@ -324,12 +328,12 @@ pub async fn bulk_assign_keys_to_guardrail(
     request: &BulkKeyAssignmentRequest,
 ) -> Result<AssignedCountResponse, OpenRouterError> {
     let url = format!("{base_url}/guardrails/{}/assignments/keys", encode(id));
-    let mut response = with_bearer_auth(surf::post(url), management_key)
+    let response = with_bearer_auth(surf::post(url), management_key)
         .body_json(request)?
         .await?;
 
     if response.status().is_success() {
-        Ok(response.body_json().await?)
+        parse_json_response(response, "guardrail key bulk assignment").await
     } else {
         handle_error(response).await?;
         unreachable!()
@@ -346,12 +350,12 @@ pub async fn bulk_unassign_keys_from_guardrail(
         "{base_url}/guardrails/{}/assignments/keys/remove",
         encode(id)
     );
-    let mut response = with_bearer_auth(surf::post(url), management_key)
+    let response = with_bearer_auth(surf::post(url), management_key)
         .body_json(request)?
         .await?;
 
     if response.status().is_success() {
-        Ok(response.body_json().await?)
+        parse_json_response(response, "guardrail key bulk removal").await
     } else {
         handle_error(response).await?;
         unreachable!()
@@ -368,10 +372,10 @@ pub async fn list_guardrail_member_assignments(
         format!("{base_url}/guardrails/{}/assignments/members", encode(id)),
         pagination,
     );
-    let mut response = with_bearer_auth(surf::get(url), management_key).await?;
+    let response = with_bearer_auth(surf::get(url), management_key).await?;
 
     if response.status().is_success() {
-        Ok(response.body_json().await?)
+        parse_json_response(response, "guardrail member assignments").await
     } else {
         handle_error(response).await?;
         unreachable!()
@@ -385,12 +389,12 @@ pub async fn bulk_assign_members_to_guardrail(
     request: &BulkMemberAssignmentRequest,
 ) -> Result<AssignedCountResponse, OpenRouterError> {
     let url = format!("{base_url}/guardrails/{}/assignments/members", encode(id));
-    let mut response = with_bearer_auth(surf::post(url), management_key)
+    let response = with_bearer_auth(surf::post(url), management_key)
         .body_json(request)?
         .await?;
 
     if response.status().is_success() {
-        Ok(response.body_json().await?)
+        parse_json_response(response, "guardrail member bulk assignment").await
     } else {
         handle_error(response).await?;
         unreachable!()
@@ -407,12 +411,12 @@ pub async fn bulk_unassign_members_from_guardrail(
         "{base_url}/guardrails/{}/assignments/members/remove",
         encode(id)
     );
-    let mut response = with_bearer_auth(surf::post(url), management_key)
+    let response = with_bearer_auth(surf::post(url), management_key)
         .body_json(request)?
         .await?;
 
     if response.status().is_success() {
-        Ok(response.body_json().await?)
+        parse_json_response(response, "guardrail member bulk removal").await
     } else {
         handle_error(response).await?;
         unreachable!()
@@ -428,10 +432,10 @@ pub async fn list_key_assignments(
         format!("{base_url}/guardrails/assignments/keys"),
         pagination,
     );
-    let mut response = with_bearer_auth(surf::get(url), management_key).await?;
+    let response = with_bearer_auth(surf::get(url), management_key).await?;
 
     if response.status().is_success() {
-        Ok(response.body_json().await?)
+        parse_json_response(response, "global key assignments").await
     } else {
         handle_error(response).await?;
         unreachable!()
@@ -447,10 +451,10 @@ pub async fn list_member_assignments(
         format!("{base_url}/guardrails/assignments/members"),
         pagination,
     );
-    let mut response = with_bearer_auth(surf::get(url), management_key).await?;
+    let response = with_bearer_auth(surf::get(url), management_key).await?;
 
     if response.status().is_success() {
-        Ok(response.body_json().await?)
+        parse_json_response(response, "global member assignments").await
     } else {
         handle_error(response).await?;
         unreachable!()

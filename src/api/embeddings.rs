@@ -5,7 +5,7 @@ use crate::{
     api::models,
     error::OpenRouterError,
     types::{ApiResponse, ProviderPreferences},
-    utils::{handle_error, with_bearer_auth, with_client_request_headers},
+    utils::{handle_error, parse_json_response, with_bearer_auth, with_client_request_headers},
 };
 
 /// Supported embedding encoding formats.
@@ -179,10 +179,11 @@ pub async fn create_embedding(
     let surf_req = with_client_request_headers(surf::post(url), api_key, x_title, http_referer)
         .body_json(request)?;
 
-    let mut response = surf_req.await?;
+    let response = surf_req.await?;
 
     if response.status().is_success() {
-        let embedding_response: EmbeddingResponse = response.body_json().await?;
+        let embedding_response: EmbeddingResponse =
+            parse_json_response(response, "embedding").await?;
         Ok(embedding_response)
     } else {
         handle_error(response).await?;
@@ -197,10 +198,11 @@ pub async fn list_embedding_models(
 ) -> Result<Vec<models::Model>, OpenRouterError> {
     let url = format!("{base_url}/embeddings/models");
 
-    let mut response = with_bearer_auth(surf::get(url), api_key).await?;
+    let response = with_bearer_auth(surf::get(url), api_key).await?;
 
     if response.status().is_success() {
-        let models_response: ApiResponse<Vec<models::Model>> = response.body_json().await?;
+        let models_response: ApiResponse<Vec<models::Model>> =
+            parse_json_response(response, "embedding models").await?;
         Ok(models_response.data)
     } else {
         handle_error(response).await?;

@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     error::OpenRouterError,
     types::ApiResponse,
-    utils::{handle_error, with_bearer_auth},
+    utils::{handle_error, parse_json_response, with_bearer_auth},
 };
 
 #[derive(Serialize, Deserialize, Debug, Builder)]
@@ -66,12 +66,13 @@ pub async fn create_coinbase_charge(
 ) -> Result<CoinbaseChargeData, OpenRouterError> {
     let url = format!("{base_url}/credits/coinbase");
 
-    let mut response = with_bearer_auth(surf::post(url), api_key)
+    let response = with_bearer_auth(surf::post(url), api_key)
         .body_json(request)?
         .await?;
 
     if response.status().is_success() {
-        let charge_response: ApiResponse<CoinbaseChargeData> = response.body_json().await?;
+        let charge_response: ApiResponse<CoinbaseChargeData> =
+            parse_json_response(response, "coinbase charge").await?;
         Ok(charge_response.data)
     } else {
         handle_error(response).await?;
@@ -92,10 +93,10 @@ pub async fn create_coinbase_charge(
 pub async fn get_credits(base_url: &str, api_key: &str) -> Result<CreditsData, OpenRouterError> {
     let url = format!("{base_url}/credits");
 
-    let mut response = with_bearer_auth(surf::get(url), api_key).await?;
+    let response = with_bearer_auth(surf::get(url), api_key).await?;
 
     if response.status().is_success() {
-        let credits_response: ApiResponse<_> = response.body_json().await?;
+        let credits_response: ApiResponse<_> = parse_json_response(response, "credits").await?;
         Ok(credits_response.data)
     } else {
         handle_error(response).await?;

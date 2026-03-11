@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     error::OpenRouterError,
     types::ApiResponse,
-    utils::{handle_error, with_bearer_auth},
+    utils::{handle_error, parse_json_response, with_bearer_auth},
 };
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -55,10 +55,11 @@ pub async fn get_generation(
     let id = id.into();
     let url = format!("{base_url}/generation?id={id}");
 
-    let mut response = with_bearer_auth(surf::get(url), api_key).await?;
+    let response = with_bearer_auth(surf::get(url), api_key).await?;
 
     if response.status().is_success() {
-        let generation_response: ApiResponse<_> = response.body_json().await?;
+        let generation_response: ApiResponse<_> =
+            parse_json_response(response, "generation").await?;
         Ok(generation_response.data)
     } else {
         handle_error(response).await?;

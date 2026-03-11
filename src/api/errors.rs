@@ -102,3 +102,20 @@ pub fn parse_api_error(
         })),
     }
 }
+
+pub fn unreadable_error_response(
+    status: StatusCode,
+    request_id: Option<String>,
+    error: &str,
+) -> OpenRouterError {
+    OpenRouterError::Api(Box::new(ApiErrorContext {
+        status,
+        api_code: Some(i64::from(u16::from(status))),
+        message: format!("Failed to read error response body: {error}"),
+        request_id,
+        metadata: Some(serde_json::json!({
+            "body_read_error": error,
+        })),
+        kind: ApiErrorKind::Generic,
+    }))
+}

@@ -6,7 +6,7 @@ use urlencoding::encode;
 use crate::{
     error::OpenRouterError,
     types::ApiResponse,
-    utils::{handle_error, with_bearer_auth},
+    utils::{handle_error, parse_json_response, with_bearer_auth},
 };
 
 /// Number-like value used by OpenRouter pricing fields.
@@ -192,10 +192,11 @@ pub async fn list_providers(
     api_key: &str,
 ) -> Result<Vec<Provider>, OpenRouterError> {
     let url = format!("{base_url}/providers");
-    let mut response = with_bearer_auth(surf::get(url), api_key).await?;
+    let response = with_bearer_auth(surf::get(url), api_key).await?;
 
     if response.status().is_success() {
-        let parsed: ApiResponse<Vec<Provider>> = response.body_json().await?;
+        let parsed: ApiResponse<Vec<Provider>> =
+            parse_json_response(response, "provider list").await?;
         Ok(parsed.data)
     } else {
         handle_error(response).await?;
@@ -209,10 +210,11 @@ pub async fn list_models_for_user(
     api_key: &str,
 ) -> Result<Vec<UserModel>, OpenRouterError> {
     let url = format!("{base_url}/models/user");
-    let mut response = with_bearer_auth(surf::get(url), api_key).await?;
+    let response = with_bearer_auth(surf::get(url), api_key).await?;
 
     if response.status().is_success() {
-        let parsed: ApiResponse<Vec<UserModel>> = response.body_json().await?;
+        let parsed: ApiResponse<Vec<UserModel>> =
+            parse_json_response(response, "user model list").await?;
         Ok(parsed.data)
     } else {
         handle_error(response).await?;
@@ -226,10 +228,11 @@ pub async fn count_models(
     api_key: &str,
 ) -> Result<ModelsCountData, OpenRouterError> {
     let url = format!("{base_url}/models/count");
-    let mut response = with_bearer_auth(surf::get(url), api_key).await?;
+    let response = with_bearer_auth(surf::get(url), api_key).await?;
 
     if response.status().is_success() {
-        let parsed: ApiResponse<ModelsCountData> = response.body_json().await?;
+        let parsed: ApiResponse<ModelsCountData> =
+            parse_json_response(response, "model count").await?;
         Ok(parsed.data)
     } else {
         handle_error(response).await?;
@@ -243,10 +246,11 @@ pub async fn list_zdr_endpoints(
     api_key: &str,
 ) -> Result<Vec<PublicEndpoint>, OpenRouterError> {
     let url = format!("{base_url}/endpoints/zdr");
-    let mut response = with_bearer_auth(surf::get(url), api_key).await?;
+    let response = with_bearer_auth(surf::get(url), api_key).await?;
 
     if response.status().is_success() {
-        let parsed: ApiResponse<Vec<PublicEndpoint>> = response.body_json().await?;
+        let parsed: ApiResponse<Vec<PublicEndpoint>> =
+            parse_json_response(response, "ZDR endpoint list").await?;
         Ok(parsed.data)
     } else {
         handle_error(response).await?;
@@ -268,10 +272,11 @@ pub async fn get_activity(
         format!("{base_url}/activity")
     };
 
-    let mut response = with_bearer_auth(surf::get(url), management_key).await?;
+    let response = with_bearer_auth(surf::get(url), management_key).await?;
 
     if response.status().is_success() {
-        let parsed: ApiResponse<Vec<ActivityItem>> = response.body_json().await?;
+        let parsed: ApiResponse<Vec<ActivityItem>> =
+            parse_json_response(response, "activity list").await?;
         Ok(parsed.data)
     } else {
         handle_error(response).await?;

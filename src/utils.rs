@@ -1,8 +1,12 @@
 use futures_util::{Stream, StreamExt, stream, stream::BoxStream};
+use serde::de::DeserializeOwned;
 
-use crate::{api::errors::parse_api_error, error::OpenRouterError};
-use surf::Response;
+use crate::{
+    api::errors::{parse_api_error, unreadable_error_response},
+    error::OpenRouterError,
+};
 use surf::http::headers::AUTHORIZATION;
+use surf::{Response, StatusCode};
 
 #[macro_export]
 macro_rules! strip_option_vec_setter {
@@ -140,6 +144,48 @@ where
     .boxed()
 }
 
+fn body_preview(body_text: &str, limit: usize) -> String {
+    let normalized = body_text.replace('\r', "\\r").replace('\n', "\\n");
+    let mut preview = String::new();
+    let mut chars = normalized.chars();
+
+    for _ in 0..limit {
+        match chars.next() {
+            Some(ch) => preview.push(ch),
+            None => return preview,
+        }
+    }
+
+    if chars.next().is_some() {
+        preview.push_str("...");
+    }
+
+    preview
+}
+
+pub(crate) fn response_deserialization_error(
+    context: &str,
+    status: StatusCode,
+    error: &serde_json::Error,
+    body_text: &str,
+) -> OpenRouterError {
+    OpenRouterError::Unknown(format!(
+        "Failed to deserialize {context} response (status {status}): {error}; body preview: {}",
+        body_preview(body_text, 240)
+    ))
+}
+
+pub(crate) async fn parse_json_response<T: DeserializeOwned>(
+    mut response: Response,
+    context: &str,
+) -> Result<T, OpenRouterError> {
+    let status = response.status();
+    let body_text = response.body_string().await?;
+
+    serde_json::from_str(&body_text)
+        .map_err(|error| response_deserialization_error(context, status, &error, &body_text))
+}
+
 pub async fn handle_error(mut response: Response) -> Result<(), OpenRouterError> {
     let status = response.status();
     let request_id = response
@@ -152,10 +198,16 @@ pub async fn handle_error(mut response: Response) -> Result<(), OpenRouterError>
                 .and_then(|values| values.get(0))
                 .map(|value| value.as_str().to_string())
         });
-    let text = response
-        .body_string()
-        .await
-        .unwrap_or_else(|_| "Failed to read response text".to_string());
+    let text = match response.body_string().await {
+        Ok(text) => text,
+        Err(error) => {
+            return Err(unreadable_error_response(
+                status,
+                request_id,
+                &error.to_string(),
+            ));
+        }
+    };
 
     Err(parse_api_error(status, request_id, &text))
 }

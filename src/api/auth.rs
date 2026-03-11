@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     error::OpenRouterError,
     types::ApiResponse,
-    utils::{handle_error, with_bearer_auth},
+    utils::{handle_error, parse_json_response, with_bearer_auth},
 };
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -107,10 +107,11 @@ pub async fn exchange_code_for_api_key(
         code_challenge_method,
     };
 
-    let mut response = surf::post(url).body_json(&request)?.await?;
+    let response = surf::post(url).body_json(&request)?.await?;
 
     if response.status().is_success() {
-        let auth_response = response.body_json().await?;
+        let auth_response: AuthResponse =
+            parse_json_response(response, "auth key exchange").await?;
         Ok(auth_response)
     } else {
         handle_error(response).await?;
@@ -127,12 +128,13 @@ pub async fn create_auth_code(
     request: &CreateAuthCodeRequest,
 ) -> Result<AuthCodeData, OpenRouterError> {
     let url = format!("{base_url}/auth/keys/code");
-    let mut response = with_bearer_auth(surf::post(url), api_key)
+    let response = with_bearer_auth(surf::post(url), api_key)
         .body_json(request)?
         .await?;
 
     if response.status().is_success() {
-        let payload: ApiResponse<AuthCodeData> = response.body_json().await?;
+        let payload: ApiResponse<AuthCodeData> =
+            parse_json_response(response, "auth code creation").await?;
         Ok(payload.data)
     } else {
         handle_error(response).await?;

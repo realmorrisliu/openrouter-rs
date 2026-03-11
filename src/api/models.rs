@@ -4,7 +4,7 @@ use urlencoding::encode;
 use crate::{
     error::OpenRouterError,
     types::{ApiResponse, ModelCategory, SupportedParameters},
-    utils::{handle_error, with_bearer_auth},
+    utils::{handle_error, parse_json_response, with_bearer_auth},
 };
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -119,14 +119,15 @@ pub async fn list_models(
     };
 
     let req = with_bearer_auth(surf::get(url), api_key);
-    let mut response = if query.category.is_none() && query.supported_parameters.is_none() {
+    let response = if query.category.is_none() && query.supported_parameters.is_none() {
         req.await?
     } else {
         req.query(&query)?.await?
     };
 
     if response.status().is_success() {
-        let model_list_response: ApiResponse<_> = response.body_json().await?;
+        let model_list_response: ApiResponse<_> =
+            parse_json_response(response, "model list").await?;
         Ok(model_list_response.data)
     } else {
         handle_error(response).await?;
@@ -156,10 +157,11 @@ pub async fn list_model_endpoints(
     let encoded_slug = encode(slug);
     let url = format!("{base_url}/models/{encoded_author}/{encoded_slug}/endpoints");
 
-    let mut response = with_bearer_auth(surf::get(&url), api_key).await?;
+    let response = with_bearer_auth(surf::get(&url), api_key).await?;
 
     if response.status().is_success() {
-        let endpoint_list_response: ApiResponse<_> = response.body_json().await?;
+        let endpoint_list_response: ApiResponse<_> =
+            parse_json_response(response, "model endpoint list").await?;
         Ok(endpoint_list_response.data)
     } else {
         handle_error(response).await?;

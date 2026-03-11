@@ -9,7 +9,7 @@ use crate::{
     types::{
         ProviderPreferences, ReasoningConfig, ResponseFormat, completion::CompletionsResponse,
     },
-    utils::{handle_error, with_client_request_headers},
+    utils::{handle_error, parse_json_response, with_client_request_headers},
 };
 
 #[derive(Serialize, Deserialize, Debug, Builder)]
@@ -143,10 +143,10 @@ pub async fn send_completion_request(
     let surf_req = with_client_request_headers(surf::post(url), api_key, x_title, http_referer)
         .body_json(request)?;
 
-    let mut response = surf_req.await?;
+    let response = surf_req.await?;
 
     if response.status().is_success() {
-        let completion_response = response.body_json().await?;
+        let completion_response = parse_json_response(response, "legacy completion").await?;
         Ok(completion_response)
     } else {
         handle_error(response).await?;

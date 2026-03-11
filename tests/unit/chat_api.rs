@@ -282,3 +282,29 @@ async fn test_stream_chat_completion_parses_multiline_sse_data_frames() {
 
     server.join().expect("server thread should finish");
 }
+
+#[tokio::test]
+async fn test_send_chat_completion_returns_contextual_parse_error_on_invalid_json() {
+    let (base_url, _rx, server) = spawn_server("{\"id\":\"broken\"", "application/json");
+
+    let request = ChatCompletionRequestBuilder::default()
+        .model("openai/gpt-4o-mini")
+        .messages(vec![Message::new(Role::User, "hello")])
+        .build()
+        .expect("chat request should build");
+
+    let error = send_chat_completion(&base_url, "api-key", &None, &None, &request)
+        .await
+        .expect_err("invalid JSON should fail");
+
+    match error {
+        openrouter_rs::error::OpenRouterError::Unknown(message) => {
+            assert!(message.contains("Failed to deserialize chat completion response"));
+            assert!(message.contains("body preview"));
+            assert!(message.contains("{\"id\":\"broken\""));
+        }
+        other => panic!("expected contextual parse error, got {other:?}"),
+    }
+
+    server.join().expect("server thread should finish");
+}
