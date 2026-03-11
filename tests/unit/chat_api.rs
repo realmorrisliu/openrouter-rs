@@ -184,9 +184,13 @@ async fn test_stream_chat_completion_sets_stream_true_and_parses_sse() {
         .build()
         .expect("chat request should build");
 
-    let mut stream = stream_chat_completion(&base_url, "api-key", &request)
-        .await
-        .expect("stream_chat_completion should succeed");
+    let x_title = Some("openrouter-rs-tests".to_string());
+    let http_referer = Some("https://github.com/realmorrisliu/openrouter-rs".to_string());
+
+    let mut stream =
+        stream_chat_completion(&base_url, "api-key", &x_title, &http_referer, &request)
+            .await
+            .expect("stream_chat_completion should succeed");
     let mut chunks = Vec::new();
     while let Some(item) = stream.next().await {
         chunks.push(item.expect("stream chunk should parse"));
@@ -208,6 +212,25 @@ async fn test_stream_chat_completion_sets_stream_true_and_parses_sse() {
         headers_lower.contains("authorization: bearer api-key")
             || headers_lower.contains("authorization:bearer api-key"),
         "authorization header should include API key, headers:\n{}",
+        captured.header_text
+    );
+    assert!(
+        headers_lower.contains("x-openrouter-title: openrouter-rs-tests")
+            || headers_lower.contains("x-openrouter-title:openrouter-rs-tests"),
+        "x-openrouter-title header should be present, headers:\n{}",
+        captured.header_text
+    );
+    assert!(
+        headers_lower.contains("x-title: openrouter-rs-tests")
+            || headers_lower.contains("x-title:openrouter-rs-tests"),
+        "x-title header should be present, headers:\n{}",
+        captured.header_text
+    );
+    assert!(
+        headers_lower.contains("http-referer: https://github.com/realmorrisliu/openrouter-rs")
+            || headers_lower
+                .contains("http-referer:https://github.com/realmorrisliu/openrouter-rs"),
+        "http-referer header should be present, headers:\n{}",
         captured.header_text
     );
 

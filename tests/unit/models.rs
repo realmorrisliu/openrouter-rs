@@ -259,7 +259,7 @@ async fn test_list_models_with_supported_parameters_query() {
 }
 
 #[tokio::test]
-async fn test_list_models_ignores_filters_when_both_are_set() {
+async fn test_list_models_with_both_filters_query() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":[]}"#);
 
     let models = models::list_models(
@@ -275,7 +275,10 @@ async fn test_list_models_ignores_filters_when_both_are_set() {
     let captured = rx
         .recv_timeout(Duration::from_secs(2))
         .expect("should capture request");
-    assert_eq!(captured.request_line, "GET /api/v1/models HTTP/1.1");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/models?category=programming&supported_parameters=top_p HTTP/1.1"
+    );
 
     server.join().expect("server thread should finish");
 }

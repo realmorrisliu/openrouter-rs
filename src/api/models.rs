@@ -93,7 +93,8 @@ pub struct EndpointArchitecture {
 ///
 /// * `base_url` - The base URL of the OpenRouter API.
 /// * `api_key` - The API key for authentication.
-/// * `category` - The category of the models.
+/// * `category` - Optional category filter for the models.
+/// * `supported_parameters` - Optional supported-parameter filter for the models.
 ///
 /// # Returns
 ///
@@ -104,21 +105,26 @@ pub async fn list_models(
     category: Option<ModelCategory>,
     supported_parameters: Option<SupportedParameters>,
 ) -> Result<Vec<Model>, OpenRouterError> {
-    let url = match (category, supported_parameters) {
-        (Some(category), None) => {
-            format!("{base_url}/models?category={category}")
-        }
-        (None, Some(supported_parameters)) => {
-            format!("{base_url}/models?supported_parameters={supported_parameters}")
-        }
-        _ => {
-            format!("{base_url}/models")
-        }
+    #[derive(Serialize)]
+    struct ListModelsQuery {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        category: Option<ModelCategory>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        supported_parameters: Option<SupportedParameters>,
+    }
+
+    let url = format!("{base_url}/models");
+    let query = ListModelsQuery {
+        category,
+        supported_parameters,
     };
 
-    let mut response = surf::get(url)
-        .header(AUTHORIZATION, format!("Bearer {api_key}"))
-        .await?;
+    let req = surf::get(url).header(AUTHORIZATION, format!("Bearer {api_key}"));
+    let mut response = if query.category.is_none() && query.supported_parameters.is_none() {
+        req.await?
+    } else {
+        req.query(&query)?.await?
+    };
 
     if response.status().is_success() {
         let model_list_response: ApiResponse<_> = response.body_json().await?;
