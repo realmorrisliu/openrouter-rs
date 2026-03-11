@@ -679,7 +679,14 @@ impl OpenRouterClient {
     ) -> Result<BoxStream<'static, Result<CompletionsResponse, OpenRouterError>>, OpenRouterError>
     {
         if let Some(api_key) = &self.api_key {
-            chat::stream_chat_completion(&self.base_url, api_key, request).await
+            chat::stream_chat_completion(
+                &self.base_url,
+                api_key,
+                &self.x_title,
+                &self.http_referer,
+                request,
+            )
+            .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
