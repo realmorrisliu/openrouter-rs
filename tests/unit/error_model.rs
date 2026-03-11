@@ -129,7 +129,11 @@ async fn test_unreadable_error_body_preserves_read_failure_context() {
         OpenRouterError::Api(api_error) => {
             assert_eq!(api_error.status, StatusCode::InternalServerError);
             assert_eq!(api_error.request_id.as_deref(), Some("req_truncated"));
-            assert!(api_error.message.contains("Failed to read error response body"));
+            assert!(
+                api_error
+                    .message
+                    .contains("Failed to read error response body")
+            );
             assert_eq!(
                 api_error
                     .metadata

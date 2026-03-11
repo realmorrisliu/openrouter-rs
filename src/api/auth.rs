@@ -110,7 +110,8 @@ pub async fn exchange_code_for_api_key(
     let response = surf::post(url).body_json(&request)?.await?;
 
     if response.status().is_success() {
-        let auth_response: AuthResponse = parse_json_response(response, "auth key exchange").await?;
+        let auth_response: AuthResponse =
+            parse_json_response(response, "auth key exchange").await?;
         Ok(auth_response)
     } else {
         handle_error(response).await?;
