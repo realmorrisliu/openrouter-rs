@@ -231,9 +231,8 @@ pub async fn create_response(
     let url = format!("{base_url}/responses");
     let request = request.stream(false);
 
-    let surf_req =
-        with_client_request_headers(surf::post(url), api_key, x_title, http_referer)
-            .body_json(&request)?;
+    let surf_req = with_client_request_headers(surf::post(url), api_key, x_title, http_referer)
+        .body_json(&request)?;
 
     let mut response = surf_req.await?;
 
@@ -257,9 +256,8 @@ pub async fn stream_response(
     let url = format!("{base_url}/responses");
     let request = request.stream(true);
 
-    let surf_req =
-        with_client_request_headers(surf::post(url), api_key, x_title, http_referer)
-            .body_json(&request)?;
+    let surf_req = with_client_request_headers(surf::post(url), api_key, x_title, http_referer)
+        .body_json(&request)?;
 
     let response = surf_req.await?;
 
