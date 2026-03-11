@@ -5,8 +5,8 @@ use crate::{
     api::errors::{parse_api_error, unreadable_error_response},
     error::OpenRouterError,
 };
-use surf::{Response, StatusCode};
 use surf::http::headers::AUTHORIZATION;
+use surf::{Response, StatusCode};
 
 #[macro_export]
 macro_rules! strip_option_vec_setter {
@@ -107,8 +107,7 @@ where
                         }
 
                         if let Some(event) = line.strip_prefix("event:") {
-                            event_name =
-                                Some(event.strip_prefix(' ').unwrap_or(event).to_string());
+                            event_name = Some(event.strip_prefix(' ').unwrap_or(event).to_string());
                             continue;
                         }
 
@@ -120,7 +119,10 @@ where
                         }
                     }
                     Some(Err(error)) => {
-                        return Some((Err(OpenRouterError::Io(error)), (lines, None, String::new())));
+                        return Some((
+                            Err(OpenRouterError::Io(error)),
+                            (lines, None, String::new()),
+                        ));
                     }
                     None => {
                         if data.is_empty() {
@@ -198,7 +200,13 @@ pub async fn handle_error(mut response: Response) -> Result<(), OpenRouterError>
         });
     let text = match response.body_string().await {
         Ok(text) => text,
-        Err(error) => return Err(unreadable_error_response(status, request_id, &error.to_string())),
+        Err(error) => {
+            return Err(unreadable_error_response(
+                status,
+                request_id,
+                &error.to_string(),
+            ));
+        }
     };
 
     Err(parse_api_error(status, request_id, &text))

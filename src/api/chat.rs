@@ -851,9 +851,8 @@ pub async fn send_chat_completion(
     // Ensure that the request is not streaming to get a single response
     let request = request.stream(false);
 
-    let surf_req =
-        with_client_request_headers(surf::post(url), api_key, x_title, http_referer)
-            .body_json(&request)?;
+    let surf_req = with_client_request_headers(surf::post(url), api_key, x_title, http_referer)
+        .body_json(&request)?;
 
     let response = surf_req.await?;
 
@@ -888,9 +887,8 @@ pub async fn stream_chat_completion(
     // Ensure that the request is streaming to get a continuous response
     let request = request.stream(true);
 
-    let surf_req =
-        with_client_request_headers(surf::post(url), api_key, x_title, http_referer)
-            .body_json(&request)?;
+    let surf_req = with_client_request_headers(surf::post(url), api_key, x_title, http_referer)
+        .body_json(&request)?;
 
     let response = surf_req.await?;
 

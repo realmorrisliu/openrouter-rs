@@ -176,9 +176,8 @@ pub async fn create_embedding(
 ) -> Result<EmbeddingResponse, OpenRouterError> {
     let url = format!("{base_url}/embeddings");
 
-    let surf_req =
-        with_client_request_headers(surf::post(url), api_key, x_title, http_referer)
-            .body_json(request)?;
+    let surf_req = with_client_request_headers(surf::post(url), api_key, x_title, http_referer)
+        .body_json(request)?;
 
     let response = surf_req.await?;
 
