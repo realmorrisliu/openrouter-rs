@@ -556,12 +556,12 @@ impl AnthropicMessagesRequest {
             .expect("Failed to build AnthropicMessagesRequest")
     }
 
-    pub fn messages(&self) -> &Vec<AnthropicMessage> {
+    pub fn messages(&self) -> &[AnthropicMessage] {
         &self.messages
     }
 
-    pub fn tools(&self) -> Option<&Vec<AnthropicTool>> {
-        self.tools.as_ref()
+    pub fn tools(&self) -> Option<&[AnthropicTool]> {
+        self.tools.as_deref()
     }
 
     fn stream(&self, stream: bool) -> Self {

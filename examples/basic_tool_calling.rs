@@ -118,7 +118,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         if let Some(tool_calls) = choice.tool_calls() {
             println!("🛠️  Model wants to call {} tool(s):", tool_calls.len());
 
-            let mut messages = request.messages().clone();
+            let mut messages = request.messages().to_vec();
 
             // Add the assistant's response (with tool calls) to conversation
             let content = choice.content().unwrap_or("");
