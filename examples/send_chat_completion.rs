@@ -49,7 +49,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .temperature(0.7)
         .build()?;
 
-    let chat_response = client.send_chat_completion(&chat_request).await?;
+    let chat_response = client.chat().create(&chat_request).await?;
     let content = chat_response.choices[0].content().unwrap();
     println!("{content:?}");
 

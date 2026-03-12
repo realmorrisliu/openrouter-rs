@@ -1,180 +1,101 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file gives repository-specific guidance for coding agents working in `openrouter-rs`.
 
-## OpenRouter Rust SDK
+## Current SDK Shape
 
-This is a third-party Rust SDK for the OpenRouter API, providing type-safe and memory-safe integration. The project uses the builder pattern, supports streaming responses, comprehensive error handling, and asynchronous operations.
+The crate is on `0.6.0` and the public documentation treats the domain-oriented surface as canonical:
 
-## Project Architecture
+- `client.chat()`
+- `client.responses()`
+- `client.messages()`
+- `client.models()`
+- `client.management()`
+- `client.legacy()` behind the `legacy-completions` feature
 
-### Core Module Structure
-- `src/client.rs` - Main client implementation using derive_builder pattern
-- `src/api/` - OpenRouter API endpoint implementations
-  - `chat.rs` - Chat completions and streaming responses
-  - `models.rs` - Model management and filtering
-  - `api_keys.rs` - API key management
-  - `completion.rs` - Text completions
-  - `credits.rs` - Credit management
-  - `generation.rs` - Generation data
-  - `auth.rs` - Authentication
-  - `errors.rs` - API error handling
-- `src/types/` - Type definitions and data structures
-  - `completion.rs` - Completion response types
-  - `provider.rs` - Provider information
-  - `response_format.rs` - Response format definitions
-- `src/config/` - Configuration management
-  - `model.rs` - Model configuration structures
-  - `default_config.toml` - Default configuration file with preset model lists
-- `src/error.rs` - Unified error type definitions
-- `src/utils.rs` - Utility functions
+Hidden flat `OpenRouterClient::*` wrappers still exist in places, but new docs, new examples, and new tests should prefer the domain clients.
 
-### Key Design Patterns
-1. **Builder Pattern**: Both client and requests use builder pattern for creation
-2. **Async Streaming**: Uses `BoxStream` and `futures_util` for streaming responses
-3. **Type Safety**: Strongly typed request/response structures with model category and parameter filtering
-4. **Error Handling**: Custom error types covering API errors, network errors, and validation errors
+## Project Layout
 
-## Development Commands
+- `src/client.rs`: main client builder plus domain client implementations
+- `src/api/`: endpoint modules
+  - `chat.rs`
+  - `responses.rs`
+  - `messages.rs`
+  - `models.rs`
+  - `embeddings.rs`
+  - `discovery.rs`
+  - `api_keys.rs`
+  - `credits.rs`
+  - `auth.rs`
+  - `generation.rs`
+  - `guardrails.rs`
+  - `legacy/completion.rs`
+- `src/types/`: shared request/response, stream, pagination, tool, and typed-tool types
+- `src/config/`: config loading and built-in model presets
+- `crates/openrouter-cli/`: workspace CLI companion
+- `tests/unit/`: fast local tests
+- `tests/integration/`: live API tests
+- `examples/`: runnable examples
 
-### Basic Build and Test
+## Preferred Commands
+
+Use the `just` recipes when possible:
+
 ```bash
-# Build project
-cargo build
+just quality
+just quality-ci
+just test-unit
+just test-lib
+just test-doc
+just test-integration-subsets
+just test-integration
+just test-live-contract
+just test-live-contract-management
+just test-cli
+just check-migration-docs
+just test-migration-smoke
+```
 
-# Run unit tests
+Direct cargo commands still used frequently:
+
+```bash
+cargo check --all-targets
+cargo clippy --all-targets --all-features -- -D warnings
 cargo test --test unit
-
-# Run integration tests (requires API key)
-OPENROUTER_API_KEY=your_key cargo test --test integration -- --nocapture
-
-# Run all tests
-cargo test
+OPENROUTER_API_KEY=... cargo test --test integration -- --nocapture
+cargo run --example domain_chat_completion
+cargo run -p openrouter-cli -- --help
 ```
 
-### Running Examples
+## Environment Variables
+
+- `OPENROUTER_API_KEY`: required for examples and most live integration coverage
+- `OPENROUTER_MANAGEMENT_KEY`: required for key/guardrail/activity management flows
+- `OPENROUTER_RUN_MANAGEMENT_TESTS=1`: opt into live create/update/delete management smoke
+- `OPENROUTER_INTEGRATION_TIER=stable|hot`: switch integration model pool tier
+- `OPENROUTER_CLI_RUN_LIVE=1`: enable CLI live smoke
+- `OPENROUTER_CLI_RUN_LIVE_WRITE=1`: also enable CLI write-path smoke
+
+## Implementation Notes
+
+- Request and client construction use the builder pattern (`derive_builder`).
+- The crate uses `surf` for HTTP and `tokio` for async runtime.
+- Streaming is exposed in three forms:
+  - raw endpoint streams
+  - `ToolAwareStream` for assembled tool calls
+  - `UnifiedStreamEvent` across chat, responses, and messages
+- Built-in config presets come from `src/config/default_config.toml`.
+- `legacy-completions` is opt-in in `0.6.x`.
+
+## Documentation Expectations
+
+- Keep `README.md`, `MIGRATION.md`, example code, and CLI docs aligned with the current domain-client design.
+- If you touch migration naming or pagination guidance, run:
+
 ```bash
-# Basic chat completion
-cargo run --example send_chat_completion
-
-# Streaming chat completion
-cargo run --example stream_chat_completion
-
-# Reasoning tokens (new in 0.4.5)
-cargo run --example chat_with_reasoning
-cargo run --example stream_chat_with_reasoning
-
-# Get model list
-cargo run --example list_models
-
-# List models by category
-cargo run --example list_models_by_category
-
-# Filter models by parameters
-cargo run --example list_models_by_parameters
-
-# API key management
-cargo run --example list_api_keys
-cargo run --example get_current_api_key_info
-
-# Credit management
-cargo run --example get_credits
+./scripts/check_migration_docs.sh
+cargo test --test migration_smoke --all-features
 ```
 
-### Code Formatting and Checks
-```bash
-# Format code
-cargo fmt
-
-# Check code
-cargo check
-
-# Clippy linting
-cargo clippy
-```
-
-## Configuration Management
-
-### Environment Variables
-- `OPENROUTER_API_KEY` - OpenRouter API key (required for tests and examples)
-
-### Default Configuration
-The project uses `src/config/default_config.toml` to define default models and presets:
-- `default_model` - Default model to use
-- `models.presets` - Model preset groups (programming, reasoning, free)
-
-## API Usage Patterns
-
-### Client Creation (Recommended Builder Pattern)
-```rust
-let client = OpenRouterClient::builder()
-    .api_key("your_api_key")
-    .http_referer("https://yourdomain.com")
-    .x_title("Your App Name")
-    .build()?;
-```
-
-### Request Building
-```rust
-let request = ChatCompletionRequest::builder()
-    .model("anthropic/claude-sonnet-4")
-    .messages(vec![Message::new(Role::User, "Hello")])
-    .temperature(0.7)
-    .max_tokens(200)
-    .build()?;
-```
-
-### Reasoning Tokens (New in 0.4.5)
-```rust
-use openrouter_rs::types::Effort;
-
-let request = ChatCompletionRequest::builder()
-    .model("deepseek/deepseek-r1")
-    .messages(vec![Message::new(Role::User, "What's bigger: 9.9 or 9.11?")])
-    .reasoning_effort(Effort::High)
-    .reasoning_max_tokens(1000)
-    .build()?;
-
-let response = client.send_chat_completion(&request).await?;
-println!("Reasoning: {}", response.choices[0].reasoning().unwrap_or(""));
-println!("Answer: {}", response.choices[0].content().unwrap_or(""));
-```
-
-### Streaming Response Handling
-Use `futures_util::StreamExt` to process streaming data, filtering errors and extracting delta content.
-
-## Test Structure
-
-### Integration Tests (`tests/integration/`)
-- `chat.rs` - Chat completion tests
-- `models.rs` - Model management tests
-- `api_keys.rs` - API key tests
-- `test_utils.rs` - Test utility functions
-
-### Unit Tests (`tests/unit/`)
-- `config.rs` - Configuration loading tests
-
-## Version Information
-
-Current version: 0.4.6
-- 🐛 **Fixed**: Grok model deserialization error (Issue #6)
-- ➕ **Added**: `index` and `logprobs` fields to Choice structs
-- 🧪 **Added**: Grok model integration test and unit tests for response parsing
-- Previous: Complete reasoning tokens implementation, model presets restructuring
-
-## Development Guidelines
-
-1. **API Key Security**: Example code uses `dotenvy_macro::dotenv!` to read from environment variables, avoiding hardcoding
-2. **Async Processing**: All API calls are asynchronous using `tokio` runtime
-3. **Error Handling**: Uses `thiserror` for structured error type definitions
-4. **HTTP Client**: Uses `surf` as the HTTP client
-5. **Serialization**: Uses `serde` for JSON serialization/deserialization
-
-## Current Development Focus
-
-Main areas of focus:
-- WebSocket support for real-time communication
-- Retry strategies with exponential backoff
-- Response caching layer
-- CLI tool development
-- Middleware system for request/response interceptors
+- If you change CLI behavior, update `crates/openrouter-cli/README.md` and run `cargo test -p openrouter-cli`.

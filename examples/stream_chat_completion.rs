@@ -19,7 +19,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .temperature(0.7)
         .build()?;
 
-    let stream = client.stream_chat_completion(&chat_request).await?;
+    let stream = client.chat().stream(&chat_request).await?;
 
     stream
         .filter_map(|event| async { event.ok() })

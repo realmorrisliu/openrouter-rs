@@ -3,11 +3,15 @@ use openrouter_rs::api::auth::CodeChallengeMethod;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let api_key = std::env::var("OPENROUTER_API_KEY").expect("OPENROUTER_API_KEY must be set");
-    let client = OpenRouterClient::builder().api_key(api_key).build()?;
+    let management_key =
+        std::env::var("OPENROUTER_MANAGEMENT_KEY").expect("OPENROUTER_MANAGEMENT_KEY must be set");
+    let client = OpenRouterClient::builder()
+        .management_key(management_key)
+        .build()?;
 
     let auth_response = client
-        .exchange_code_for_api_key(
+        .management()
+        .create_api_key_from_auth_code(
             "your_authorization_code",
             Some("your_code_verifier"),
             Some(CodeChallengeMethod::S256),

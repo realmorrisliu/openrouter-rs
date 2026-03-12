@@ -1,7 +1,7 @@
 //! # OpenRouter Rust SDK
 //!
 //! `openrouter-rs` is a type-safe, async Rust SDK for the [OpenRouter API](https://openrouter.ai/),
-//! providing easy access to 200+ AI models from providers like OpenAI, Anthropic, Google, and more.
+//! providing typed access to chat, responses, messages, discovery, embeddings, and management endpoints.
 //!
 //! ## ✨ Key Features
 //!
@@ -12,8 +12,8 @@
 //! - **📡 Streaming Support**: Real-time response streaming with `futures`
 //! - **🧩 Unified Streaming Events**: Shared stream event model across chat/responses/messages
 //! - **🧠 Reasoning Tokens**: Advanced support for chain-of-thought reasoning
-//! - **⚙️ Model Presets**: Pre-configured model groups for different use cases
-//! - **🎯 Full API Coverage**: Complete OpenRouter API endpoint support
+//! - **⚙️ Config Presets**: Built-in model groups for programming, reasoning, and free tiers
+//! - **🎯 Full API Coverage**: Complete endpoint coverage in the current repository snapshot
 //!
 //! ## 🚀 Quick Start
 //!

@@ -1,135 +1,94 @@
 //! # OpenRouter API Endpoints
 //!
-//! This module provides implementations for all OpenRouter API endpoints,
-//! organized by functionality. Each submodule contains the request/response
-//! types and methods for interacting with specific API endpoints.
+//! This module contains the typed request/response implementations behind the
+//! domain clients exposed from [`crate::client::OpenRouterClient`].
 //!
-//! ## 📡 Available Endpoints
+//! Canonical domain mapping:
 //!
-//! ### Chat Completions ([`chat`])
-//! Modern chat-based API for conversational AI interactions:
-//! - Standard chat completions
-//! - Streaming responses
-//! - Reasoning tokens support
-//! - System/user/assistant message handling
+//! - `client.chat()` -> [`chat`]
+//! - `client.responses()` -> [`responses`]
+//! - `client.messages()` -> [`messages`]
+//! - `client.models()` -> [`models`], [`embeddings`], [`discovery`]
+//! - `client.management()` -> [`api_keys`], [`auth`], [`credits`], [`generation`], [`guardrails`]
+//! - `client.legacy()` -> [`legacy`] (feature `legacy-completions`)
 //!
-//! ```rust
-//! use openrouter_rs::api::chat::{ChatCompletionRequest, Message};
-//! use openrouter_rs::types::Role;
+//! Endpoint families currently implemented here:
 //!
-//! let request = ChatCompletionRequest::builder()
-//!     .model("anthropic/claude-sonnet-4")
-//!     .messages(vec![Message::new(Role::User, "Hello, world!")])
-//!     .build()?;
-//! # Ok::<(), Box<dyn std::error::Error>>(())
-//! ```
+//! - chat completions and multimodal content
+//! - Responses API
+//! - Anthropic-compatible Messages API
+//! - model discovery, providers, user model filters, model counts, and ZDR endpoints
+//! - embeddings
+//! - API-key and auth-code flows
+//! - credits, Coinbase charge creation, generation lookup, and activity
+//! - guardrails and guardrail assignments
+//! - structured API error payloads
 //!
-//! ### Legacy Text Completions (`legacy-completions` feature)
-//! Legacy prompt-based completions are isolated behind an explicit namespace:
-//! - module path: `api::legacy::completion`
-//! - client path: `client.legacy().completions().create(...)`
-//! - intended only for migration/backward compatibility
+//! ## Quick Examples
 //!
-//! ### Model Information ([`models`])
-//! Retrieve information about available models:
-//! - List all available models
-//! - Filter by category (programming, reasoning, etc.)
-//! - Filter by supported parameters
-//! - Get detailed model specifications
-//!
+//! ### Chat
 //! ```no_run
-//! use openrouter_rs::{OpenRouterClient, types::ModelCategory};
+//! use openrouter_rs::{
+//!     OpenRouterClient,
+//!     api::chat::{ChatCompletionRequest, Message},
+//!     types::Role,
+//! };
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! let client = OpenRouterClient::builder()
-//!     .api_key("your_key")
-//!     .build()?;
-//!
-//! // Get all models in the programming category
-//! let models = client.models().list_by_category(ModelCategory::Programming).await?;
-//! # Ok::<(), Box<dyn std::error::Error>>(())
-//! # }
-//! ```
-//!
-//! ### API Key Management ([`api_keys`])
-//! Manage and validate API keys:
-//! - Get current API key information
-//! - List all API keys for account
-//! - Validate key permissions
-//!
-//! ### Credit Management ([`credits`])
-//! Monitor usage and billing:
-//! - Check current credit balance
-//! - View usage statistics
-//! - Track spending by model
-//!
-//! ### Generation Data ([`generation`])
-//! Access detailed generation metadata:
-//! - Token counts and pricing
-//! - Model performance metrics
-//! - Request/response timestamps
-//!
-//! ### Authentication ([`auth`])
-//! Handle authentication and authorization:
-//! - OAuth2 flows
-//! - API key validation
-//! - Permission management
-//!
-//! ### Error Handling ([`errors`])
-//! Structured error responses from the API:
-//! - Rate limiting errors
-//! - Authentication failures
-//! - Model availability issues
-//!
-//! ## 🚀 Quick Examples
-//!
-//! ### Basic Chat
-//! ```no_run
-//! use openrouter_rs::{OpenRouterClient, api::chat::*};
-//! use openrouter_rs::types::Role;
-//!
-//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! let client = OpenRouterClient::builder()
-//!     .api_key("your_key")
-//!     .build()?;
-//!
+//! let client = OpenRouterClient::builder().api_key("your_key").build()?;
 //! let request = ChatCompletionRequest::builder()
 //!     .model("google/gemini-2.5-flash")
 //!     .messages(vec![Message::new(Role::User, "Hello!")])
 //!     .build()?;
-//!
 //! let response = client.chat().create(&request).await?;
+//! println!("{:?}", response.choices[0].content());
 //! # Ok(())
 //! # }
 //! ```
 //!
-//! ### Model Discovery
+//! ### Responses
 //! ```no_run
-//! use openrouter_rs::OpenRouterClient;
+//! use openrouter_rs::{OpenRouterClient, api::responses::ResponsesRequest};
+//! use serde_json::json;
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! let client = OpenRouterClient::builder()
-//!     .api_key("your_key")
+//! let client = OpenRouterClient::builder().api_key("your_key").build()?;
+//! let request = ResponsesRequest::builder()
+//!     .model("openai/gpt-5")
+//!     .input(json!([{ "role": "user", "content": "Say hello." }]))
 //!     .build()?;
+//! let response = client.responses().create(&request).await?;
+//! println!("{:?}", response.id);
+//! # Ok(())
+//! # }
+//! ```
 //!
-//! let models = client.models().list().await?;
+//! ### Discovery
+//! ```no_run
+//! use openrouter_rs::{OpenRouterClient, types::ModelCategory};
+//!
+//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+//! let client = OpenRouterClient::builder().api_key("your_key").build()?;
+//! let models = client.models().list_by_category(ModelCategory::Programming).await?;
 //! println!("Found {} models", models.len());
 //! # Ok(())
 //! # }
 //! ```
 //!
-//! ## ⚠️ Error Handling
+//! ## Error Handling
 //!
-//! All API methods return `Result` types that should be handled appropriately:
+//! All endpoint methods return `Result<_, OpenRouterError>`:
 //!
 //! ```no_run
-//! use openrouter_rs::error::OpenRouterError;
-//! use openrouter_rs::{OpenRouterClient, api::chat::{ChatCompletionRequest, Message}, types::Role};
+//! use openrouter_rs::{
+//!     OpenRouterClient,
+//!     api::chat::{ChatCompletionRequest, Message},
+//!     error::OpenRouterError,
+//!     types::Role,
+//! };
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! let client = OpenRouterClient::builder()
-//!     .api_key("your_key")
-//!     .build()?;
+//! let client = OpenRouterClient::builder().api_key("your_key").build()?;
 //! let request = ChatCompletionRequest::builder()
 //!     .model("google/gemini-2.5-flash")
 //!     .messages(vec![Message::new(Role::User, "Hello!")])
@@ -138,14 +97,9 @@
 //! match client.chat().create(&request).await {
 //!     Ok(response) => println!("Success: {:?}", response),
 //!     Err(OpenRouterError::Api(api_error)) if api_error.is_retryable() => {
-//!         println!("Rate limit hit, retrying later...");
+//!         println!("Retryable API error: {}", api_error.message);
 //!     }
-//!     Err(OpenRouterError::Api(api_error))
-//!         if api_error.status == surf::StatusCode::Unauthorized =>
-//!     {
-//!         println!("Check your API key configuration");
-//!     }
-//!     Err(e) => println!("Other error: {}", e),
+//!     Err(err) => println!("Other error: {}", err),
 //! }
 //! # Ok(())
 //! # }

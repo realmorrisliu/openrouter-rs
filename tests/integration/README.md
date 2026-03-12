@@ -1,34 +1,69 @@
 # Integration Test Model Pools
 
-The integration suite loads model selection in this order:
+The live integration suite resolves models in this order:
 
-1. Environment variable overrides
+1. explicit environment overrides
 2. `tests/integration/hot_models.json`
-3. Built-in defaults
+3. built-in defaults from the test helpers
 
-## Required environment variables
+## Required Environment Variables
 
-- `OPENROUTER_API_KEY`: required for any live integration API call.
-- `OPENROUTER_MANAGEMENT_KEY`: required for management smoke tests.
+- `OPENROUTER_API_KEY`: required for any live integration call
+- `OPENROUTER_MANAGEMENT_KEY`: required for management smoke and management contract checks
 
-## Optional environment variables
+## Optional Environment Variables
 
-- `OPENROUTER_INTEGRATION_TIER`: `stable` (default) or `hot`.
-- `OPENROUTER_PROVISIONING_KEY`: optional fallback when running management contract smoke locally.
-- `OPENROUTER_TEST_MODEL_POOL_FILE`: path to a model-pool JSON file.
-- `OPENROUTER_TEST_CHAT_MODEL`: force the primary chat model.
-- `OPENROUTER_TEST_EMBEDDINGS_MODEL`: force the primary embeddings model.
-- `OPENROUTER_TEST_MESSAGES_MODEL`: force the primary Messages API model.
-- `OPENROUTER_TEST_RESPONSES_MODEL`: force the primary Responses API model.
-- `OPENROUTER_TEST_REASONING_MODEL`: force the primary reasoning model.
-- `OPENROUTER_TEST_STABLE_MODELS`: comma-separated stable regression model list.
-- `OPENROUTER_TEST_HOT_MODELS`: comma-separated hot-model sweep list.
-- `OPENROUTER_TEST_HOT_MODELS_LIMIT`: max models to run in hot sweep.
-- `OPENROUTER_RUN_MANAGEMENT_TESTS`: set to `1`/`true` to enable management smoke lifecycle tests.
+- `OPENROUTER_INTEGRATION_TIER`: `stable` (default) or `hot`
+- `OPENROUTER_TEST_MODEL_POOL_FILE`: custom model-pool JSON file
+- `OPENROUTER_TEST_CHAT_MODEL`: override the primary chat model
+- `OPENROUTER_TEST_EMBEDDINGS_MODEL`: override the primary embeddings model
+- `OPENROUTER_TEST_MESSAGES_MODEL`: override the primary Messages API model
+- `OPENROUTER_TEST_RESPONSES_MODEL`: override the primary Responses API model
+- `OPENROUTER_TEST_REASONING_MODEL`: override the primary reasoning model
+- `OPENROUTER_TEST_STABLE_MODELS`: comma-separated stable regression models
+- `OPENROUTER_TEST_HOT_MODELS`: comma-separated hot-sweep models
+- `OPENROUTER_TEST_HOT_MODELS_LIMIT`: max models to run in the hot sweep
+- `OPENROUTER_RUN_MANAGEMENT_TESTS`: set to `1`/`true` to enable write-path management smoke
 
-## Running management smoke tests
+For local development, start from [`.env.example`](../../.env.example).
 
-Management smoke tests are opt-in and include cleanup-protected create/update/delete calls for:
+## Preferred Commands
+
+Use the repo `just` recipes where possible:
+
+```bash
+just test-integration
+just test-integration-subsets
+just test-live-contract
+OPENROUTER_MANAGEMENT_KEY=... just test-live-contract-management
+```
+
+Direct cargo equivalents:
+
+```bash
+OPENROUTER_API_KEY=... cargo test --test integration -- --nocapture
+OPENROUTER_API_KEY=... cargo test --test integration contract:: -- --nocapture
+OPENROUTER_MANAGEMENT_KEY=... OPENROUTER_RUN_MANAGEMENT_TESTS=1 cargo test --test integration management:: -- --nocapture
+```
+
+## Stable vs Hot Tiers
+
+- `stable`: the default regression tier used for predictable local and CI coverage
+- `hot`: a broader sweep for recently popular or recently changed upstream models
+
+Examples:
+
+```bash
+# Default stable tier
+OPENROUTER_API_KEY=... cargo test --test integration -- --nocapture
+
+# Hot-model sweep
+OPENROUTER_API_KEY=... OPENROUTER_INTEGRATION_TIER=hot cargo test --test integration -- --nocapture
+```
+
+## Management Smoke Tests
+
+Management smoke is opt-in and performs cleanup-protected lifecycle checks for:
 
 - `keys`: create -> list/get -> update -> delete
 - `guardrails`: create -> list/get -> update -> delete
@@ -36,12 +71,14 @@ Management smoke tests are opt-in and include cleanup-protected create/update/de
 Example:
 
 ```bash
-OPENROUTER_MANAGEMENT_KEY=... OPENROUTER_RUN_MANAGEMENT_TESTS=1 cargo test --test integration management:: -- --nocapture
+OPENROUTER_MANAGEMENT_KEY=... \
+OPENROUTER_RUN_MANAGEMENT_TESTS=1 \
+cargo test --test integration management:: -- --nocapture
 ```
 
-## Running live contract checks
+## Contract Checks
 
-Use the narrower contract suite for release validation or periodic upstream regression checks:
+Use the narrower contract suite for release validation or upstream regression checks:
 
 ```bash
 just test-live-contract
@@ -53,13 +90,13 @@ For management-key contract smoke:
 OPENROUTER_MANAGEMENT_KEY=... just test-live-contract-management
 ```
 
-## Pool refresh
+## Pool Refresh
 
 `scripts/sync_hot_models.sh` updates `tests/integration/hot_models.json` by:
 
-1. Trying to derive top models from `https://openrouter.ai/rankings`
-2. Falling back to ordered IDs from `https://openrouter.ai/api/v1/models`
-3. Keeping the last known file when remote fetch/parsing fails
+1. trying to derive top models from `https://openrouter.ai/rankings`
+2. falling back to ordered IDs from `https://openrouter.ai/api/v1/models`
+3. keeping the last known file if remote fetch/parsing fails
 
 Example:
 

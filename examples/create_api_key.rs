@@ -8,7 +8,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .management_key(management_key)
         .build()?;
 
-    let new_api_key = client.create_api_key("My New API Key", Some(100.0)).await?;
+    let new_api_key = client
+        .management()
+        .create_api_key("My New API Key", Some(100.0))
+        .await?;
     println!("{new_api_key:?}");
 
     Ok(())

@@ -111,7 +111,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build()?;
 
     println!("📤 Sending request with tools...");
-    let response = client.send_chat_completion(&request).await?;
+    let response = client.chat().create(&request).await?;
 
     // Check if the model wants to call tools
     if let Some(choice) = response.choices.first() {
@@ -209,7 +209,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .max_tokens(500)
                 .build()?;
 
-            let final_response = client.send_chat_completion(&follow_up_request).await?;
+            let final_response = client.chat().create(&follow_up_request).await?;
 
             if let Some(final_choice) = final_response.choices.first() {
                 // Check if model wants to call more tools
@@ -260,7 +260,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .max_tokens(300)
                         .build()?;
 
-                    let summary_response = client.send_chat_completion(&summary_request).await?;
+                    let summary_response = client.chat().create(&summary_request).await?;
                     if let Some(summary_choice) = summary_response.choices.first() {
                         if let Some(summary_content) = summary_choice.content() {
                             println!("🤖 Final summary:");

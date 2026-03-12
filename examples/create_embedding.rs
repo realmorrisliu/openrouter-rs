@@ -10,7 +10,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .input("OpenRouter Rust SDK embeddings example")
         .build()?;
 
-    let response = client.create_embedding(&request).await?;
+    let response = client.models().create_embedding(&request).await?;
     println!("model: {}", response.model);
     println!("vectors: {}", response.data.len());
 
