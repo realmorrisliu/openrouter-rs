@@ -15,9 +15,8 @@
 //! - **`ApiErrorKind::Moderation`**: Content moderation violations
 //! - **`ApiErrorKind::Provider`**: Provider-specific upstream failures
 //!
-//! ### Configuration Errors
-//! - **`ConfigError`**: Configuration parsing or validation issues
-//! - **`ConfigNotFound`**: Missing configuration files
+//! ### Validation Errors
+//! - **`ConfigError`**: Invalid SDK configuration or request/tool validation issues
 //! - **`KeyNotConfigured`**: Missing or invalid API keys
 //!
 //! ### Data Processing Errors
@@ -82,17 +81,18 @@
 //! # }
 //! ```
 //!
-//! ### Configuration Error Handling
+//! ### Validation Error Handling
 //!
 //! ```rust
-//! use openrouter_rs::{config::load_config, error::OpenRouterError};
+//! use openrouter_rs::error::OpenRouterError;
 //!
-//! match load_config("./config.toml") {
-//!     Ok(config) => println!("Config loaded successfully"),
-//!     Err(OpenRouterError::ConfigError(msg)) => {
-//!         eprintln!("Invalid configuration: {}", msg);
+//! fn describe(error: OpenRouterError) {
+//!     match error {
+//!         OpenRouterError::ConfigError(msg) => {
+//!             eprintln!("Invalid SDK configuration: {}", msg);
+//!         }
+//!         other => eprintln!("Unexpected error: {}", other),
 //!     }
-//!     Err(e) => eprintln!("Unexpected error: {}", e),
 //! }
 //! ```
 //!
@@ -104,8 +104,6 @@
 //! - `serde_json::Error` → `OpenRouterError::Serialization`
 //! - `std::io::Error` → `OpenRouterError::Io`
 //! - `derive_builder::UninitializedFieldError` → `OpenRouterError::UninitializedFieldError`
-
-use std::path::PathBuf;
 
 use serde_json::Value;
 use surf::StatusCode;
@@ -225,9 +223,6 @@ pub enum OpenRouterError {
     // Configuration errors
     #[error("Config error: {0}")]
     ConfigError(String),
-
-    #[error("Config file not found: {0}")]
-    ConfigNotFound(PathBuf),
 
     #[error("API key not configured")]
     KeyNotConfigured,

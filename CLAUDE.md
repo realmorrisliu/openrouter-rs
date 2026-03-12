@@ -32,8 +32,7 @@ Hidden flat `OpenRouterClient::*` wrappers still exist in places, but new docs, 
   - `guardrails.rs`
   - `legacy/completion.rs`
 - `src/types/`: shared request/response, stream, pagination, tool, and typed-tool types
-- `src/config/`: config loading and built-in model presets
-- `crates/openrouter-cli/`: workspace CLI companion
+- `crates/openrouter-cli/`: workspace CLI companion, including profile/config resolution
 - `tests/unit/`: fast local tests
 - `tests/integration/`: live API tests
 - `examples/`: runnable examples
@@ -85,7 +84,7 @@ cargo run -p openrouter-cli -- --help
   - raw endpoint streams
   - `ToolAwareStream` for assembled tool calls
   - `UnifiedStreamEvent` across chat, responses, and messages
-- Built-in config presets come from `src/config/default_config.toml`.
+- File/profile config resolution is intentionally scoped to `openrouter-cli`, not the core SDK crate.
 - `legacy-completions` is opt-in in `0.6.x`.
 
 ## Documentation Expectations

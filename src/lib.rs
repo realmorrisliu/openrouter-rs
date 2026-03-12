@@ -12,7 +12,7 @@
 //! - **📡 Streaming Support**: Real-time response streaming with `futures`
 //! - **🧩 Unified Streaming Events**: Shared stream event model across chat/responses/messages
 //! - **🧠 Reasoning Tokens**: Advanced support for chain-of-thought reasoning
-//! - **⚙️ Config Presets**: Built-in model groups for programming, reasoning, and free tiers
+//! - **⚙️ Runtime Builder**: Explicit client setup through `OpenRouterClient::builder()`
 //! - **🎯 Full API Coverage**: Complete endpoint coverage in the current repository snapshot
 //!
 //! ## 🚀 Quick Start
@@ -120,22 +120,20 @@
 //! - [`client`] - Client configuration and HTTP operations
 //! - [`api`] - OpenRouter API endpoints (chat, models, credits, etc.)
 //! - [`types`] - Request/response types and enums
-//! - [`config`] - Configuration management and model presets
 //! - [`error`] - Error types and handling
 //!
-//! ## 🎯 Model Presets
+//! ## 🎯 Client Setup
 //!
-//! The SDK includes curated model presets for different use cases:
-//!
-//! - **`programming`**: Code generation and software development
-//! - **`reasoning`**: Advanced reasoning and problem-solving  
-//! - **`free`**: Free-tier models for experimentation
+//! The SDK keeps client setup narrow: configure runtime values on the client
+//! builder, then choose the final `model` on each request builder.
 //!
 //! ```rust
-//! use openrouter_rs::config::OpenRouterConfig;
+//! use openrouter_rs::OpenRouterClient;
 //!
-//! let config = OpenRouterConfig::default();
-//! println!("Available models: {:?}", config.get_resolved_models());
+//! let client = OpenRouterClient::builder()
+//!     .api_key("your_api_key")
+//!     .build()?;
+//! # Ok::<(), openrouter_rs::error::OpenRouterError>(())
 //! ```
 //!
 //! ## 🔗 API Coverage
@@ -174,7 +172,6 @@
 
 pub mod api;
 pub mod client;
-pub mod config;
 pub mod error;
 pub mod types;
 pub mod utils;

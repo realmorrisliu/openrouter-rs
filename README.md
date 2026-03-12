@@ -86,14 +86,13 @@ The main design change in `0.6.x` is that public documentation and examples trea
 | `management()` | `create_api_key`, `list_api_keys`, `create_auth_code`, `create_api_key_from_auth_code`, `list_guardrails`, `get_activity`, `get_credits`, `create_coinbase_charge`, `get_generation` | `/keys*`, `/auth/keys*`, `/guardrails*`, `/activity`, `/credits*`, `/generation`, `/key` | Governed endpoints require a management key; billing/session endpoints still use the normal API key because that is how OpenRouter authenticates them |
 | `legacy()` | `completions().create` | `/completions` | `legacy-completions` feature + API key |
 
-The client builder currently exposes:
+The client builder exposes the runtime options the SDK directly consumes:
 
 - `base_url`
 - `api_key`
 - `management_key`
 - `http_referer`
 - `x_title`
-- `config`
 
 At runtime you can also call `set_api_key`, `clear_api_key`, `set_management_key`, and `clear_management_key`.
 
@@ -268,24 +267,23 @@ API-key reminders:
 
 Those endpoints are grouped under `management()` for discoverability, but the underlying upstream auth model is still API-key based.
 
-## Configuration And Model Presets
+## Client Setup
 
-`OpenRouterConfig` loads built-in presets from [`src/config/default_config.toml`](src/config/default_config.toml) and resolves `preset:*` model references into concrete IDs.
+The SDK intentionally keeps setup narrow: configure runtime values on `OpenRouterClient::builder()`, then choose the final `model` on each request builder.
 
 ```rust
-use openrouter_rs::config::OpenRouterConfig;
+use openrouter_rs::OpenRouterClient;
 
-let config = OpenRouterConfig::default();
+let client = OpenRouterClient::builder()
+    .api_key("your_api_key")
+    .http_referer("https://yourapp.example")
+    .x_title("My App")
+    .build()?;
 
-println!("default model: {}", config.get_default_model());
-println!("resolved models: {:?}", config.get_resolved_models());
+# Ok::<(), openrouter_rs::error::OpenRouterError>(())
 ```
 
-Built-in presets:
-
-- `programming`
-- `reasoning`
-- `free`
+File/profile config resolution belongs to the companion CLI or to the caller's application layer, not to the SDK core.
 
 ## Legacy Completions
 
