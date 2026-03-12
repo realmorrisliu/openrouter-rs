@@ -41,6 +41,9 @@ jobs:
       - name: Run unit tests
         run: cargo test --test unit
 
+      - name: Run crate-internal lib tests
+        run: cargo test --lib
+
       - name: Run doctests
         run: cargo test --doc
 
