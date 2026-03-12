@@ -34,7 +34,7 @@
 Prefer the `just` recipes so local workflows stay aligned with CI:
 
 - `just quality`: format check, `cargo check`, clippy, unit tests, lib tests, doctests
-- `just quality-ci`: `just quality` plus integration subsets, CLI checks, package smoke, migration smoke
+- `just quality-ci`: `just quality` plus integration subsets, CLI checks, and migration smoke
 - `just test-unit`
 - `just test-lib`
 - `just test-doc`

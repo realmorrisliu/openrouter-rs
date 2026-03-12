@@ -45,6 +45,7 @@ test-cli:
     cargo test -p openrouter-cli
 
 package-cli:
+    # Release-only validation: requires the SDK dependency version to exist on crates.io.
     cargo package -p openrouter-cli --locked
 
 check-migration-docs:
@@ -55,4 +56,4 @@ test-migration-smoke:
 
 quality: fmt-check check clippy test-unit test-lib test-doc
 
-quality-ci: quality test-integration-subsets test-cli package-cli check-migration-docs test-migration-smoke
+quality-ci: quality test-integration-subsets test-cli check-migration-docs test-migration-smoke
