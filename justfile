@@ -35,6 +35,12 @@ test-integration:
     test -n "${OPENROUTER_API_KEY:-}"
     cargo test --test integration -- --nocapture
 
+test-live-contract:
+    cargo test --test integration contract:: -- --nocapture
+
+test-live-contract-management:
+    OPENROUTER_RUN_MANAGEMENT_TESTS=1 cargo test --test integration management:: -- --nocapture
+
 test-cli:
     cargo test -p openrouter-cli
 

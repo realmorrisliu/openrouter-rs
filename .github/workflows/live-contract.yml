@@ -1,0 +1,83 @@
+name: Live Contract Checks
+
+on:
+  workflow_dispatch:
+    inputs:
+      include_management:
+        description: "Run management-key contract smoke checks"
+        required: false
+        default: false
+        type: boolean
+  schedule:
+    - cron: "0 7 * * 3"
+  release:
+    types:
+      - published
+
+concurrency:
+  group: live-contract-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  read-only-contract:
+    name: Read-only API Contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install just
+        uses: taiki-e/install-action@just
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run read-only contract suite
+        run: |
+          if [ -z "${OPENROUTER_API_KEY}" ]; then
+            echo "OPENROUTER_API_KEY secret is not configured; skipping read-only contract checks."
+            exit 0
+          fi
+
+          just test-live-contract
+
+  management-contract:
+    name: Management API Contract
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.include_management == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      OPENROUTER_MANAGEMENT_KEY: ${{ secrets.OPENROUTER_MANAGEMENT_KEY }}
+      OPENROUTER_PROVISIONING_KEY: ${{ secrets.OPENROUTER_PROVISIONING_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install just
+        uses: taiki-e/install-action@just
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run management contract suite
+        run: |
+          management_key="${OPENROUTER_MANAGEMENT_KEY:-${OPENROUTER_PROVISIONING_KEY:-}}"
+          if [ -z "${management_key}" ]; then
+            echo "OPENROUTER_MANAGEMENT_KEY/OPENROUTER_PROVISIONING_KEY secret is not configured; skipping management contract checks."
+            exit 0
+          fi
+
+          export OPENROUTER_MANAGEMENT_KEY="${management_key}"
+          just test-live-contract-management

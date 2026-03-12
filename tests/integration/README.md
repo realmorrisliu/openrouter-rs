@@ -14,6 +14,7 @@ The integration suite loads model selection in this order:
 ## Optional environment variables
 
 - `OPENROUTER_INTEGRATION_TIER`: `stable` (default) or `hot`.
+- `OPENROUTER_PROVISIONING_KEY`: optional fallback when running management contract smoke locally.
 - `OPENROUTER_TEST_MODEL_POOL_FILE`: path to a model-pool JSON file.
 - `OPENROUTER_TEST_CHAT_MODEL`: force the primary chat model.
 - `OPENROUTER_TEST_EMBEDDINGS_MODEL`: force the primary embeddings model.
@@ -36,6 +37,20 @@ Example:
 
 ```bash
 OPENROUTER_MANAGEMENT_KEY=... OPENROUTER_RUN_MANAGEMENT_TESTS=1 cargo test --test integration management:: -- --nocapture
+```
+
+## Running live contract checks
+
+Use the narrower contract suite for release validation or periodic upstream regression checks:
+
+```bash
+just test-live-contract
+```
+
+For management-key contract smoke:
+
+```bash
+OPENROUTER_MANAGEMENT_KEY=... just test-live-contract-management
 ```
 
 ## Pool refresh
