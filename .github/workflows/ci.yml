@@ -26,37 +26,38 @@ jobs:
         with:
           components: rustfmt, clippy
 
+      - name: Install just
+        uses: taiki-e/install-action@just
+
       - name: Cache Rust artifacts
         uses: Swatinem/rust-cache@v2
 
       - name: Check formatting
-        run: cargo fmt --all --check
+        run: just fmt-check
 
       - name: Cargo check (default features)
-        run: cargo check --all-targets
+        run: just check
 
       - name: Run clippy (deny warnings)
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: just clippy
 
       - name: Run unit tests
-        run: cargo test --test unit
+        run: just test-unit
 
       - name: Run crate-internal lib tests
-        run: cargo test --lib
+        run: just test-lib
 
       - name: Run doctests
-        run: cargo test --doc
+        run: just test-doc
 
       - name: Run deterministic integration subsets
-        run: |
-          cargo test --test integration model_pool:: -- --nocapture
-          cargo test --test integration tools:: -- --nocapture
+        run: just test-integration-subsets
 
       - name: Run CLI foundation tests
-        run: cargo test -p openrouter-cli
+        run: just test-cli
 
       - name: Validate CLI package contents
-        run: cargo package -p openrouter-cli --locked
+        run: just package-cli
 
   msrv-check:
     name: MSRV Check (1.85.0)
@@ -70,14 +71,17 @@ jobs:
         with:
           toolchain: 1.85.0
 
+      - name: Install just
+        uses: taiki-e/install-action@just
+
       - name: Cache Rust artifacts
         uses: Swatinem/rust-cache@v2
 
       - name: Cargo check (all targets/default features)
-        run: cargo check --all-targets
+        run: just check
 
       - name: Cargo check (all targets/features)
-        run: cargo check --all-targets --all-features
+        run: just check-all-features
 
   migration-smoke:
     name: Migration Smoke Checks
@@ -89,11 +93,14 @@ jobs:
       - name: Setup Rust (stable)
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install just
+        uses: taiki-e/install-action@just
+
       - name: Cache Rust artifacts
         uses: Swatinem/rust-cache@v2
 
       - name: Validate migration docs structure
-        run: ./scripts/check_migration_docs.sh
+        run: just check-migration-docs
 
       - name: Run migration smoke tests
-        run: cargo test --test migration_smoke --all-features
+        run: just test-migration-smoke
