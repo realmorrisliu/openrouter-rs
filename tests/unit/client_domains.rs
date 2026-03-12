@@ -9,7 +9,6 @@ use std::{
 use openrouter_rs::{
     OpenRouterClient,
     api::{auth, chat, credits, embeddings, guardrails, messages, responses},
-    config::OpenRouterConfig,
     error::OpenRouterError,
     types::{ModelCategory, PaginationOptions, Role, SupportedParameters},
 };
@@ -281,14 +280,9 @@ async fn test_management_domain_requires_management_key() {
 
 #[test]
 fn test_client_accessors_and_key_mutators_cover_public_surface() {
-    let config = OpenRouterConfig::default();
     let mut client = OpenRouterClient::builder()
-        .config(config.clone())
         .build()
         .expect("client should build");
-
-    let loaded = client.get_config().expect("config should be present");
-    assert_eq!(loaded.get_default_model(), config.get_default_model());
 
     client.set_api_key("api-key");
     client.clear_api_key();

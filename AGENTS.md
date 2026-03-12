@@ -23,8 +23,7 @@
   - `guardrails`
   - `legacy/completion`
 - `src/types/` contains shared request/response, streaming, pagination, tool, and typed-tool types.
-- `src/config/` contains configuration models and `default_config.toml` presets.
-- `crates/openrouter-cli/` contains the workspace CLI companion.
+- `crates/openrouter-cli/` contains the workspace CLI companion, including file/profile config resolution.
 - `tests/unit/` contains fast serde/config/domain tests.
 - `tests/integration/` contains live API tests plus shared helpers in `test_utils.rs`.
 - `examples/` contains runnable usage samples. Prefer the domain-oriented examples when updating docs.

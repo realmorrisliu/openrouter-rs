@@ -8,7 +8,6 @@ use crate::{
         api_keys, auth, chat, credits, discovery, embeddings, generation, guardrails, messages,
         models, responses,
     },
-    config::OpenRouterConfig,
     error::OpenRouterError,
     types::{
         ModelCategory, PaginationOptions, SupportedParameters,
@@ -39,17 +38,11 @@ pub struct OpenRouterClient {
         default = "Some(String::from(\"openrouter-rs\"))"
     )]
     x_title: Option<String>,
-    #[builder(setter(into, strip_option), default)]
-    config: Option<OpenRouterConfig>,
 }
 
 impl OpenRouterClient {
     pub fn builder() -> OpenRouterClientBuilder {
         OpenRouterClientBuilder::default()
-    }
-
-    pub fn get_config(&self) -> Option<OpenRouterConfig> {
-        self.config.clone()
     }
 
     /// Sets the API key after client construction.

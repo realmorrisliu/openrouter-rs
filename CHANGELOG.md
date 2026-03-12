@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- Removed the SDK-level `config` module and related client surface. `openrouter-rs` no longer exports `OpenRouterConfig` / `ModelConfig`, no longer stores `.config(...)` on `OpenRouterClient`, and no longer treats file/profile config as part of the core SDK API. That behavior now belongs in the companion CLI or the caller's own application layer.
+
 ## [0.6.1] - 2026-03-12
 
 ### Changed
