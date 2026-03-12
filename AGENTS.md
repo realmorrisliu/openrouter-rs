@@ -16,6 +16,8 @@
 - `just quality-ci` mirrors the full stable CI gate, including deterministic integration subsets, CLI checks, and migration smoke checks.
 - `just test-unit`, `just test-lib`, `just test-doc`, `just test-integration-subsets`, `just test-cli`, and `just test-migration-smoke` run the corresponding focused checks.
 - `just test-integration` runs the full live integration suite and requires `OPENROUTER_API_KEY`.
+- `just test-live-contract` runs the narrow read-only live contract suite used for nightly/release validation.
+- `just test-live-contract-management` runs the management-key live contract smoke suite (`OPENROUTER_MANAGEMENT_KEY` or `OPENROUTER_PROVISIONING_KEY` required).
 - `just check-migration-docs` validates migration doc structure via `scripts/check_migration_docs.sh`.
 - `cargo build` builds the crate.
 - `cargo check` validates compileability quickly.
