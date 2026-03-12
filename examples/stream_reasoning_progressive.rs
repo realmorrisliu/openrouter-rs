@@ -25,7 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .reasoning_effort(Effort::High)
         .build()?;
 
-    let stream = client.stream_chat_completion(&chat_request).await?;
+    let stream = client.chat().stream(&chat_request).await?;
 
     // Method 3: Accumulate while showing progress
     println!("Processing stream with progress indication...\n");

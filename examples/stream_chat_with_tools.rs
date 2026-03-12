@@ -66,7 +66,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("--- Streaming with tool-aware processing ---\n");
 
     // Use the tool-aware stream wrapper
-    let mut stream = client.stream_chat_completion_tool_aware(&request).await?;
+    let mut stream = client.chat().stream_tool_aware(&request).await?;
 
     while let Some(event) = stream.next().await {
         match event {
@@ -137,8 +137,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             .max_tokens(500)
                             .build()?;
 
-                        let mut stream2 =
-                            client.stream_chat_completion_tool_aware(&follow_up).await?;
+                        let mut stream2 = client.chat().stream_tool_aware(&follow_up).await?;
 
                         while let Some(event2) = stream2.next().await {
                             match event2 {

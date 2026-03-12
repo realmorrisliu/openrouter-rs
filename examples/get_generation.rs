@@ -25,7 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Wait for completion");
 
     let generation_id = response.id;
-    let generation_data = client.get_generation(&generation_id).await?;
+    let generation_data = client.management().get_generation(&generation_id).await?;
     println!("{generation_data:?}");
 
     Ok(())

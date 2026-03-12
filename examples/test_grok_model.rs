@@ -28,7 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .temperature(0.1)
         .build()?;
 
-    let response = client.send_chat_completion(&chat_request).await?;
+    let response = client.chat().create(&chat_request).await?;
 
     println!("Response ID: {}", response.id);
     println!("Model: {}", response.model);

@@ -55,7 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .max_tokens(1000)
         .build()?;
 
-    let chat_response = client.send_chat_completion(&chat_request).await?;
+    let chat_response = client.chat().create(&chat_request).await?;
     let content = chat_response.choices[0].content().unwrap_or("");
     let reasoning = chat_response.choices[0].reasoning().unwrap_or("");
 
@@ -73,7 +73,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .reasoning_effort(Effort::High)
         .build()?;
 
-    let chat_response = client.send_chat_completion(&chat_request).await?;
+    let chat_response = client.chat().create(&chat_request).await?;
     let content = chat_response.choices[0].content().unwrap_or("");
     let reasoning = chat_response.choices[0].reasoning().unwrap_or("");
 
@@ -98,7 +98,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .reasoning_max_tokens(2000)
         .build()?;
 
-    let chat_response = client.send_chat_completion(&chat_request).await?;
+    let chat_response = client.chat().create(&chat_request).await?;
     let content = chat_response.choices[0].content().unwrap_or("");
     let reasoning = chat_response.choices[0].reasoning().unwrap_or("");
 
@@ -123,7 +123,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .exclude_reasoning()
         .build()?;
 
-    let chat_response = client.send_chat_completion(&chat_request).await?;
+    let chat_response = client.chat().create(&chat_request).await?;
     let content = chat_response.choices[0].content().unwrap_or("");
     let reasoning = chat_response.choices[0].reasoning();
 

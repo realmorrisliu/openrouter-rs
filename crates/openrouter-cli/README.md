@@ -1,29 +1,31 @@
 # openrouter-cli
 
-`openrouter-cli` is a workspace CLI companion for `openrouter-rs`.
+`openrouter-cli` is the workspace CLI companion for `openrouter-rs`.
 
-## Current Scope
+It currently focuses on four areas:
 
-- OR-19: command bootstrap and config/profile resolution
-- OR-20: discovery commands for models/providers/endpoints
-- OR-21: management commands for API keys and guardrails
-- OR-22: usage and billing commands with stable output contracts
+- profile/config resolution
+- model and provider discovery
+- API-key and guardrail management
+- credits, billing, and usage activity
 
-## Installation
+The implementation lives in [`crates/openrouter-cli/src`](./src), and the crate currently publishes as `0.1.0`.
 
-Install from crates.io:
+## Install
+
+From crates.io:
 
 ```bash
 cargo install openrouter-cli
 ```
 
-Install from local source:
+From this workspace:
 
 ```bash
-cargo install --path crates/openrouter-cli
+cargo install --path crates/openrouter-cli --locked
 ```
 
-Install prebuilt binaries from GitHub Releases:
+Prebuilt GitHub release archives follow the `openrouter-cli-v<version>` tag naming:
 
 ```bash
 VERSION=0.1.0
@@ -36,21 +38,42 @@ tar -xzf openrouter-cli.tar.gz
 ./openrouter-cli --help
 ```
 
-For macOS and Windows, use the matching target archive from the same release tag.
+For macOS and Windows, use the matching artifact from the same release tag.
 
-## Config And Profile Convention
+## Command Surface
 
-By default, config is loaded from:
+```text
+profile show
+config show|path
+models list|show|endpoints
+providers list
+credits show|charge
+keys list|create|get|update|delete
+guardrails list|create|get|update|delete
+guardrails assignments keys list|assign|unassign
+guardrails assignments members list|assign|unassign
+usage activity
+```
+
+Auth expectations by command group:
+
+- `models`, `providers`, `credits show`, `credits charge`: API key
+- `keys`, `guardrails`, `usage activity`: management key
+- `profile`, `config`: no API call required
+
+## Config And Resolution Order
+
+Default config path:
 
 - `$XDG_CONFIG_HOME/openrouter/profiles.toml`, or
 - `$HOME/.config/openrouter/profiles.toml`
 
-You can override with:
+Overrides:
 
 - `--config <path>`
 - `OPENROUTER_CLI_CONFIG`
 
-Config format:
+Profile config format:
 
 ```toml
 default_profile = "default"
@@ -61,40 +84,41 @@ management_key = "or-mgmt-..."
 base_url = "https://openrouter.ai/api/v1"
 ```
 
-## Resolution Priority
+Resolution order:
 
-For `api_key`, `management_key`, and `base_url`:
+1. Flags: `--api-key`, `--management-key`, `--base-url`
+2. Environment: `OPENROUTER_API_KEY`, `OPENROUTER_MANAGEMENT_KEY`, `OPENROUTER_BASE_URL`
+3. Profile values from the selected config profile
+4. Default base URL: `https://openrouter.ai/api/v1`
 
-1. CLI flags (`--api-key`, `--management-key`, `--base-url`)
-2. Environment (`OPENROUTER_API_KEY`, `OPENROUTER_MANAGEMENT_KEY`, `OPENROUTER_BASE_URL`)
-3. Active profile values from config file
-4. Defaults (for `base_url`: `https://openrouter.ai/api/v1`)
-
-For profile selection:
+Profile selection order:
 
 1. `--profile`
 2. `OPENROUTER_PROFILE`
 3. `default_profile` in config
 4. `"default"`
 
-## Discovery Commands (OR-20)
+Useful inspection commands:
 
-`openrouter-cli` now supports discovery workflows:
+```bash
+openrouter-cli profile show
+openrouter-cli config show
+openrouter-cli config path
+openrouter-cli --output json profile show
+```
 
-- `models list` with optional filters:
-  - `--category`
-  - `--supported-parameter`
-- `models show <model_id>`
-- `models endpoints <model_id>`
-- `providers list`
+## Discovery Workflows
 
 Examples:
 
 ```bash
-# List models in a category
+# List models
+openrouter-cli --api-key "$OPENROUTER_API_KEY" models list
+
+# Filter by category
 openrouter-cli --api-key "$OPENROUTER_API_KEY" models list --category programming
 
-# List models supporting tool-calling parameter
+# Filter by supported parameter
 openrouter-cli --api-key "$OPENROUTER_API_KEY" models list --supported-parameter tools
 
 # Show one model
@@ -107,47 +131,87 @@ openrouter-cli --api-key "$OPENROUTER_API_KEY" models endpoints openai/gpt-4.1
 openrouter-cli --api-key "$OPENROUTER_API_KEY" providers list
 ```
 
-## Management Commands (OR-21)
+`models list` accepts either `--category` or `--supported-parameter`, not both.
 
-`openrouter-cli` supports management workflows:
+## Management Workflows
 
-- `keys list|create|get|update|delete`
-- `guardrails list|create|get|update|delete`
-- `guardrails assignments keys list|assign|unassign`
-- `guardrails assignments members list|assign|unassign`
-
-Examples:
+### API keys
 
 ```bash
 # List keys
 openrouter-cli --management-key "$OPENROUTER_MANAGEMENT_KEY" keys list --include-disabled
 
-# Create and update key
+# Create one
 openrouter-cli --management-key "$OPENROUTER_MANAGEMENT_KEY" keys create --name "ci-bot" --limit 100
+
+# Inspect one
+openrouter-cli --management-key "$OPENROUTER_MANAGEMENT_KEY" keys get sk-or-v1-hash
+
+# Update one
 openrouter-cli --management-key "$OPENROUTER_MANAGEMENT_KEY" keys update sk-or-v1-hash --disable
 
-# Delete key (requires explicit confirmation)
+# Delete one
 openrouter-cli --management-key "$OPENROUTER_MANAGEMENT_KEY" keys delete sk-or-v1-hash --yes
-
-# Update guardrail and clear allowlists
-openrouter-cli --management-key "$OPENROUTER_MANAGEMENT_KEY" guardrails update gr_123 --clear-allowed-providers --clear-allowed-models
 ```
 
-## Usage And Billing Commands (OR-22)
-
-Supported command groups:
-
-- `credits show`
-- `credits charge --amount --sender --chain-id`
-- `usage activity [--date YYYY-MM-DD]`
-
-Examples:
+### Guardrails
 
 ```bash
-# Show total credits and usage
+# List guardrails
+openrouter-cli --management-key "$OPENROUTER_MANAGEMENT_KEY" guardrails list --limit 20
+
+# Create one
+openrouter-cli \
+  --management-key "$OPENROUTER_MANAGEMENT_KEY" \
+  guardrails create \
+  --name "ci-budget-cap" \
+  --limit-usd 25 \
+  --enforce-zdr
+
+# Update and clear allowlists
+openrouter-cli \
+  --management-key "$OPENROUTER_MANAGEMENT_KEY" \
+  guardrails update gr_123 \
+  --clear-allowed-providers \
+  --clear-allowed-models
+
+# Delete one
+openrouter-cli --management-key "$OPENROUTER_MANAGEMENT_KEY" guardrails delete gr_123 --yes
+```
+
+### Guardrail assignments
+
+```bash
+# List global key assignments
+openrouter-cli \
+  --management-key "$OPENROUTER_MANAGEMENT_KEY" \
+  guardrails assignments keys list
+
+# List assignments for one guardrail
+openrouter-cli \
+  --management-key "$OPENROUTER_MANAGEMENT_KEY" \
+  guardrails assignments keys list --guardrail-id gr_123
+
+# Assign keys
+openrouter-cli \
+  --management-key "$OPENROUTER_MANAGEMENT_KEY" \
+  guardrails assignments keys assign gr_123 key_a key_b
+
+# Unassign keys
+openrouter-cli \
+  --management-key "$OPENROUTER_MANAGEMENT_KEY" \
+  guardrails assignments keys unassign gr_123 key_a key_b --yes
+```
+
+Member assignment commands mirror the same shape under `guardrails assignments members ...`.
+
+## Credits And Usage
+
+```bash
+# Show purchased/used credits
 openrouter-cli --api-key "$OPENROUTER_API_KEY" credits show
 
-# Create Coinbase charge
+# Create a Coinbase charge
 openrouter-cli \
   --api-key "$OPENROUTER_API_KEY" \
   credits charge \
@@ -155,11 +219,11 @@ openrouter-cli \
   --sender 0xYourWalletAddress \
   --chain-id 1
 
-# Query usage activity for a specific day (requires management key)
+# Show activity for a specific day
 openrouter-cli \
   --management-key "$OPENROUTER_MANAGEMENT_KEY" \
   usage activity \
-  --date 2026-02-28
+  --date 2026-03-01
 ```
 
 ## Output Contract
@@ -169,7 +233,7 @@ openrouter-cli \
 - `table` (default)
 - `json`
 
-JSON output is wrapped with schema metadata for automation stability:
+JSON output is wrapped in a versioned envelope:
 
 ```json
 {
@@ -178,7 +242,7 @@ JSON output is wrapped with schema metadata for automation stability:
 }
 ```
 
-Error output in JSON mode follows:
+Errors in JSON mode use:
 
 ```json
 {
@@ -190,21 +254,21 @@ Error output in JSON mode follows:
 }
 ```
 
-## CLI Live Smoke Tests
+## Live Smoke Tests
 
-This repo includes an opt-in CLI live smoke suite (`tests/live_smoke.rs`) for real API verification.
+The workspace includes an opt-in live smoke suite at `tests/live_smoke.rs`.
 
 Environment switches:
 
-- `OPENROUTER_CLI_RUN_LIVE=1`: enable live tests.
-- `OPENROUTER_CLI_RUN_LIVE_WRITE=1`: also enable write-path lifecycle checks (create/delete keys and guardrails).
+- `OPENROUTER_CLI_RUN_LIVE=1`: enable live smoke
+- `OPENROUTER_CLI_RUN_LIVE_WRITE=1`: also enable create/delete write-path checks
 
 Required secrets:
 
-- `OPENROUTER_API_KEY` (read smoke)
-- `OPENROUTER_MANAGEMENT_KEY` (usage activity and write smoke)
+- `OPENROUTER_API_KEY` for read smoke
+- `OPENROUTER_MANAGEMENT_KEY` for usage and write smoke
 
-Local examples:
+Examples:
 
 ```bash
 # Read-only live smoke
@@ -212,7 +276,7 @@ OPENROUTER_CLI_RUN_LIVE=1 \
 OPENROUTER_API_KEY=... \
 cargo test -p openrouter-cli --test live_smoke -- --nocapture --test-threads=1
 
-# Include write lifecycle smoke
+# Include write-path smoke
 OPENROUTER_CLI_RUN_LIVE=1 \
 OPENROUTER_CLI_RUN_LIVE_WRITE=1 \
 OPENROUTER_API_KEY=... \

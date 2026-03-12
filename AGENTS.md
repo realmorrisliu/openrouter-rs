@@ -1,56 +1,98 @@
 # Repository Guidelines
 
-## Project Structure & Module Organization
-- `src/` contains library code.
-- `src/client.rs` is the main SDK client and builder entrypoint.
-- `src/api/` holds endpoint modules (`chat`, `completion`, `models`, `api_keys`, `credits`, `auth`, `generation`).
-- `src/types/` contains shared request/response types, including streaming and tool-call types.
+## Project Structure And Module Organization
+
+- `src/client.rs` is the main SDK entrypoint and defines the canonical domain clients:
+  - `chat()`
+  - `responses()`
+  - `messages()`
+  - `models()`
+  - `management()`
+  - `legacy()` behind `legacy-completions`
+- `src/api/` contains endpoint modules:
+  - `chat`
+  - `responses`
+  - `messages`
+  - `models`
+  - `embeddings`
+  - `discovery`
+  - `api_keys`
+  - `credits`
+  - `auth`
+  - `generation`
+  - `guardrails`
+  - `legacy/completion`
+- `src/types/` contains shared request/response, streaming, pagination, tool, and typed-tool types.
 - `src/config/` contains configuration models and `default_config.toml` presets.
-- `tests/unit/` contains fast, local deserialization/config tests.
-- `tests/integration/` contains live API tests and shared helpers in `test_utils.rs`.
-- `examples/` contains runnable end-to-end usage samples.
+- `crates/openrouter-cli/` contains the workspace CLI companion.
+- `tests/unit/` contains fast serde/config/domain tests.
+- `tests/integration/` contains live API tests plus shared helpers in `test_utils.rs`.
+- `examples/` contains runnable usage samples. Prefer the domain-oriented examples when updating docs.
 
-## Build, Test, and Development Commands
-- Prefer the `just` recipes below for local quality checks so agent and CI commands stay aligned.
-- `just quality` runs the standard local gate: format check, `cargo check`, clippy, unit tests, crate-internal lib tests, and doctests.
-- `just quality-ci` mirrors the full stable CI gate, including deterministic integration subsets, CLI checks, and migration smoke checks.
-- `just test-unit`, `just test-lib`, `just test-doc`, `just test-integration-subsets`, `just test-cli`, and `just test-migration-smoke` run the corresponding focused checks.
-- `just test-integration` runs the full live integration suite and requires `OPENROUTER_API_KEY`.
-- `just test-live-contract` runs the narrow read-only live contract suite used for nightly/release validation.
-- `just test-live-contract-management` runs the management-key live contract smoke suite (`OPENROUTER_MANAGEMENT_KEY` or `OPENROUTER_PROVISIONING_KEY` required).
-- `just check-migration-docs` validates migration doc structure via `scripts/check_migration_docs.sh`.
-- `cargo build` builds the crate.
-- `cargo check` validates compileability quickly.
-- `cargo fmt --all` formats code using `rustfmt`.
-- `cargo clippy --all-targets --all-features` runs lints (keep warnings at zero).
-- `cargo test --test unit` runs unit tests.
-- `OPENROUTER_API_KEY=... cargo test --test integration -- --nocapture` runs live integration tests.
-- `cargo run --example send_chat_completion` runs a reference example (see `examples/` for more).
+## Build, Test, And Development Commands
 
-## Coding Style & Naming Conventions
-- Follow standard Rust formatting (4-space indentation, `rustfmt` output).
-- Use `snake_case` for modules/functions/tests, `PascalCase` for structs/enums/traits, and `SCREAMING_SNAKE_CASE` for constants.
-- Preserve existing patterns: builder-style APIs, typed request/response models, and explicit error handling via `Result<_, OpenRouterError>`.
-- Keep module boundaries clear (`api` for endpoint logic, `types` for data contracts).
+Prefer the `just` recipes so local workflows stay aligned with CI:
+
+- `just quality`: format check, `cargo check`, clippy, unit tests, lib tests, doctests
+- `just quality-ci`: `just quality` plus integration subsets, CLI checks, package smoke, migration smoke
+- `just test-unit`
+- `just test-lib`
+- `just test-doc`
+- `just test-integration-subsets`
+- `just test-integration`
+- `just test-live-contract`
+- `just test-live-contract-management`
+- `just test-cli`
+- `just check-migration-docs`
+- `just test-migration-smoke`
+
+Direct cargo entrypoints:
+
+- `cargo build`
+- `cargo check --all-targets`
+- `cargo clippy --all-targets --all-features -- -D warnings`
+- `cargo test --test unit`
+- `OPENROUTER_API_KEY=... cargo test --test integration -- --nocapture`
+- `cargo run --example domain_chat_completion`
+- `cargo run -p openrouter-cli -- --help`
+
+## Coding Style And Naming Conventions
+
+- Follow standard Rust formatting with `rustfmt`.
+- Use `snake_case` for modules/functions/tests.
+- Use `PascalCase` for structs/enums/traits.
+- Use `SCREAMING_SNAKE_CASE` for constants.
+- Keep new public API examples aligned with the canonical domain-oriented surface rather than hidden flat wrappers.
+- Preserve builder-style request construction and explicit `Result<_, OpenRouterError>` handling.
 
 ## Testing Guidelines
-- Add unit tests for parsing/typing behavior changes in `tests/unit/*.rs`.
-- Add integration tests for endpoint behavior changes in `tests/integration/*.rs`.
-- Name tests with `test_*` and keep assertions specific.
-- Integration tests require `OPENROUTER_API_KEY`; some examples/features also use `OPENROUTER_PROVISIONING_KEY`.
 
-## Commit & Pull Request Guidelines
-- Follow existing commit style: `feat:`, `fix:`, `docs:`, `chore:` + concise summary.
-- Keep PRs focused; include rationale, behavior changes, and linked issues/PRs.
-- For API changes, update examples and docs (`README.md`, `CHANGELOG.md`) in the same PR.
-- Before opening a PR, run `just quality`. If you touched CI-aligned release, CLI, or migration surfaces, run `just quality-ci` as well.
+- Add unit tests in `tests/unit/*.rs` for parsing, request-shape, or domain-surface changes.
+- Add integration tests in `tests/integration/*.rs` for live endpoint behavior changes.
+- Live integration requires `OPENROUTER_API_KEY`.
+- Management smoke requires `OPENROUTER_MANAGEMENT_KEY` and `OPENROUTER_RUN_MANAGEMENT_TESTS=1`.
+- CLI live smoke uses `OPENROUTER_CLI_RUN_LIVE=1`; write smoke also requires `OPENROUTER_CLI_RUN_LIVE_WRITE=1`.
+- If you touch migration docs or canonical naming guidance, run `just check-migration-docs` and `cargo test --test migration_smoke --all-features`.
 
-## Security & Configuration Tips
-- Use environment variables for secrets; never hardcode API keys.
-- Start from `.env.example` for local setup and keep `.env` out of commits.
+## Commit And Pull Request Guidelines
+
+- Follow the existing commit style: `feat:`, `fix:`, `docs:`, `chore:`.
+- Keep PRs focused and include rationale plus behavior changes.
+- When API surface changes, update `README.md`, relevant example(s), and `CHANGELOG.md` in the same change.
+- Before opening a PR, run `just quality`.
+- If you touched CLI behavior, migration docs, or CI-aligned release/test surfaces, also run `just quality-ci`.
+
+## Security And Configuration Tips
+
+- Use environment variables for secrets; never hardcode keys.
+- Start from `.env.example` for local setup.
+- Management-governed endpoints use `OPENROUTER_MANAGEMENT_KEY`.
+- API-key endpoints use `OPENROUTER_API_KEY`.
 
 ## Skills
-- `openrouter-rs-release`: prepare and publish a new version with synchronized updates to `Cargo.toml`, `CHANGELOG.md`, README release history, and release validation checks. (file: `.agents/skills/openrouter-rs-release/SKILL.md`)
+
+- `openrouter-rs-release`: prepare and publish a new version with synchronized updates to `Cargo.toml`, `CHANGELOG.md`, README release history, and release validation checks. File: `.agents/skills/openrouter-rs-release/SKILL.md`
 
 ### Skill Trigger Rule
-- Use `openrouter-rs-release` when the user asks to publish/release/cut a new version.
+
+- Use `openrouter-rs-release` when the user asks to publish, release, or cut a new version.

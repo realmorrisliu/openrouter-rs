@@ -41,7 +41,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .response_format(format)
         .build()?;
 
-    let chat_response = client.send_chat_completion(&chat_request).await?;
+    let chat_response = client.chat().create(&chat_request).await?;
 
     println!("=== Chat Response:");
     println!("{chat_response:?}");

@@ -30,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .enable_reasoning()
         .build()?;
 
-    let reasoning_response = client.send_chat_completion(&reasoning_request).await?;
+    let reasoning_response = client.chat().create(&reasoning_request).await?;
     let reasoning = reasoning_response.choices[0].reasoning().unwrap_or("");
 
     println!("Reasoning obtained: {} characters", reasoning.len());
@@ -51,7 +51,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .max_tokens(200)
         .build()?;
 
-    let naive_response = client.send_chat_completion(&naive_request).await?;
+    let naive_response = client.chat().create(&naive_request).await?;
     let naive_content = naive_response.choices[0].content().unwrap_or("");
 
     println!("Naive response: {naive_content}");
@@ -65,7 +65,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .max_tokens(300)
         .build()?;
 
-    let enhanced_response = client.send_chat_completion(&enhanced_request).await?;
+    let enhanced_response = client.chat().create(&enhanced_request).await?;
     let enhanced_content = enhanced_response.choices[0].content().unwrap_or("");
 
     println!("Enhanced response: {enhanced_content}");

@@ -15,7 +15,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }]))
         .build()?;
 
-    let stream = client.stream_response(&request).await?;
+    let stream = client.responses().stream(&request).await?;
 
     stream
         .filter_map(|event| async { event.ok() })

@@ -14,7 +14,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }]))
         .build()?;
 
-    let response = client.create_response(&request).await?;
+    let response = client.responses().create(&request).await?;
     println!("response id: {:?}", response.id);
     println!("status: {:?}", response.status);
 

@@ -268,7 +268,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         request.tools().map_or(0, |t| t.len())
     );
 
-    match client.send_chat_completion(&request).await {
+    match client.chat().create(&request).await {
         Ok(response) => {
             println!("✅ Response received!\n");
 

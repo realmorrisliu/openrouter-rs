@@ -14,7 +14,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .messages(vec![AnthropicMessage::user("Say hello in one sentence.")])
         .build()?;
 
-    let response = client.create_message(&request).await?;
+    let response = client.messages().create(&request).await?;
     println!("message id: {:?}", response.id);
     println!("stop reason: {:?}", response.stop_reason);
     println!("content blocks: {}", response.content.len());

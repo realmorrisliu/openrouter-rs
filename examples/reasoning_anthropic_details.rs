@@ -26,7 +26,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .reasoning_max_tokens(1000)
         .build()?;
 
-    let response = client.send_chat_completion(&chat_request).await?;
+    let response = client.chat().create(&chat_request).await?;
     let choice = &response.choices[0];
 
     println!("Content: {}", choice.content().unwrap_or(""));

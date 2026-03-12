@@ -13,6 +13,7 @@ Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted fro
 Legend:
 
 - `SDK`: endpoint implemented in `openrouter-rs`.
+- Canonical surface note: the `0.6.x` docs and examples prefer domain clients (`chat()`, `responses()`, `messages()`, `models()`, `management()`). Some rows still mention retained flat `OpenRouterClient::*` wrappers when they exist.
 - `Unit`: unit coverage depth.
   - `Path` = test asserts HTTP method/path (often with header/body checks).
   - `Contract` = serde/request-shape/parser coverage only.
