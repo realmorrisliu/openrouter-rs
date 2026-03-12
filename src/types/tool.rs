@@ -77,12 +77,10 @@ use crate::error::OpenRouterError;
 ///     .build()?;
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
-#[derive(Serialize, Deserialize, Debug, Clone, Builder)]
-#[builder(build_fn(error = "OpenRouterError"))]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Tool {
     /// Type of tool (always "function" for now)
     #[serde(rename = "type")]
-    #[builder(default = r#""function".to_string()"#)]
     pub tool_type: String,
 
     /// Function definition
@@ -105,6 +103,50 @@ impl Tool {
                 parameters,
             },
         }
+    }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct ToolBuilder {
+    tool_type: Option<String>,
+    name: Option<String>,
+    description: Option<String>,
+    parameters: Option<Value>,
+}
+
+impl ToolBuilder {
+    /// Override the tool type. Defaults to `"function"`.
+    pub fn tool_type(&mut self, tool_type: impl Into<String>) -> &mut Self {
+        self.tool_type = Some(tool_type.into());
+        self
+    }
+
+    /// Set the full function definition at once.
+    pub fn function(&mut self, function: FunctionDefinition) -> &mut Self {
+        self.name = Some(function.name);
+        self.description = Some(function.description);
+        self.parameters = Some(function.parameters);
+        self
+    }
+
+    /// Build the tool, validating that the function name is present.
+    pub fn build(&self) -> Result<Tool, OpenRouterError> {
+        let name = self
+            .name
+            .clone()
+            .ok_or_else(|| OpenRouterError::ConfigError("Tool name is required".to_string()))?;
+
+        Ok(Tool {
+            tool_type: self
+                .tool_type
+                .clone()
+                .unwrap_or_else(|| "function".to_string()),
+            function: FunctionDefinition {
+                name,
+                description: self.description.clone().unwrap_or_default(),
+                parameters: self.parameters.clone().unwrap_or(Value::Null),
+            },
+        })
     }
 }
 
@@ -138,30 +180,19 @@ impl FunctionDefinition {
 impl ToolBuilder {
     /// Set the function name
     pub fn name(&mut self, name: &str) -> &mut Self {
-        self.function = Some(
-            FunctionDefinition::builder()
-                .name(name)
-                .description("")
-                .parameters(Value::Null)
-                .build()
-                .unwrap(),
-        );
+        self.name = Some(name.to_string());
         self
     }
 
     /// Set the function description
     pub fn description(&mut self, description: &str) -> &mut Self {
-        if let Some(ref mut func) = self.function {
-            func.description = description.to_string();
-        }
+        self.description = Some(description.to_string());
         self
     }
 
     /// Set the parameters as a JSON Value
     pub fn parameters(&mut self, parameters: Value) -> &mut Self {
-        if let Some(ref mut func) = self.function {
-            func.parameters = parameters;
-        }
+        self.parameters = Some(parameters);
         self
     }
 
