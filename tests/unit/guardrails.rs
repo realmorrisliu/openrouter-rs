@@ -275,6 +275,184 @@ async fn test_list_guardrails_with_pagination_and_auth_header() {
 }
 
 #[tokio::test]
+async fn test_list_guardrails_without_pagination_uses_base_path() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
+
+    let result = guardrails::list_guardrails(&base_url, "mgmt-key", None)
+        .await
+        .expect("list guardrails should succeed");
+    assert_eq!(result.total_count, 0.0);
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(captured.request_line, "GET /api/v1/guardrails HTTP/1.1");
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_create_guardrail_posts_body_and_unwraps_data() {
+    let response_body = r#"{
+        "data": {
+            "id": "gr_123",
+            "name": "Production Guardrail",
+            "description": "Guardrail for production traffic",
+            "limit_usd": 100,
+            "reset_interval": "monthly",
+            "allowed_providers": ["openai"],
+            "allowed_models": ["openai/gpt-4.1"],
+            "enforce_zdr": true,
+            "created_at": "2025-01-01T00:00:00.000Z",
+            "updated_at": "2025-01-02T00:00:00.000Z"
+        }
+    }"#;
+    let (base_url, rx, server) = spawn_json_server(response_body);
+    let request = CreateGuardrailRequest::builder()
+        .name("Production Guardrail")
+        .description("Guardrail for production traffic")
+        .build()
+        .expect("create guardrail request should build");
+
+    let response = guardrails::create_guardrail(&base_url, "mgmt-key", &request)
+        .await
+        .expect("create guardrail should succeed");
+    assert_eq!(response.id, "gr_123");
+    assert_eq!(response.name, "Production Guardrail");
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(captured.request_line, "POST /api/v1/guardrails HTTP/1.1");
+    let body: serde_json::Value =
+        serde_json::from_str(&captured.body_text).expect("request body should be valid JSON");
+    assert_eq!(body["name"], "Production Guardrail");
+    assert_eq!(body["description"], "Guardrail for production traffic");
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_get_guardrail_encodes_id_path_and_unwraps_data() {
+    let response_body = r#"{
+        "data": {
+            "id": "gr_123",
+            "name": "Production Guardrail",
+            "description": null,
+            "limit_usd": null,
+            "reset_interval": null,
+            "allowed_providers": null,
+            "allowed_models": null,
+            "enforce_zdr": null,
+            "created_at": "2025-01-01T00:00:00.000Z",
+            "updated_at": null
+        }
+    }"#;
+    let (base_url, rx, server) = spawn_json_server(response_body);
+
+    let response = guardrails::get_guardrail(&base_url, "mgmt-key", "team/prod 1")
+        .await
+        .expect("get guardrail should succeed");
+    assert_eq!(response.id, "gr_123");
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/guardrails/team%2Fprod%201 HTTP/1.1"
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_update_guardrail_encodes_id_path_and_sends_body() {
+    let response_body = r#"{
+        "data": {
+            "id": "gr_123",
+            "name": "Updated Guardrail",
+            "description": null,
+            "limit_usd": null,
+            "reset_interval": null,
+            "allowed_providers": null,
+            "allowed_models": null,
+            "enforce_zdr": false,
+            "created_at": "2025-01-01T00:00:00.000Z",
+            "updated_at": "2025-01-03T00:00:00.000Z"
+        }
+    }"#;
+    let (base_url, rx, server) = spawn_json_server(response_body);
+    let request = UpdateGuardrailRequest::builder()
+        .name("Updated Guardrail")
+        .enforce_zdr(false)
+        .build()
+        .expect("update guardrail request should build");
+
+    let response = guardrails::update_guardrail(&base_url, "mgmt-key", "team/prod 1", &request)
+        .await
+        .expect("update guardrail should succeed");
+    assert_eq!(response.name, "Updated Guardrail");
+    assert_eq!(response.enforce_zdr, Some(false));
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "PATCH /api/v1/guardrails/team%2Fprod%201 HTTP/1.1"
+    );
+    let body: serde_json::Value =
+        serde_json::from_str(&captured.body_text).expect("request body should be valid JSON");
+    assert_eq!(body["name"], "Updated Guardrail");
+    assert_eq!(body["enforce_zdr"], false);
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_list_guardrail_key_assignments_encodes_id_path() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
+
+    let result =
+        guardrails::list_guardrail_key_assignments(&base_url, "mgmt-key", "team/prod 1", None)
+            .await
+            .expect("list guardrail key assignments should succeed");
+    assert_eq!(result.total_count, 0.0);
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/guardrails/team%2Fprod%201/assignments/keys HTTP/1.1"
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_list_guardrail_member_assignments_encodes_id_path() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
+
+    let result =
+        guardrails::list_guardrail_member_assignments(&base_url, "mgmt-key", "team/prod 1", None)
+            .await
+            .expect("list guardrail member assignments should succeed");
+    assert_eq!(result.total_count, 0.0);
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/guardrails/team%2Fprod%201/assignments/members HTTP/1.1"
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
 async fn test_bulk_assign_keys_encodes_id_and_sends_body() {
     let (base_url, rx, server) = spawn_json_server(r#"{"assigned_count":2}"#);
     let request = BulkKeyAssignmentRequest::builder()
