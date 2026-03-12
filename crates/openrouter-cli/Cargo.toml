@@ -1,6 +1,6 @@
 [package]
 name = "openrouter-cli"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 rust-version = "1.85"
 description = "CLI for OpenRouter account and SDK workflows"
@@ -15,7 +15,7 @@ categories = ["command-line-utilities"]
 [dependencies]
 anyhow = "1.0.86"
 clap = { version = "4.5.37", features = ["derive"] }
-openrouter-rs = { version = "0.6.0", path = "../.." }
+openrouter-rs = { version = "0.6.1", path = "../.." }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1", features = ["full"] }

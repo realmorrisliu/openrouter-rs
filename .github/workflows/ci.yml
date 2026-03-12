@@ -56,9 +56,6 @@ jobs:
       - name: Run CLI foundation tests
         run: just test-cli
 
-      - name: Validate CLI package contents
-        run: just package-cli
-
   msrv-check:
     name: MSRV Check (1.85.0)
     runs-on: ubuntu-latest

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-03-12
+
+### Changed
+- Standardized contributor/release verification around `just quality` and `just quality-ci`.
+- Added live contract release validation coverage and refreshed the README/CLI docs to match the current canonical `0.6.x` domain-oriented surface.
+- `openrouter-cli` release automation now runs through tag-driven GitHub Actions publishing with prebuilt binary assets, and the crate now aligns on `openrouter-rs` `0.6.1`.
+
+### Fixed
+- `ToolBuilder` now preserves accumulated fields regardless of setter call order.
+- Combined model filters and model resolution ordering now preserve caller intent.
+- Chat streaming requests now inherit default client headers.
+- SSE frame parsing is more resilient across chat, responses, and messages streaming flows.
+- Response parsing failures now normalize into consistent API error context across endpoints.
+
 ## [0.6.0] - 2026-03-10
 
 ### Removed
