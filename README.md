@@ -29,7 +29,7 @@ The crate ships typed request/response models, builder-based ergonomics, streami
 
 ```toml
 [dependencies]
-openrouter-rs = "0.6.0"
+openrouter-rs = "0.6.1"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -37,7 +37,7 @@ Legacy text completions are opt-in:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.6.0", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.6.1", features = ["legacy-completions"] }
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -433,10 +433,21 @@ When you change API surface or examples:
 - An `OPENROUTER_API_KEY` for API-backed examples and live tests
 - An `OPENROUTER_MANAGEMENT_KEY` for management-governed examples/tests
 
-## Release History
+## 📈 Release History
 
-- `0.6.0` (2026-03-10): removed `0.5.x` compatibility aliases, made `legacy-completions` opt-in, and standardized the canonical domain-client documentation around `chat()`, `responses()`, `messages()`, `models()`, and `management()`.
-- `0.5.2` (2026-03-01): added `/messages`, discovery/activity, guardrails, auth-code flows, unified streaming, CLI foundation, and the `0.5.x -> 0.6.0` migration bridge.
+### Version 0.6.1 *(Latest)*
+
+- Fixed `ToolBuilder` field loss when setters are called in different orders.
+- Preserved combined model filters and model resolution ordering, and propagated default headers to chat streaming requests.
+- Hardened SSE frame parsing, normalized response parsing errors across endpoints, and aligned release validation around `just` plus live contract checks.
+
+### Version 0.6.0
+
+- Removed `0.5.x` compatibility aliases, made `legacy-completions` opt-in, and standardized the canonical domain-client documentation around `chat()`, `responses()`, `messages()`, `models()`, and `management()`.
+
+### Version 0.5.2
+
+- Added `/messages`, discovery/activity, guardrails, auth-code flows, unified streaming, CLI foundation, and the `0.5.x -> 0.6.0` migration bridge.
 
 See [CHANGELOG.md](CHANGELOG.md) for the full history.
 
