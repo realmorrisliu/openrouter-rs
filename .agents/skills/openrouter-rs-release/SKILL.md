@@ -1,6 +1,6 @@
 ---
 name: openrouter-rs-release
-description: Prepare and publish a new openrouter-rs version with consistent version updates and release notes. Use when asked to cut a release, bump crate versions, publish to crates.io, update changelog entries, refresh README installation version, and update the README bottom Release History latest section.
+description: Prepare and publish a new openrouter-rs or openrouter-cli release with consistent version updates, release notes, PR-first branch-protected workflow, and correct SDK-before-CLI sequencing when the CLI depends on a fresh SDK version. Use when asked to cut a release, bump crate versions, publish to crates.io, update changelog entries, refresh README installation versions, or update the README release history.
 ---
 
 # OpenRouter-rs Release
@@ -20,6 +20,14 @@ Use GitHub Actions as the single publish path for both SDK and CLI releases.
 - Do not run local `cargo publish` as the default release path.
 - Publish by pushing release tags and letting workflows perform verify/publish/release jobs.
 - Local `cargo publish` is emergency-only fallback.
+
+## Repository Policy And Ordering (Required)
+
+- Assume `main` is protected. Do not assume direct pushes are allowed.
+- Push release prep to a release branch, open a PR to `main`, and wait for required checks plus repository review policy before merging.
+- If the repo policy blocks merge until review, do not treat green checks alone as sufficient.
+- If releasing `openrouter-rs` and `openrouter-cli` together, publish the SDK first when the CLI depends on the new SDK version from crates.io.
+- After the SDK release is live on crates.io, rerun CLI package validation and only then push `openrouter-cli-v<version>`.
 
 ## Release Inputs
 
@@ -41,6 +49,7 @@ Apply updates in this order to avoid drift.
 - Move finalized items from `## [Unreleased]` into a new version section.
 - Create `## [<version>] - <date>` with `### Added`/`### Changed`/`### Fixed` headings as needed.
 - Keep `## [Unreleased]` at the top for next cycle.
+- If `## [Unreleased]` is empty for a patch release, derive concise user-visible bullets from commits merged since the previous release tag instead of shipping an empty release section.
 5. Update README bottom `## 📈 Release History`:
 - Insert a new `### Version <version> *(Latest)*` section at the top of the history list.
 - Remove `*(Latest)*` marker from the previous latest version.
@@ -63,15 +72,21 @@ When target is `openrouter-cli`:
 
 Run local checks in this order:
 
-1. `cargo fmt --all`
-2. `cargo clippy --all-targets --all-features -- -D warnings`
-3. `cargo test --test unit`
-4. `bash .agents/skills/openrouter-rs-release/scripts/verify_release_sync.sh <version>`
+1. `just quality`
+2. `bash .agents/skills/openrouter-rs-release/scripts/verify_release_sync.sh <sdk-version>` for SDK releases
+3. `just quality-ci` if you touched CLI behavior, migration docs, or CI-aligned release/test flows
+4. `cargo package --locked` on a clean tree, or `cargo package --locked --allow-dirty` before commit, for SDK release validation
 
 For CLI releases, also run:
 
 1. `cargo test -p openrouter-cli`
-2. `cargo package -p openrouter-cli --locked`
+2. `cargo package -p openrouter-cli --locked` on a clean tree, or `cargo package -p openrouter-cli --locked --allow-dirty` before commit
+
+Important CLI packaging rule:
+
+- `cargo package -p openrouter-cli` validates against crates.io, not the workspace path dependency.
+- If `crates/openrouter-cli/Cargo.toml` now requires a just-bumped `openrouter-rs` version that is not yet published, this package step will fail until the SDK release is live on crates.io.
+- In that case, validate CLI tests in the PR, merge the release prep, publish `v<sdk-version>`, wait until crates.io resolves the new SDK version, then rerun CLI packaging and push `openrouter-cli-v<cli-version>`.
 
 If `verify_release_sync.sh` reports mismatch, fix files before commit/tag.
 
@@ -79,12 +94,13 @@ If `verify_release_sync.sh` reports mismatch, fix files before commit/tag.
 
 When all checks pass:
 
-1. Commit release prep changes.
-2. Push to `main` via PR according to repo policy.
-3. Create and push release tag:
+1. Commit release prep changes on a release branch.
+2. Open and merge a PR to `main` according to repo policy.
+3. Fast-forward local `main` to the merged commit before tagging.
+4. Create and push release tag:
 - SDK: `v<version>`
 - CLI: `openrouter-cli-v<version>`
-4. Confirm GitHub Actions release workflow passes:
+5. Confirm GitHub Actions release workflow passes:
 - SDK workflow: `Release`
 - verify job
 - crates.io publish (requires `CARGO_REGISTRY_TOKEN`)
@@ -111,14 +127,19 @@ Use `CHANGELOG.md` as the source of truth.
 - [ ] `src/lib.rs` pinned crate snippet updated (if present)
 - [ ] `CHANGELOG.md` new version section created
 - [ ] README bottom Release History latest section updated
-- [ ] local checks passed (`fmt`, `clippy`, `unit`)
+- [ ] local checks passed (`just quality`)
 - [ ] version sync script passed
+- [ ] SDK package validation passed
+- [ ] release prep merged to `main`
 - [ ] tag `v<version>` pushed
 - [ ] `Release` workflow green
 
 - CLI checklist:
 - [ ] `crates/openrouter-cli/Cargo.toml` version bumped
 - [ ] CLI README install notes updated
-- [ ] local checks passed (`cargo test -p openrouter-cli`, `cargo package -p openrouter-cli --locked`)
+- [ ] CLI tests passed in PR (`cargo test -p openrouter-cli`)
+- [ ] SDK version is live on crates.io if CLI depends on it
+- [ ] CLI package validation passed
+- [ ] release prep merged to `main`
 - [ ] tag `openrouter-cli-v<version>` pushed
 - [ ] `CLI Release` workflow green (publish + binaries + checksums)
