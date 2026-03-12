@@ -11,6 +11,12 @@
 - `examples/` contains runnable end-to-end usage samples.
 
 ## Build, Test, and Development Commands
+- Prefer the `just` recipes below for local quality checks so agent and CI commands stay aligned.
+- `just quality` runs the standard local gate: format check, `cargo check`, clippy, unit tests, crate-internal lib tests, and doctests.
+- `just quality-ci` mirrors the full stable CI gate, including deterministic integration subsets, CLI checks, and migration smoke checks.
+- `just test-unit`, `just test-lib`, `just test-doc`, `just test-integration-subsets`, `just test-cli`, and `just test-migration-smoke` run the corresponding focused checks.
+- `just test-integration` runs the full live integration suite and requires `OPENROUTER_API_KEY`.
+- `just check-migration-docs` validates migration doc structure via `scripts/check_migration_docs.sh`.
 - `cargo build` builds the crate.
 - `cargo check` validates compileability quickly.
 - `cargo fmt --all` formats code using `rustfmt`.
@@ -35,7 +41,7 @@
 - Follow existing commit style: `feat:`, `fix:`, `docs:`, `chore:` + concise summary.
 - Keep PRs focused; include rationale, behavior changes, and linked issues/PRs.
 - For API changes, update examples and docs (`README.md`, `CHANGELOG.md`) in the same PR.
-- Before opening a PR, run: `cargo fmt --all`, `cargo clippy --all-targets --all-features`, and relevant tests.
+- Before opening a PR, run `just quality`. If you touched CI-aligned release, CLI, or migration surfaces, run `just quality-ci` as well.
 
 ## Security & Configuration Tips
 - Use environment variables for secrets; never hardcode API keys.
