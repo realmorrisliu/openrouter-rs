@@ -30,7 +30,7 @@ jobs:
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Rust (stable)
         uses: dtolnay/rust-toolchain@stable
@@ -78,7 +78,7 @@ jobs:
       OPENROUTER_RUN_MANAGEMENT_TESTS: "1"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Rust (stable)
         uses: dtolnay/rust-toolchain@stable

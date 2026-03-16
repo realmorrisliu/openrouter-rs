@@ -32,7 +32,7 @@ jobs:
       OPENROUTER_CLI_RUN_LIVE: "1"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Rust (stable)
         uses: dtolnay/rust-toolchain@stable
