@@ -14,7 +14,7 @@ Type-safe, async Rust bindings for the OpenRouter API.
 
 </div>
 
-`openrouter-rs` is built around the canonical `0.6.x` domain-oriented client surface:
+`openrouter-rs` is built around the canonical `0.7.x` domain-oriented client surface:
 
 - `client.chat()` for `POST /chat/completions`
 - `client.responses()` for `POST /responses`
@@ -29,7 +29,7 @@ The crate ships typed request/response models, builder-based ergonomics, streami
 
 ```toml
 [dependencies]
-openrouter-rs = "0.6.1"
+openrouter-rs = "0.7.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -37,7 +37,7 @@ Legacy text completions are opt-in:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.6.1", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.7.0", features = ["legacy-completions"] }
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -75,7 +75,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Design Overview
 
-The main design change in `0.6.x` is that public documentation and examples treat the domain clients as the canonical surface. Flat `OpenRouterClient::*` helpers still exist in places, but they are not the recommended path for new code.
+The main design direction in `0.7.x` is that public documentation and examples treat the domain clients as the canonical surface. Flat `OpenRouterClient::*` helpers still exist in places, but they are not the recommended path for new code.
 
 | Domain | Canonical methods | Primary endpoints | Auth note |
 | --- | --- | --- | --- |
@@ -433,7 +433,13 @@ When you change API surface or examples:
 
 ## 📈 Release History
 
-### Version 0.6.1 *(Latest)*
+### Version 0.7.0 *(Latest)*
+
+- Removed the SDK-level `config` module so file/profile config resolution now lives in the companion CLI or the caller's application layer.
+- Fixed structured assistant `content` parsing and normalized `HTTP 200` error payloads into proper API errors.
+- Moved hot live integrations to a Responses-first model pool with candidate health checks.
+
+### Version 0.6.1
 
 - Fixed `ToolBuilder` field loss when setters are called in different orders.
 - Preserved combined model filters and model resolution ordering, and propagated default headers to chat streaming requests.

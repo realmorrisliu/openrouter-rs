@@ -20,7 +20,7 @@
 //! Add to your `Cargo.toml`:
 //! ```toml
 //! [dependencies]
-//! openrouter-rs = "0.6.1"
+//! openrouter-rs = "0.7.0"
 //! tokio = { version = "1", features = ["full"] }
 //! ```
 //!
