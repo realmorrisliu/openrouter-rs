@@ -49,7 +49,7 @@ OPENROUTER_MANAGEMENT_KEY=... OPENROUTER_RUN_MANAGEMENT_TESTS=1 cargo test --tes
 ## Stable vs Hot Tiers
 
 - `stable`: the default regression tier used for predictable local and CI coverage
-- `hot`: a broader sweep for recently popular or recently changed upstream models
+- `hot`: a broader Responses API sweep for recently popular or recently changed upstream models
 
 Examples:
 
@@ -96,7 +96,7 @@ OPENROUTER_MANAGEMENT_KEY=... just test-live-contract-management
 
 1. trying to derive top models from `https://openrouter.ai/rankings`
 2. falling back to ordered IDs from `https://openrouter.ai/api/v1/models`
-3. validating candidate hot models with a minimal chat completion when `OPENROUTER_API_KEY` is available
+3. validating candidate hot models with a minimal Responses API request when `OPENROUTER_API_KEY` is available
 4. keeping the last known file if remote fetch/parsing fails
 
 Example:

@@ -7,7 +7,7 @@ TOP_N="${OPENROUTER_HOT_MODELS_TOP_N:-10}"
 CANDIDATE_LIMIT="${OPENROUTER_HOT_MODELS_CANDIDATE_LIMIT:-25}"
 RANKINGS_URL="${OPENROUTER_RANKINGS_URL:-https://openrouter.ai/rankings}"
 MODELS_URL="${OPENROUTER_MODELS_ENDPOINT:-https://openrouter.ai/api/v1/models}"
-CHAT_COMPLETIONS_URL="${OPENROUTER_CHAT_COMPLETIONS_ENDPOINT:-https://openrouter.ai/api/v1/chat/completions}"
+RESPONSES_URL="${OPENROUTER_RESPONSES_ENDPOINT:-https://openrouter.ai/api/v1/responses}"
 
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
@@ -90,51 +90,32 @@ read_existing_array() {
   fi
 }
 
-response_has_text_or_reasoning() {
+response_has_responses_output_text() {
   local response_file="$1"
 
   jq -e '
     .error? == null and
     (.id | type == "string" and length > 0) and
-    (.choices | type == "array" and length > 0) and
     (
+      (.status // "") as $status
+      | ($status == "" or ($status != "failed" and $status != "cancelled" and $status != "incomplete"))
+    ) and
+    (
+      (.output_text? // "" | length > 0)
+      or
       (
-        .choices[0].message.reasoning
-        // .choices[0].delta.reasoning
-        // ""
-      ) as $reasoning
-      | ($reasoning | type == "string" and length > 0)
-    or
-      (
-        .choices[0].message.content
-        // .choices[0].delta.content
-        // null
-      ) as $content
-      | if $content == null then
-          false
-        elif ($content | type) == "string" then
-          ($content | length > 0)
-        elif ($content | type) == "object" then
-          (
-            (($content.type // "") as $kind
-            | ($kind == "" or $kind == "text" or $kind == "output_text" or $kind == "input_text"))
-            and
-            (($content.text // $content.content // "") | type == "string" and length > 0)
-          )
-        elif ($content | type) == "array" then
-          (
-            [
-              $content[]?
-              | select(type == "object")
-              | select((.type // "") as $kind | $kind == "" or $kind == "text" or $kind == "output_text" or $kind == "input_text")
-              | (.text // .content // empty)
-            ]
-            | join("")
-            | length > 0
-          )
-        else
-          false
-        end
+        [
+          .. | objects
+          | select(
+              (.type // "") == "output_text"
+              or (.type // "") == "text"
+              or (.type // "") == "reasoning"
+              or (.type // "") == "reasoning_text"
+            )
+          | (.text // .content // .reasoning // empty)
+        ]
+        | join("")
+        | length > 0
       )
     )
   ' "$response_file" >/dev/null
@@ -143,7 +124,31 @@ response_has_text_or_reasoning() {
 validate_hot_model() {
   local model="$1"
   local response_file="$TMP_DIR/validate-$(echo "$model" | tr '/:' '__').json"
+  local request_file="$TMP_DIR/request-$(echo "$model" | tr '/:' '__').json"
   local status
+
+  if [[ "$model" == x-ai/grok-4.20* ]]; then
+    jq -n --arg model "$model" '{
+      model: $model,
+      instructions: "Return a plain-text final answer only. Do not call tools or use external actions.",
+      input: [{role: "user", content: "Reply with exactly: hot-model-check"}],
+      max_output_tokens: 64,
+      temperature: 0,
+      parallel_tool_calls: false,
+      store: false,
+      reasoning: {enabled: false}
+    }' >"$request_file"
+  else
+    jq -n --arg model "$model" '{
+      model: $model,
+      instructions: "Return a plain-text final answer only. Do not call tools or use external actions.",
+      input: [{role: "user", content: "Reply with exactly: hot-model-check"}],
+      max_output_tokens: 64,
+      temperature: 0,
+      parallel_tool_calls: false,
+      store: false
+    }' >"$request_file"
+  fi
 
   status="$(
     curl -sS \
@@ -152,13 +157,8 @@ validate_hot_model() {
       -H "Content-Type: application/json" \
       -o "$response_file" \
       -w '%{http_code}' \
-      "$CHAT_COMPLETIONS_URL" \
-      -d "$(jq -cn --arg model "$model" '{
-        model: $model,
-        messages: [{role: "user", content: "Reply with exactly: hot-model-check"}],
-        max_tokens: 20,
-        temperature: 0
-      }')"
+      "$RESPONSES_URL" \
+      -d "@$request_file"
   )" || {
     log "Health check failed for $model: request error"
     return 1
@@ -175,13 +175,13 @@ validate_hot_model() {
     return 1
   fi
 
-  if ! response_has_text_or_reasoning "$response_file"; then
+  if ! response_has_responses_output_text "$response_file"; then
     local message
-    message="$(jq -r '.error.message // .choices[0].error.message // empty' "$response_file" 2>/dev/null || true)"
+    message="$(jq -r '.error.message // .message // empty' "$response_file" 2>/dev/null || true)"
     if [ -n "$message" ]; then
       log "Health check failed for $model: $message"
     else
-      log "Health check failed for $model: no text or reasoning content"
+      log "Health check failed for $model: no output_text or reasoning text"
     fi
     return 1
   fi

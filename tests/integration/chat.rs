@@ -1,8 +1,5 @@
 use super::{
-    model_pool::{
-        hot_models, integration_tier_name, should_run_hot_sweep, stable_regression_models,
-        test_chat_model, test_reasoning_model,
-    },
+    model_pool::{stable_regression_models, test_chat_model, test_reasoning_model},
     test_utils::{create_test_client, rate_limit_delay},
 };
 
@@ -71,26 +68,6 @@ fn get_first_content(response: &CompletionsResponse) -> &str {
     }
 }
 
-fn validate_response_for_model(response: &CompletionsResponse) -> Result<(), String> {
-    if response.id.trim().is_empty() {
-        return Err("missing response ID".to_string());
-    }
-    if response.model.trim().is_empty() {
-        return Err("missing response model".to_string());
-    }
-    if response.choices.is_empty() {
-        return Err("empty choices".to_string());
-    }
-
-    let content = get_first_content(response).trim();
-    let reasoning = response.choices[0].reasoning().unwrap_or_default().trim();
-    if content.is_empty() && reasoning.is_empty() {
-        return Err("no content or reasoning in first choice".to_string());
-    }
-
-    Ok(())
-}
-
 /// Run one stable regression model to validate baseline deserialization behavior.
 #[tokio::test]
 #[allow(clippy::result_large_err)]
@@ -126,61 +103,6 @@ async fn test_stable_regression_chat_completion() -> Result<(), OpenRouterError>
         "Stable regression test passed for model {model}, response: {:?}",
         content.unwrap_or_default()
     );
-    Ok(())
-}
-
-#[tokio::test]
-#[allow(clippy::result_large_err)]
-async fn test_hot_model_sweep() -> Result<(), OpenRouterError> {
-    if !should_run_hot_sweep() {
-        println!(
-            "Skipping hot-model sweep because OPENROUTER_INTEGRATION_TIER={} (expected: hot)",
-            integration_tier_name()
-        );
-        return Ok(());
-    }
-
-    let models = hot_models();
-    assert!(
-        !models.is_empty(),
-        "hot model list should not be empty when tier=hot"
-    );
-
-    let client = create_test_client()?;
-    let mut failures = Vec::new();
-
-    println!("Running hot-model sweep across {} models", models.len());
-
-    for model in models {
-        rate_limit_delay().await;
-        let request = ChatCompletionRequestBuilder::default()
-            .model(&model)
-            .messages(vec![Message::new(
-                Role::User,
-                "Reply with exactly: hot-model-check",
-            )])
-            .max_tokens(20)
-            .temperature(0.0)
-            .build()?;
-
-        match client.send_chat_completion(&request).await {
-            Ok(response) => {
-                if let Err(reason) = validate_response_for_model(&response) {
-                    failures.push(format!("{model}: {reason}"));
-                } else {
-                    println!("Hot model check passed: {model}");
-                }
-            }
-            Err(err) => failures.push(format!("{model}: {err}")),
-        }
-    }
-
-    assert!(
-        failures.is_empty(),
-        "hot-model sweep had failures:\n{}",
-        failures.join("\n")
-    );
-
     Ok(())
 }
 
