@@ -80,6 +80,28 @@ fn collect_responses_output_text(value: &Value, buffer: &mut String) {
     }
 }
 
+fn collect_response_text(response: &ResponsesResponse) -> String {
+    let mut text = String::new();
+
+    if let Some(output_text) = response.extra.get("output_text") {
+        match output_text {
+            Value::String(value) => text.push_str(value),
+            Value::Array(_) | Value::Object(_) => {
+                collect_responses_output_text(output_text, &mut text);
+            }
+            _ => {}
+        }
+    }
+
+    if let Some(output) = response.output.as_ref() {
+        for item in output {
+            collect_responses_output_text(item, &mut text);
+        }
+    }
+
+    text
+}
+
 fn validate_responses_output_for_model(response: &ResponsesResponse) -> Result<(), String> {
     let id = response.id.as_deref().unwrap_or_default().trim();
     if id.is_empty() {
@@ -91,21 +113,10 @@ fn validate_responses_output_for_model(response: &ResponsesResponse) -> Result<(
         return Err(format!("responses status {status}"));
     }
 
-    let output = response
-        .output
-        .as_ref()
-        .ok_or_else(|| "missing response output".to_string())?;
-    if output.is_empty() {
-        return Err("empty response output".to_string());
-    }
-
-    let mut text = String::new();
-    for item in output {
-        collect_responses_output_text(item, &mut text);
-    }
+    let text = collect_response_text(response);
 
     if text.trim().is_empty() {
-        return Err("no output_text or reasoning text in response output".to_string());
+        return Err("no output_text or reasoning text in response".to_string());
     }
 
     Ok(())
@@ -153,10 +164,14 @@ async fn test_create_response_non_streaming() -> Result<(), OpenRouterError> {
     );
     assert!(
         response
-            .output
-            .as_ref()
-            .is_some_and(|output| !output.is_empty()),
-        "response.output should be non-empty"
+            .status
+            .as_deref()
+            .is_some_and(|status| status == "completed"),
+        "response.status should be completed"
+    );
+    assert!(
+        validate_responses_output_for_model(&response).is_ok(),
+        "response should contain output_text or reasoning text"
     );
 
     println!(
@@ -164,6 +179,35 @@ async fn test_create_response_non_streaming() -> Result<(), OpenRouterError> {
         response.id.as_deref().unwrap_or("<missing>")
     );
     Ok(())
+}
+
+#[test]
+fn test_validate_responses_output_accepts_top_level_output_text() {
+    let response: ResponsesResponse = serde_json::from_value(json!({
+        "id": "resp_output_text_only",
+        "object": "response",
+        "status": "completed",
+        "output_text": "hot-model-check"
+    }))
+    .expect("response should deserialize");
+
+    assert!(validate_responses_output_for_model(&response).is_ok());
+}
+
+#[test]
+fn test_validate_responses_output_rejects_empty_payloads() {
+    let response: ResponsesResponse = serde_json::from_value(json!({
+        "id": "resp_empty_output",
+        "object": "response",
+        "status": "completed",
+        "output": []
+    }))
+    .expect("response should deserialize");
+
+    assert_eq!(
+        validate_responses_output_for_model(&response),
+        Err("no output_text or reasoning text in response".to_string())
+    );
 }
 
 #[tokio::test]
