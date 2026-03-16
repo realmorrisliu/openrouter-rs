@@ -7,8 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-03-16
+
 ### Removed
 - Removed the SDK-level `config` module and related client surface. `openrouter-rs` no longer exports `OpenRouterConfig` / `ModelConfig`, no longer stores `.config(...)` on `OpenRouterClient`, and no longer treats file/profile config as part of the core SDK API. That behavior now belongs in the companion CLI or the caller's own application layer.
+
+### Changed
+- Refreshed the canonical SDK docs around the `0.7.x` domain-oriented client surface and kept file/profile config explicitly outside the SDK core.
+- Hot live integration coverage now runs as a Responses-first sweep and validates candidate hot models with a minimal Responses API health check before they enter the pool.
+
+### Fixed
+- Assistant `content` values that arrive as structured objects or arrays now surface text correctly in chat completion helpers when they contain text parts.
+- `HTTP 200` responses that actually contain `{ "error": ... }` payloads now normalize into `OpenRouterError::Api` with provider/API status information instead of surfacing as generic deserialization failures.
 
 ## [0.6.1] - 2026-03-12
 
