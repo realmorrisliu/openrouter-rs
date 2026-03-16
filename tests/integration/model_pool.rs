@@ -136,7 +136,7 @@ fn load_model_pool() -> Option<ModelPoolConfig> {
         .unwrap_or_else(|_| PathBuf::from(DEFAULT_MODEL_POOL_FILE));
 
     let raw = fs::read_to_string(&path).ok().or_else(|| {
-        (path == PathBuf::from(DEFAULT_MODEL_POOL_FILE))
+        (path.as_path() == std::path::Path::new(DEFAULT_MODEL_POOL_FILE))
             .then(|| fs::read_to_string(LEGACY_MODEL_POOL_FILE).ok())
             .flatten()
     })?;
