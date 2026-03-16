@@ -1,5 +1,6 @@
 use futures_util::{Stream, StreamExt, stream, stream::BoxStream};
 use serde::de::DeserializeOwned;
+use serde_json::Value;
 
 use crate::{
     api::errors::{parse_api_error, unreadable_error_response},
@@ -163,6 +164,26 @@ fn body_preview(body_text: &str, limit: usize) -> String {
     preview
 }
 
+fn response_request_id(response: &Response) -> Option<String> {
+    response
+        .header("x-request-id")
+        .and_then(|values| values.get(0))
+        .map(|value| value.as_str().to_string())
+        .or_else(|| {
+            response
+                .header("request-id")
+                .and_then(|values| values.get(0))
+                .map(|value| value.as_str().to_string())
+        })
+}
+
+fn body_contains_api_error(body_text: &str) -> bool {
+    serde_json::from_str::<Value>(body_text)
+        .ok()
+        .and_then(|value| value.get("error").cloned())
+        .is_some()
+}
+
 pub(crate) fn response_deserialization_error(
     context: &str,
     status: StatusCode,
@@ -180,24 +201,26 @@ pub(crate) async fn parse_json_response<T: DeserializeOwned>(
     context: &str,
 ) -> Result<T, OpenRouterError> {
     let status = response.status();
+    let request_id = response_request_id(&response);
     let body_text = response.body_string().await?;
 
-    serde_json::from_str(&body_text)
-        .map_err(|error| response_deserialization_error(context, status, &error, &body_text))
+    match serde_json::from_str(&body_text) {
+        Ok(parsed) => Ok(parsed),
+        Err(error) => {
+            if body_contains_api_error(&body_text) {
+                Err(parse_api_error(status, request_id, &body_text))
+            } else {
+                Err(response_deserialization_error(
+                    context, status, &error, &body_text,
+                ))
+            }
+        }
+    }
 }
 
 pub async fn handle_error(mut response: Response) -> Result<(), OpenRouterError> {
     let status = response.status();
-    let request_id = response
-        .header("x-request-id")
-        .and_then(|values| values.get(0))
-        .map(|value| value.as_str().to_string())
-        .or_else(|| {
-            response
-                .header("request-id")
-                .and_then(|values| values.get(0))
-                .map(|value| value.as_str().to_string())
-        });
+    let request_id = response_request_id(&response);
     let text = match response.body_string().await {
         Ok(text) => text,
         Err(error) => {

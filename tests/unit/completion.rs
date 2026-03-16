@@ -263,8 +263,33 @@ fn test_response_with_multimodal_content_parts() {
     let response: CompletionsResponse = serde_json::from_str(json).expect("Failed to deserialize");
     let choice = &response.choices[0];
 
-    // content() returns only plain-text content, and should remain safe for multimodal arrays.
-    assert!(choice.content().is_none());
+    assert_eq!(choice.content(), Some("Caption: beach sunset"));
+}
+
+#[test]
+fn test_response_with_text_content_object() {
+    let json = r#"{
+        "id": "gen-multi-002",
+        "choices": [{
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+                "role": "assistant",
+                "content": {
+                    "type":"output_text",
+                    "text":"Hello from object content"
+                }
+            }
+        }],
+        "created": 1700000000,
+        "model": "test-model",
+        "object": "chat.completion"
+    }"#;
+
+    let response: CompletionsResponse = serde_json::from_str(json).expect("Failed to deserialize");
+    let choice = &response.choices[0];
+
+    assert_eq!(choice.content(), Some("Hello from object content"));
 }
 
 /// Test deserialization of assistant images/audio fields

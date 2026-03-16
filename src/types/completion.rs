@@ -276,18 +276,46 @@ pub struct ErrorResponse {
     pub metadata: Option<HashMap<String, Value>>,
 }
 
+fn extract_text_from_content_value(value: &Value) -> Option<String> {
+    match value {
+        Value::Null => None,
+        Value::String(text) => Some(text.clone()),
+        Value::Object(part) => extract_text_from_content_part(part),
+        Value::Array(parts) => {
+            let text = parts
+                .iter()
+                .filter_map(|part| match part {
+                    Value::Object(part) => extract_text_from_content_part(part),
+                    _ => None,
+                })
+                .collect::<String>();
+
+            (!text.is_empty()).then_some(text)
+        }
+        _ => None,
+    }
+}
+
+fn extract_text_from_content_part(part: &serde_json::Map<String, Value>) -> Option<String> {
+    let part_type = part.get("type").and_then(Value::as_str);
+    if let Some(kind) = part_type {
+        if !matches!(kind, "text" | "output_text" | "input_text") {
+            return None;
+        }
+    }
+
+    part.get("text")
+        .and_then(Value::as_str)
+        .or_else(|| part.get("content").and_then(Value::as_str))
+        .map(ToString::to_string)
+}
+
 fn deserialize_optional_text_content<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
 where
     D: Deserializer<'de>,
 {
     let value = Option::<Value>::deserialize(deserializer)?;
-    Ok(match value {
-        None | Some(Value::Null) => None,
-        Some(Value::String(text)) => Some(text),
-        // Multimodal content arrays/objects are accepted and represented via
-        // specialized fields (e.g. images/audio), while `content` remains text-only.
-        Some(_) => None,
-    })
+    Ok(value.as_ref().and_then(extract_text_from_content_value))
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -38,6 +38,18 @@ struct ProviderErrorMetadata {
     raw: Value,
 }
 
+fn normalize_error_status(status: StatusCode, api_code: Option<i64>) -> StatusCode {
+    if !status.is_success() {
+        return status;
+    }
+
+    api_code
+        .and_then(|code| u16::try_from(code).ok())
+        .and_then(|code| StatusCode::try_from(code).ok())
+        .filter(|code| code.is_client_error() || code.is_server_error())
+        .unwrap_or(status)
+}
+
 fn build_api_error(
     status: StatusCode,
     request_id: Option<String>,
@@ -48,6 +60,7 @@ fn build_api_error(
         message,
         metadata,
     } = api_error;
+    let status = normalize_error_status(status, code);
 
     let (kind, normalized_metadata) = match metadata {
         Some(ApiErrorMetadata::ModerationError(moderation)) => (

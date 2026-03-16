@@ -4,8 +4,10 @@ set -u -o pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUTPUT_FILE="${1:-$ROOT_DIR/tests/integration/hot_models.json}"
 TOP_N="${OPENROUTER_HOT_MODELS_TOP_N:-10}"
+CANDIDATE_LIMIT="${OPENROUTER_HOT_MODELS_CANDIDATE_LIMIT:-25}"
 RANKINGS_URL="${OPENROUTER_RANKINGS_URL:-https://openrouter.ai/rankings}"
 MODELS_URL="${OPENROUTER_MODELS_ENDPOINT:-https://openrouter.ai/api/v1/models}"
+CHAT_COMPLETIONS_URL="${OPENROUTER_CHAT_COMPLETIONS_ENDPOINT:-https://openrouter.ai/api/v1/chat/completions}"
 
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
@@ -57,7 +59,7 @@ extract_hot_from_rankings() {
       canonicalize_model_url "$url" || true
     done \
     | awk '!seen[$0]++' \
-    | head -n "$TOP_N"
+    | head -n "$CANDIDATE_LIMIT"
 }
 
 extract_hot_from_models_endpoint() {
@@ -65,7 +67,7 @@ extract_hot_from_models_endpoint() {
 
   jq -r '.data // [] | .[] | .id // empty' "$models_json" \
     | awk '!seen[$0]++' \
-    | head -n "$TOP_N"
+    | head -n "$CANDIDATE_LIMIT"
 }
 
 extract_all_model_ids_from_models_endpoint() {
@@ -85,6 +87,139 @@ read_existing_array() {
   local jq_path="$1"
   if [ -f "$OUTPUT_FILE" ]; then
     jq -r "$jq_path[]? // empty" "$OUTPUT_FILE" 2>/dev/null || true
+  fi
+}
+
+response_has_text_or_reasoning() {
+  local response_file="$1"
+
+  jq -e '
+    .error? == null and
+    (.id | type == "string" and length > 0) and
+    (.choices | type == "array" and length > 0) and
+    (
+      (
+        .choices[0].message.reasoning
+        // .choices[0].delta.reasoning
+        // ""
+      ) as $reasoning
+      | ($reasoning | type == "string" and length > 0)
+    or
+      (
+        .choices[0].message.content
+        // .choices[0].delta.content
+        // null
+      ) as $content
+      | if $content == null then
+          false
+        elif ($content | type) == "string" then
+          ($content | length > 0)
+        elif ($content | type) == "object" then
+          (
+            (($content.type // "") as $kind
+            | ($kind == "" or $kind == "text" or $kind == "output_text" or $kind == "input_text"))
+            and
+            (($content.text // $content.content // "") | type == "string" and length > 0)
+          )
+        elif ($content | type) == "array" then
+          (
+            [
+              $content[]?
+              | select(type == "object")
+              | select((.type // "") as $kind | $kind == "" or $kind == "text" or $kind == "output_text" or $kind == "input_text")
+              | (.text // .content // empty)
+            ]
+            | join("")
+            | length > 0
+          )
+        else
+          false
+        end
+      )
+    )
+  ' "$response_file" >/dev/null
+}
+
+validate_hot_model() {
+  local model="$1"
+  local response_file="$TMP_DIR/validate-$(echo "$model" | tr '/:' '__').json"
+  local status
+
+  status="$(
+    curl -sS \
+      --max-time 45 \
+      -H "Authorization: Bearer ${OPENROUTER_API_KEY}" \
+      -H "Content-Type: application/json" \
+      -o "$response_file" \
+      -w '%{http_code}' \
+      "$CHAT_COMPLETIONS_URL" \
+      -d "$(jq -cn --arg model "$model" '{
+        model: $model,
+        messages: [{role: "user", content: "Reply with exactly: hot-model-check"}],
+        max_tokens: 20,
+        temperature: 0
+      }')"
+  )" || {
+    log "Health check failed for $model: request error"
+    return 1
+  }
+
+  if [[ ! "$status" =~ ^2[0-9][0-9]$ ]]; then
+    local message
+    message="$(jq -r '.error.message // .message // empty' "$response_file" 2>/dev/null || true)"
+    if [ -n "$message" ]; then
+      log "Health check failed for $model: HTTP $status: $message"
+    else
+      log "Health check failed for $model: HTTP $status"
+    fi
+    return 1
+  fi
+
+  if ! response_has_text_or_reasoning "$response_file"; then
+    local message
+    message="$(jq -r '.error.message // .choices[0].error.message // empty' "$response_file" 2>/dev/null || true)"
+    if [ -n "$message" ]; then
+      log "Health check failed for $model: $message"
+    else
+      log "Health check failed for $model: no text or reasoning content"
+    fi
+    return 1
+  fi
+
+  return 0
+}
+
+filter_healthy_hot_models() {
+  if [ -z "${OPENROUTER_API_KEY:-}" ]; then
+    hot_models=("${hot_models[@]:0:$TOP_N}")
+    return
+  fi
+
+  local validated=()
+  local skipped=()
+
+  for model in "${hot_models[@]}"; do
+    if validate_hot_model "$model"; then
+      validated+=("$model")
+    else
+      skipped+=("$model")
+    fi
+
+    if [ "${#validated[@]}" -ge "$TOP_N" ]; then
+      break
+    fi
+  done
+
+  if [ "${#validated[@]}" -eq 0 ]; then
+    log "Health checks did not yield any working hot models; keeping unvalidated candidates."
+    hot_models=("${hot_models[@]:0:$TOP_N}")
+    return
+  fi
+
+  hot_models=("${validated[@]}")
+
+  if [ "${#skipped[@]}" -gt 0 ]; then
+    log "Skipped unhealthy hot models: ${skipped[*]}"
   fi
 }
 
@@ -136,6 +271,8 @@ if [ "${#hot_models[@]}" -eq 0 ]; then
   log "Unable to refresh hot models from rankings/models endpoint; keeping existing file."
   exit 0
 fi
+
+filter_healthy_hot_models
 
 stable_chat="$(read_existing_string '.stable.chat')"
 stable_reasoning="$(read_existing_string '.stable.reasoning')"

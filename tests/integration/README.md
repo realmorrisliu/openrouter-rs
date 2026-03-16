@@ -96,7 +96,8 @@ OPENROUTER_MANAGEMENT_KEY=... just test-live-contract-management
 
 1. trying to derive top models from `https://openrouter.ai/rankings`
 2. falling back to ordered IDs from `https://openrouter.ai/api/v1/models`
-3. keeping the last known file if remote fetch/parsing fails
+3. validating candidate hot models with a minimal chat completion when `OPENROUTER_API_KEY` is available
+4. keeping the last known file if remote fetch/parsing fails
 
 Example:
 

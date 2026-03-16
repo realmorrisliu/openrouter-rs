@@ -308,3 +308,33 @@ async fn test_send_chat_completion_returns_contextual_parse_error_on_invalid_jso
 
     server.join().expect("server thread should finish");
 }
+
+#[tokio::test]
+async fn test_send_chat_completion_treats_error_payload_with_200_status_as_api_error() {
+    let (base_url, _rx, server) = spawn_server(
+        r#"{"error":{"message":"Internal Server Error","code":500}}"#,
+        "application/json",
+    );
+
+    let request = ChatCompletionRequestBuilder::default()
+        .model("openai/gpt-4o-mini")
+        .messages(vec![Message::new(Role::User, "hello")])
+        .build()
+        .expect("chat request should build");
+
+    let error = send_chat_completion(&base_url, "api-key", &None, &None, &request)
+        .await
+        .expect_err("error payload should fail");
+
+    match error {
+        openrouter_rs::error::OpenRouterError::Api(api_error) => {
+            assert_eq!(api_error.status, surf::StatusCode::InternalServerError);
+            assert_eq!(api_error.api_code, Some(500));
+            assert_eq!(api_error.message, "Internal Server Error");
+            assert!(api_error.is_retryable());
+        }
+        other => panic!("expected API error, got {other:?}"),
+    }
+
+    server.join().expect("server thread should finish");
+}
