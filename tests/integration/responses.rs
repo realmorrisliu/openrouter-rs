@@ -9,7 +9,7 @@ use openrouter_rs::{
 use serde_json::{Value, json};
 
 use super::{
-    model_pool::{hot_models, integration_tier_name, should_run_hot_sweep},
+    model_pool::{hot_responses_models, integration_tier_name, should_run_hot_responses_sweep},
     test_utils::{create_test_client, rate_limit_delay},
 };
 
@@ -242,26 +242,26 @@ async fn test_stream_response_unified_done_semantics() -> Result<(), OpenRouterE
 
 #[tokio::test]
 #[allow(clippy::result_large_err)]
-async fn test_hot_model_sweep() -> Result<(), OpenRouterError> {
-    if !should_run_hot_sweep() {
+async fn test_hot_responses_model_sweep() -> Result<(), OpenRouterError> {
+    if !should_run_hot_responses_sweep() {
         println!(
-            "Skipping hot-model responses sweep because OPENROUTER_INTEGRATION_TIER={} (expected: hot)",
+            "Skipping hot responses model sweep because OPENROUTER_INTEGRATION_TIER={} (expected: hot)",
             integration_tier_name()
         );
         return Ok(());
     }
 
-    let models = hot_models();
+    let models = hot_responses_models();
     assert!(
         !models.is_empty(),
-        "hot model list should not be empty when tier=hot"
+        "hot responses model list should not be empty when tier=hot"
     );
 
     let client = create_test_client()?;
     let mut failures = Vec::new();
 
     println!(
-        "Running hot-model responses sweep across {} models",
+        "Running hot responses model sweep across {} models",
         models.len()
     );
 
@@ -274,7 +274,7 @@ async fn test_hot_model_sweep() -> Result<(), OpenRouterError> {
                 if let Err(reason) = validate_responses_output_for_model(&response) {
                     failures.push(format!("{model}: {reason}"));
                 } else {
-                    println!("Hot model responses check passed: {model}");
+                    println!("Hot responses model check passed: {model}");
                 }
             }
             Err(err) => failures.push(format!("{model}: {err}")),
@@ -283,7 +283,7 @@ async fn test_hot_model_sweep() -> Result<(), OpenRouterError> {
 
     assert!(
         failures.is_empty(),
-        "hot-model responses sweep had failures:\n{}",
+        "hot responses model sweep had failures:\n{}",
         failures.join("\n")
     );
 

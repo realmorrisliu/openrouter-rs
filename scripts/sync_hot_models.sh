@@ -2,7 +2,7 @@
 set -u -o pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OUTPUT_FILE="${1:-$ROOT_DIR/tests/integration/hot_models.json}"
+OUTPUT_FILE="${1:-$ROOT_DIR/tests/integration/model_pool.json}"
 TOP_N="${OPENROUTER_HOT_MODELS_TOP_N:-10}"
 CANDIDATE_LIMIT="${OPENROUTER_HOT_MODELS_CANDIDATE_LIMIT:-25}"
 RANKINGS_URL="${OPENROUTER_RANKINGS_URL:-https://openrouter.ai/rankings}"
@@ -11,6 +11,7 @@ RESPONSES_URL="${OPENROUTER_RESPONSES_ENDPOINT:-https://openrouter.ai/api/v1/res
 
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
+LEGACY_OUTPUT_FILE="$ROOT_DIR/tests/integration/hot_models.json"
 
 log() {
   echo "[sync_hot_models] $*"
@@ -76,17 +77,32 @@ extract_all_model_ids_from_models_endpoint() {
   jq -r '.data // [] | .[] | .id // empty' "$models_json" | awk '!seen[$0]++'
 }
 
+existing_pool_file() {
+  if [ -f "$OUTPUT_FILE" ]; then
+    printf '%s\n' "$OUTPUT_FILE"
+    return
+  fi
+
+  if [ "$OUTPUT_FILE" = "$ROOT_DIR/tests/integration/model_pool.json" ] && [ -f "$LEGACY_OUTPUT_FILE" ]; then
+    printf '%s\n' "$LEGACY_OUTPUT_FILE"
+  fi
+}
+
 read_existing_string() {
   local jq_path="$1"
-  if [ -f "$OUTPUT_FILE" ]; then
-    jq -r "$jq_path // empty" "$OUTPUT_FILE" 2>/dev/null || true
+  local existing_file
+  existing_file="$(existing_pool_file)"
+  if [ -n "$existing_file" ]; then
+    jq -r "$jq_path // empty" "$existing_file" 2>/dev/null || true
   fi
 }
 
 read_existing_array() {
   local jq_path="$1"
-  if [ -f "$OUTPUT_FILE" ]; then
-    jq -r "$jq_path[]? // empty" "$OUTPUT_FILE" 2>/dev/null || true
+  local existing_file
+  existing_file="$(existing_pool_file)"
+  if [ -n "$existing_file" ]; then
+    jq -r "$jq_path[]? // empty" "$existing_file" 2>/dev/null || true
   fi
 }
 
@@ -211,7 +227,7 @@ filter_healthy_hot_models() {
   done
 
   if [ "${#validated[@]}" -eq 0 ]; then
-    log "Health checks did not yield any working hot models; keeping unvalidated candidates."
+    log "Health checks did not yield any working hot responses models; keeping unvalidated candidates."
     hot_models=("${hot_models[@]:0:$TOP_N}")
     return
   fi
@@ -219,7 +235,7 @@ filter_healthy_hot_models() {
   hot_models=("${validated[@]}")
 
   if [ "${#skipped[@]}" -gt 0 ]; then
-    log "Skipped unhealthy hot models: ${skipped[*]}"
+    log "Skipped unhealthy hot responses models: ${skipped[*]}"
   fi
 }
 
@@ -298,7 +314,7 @@ fi
 hot_models_json="$(printf '%s\n' "${hot_models[@]}" | jq -R . | jq -s .)"
 stable_regression_json="$(printf '%s\n' "${stable_regression[@]}" | jq -R . | jq -s .)"
 generated_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-tmp_output="$TMP_DIR/hot_models.json"
+tmp_output="$TMP_DIR/model_pool.json"
 
 jq -n \
   --arg generated_at "$generated_at" \
@@ -310,7 +326,7 @@ jq -n \
   --argjson stable_regression "$stable_regression_json" \
   --argjson hot_models "$hot_models_json" \
   '{
-    schema_version: 1,
+    schema_version: 2,
     generated_at: $generated_at,
     source: {
       type: $source_type,
@@ -322,10 +338,12 @@ jq -n \
       reasoning: $stable_reasoning,
       regression: $stable_regression
     },
-    hot: {
-      models: $hot_models
+    responses: {
+      hot: {
+        models: $hot_models
+      }
     }
   }' >"$tmp_output"
 
 mv "$tmp_output" "$OUTPUT_FILE"
-log "Updated $OUTPUT_FILE using $source_label with ${#hot_models[@]} hot models."
+log "Updated $OUTPUT_FILE using $source_label with ${#hot_models[@]} hot responses models."
