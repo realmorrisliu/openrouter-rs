@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Rust (stable)
         uses: dtolnay/rust-toolchain@stable
@@ -47,7 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Rust (stable)
         uses: dtolnay/rust-toolchain@stable
@@ -90,7 +90,7 @@ jobs:
             exe_suffix: ""
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Rust (stable)
         uses: dtolnay/rust-toolchain@stable
@@ -120,7 +120,7 @@ jobs:
           tar -C dist -czf "${ASSET}" "${BIN}" README.md LICENSE
 
       - name: Upload binary artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: openrouter-cli-${{ matrix.target }}
           path: openrouter-cli-*.tar.gz
@@ -131,7 +131,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download built artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: dist
 
@@ -143,10 +143,20 @@ jobs:
           sha256sum openrouter-cli-*.tar.gz > SHA256SUMS
 
       - name: Create GitHub release with assets
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          generate_release_notes: true
-          files: |
-            openrouter-cli-*.tar.gz
-            SHA256SUMS
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${GITHUB_REF_NAME}" > /dev/null 2>&1; then
+            echo "Release ${GITHUB_REF_NAME} already exists; uploading assets with clobber."
+            gh release upload "${GITHUB_REF_NAME}" \
+              openrouter-cli-*.tar.gz \
+              SHA256SUMS \
+              --clobber
+            exit 0
+          fi
+
+          gh release create "${GITHUB_REF_NAME}" \
+            openrouter-cli-*.tar.gz \
+            SHA256SUMS \
+            --generate-notes \
+            --verify-tag
