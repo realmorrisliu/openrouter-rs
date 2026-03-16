@@ -152,9 +152,9 @@ response_has_responses_output_text() {
       | ($status == "" or ($status != "failed" and $status != "cancelled" and $status != "incomplete"))
     ) and
     (
-      (.output_text? // empty | collect_text | length > 0)
+      (.output_text? | collect_text | length > 0)
       or
-      (.output? // empty | collect_text | length > 0)
+      (.output? | collect_text | length > 0)
     )
   ' "$response_file" >/dev/null
 }
