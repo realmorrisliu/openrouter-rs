@@ -1,7 +1,8 @@
 use serde::Deserialize;
 use std::{collections::HashSet, env, fs, path::PathBuf};
 
-const DEFAULT_MODEL_POOL_FILE: &str = "tests/integration/hot_models.json";
+const DEFAULT_MODEL_POOL_FILE: &str = "tests/integration/model_pool.json";
+const LEGACY_MODEL_POOL_FILE: &str = "tests/integration/hot_models.json";
 const DEFAULT_CHAT_MODEL: &str = "x-ai/grok-code-fast-1";
 const DEFAULT_REASONING_MODEL: &str = "deepseek/deepseek-r1";
 const DEFAULT_STABLE_REGRESSION_MODELS: [&str; 3] = [
@@ -20,6 +21,7 @@ pub enum IntegrationTier {
 #[serde(default)]
 struct ModelPoolConfig {
     stable: StableModelPool,
+    responses: ResponsesModelPool,
     hot: HotModelPool,
 }
 
@@ -35,6 +37,12 @@ struct StableModelPool {
 #[serde(default)]
 struct HotModelPool {
     models: Vec<String>,
+}
+
+#[derive(Debug, Deserialize, Default)]
+#[serde(default)]
+struct ResponsesModelPool {
+    hot: HotModelPool,
 }
 
 pub fn test_chat_model() -> String {
@@ -71,11 +79,18 @@ pub fn stable_regression_models() -> Vec<String> {
         .collect()
 }
 
-pub fn hot_models() -> Vec<String> {
-    let mut models = if let Some(models) = env_model_list("OPENROUTER_TEST_HOT_MODELS") {
+pub fn hot_responses_models() -> Vec<String> {
+    let mut models = if let Some(models) = env_model_list_with_legacy_aliases(
+        "OPENROUTER_TEST_HOT_RESPONSES_MODELS",
+        &["OPENROUTER_TEST_HOT_MODELS"],
+    ) {
         models
     } else if let Some(pool) = load_model_pool() {
-        let hot = dedupe_models(pool.hot.models);
+        let hot = dedupe_models(if pool.responses.hot.models.is_empty() {
+            pool.hot.models
+        } else {
+            pool.responses.hot.models
+        });
         if hot.is_empty() {
             stable_regression_models()
         } else {
@@ -85,7 +100,7 @@ pub fn hot_models() -> Vec<String> {
         stable_regression_models()
     };
 
-    if let Some(limit) = hot_model_limit() {
+    if let Some(limit) = hot_responses_model_limit() {
         models.truncate(limit.min(models.len()));
     }
 
@@ -104,7 +119,7 @@ pub fn integration_tier() -> IntegrationTier {
     }
 }
 
-pub fn should_run_hot_sweep() -> bool {
+pub fn should_run_hot_responses_sweep() -> bool {
     matches!(integration_tier(), IntegrationTier::Hot)
 }
 
@@ -120,15 +135,22 @@ fn load_model_pool() -> Option<ModelPoolConfig> {
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from(DEFAULT_MODEL_POOL_FILE));
 
-    let raw = fs::read_to_string(path).ok()?;
+    let raw = fs::read_to_string(&path).ok().or_else(|| {
+        (path.as_path() == std::path::Path::new(DEFAULT_MODEL_POOL_FILE))
+            .then(|| fs::read_to_string(LEGACY_MODEL_POOL_FILE).ok())
+            .flatten()
+    })?;
     serde_json::from_str(&raw).ok()
 }
 
-fn hot_model_limit() -> Option<usize> {
-    env::var("OPENROUTER_TEST_HOT_MODELS_LIMIT")
-        .ok()
-        .and_then(|raw| raw.parse::<usize>().ok())
-        .filter(|limit| *limit > 0)
+fn hot_responses_model_limit() -> Option<usize> {
+    env_var_with_legacy_aliases(
+        "OPENROUTER_TEST_HOT_RESPONSES_MODELS_LIMIT",
+        &["OPENROUTER_TEST_HOT_MODELS_LIMIT"],
+    )
+    .ok()
+    .and_then(|raw| raw.parse::<usize>().ok())
+    .filter(|limit| *limit > 0)
 }
 
 fn normalize_model(model: Option<String>) -> Option<String> {
@@ -140,6 +162,28 @@ fn normalize_model(model: Option<String>) -> Option<String> {
 
 fn env_model_list(var: &str) -> Option<Vec<String>> {
     env::var(var)
+        .ok()
+        .map(|raw| parse_model_list(&raw))
+        .filter(|models| !models.is_empty())
+}
+
+fn env_var_with_legacy_aliases(
+    primary: &str,
+    legacy_aliases: &[&str],
+) -> Result<String, env::VarError> {
+    env::var(primary).or_else(|_| {
+        legacy_aliases
+            .iter()
+            .find_map(|alias| env::var(alias).ok())
+            .ok_or(env::VarError::NotPresent)
+    })
+}
+
+fn env_model_list_with_legacy_aliases(
+    primary: &str,
+    legacy_aliases: &[&str],
+) -> Option<Vec<String>> {
+    env_var_with_legacy_aliases(primary, legacy_aliases)
         .ok()
         .map(|raw| parse_model_list(&raw))
         .filter(|models| !models.is_empty())
@@ -184,6 +228,19 @@ mod tests {
             serde_json::from_str(r#"{"stable":{"chat":"x-ai/grok-code-fast-1"}}"#).unwrap();
         assert_eq!(parsed.stable.chat.as_deref(), Some("x-ai/grok-code-fast-1"));
         assert!(parsed.stable.regression.is_empty());
+        assert!(parsed.responses.hot.models.is_empty());
         assert!(parsed.hot.models.is_empty());
+    }
+
+    #[test]
+    fn test_model_pool_config_deserializes_responses_hot_models() {
+        let parsed: ModelPoolConfig = serde_json::from_str(
+            r#"{"responses":{"hot":{"models":["openai/gpt-5.4-pro","x-ai/grok-4.20-beta"]}}}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            parsed.responses.hot.models,
+            vec!["openai/gpt-5.4-pro", "x-ai/grok-4.20-beta"]
+        );
     }
 }

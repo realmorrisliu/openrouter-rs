@@ -3,7 +3,7 @@
 The live integration suite resolves models in this order:
 
 1. explicit environment overrides
-2. `tests/integration/hot_models.json`
+2. `tests/integration/model_pool.json`
 3. built-in defaults from the test helpers
 
 ## Required Environment Variables
@@ -21,9 +21,13 @@ The live integration suite resolves models in this order:
 - `OPENROUTER_TEST_RESPONSES_MODEL`: override the primary Responses API model
 - `OPENROUTER_TEST_REASONING_MODEL`: override the primary reasoning model
 - `OPENROUTER_TEST_STABLE_MODELS`: comma-separated stable regression models
-- `OPENROUTER_TEST_HOT_MODELS`: comma-separated hot-sweep models
-- `OPENROUTER_TEST_HOT_MODELS_LIMIT`: max models to run in the hot sweep
+- `OPENROUTER_TEST_HOT_RESPONSES_MODELS`: comma-separated Responses API hot-sweep models
+- `OPENROUTER_TEST_HOT_RESPONSES_MODELS_LIMIT`: max models to run in the hot Responses sweep
 - `OPENROUTER_RUN_MANAGEMENT_TESTS`: set to `1`/`true` to enable write-path management smoke
+
+Legacy aliases still accepted:
+- `OPENROUTER_TEST_HOT_MODELS`
+- `OPENROUTER_TEST_HOT_MODELS_LIMIT`
 
 For local development, start from [`.env.example`](../../.env.example).
 
@@ -49,7 +53,7 @@ OPENROUTER_MANAGEMENT_KEY=... OPENROUTER_RUN_MANAGEMENT_TESTS=1 cargo test --tes
 ## Stable vs Hot Tiers
 
 - `stable`: the default regression tier used for predictable local and CI coverage
-- `hot`: a broader sweep for recently popular or recently changed upstream models
+- `hot`: a broader Responses API sweep for recently popular or recently changed upstream models
 
 Examples:
 
@@ -57,7 +61,7 @@ Examples:
 # Default stable tier
 OPENROUTER_API_KEY=... cargo test --test integration -- --nocapture
 
-# Hot-model sweep
+# Hot Responses API sweep
 OPENROUTER_API_KEY=... OPENROUTER_INTEGRATION_TIER=hot cargo test --test integration -- --nocapture
 ```
 
@@ -92,14 +96,15 @@ OPENROUTER_MANAGEMENT_KEY=... just test-live-contract-management
 
 ## Pool Refresh
 
-`scripts/sync_hot_models.sh` updates `tests/integration/hot_models.json` by:
+`scripts/sync_model_pool.sh` updates `tests/integration/model_pool.json` by:
 
 1. trying to derive top models from `https://openrouter.ai/rankings`
 2. falling back to ordered IDs from `https://openrouter.ai/api/v1/models`
-3. keeping the last known file if remote fetch/parsing fails
+3. validating candidate hot models with a minimal Responses API request when `OPENROUTER_API_KEY` is available
+4. keeping the last known file if remote fetch/parsing fails
 
 Example:
 
 ```bash
-./scripts/sync_hot_models.sh
+./scripts/sync_model_pool.sh
 ```

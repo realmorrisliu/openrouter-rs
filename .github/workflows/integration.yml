@@ -53,14 +53,14 @@ jobs:
           echo "tier=${tier}" >> "$GITHUB_OUTPUT"
           echo "Running integration tier: ${tier}"
 
-      - name: Refresh hot model pool
+      - name: Refresh integration model pool
         if: steps.tier.outputs.tier == 'hot'
-        run: ./scripts/sync_hot_models.sh
+        run: ./scripts/sync_model_pool.sh
 
       - name: Run integration tests (or skip when secret missing)
         env:
           OPENROUTER_INTEGRATION_TIER: ${{ steps.tier.outputs.tier }}
-          OPENROUTER_TEST_HOT_MODELS_LIMIT: "10"
+          OPENROUTER_TEST_HOT_RESPONSES_MODELS_LIMIT: "10"
         run: |
           if [ -z "${OPENROUTER_API_KEY}" ]; then
             echo "OPENROUTER_API_KEY secret is not configured; skipping integration tests."
