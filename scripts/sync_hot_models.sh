@@ -110,6 +110,41 @@ response_has_responses_output_text() {
   local response_file="$1"
 
   jq -e '
+    def collect_text:
+      if type == "string" then
+        .
+      elif type == "array" then
+        map(collect_text) | join("")
+      elif type == "object" then
+        (
+          if (.type // "") as $kind | (
+            $kind == "output_text"
+            or $kind == "text"
+            or $kind == "reasoning"
+            or $kind == "reasoning_text"
+          ) then
+            [
+              .text? // empty,
+              .content? // empty,
+              .reasoning? // empty
+            ]
+            | map(select(type == "string"))
+            | join("")
+          else
+            ""
+          end
+        ) + (
+          [
+            .[]?
+            | select(type == "array" or type == "object")
+            | collect_text
+          ]
+          | join("")
+        )
+      else
+        ""
+      end;
+
     .error? == null and
     (.id | type == "string" and length > 0) and
     (
@@ -117,22 +152,9 @@ response_has_responses_output_text() {
       | ($status == "" or ($status != "failed" and $status != "cancelled" and $status != "incomplete"))
     ) and
     (
-      (.output_text? // "" | length > 0)
+      (.output_text? // empty | collect_text | length > 0)
       or
-      (
-        [
-          .. | objects
-          | select(
-              (.type // "") == "output_text"
-              or (.type // "") == "text"
-              or (.type // "") == "reasoning"
-              or (.type // "") == "reasoning_text"
-            )
-          | (.text // .content // .reasoning // empty)
-        ]
-        | join("")
-        | length > 0
-      )
+      (.output? // empty | collect_text | length > 0)
     )
   ' "$response_file" >/dev/null
 }
