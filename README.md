@@ -181,6 +181,18 @@ See [`crates/openrouter-cli/README.md`](crates/openrouter-cli/README.md) for the
 - Migration guidance for the `0.5.x -> 0.6.x` transition lives in [`MIGRATION.md`](MIGRATION.md)
 - Legacy `POST /completions` support remains available behind the `legacy-completions` feature
 
+### 🔁 0.6 Naming/Pagination Migration
+
+Full migration guide: [`MIGRATION.md`](MIGRATION.md)
+
+- `models().count()` -> `models().get_model_count()`
+- `models().list_for_user()` -> `models().list_user_models()`
+- `management().exchange_code_for_api_key(...)` -> `management().create_api_key_from_auth_code(...)`
+- `management().list_guardrails(offset, limit)` -> `management().list_guardrails(Some(PaginationOptions::with_offset_and_limit(offset, limit)))`
+- `client.list_api_keys(offset, include_disabled)` -> `management().list_api_keys(Some(PaginationOptions::with_offset(offset)), include_disabled)`
+
+`0.6.0` removed the transitional aliases above; use the canonical method names shown here.
+
 ## Development
 
 Prefer the `just` recipes so local work stays aligned with CI:
