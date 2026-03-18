@@ -1,3 +1,5 @@
+See `CONTRIBUTING.md` and `docs/maintenance-policy.md` for contributor workflow, release expectations, MSRV policy, and breaking-change guidance.
+
 ## Summary
 - What problem does this PR solve?
 - What is the high-level approach?
