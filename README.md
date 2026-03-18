@@ -119,7 +119,7 @@ At runtime, the builder/client exposes the values the SDK directly consumes:
 - manual tools and typed tools backed by `schemars`
 - multimodal chat content, including image, audio, video, and file parts
 - model discovery, provider discovery, embeddings, and ZDR endpoints
-- management-key workflows for keys, auth codes, guardrails, activity, credits, and generation
+- management-key workflows for keys, auth codes, guardrails, and activity, plus API-key-authenticated credits and generation endpoints
 
 For deeper examples, prefer the runnable examples in [`examples/`](examples) over long README snippets.
 
