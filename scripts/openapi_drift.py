@@ -131,8 +131,56 @@ def resolve_local_refs(value: Any, document: dict[str, Any], active_refs: frozen
     return value
 
 
-def normalize_operation(raw_operation: dict[str, Any], spec: dict[str, Any]) -> Any:
-    return strip_doc_only_fields(resolve_local_refs(raw_operation, spec))
+def merge_parameter_lists(
+    inherited_parameters: list[Any],
+    operation_parameters: list[Any],
+) -> list[Any]:
+    merged: list[Any] = []
+    parameter_index: dict[tuple[str, str], int] = {}
+
+    for parameter in inherited_parameters + operation_parameters:
+        if not isinstance(parameter, dict):
+            merged.append(parameter)
+            continue
+
+        name = parameter.get("name")
+        location = parameter.get("in")
+        if not isinstance(name, str) or not isinstance(location, str):
+            merged.append(parameter)
+            continue
+
+        parameter_key = (name, location)
+        existing_index = parameter_index.get(parameter_key)
+        if existing_index is None:
+            parameter_index[parameter_key] = len(merged)
+            merged.append(parameter)
+            continue
+
+        merged[existing_index] = parameter
+
+    return merged
+
+
+def inherit_path_item_fields(raw_operation: dict[str, Any], path_item: dict[str, Any]) -> dict[str, Any]:
+    inherited_operation = dict(raw_operation)
+
+    path_parameters = path_item.get("parameters", [])
+    operation_parameters = raw_operation.get("parameters", [])
+    if path_parameters or operation_parameters:
+        inherited_operation["parameters"] = merge_parameter_lists(
+            path_parameters if isinstance(path_parameters, list) else [],
+            operation_parameters if isinstance(operation_parameters, list) else [],
+        )
+
+    if "servers" not in inherited_operation and "servers" in path_item:
+        inherited_operation["servers"] = path_item["servers"]
+
+    return inherited_operation
+
+
+def normalize_operation(raw_operation: dict[str, Any], path_item: dict[str, Any], spec: dict[str, Any]) -> Any:
+    inherited_operation = inherit_path_item_fields(raw_operation, path_item)
+    return strip_doc_only_fields(resolve_local_refs(inherited_operation, spec))
 
 
 def collect_operations(spec: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -144,7 +192,7 @@ def collect_operations(spec: dict[str, Any]) -> dict[str, dict[str, Any]]:
                 continue
 
             raw_operation = path_item[method]
-            normalized = normalize_operation(raw_operation, spec)
+            normalized = normalize_operation(raw_operation, path_item, spec)
             operation_key = f"{method.upper()} {path}"
             operations[operation_key] = {
                 "id": operation_key,
@@ -188,7 +236,7 @@ def build_snapshot(spec: dict[str, Any], source_url: str) -> dict[str, Any]:
     }
 
 
-def diff_preview(before: Any, after: Any, max_lines: int) -> list[str]:
+def diff_preview(before: Any, after: Any, max_diff_lines: int) -> list[str]:
     diff_lines = list(
         difflib.unified_diff(
             json.dumps(before, indent=2, sort_keys=True).splitlines(),
@@ -199,11 +247,11 @@ def diff_preview(before: Any, after: Any, max_lines: int) -> list[str]:
         )
     )
 
-    if len(diff_lines) <= max_lines:
+    if len(diff_lines) <= max_diff_lines:
         return diff_lines
 
-    truncated = diff_lines[:max_lines]
-    truncated.append(f"... truncated {len(diff_lines) - max_lines} additional diff line(s) ...")
+    truncated = diff_lines[:max_diff_lines]
+    truncated.append(f"... truncated {len(diff_lines) - max_diff_lines} additional diff line(s) ...")
     return truncated
 
 
