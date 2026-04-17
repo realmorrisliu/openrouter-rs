@@ -46,4 +46,5 @@ name = "send_completion_request"
 required-features = ["legacy-completions"]
 
 [dev-dependencies]
+axum = "0.8"
 dotenvy = "0.15.7"

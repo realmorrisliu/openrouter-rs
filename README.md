@@ -13,6 +13,7 @@ Type-safe, async Rust SDK for the OpenRouter API.
 [examples](https://github.com/realmorrisliu/openrouter-rs/tree/main/examples) |
 [crate](https://crates.io/crates/openrouter-rs) |
 [openrouter-cli](https://github.com/realmorrisliu/openrouter-rs/tree/main/crates/openrouter-cli) |
+[cli automation](docs/cli-automation-workflows.md) |
 [contributing](CONTRIBUTING.md) |
 [endpoint matrix](docs/official-endpoint-test-matrix.md) |
 [awesome-openrouter kit](docs/community/awesome-openrouter/README.md) |
@@ -128,17 +129,31 @@ For deeper examples, prefer the runnable examples in [`examples/`](examples) ove
 
 The repo includes runnable examples for the highest-value workflows:
 
+### Application Patterns
+
 | Example | Focus |
 | --- | --- |
-| [`examples/domain_chat_completion.rs`](examples/domain_chat_completion.rs) | Canonical `chat()` usage |
-| [`examples/stream_chat_completion.rs`](examples/stream_chat_completion.rs) | Raw chat streaming |
-| [`examples/stream_chat_with_tools.rs`](examples/stream_chat_with_tools.rs) | Tool-aware streaming aggregation |
+| [`examples/axum_chat_gateway.rs`](examples/axum_chat_gateway.rs) | Minimal `axum` server that proxies prompts through `OpenRouterClient` |
+| [`examples/typed_tool_agent.rs`](examples/typed_tool_agent.rs) | Practical typed-tool agent loop with explicit tool dispatch |
+| [`examples/domain_chat_completion.rs`](examples/domain_chat_completion.rs) | Canonical `chat()` request with the domain-oriented client |
+
+### Tokio Streaming
+
+| Example | Focus |
+| --- | --- |
+| [`examples/stream_chat_completion.rs`](examples/stream_chat_completion.rs) | Stream chat deltas into a Tokio task/stdout |
+| [`examples/stream_chat_with_tools.rs`](examples/stream_chat_with_tools.rs) | Tool-aware streaming aggregation plus a second round after execution |
+| [`examples/stream_response.rs`](examples/stream_response.rs) | `responses()` streaming |
+| [`examples/stream_messages.rs`](examples/stream_messages.rs) | `messages()` streaming |
+
+### API Surface Demos
+
+| Example | Focus |
+| --- | --- |
 | [`examples/basic_tool_calling.rs`](examples/basic_tool_calling.rs) | Manual tool-calling loop |
 | [`examples/typed_tool_calling.rs`](examples/typed_tool_calling.rs) | Typed tools with generated schema |
 | [`examples/create_response.rs`](examples/create_response.rs) | `responses()` create |
-| [`examples/stream_response.rs`](examples/stream_response.rs) | `responses()` streaming |
 | [`examples/create_message.rs`](examples/create_message.rs) | `messages()` create |
-| [`examples/stream_messages.rs`](examples/stream_messages.rs) | `messages()` streaming |
 | [`examples/create_embedding.rs`](examples/create_embedding.rs) | `models().create_embedding(...)` |
 | [`examples/domain_management_api_keys.rs`](examples/domain_management_api_keys.rs) | API-key management via `management()` |
 | [`examples/exchange_code_for_api_key.rs`](examples/exchange_code_for_api_key.rs) | PKCE/auth-code flow |
@@ -149,13 +164,17 @@ Typical local usage:
 ```bash
 export OPENROUTER_API_KEY=sk-or-v1-...
 
+cargo run --example axum_chat_gateway
 cargo run --example domain_chat_completion
 cargo run --example stream_chat_completion
+cargo run --example typed_tool_agent
 cargo run --example typed_tool_calling
 cargo run --example create_response
 cargo run --example create_message
 cargo run --example create_embedding
 ```
+
+For shell and CI automation recipes built around the companion CLI, see [`docs/cli-automation-workflows.md`](docs/cli-automation-workflows.md).
 
 ## CLI Companion
 
@@ -172,6 +191,7 @@ cargo run -p openrouter-cli -- usage activity --date 2026-03-01
 ```
 
 See [`crates/openrouter-cli/README.md`](crates/openrouter-cli/README.md) for the full command surface and config/auth precedence rules.
+For copy-paste shell/CI recipes, see [`docs/cli-automation-workflows.md`](docs/cli-automation-workflows.md).
 
 ## Project Status
 
@@ -225,6 +245,7 @@ Environment and model-pool details live in [`tests/integration/README.md`](tests
 - [`docs/maintenance-policy.md`](docs/maintenance-policy.md) for release, MSRV, and breaking-change policy
 - [`docs/community/awesome-openrouter/README.md`](docs/community/awesome-openrouter/README.md) for the Awesome OpenRouter submission kit and directory-safe assets
 - [`docs/generated-core-architecture.md`](docs/generated-core-architecture.md) for the generated-core plus idiomatic-wrapper design baseline
+- [`docs/cli-automation-workflows.md`](docs/cli-automation-workflows.md) for JSON-first shell and CI recipes built around `openrouter-cli`
 - [`docs/openapi-drift-reporting.md`](docs/openapi-drift-reporting.md) for nightly upstream-spec drift detection and baseline refresh workflow
 - [`SECURITY.md`](SECURITY.md) for vulnerability reporting
 - [`SUPPORT.md`](SUPPORT.md) for support boundaries and issue-reporting guidance

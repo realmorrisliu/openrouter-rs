@@ -11,6 +11,8 @@ It currently focuses on four areas:
 
 The implementation lives in [`crates/openrouter-cli/src`](./src), and the crate currently publishes as `0.1.2`.
 
+Copyable shell and CI recipes live in [`../../docs/cli-automation-workflows.md`](../../docs/cli-automation-workflows.md).
+
 ## Install
 
 From crates.io:

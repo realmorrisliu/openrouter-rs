@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added an `axum` gateway example and a practical typed-tool agent example so the repository covers copyable Rust application patterns instead of only endpoint-level demos.
+- Added `docs/cli-automation-workflows.md` with JSON-first shell and CI recipes for discovery, usage reporting, and ephemeral key automation.
+
+### Changed
+- Reorganized the README example/docs surface around application patterns, Tokio streaming, and CLI automation workflows.
+
 ## [0.7.0] - 2026-03-16
 
 ### Removed
