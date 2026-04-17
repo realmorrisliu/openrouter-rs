@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-04-17T10:57:56+00:00",
+  "captured_at": "2026-04-17T11:37:20+00:00",
   "info": {
     "contact": {
       "email": "support@openrouter.ai",
@@ -40,7 +40,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "402aca9f89314b49",
+      "fingerprint": "22d1aedb07103087",
       "id": "GET /activity",
       "method": "GET",
       "operation_id": "getUserActivity",
@@ -95,7 +95,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "6f92a5d33c7f972f",
+      "fingerprint": "bf4ec48e2e758578",
       "id": "GET /guardrails",
       "method": "GET",
       "operation_id": "listGuardrails",
@@ -106,7 +106,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "4d19859eff470863",
+      "fingerprint": "215bf1c5253f6da3",
       "id": "GET /guardrails/assignments/keys",
       "method": "GET",
       "operation_id": "listKeyAssignments",
@@ -117,7 +117,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "ccc5b8db50cbce6f",
+      "fingerprint": "97b420c303c73d36",
       "id": "GET /guardrails/assignments/members",
       "method": "GET",
       "operation_id": "listMemberAssignments",
@@ -139,7 +139,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "fc3b3a9ea0b3adba",
+      "fingerprint": "e3e803b9531afd58",
       "id": "GET /guardrails/{id}/assignments/keys",
       "method": "GET",
       "operation_id": "listGuardrailKeyAssignments",
@@ -150,7 +150,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "05b0d39c00bf3352",
+      "fingerprint": "d3539904724e0153",
       "id": "GET /guardrails/{id}/assignments/members",
       "method": "GET",
       "operation_id": "listGuardrailMemberAssignments",
@@ -194,7 +194,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "fadc8a1ad75a8722",
+      "fingerprint": "136614cae2f70f23",
       "id": "GET /models",
       "method": "GET",
       "operation_id": "getModels",

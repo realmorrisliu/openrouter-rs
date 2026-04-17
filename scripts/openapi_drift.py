@@ -178,6 +178,45 @@ def merge_parameter_lists(
     return merged
 
 
+def normalize_parameter_order(parameters: Any) -> Any:
+    if not isinstance(parameters, list):
+        return parameters
+
+    def parameter_sort_key(parameter: Any) -> tuple[int, str, str, str]:
+        if isinstance(parameter, dict):
+            name = parameter.get("name")
+            location = parameter.get("in")
+            if isinstance(name, str) and isinstance(location, str):
+                return (0, location, name, canonical_json(parameter))
+
+        return (1, "", "", canonical_json(parameter))
+
+    return sorted(parameters, key=parameter_sort_key)
+
+
+def normalize_security_order(security: Any) -> Any:
+    if not isinstance(security, list):
+        return security
+
+    normalized_requirements: list[Any] = []
+    for requirement in security:
+        if not isinstance(requirement, dict):
+            normalized_requirements.append(requirement)
+            continue
+
+        normalized_requirement: dict[str, Any] = {}
+        for scheme_name in sorted(requirement):
+            scopes = requirement[scheme_name]
+            if isinstance(scopes, list):
+                normalized_requirement[scheme_name] = sorted(scopes, key=canonical_json)
+            else:
+                normalized_requirement[scheme_name] = scopes
+
+        normalized_requirements.append(normalized_requirement)
+
+    return sorted(normalized_requirements, key=canonical_json)
+
+
 def collect_effective_security_schemes(
     effective_security: Any,
     spec: dict[str, Any],
@@ -217,6 +256,9 @@ def inherit_effective_operation_fields(
             path_parameters if isinstance(path_parameters, list) else [],
             operation_parameters if isinstance(operation_parameters, list) else [],
         )
+        inherited_operation["parameters"] = normalize_parameter_order(
+            inherited_operation["parameters"]
+        )
 
     if "servers" not in inherited_operation:
         if "servers" in path_item:
@@ -226,6 +268,10 @@ def inherit_effective_operation_fields(
 
     if "security" not in inherited_operation and "security" in spec:
         inherited_operation["security"] = spec["security"]
+    if "security" in inherited_operation:
+        inherited_operation["security"] = normalize_security_order(
+            inherited_operation["security"]
+        )
 
     resolved_security_schemes = collect_effective_security_schemes(
         inherited_operation.get("security"),

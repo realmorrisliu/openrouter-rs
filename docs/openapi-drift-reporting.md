@@ -25,6 +25,7 @@ references, including referenced Path Item objects, then folds in effective defa
 - Path Item inheritance: `parameters`, `servers`
 - OpenAPI root defaults: `servers`, `security`
 - Referenced security scheme definitions for the effective `security` requirements
+- Order-insensitive canonicalization for `parameters` and `security` requirement lists
 
 It intentionally ignores docs-only fields:
 
