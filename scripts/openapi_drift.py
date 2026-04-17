@@ -83,12 +83,28 @@ def decode_json_pointer_token(token: str) -> str:
 
 
 def resolve_json_pointer(document: dict[str, Any], pointer: str) -> Any:
+    if pointer == "#":
+        return document
+
     if not pointer.startswith("#/"):
         raise ValueError(f"Only local JSON pointers are supported, got: {pointer}")
 
     current: Any = document
     for token in pointer[2:].split("/"):
-        current = current[decode_json_pointer_token(token)]
+        decoded_token = decode_json_pointer_token(token)
+
+        if isinstance(current, list):
+            try:
+                current = current[int(decoded_token)]
+            except (ValueError, IndexError) as exc:
+                raise KeyError(decoded_token) from exc
+            continue
+
+        if isinstance(current, dict):
+            current = current[decoded_token]
+            continue
+
+        raise TypeError(f"JSON pointer segment {decoded_token!r} cannot be applied to {type(current).__name__}")
     return current
 
 
