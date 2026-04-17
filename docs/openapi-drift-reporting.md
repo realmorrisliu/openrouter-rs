@@ -19,9 +19,9 @@ This keeps `openrouter-rs` aligned with upstream changes without blocking releas
 - Normalized operation snapshot: `specs/openrouter/openapi-baseline.operations.json`
 - Nightly workflow: `.github/workflows/openapi-drift.yml`
 
-The comparison is operation-level (`METHOD /path`). It first folds in inherited Path Item fields
-(`parameters` and `servers`), then resolves local `#/components/...` references before hashing,
-and intentionally ignores docs-only fields:
+The comparison is operation-level (`METHOD /path`). It first resolves local `#/components/...`
+references, including referenced Path Item objects, then folds in inherited Path Item fields
+(`parameters` and `servers`) before hashing, and intentionally ignores docs-only fields:
 
 - `summary`
 - `description`

@@ -178,21 +178,32 @@ def inherit_path_item_fields(raw_operation: dict[str, Any], path_item: dict[str,
     return inherited_operation
 
 
-def normalize_operation(raw_operation: dict[str, Any], path_item: dict[str, Any], spec: dict[str, Any]) -> Any:
+def normalize_path_item(path_item: dict[str, Any], spec: dict[str, Any]) -> dict[str, Any]:
+    resolved_path_item = resolve_local_refs(path_item, spec)
+    if not isinstance(resolved_path_item, dict):
+        raise TypeError("Resolved Path Item must be an object")
+    return resolved_path_item
+
+
+def normalize_operation(raw_operation: dict[str, Any], path_item: dict[str, Any]) -> Any:
     inherited_operation = inherit_path_item_fields(raw_operation, path_item)
-    return strip_doc_only_fields(resolve_local_refs(inherited_operation, spec))
+    return strip_doc_only_fields(inherited_operation)
 
 
 def collect_operations(spec: dict[str, Any]) -> dict[str, dict[str, Any]]:
     operations: dict[str, dict[str, Any]] = {}
 
-    for path, path_item in sorted(spec.get("paths", {}).items()):
+    for path, raw_path_item in sorted(spec.get("paths", {}).items()):
+        path_item = normalize_path_item(raw_path_item, spec)
         for method in HTTP_METHODS:
             if method not in path_item:
                 continue
 
             raw_operation = path_item[method]
-            normalized = normalize_operation(raw_operation, path_item, spec)
+            if not isinstance(raw_operation, dict):
+                continue
+
+            normalized = normalize_operation(raw_operation, path_item)
             operation_key = f"{method.upper()} {path}"
             operations[operation_key] = {
                 "id": operation_key,
