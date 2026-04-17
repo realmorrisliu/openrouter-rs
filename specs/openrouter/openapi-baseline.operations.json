@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-04-17T09:25:31+00:00",
+  "captured_at": "2026-04-17T10:57:56+00:00",
   "info": {
     "contact": {
       "email": "support@openrouter.ai",
@@ -18,7 +18,7 @@
   "operations": [
     {
       "deprecated": false,
-      "fingerprint": "d3484a7a0fb4f9a7",
+      "fingerprint": "62d6681f3fc2fe20",
       "id": "DELETE /guardrails/{id}",
       "method": "DELETE",
       "operation_id": "deleteGuardrail",
@@ -29,7 +29,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b989f1da5ab45daa",
+      "fingerprint": "2a479c2a2828c351",
       "id": "DELETE /keys/{hash}",
       "method": "DELETE",
       "operation_id": "deleteKeys",
@@ -40,7 +40,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "472ba7c693ce8503",
+      "fingerprint": "402aca9f89314b49",
       "id": "GET /activity",
       "method": "GET",
       "operation_id": "getUserActivity",
@@ -51,7 +51,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "8a0f4f70bd09a863",
+      "fingerprint": "05cecac9b09a5e7c",
       "id": "GET /credits",
       "method": "GET",
       "operation_id": "getCredits",
@@ -62,7 +62,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "9052d6b07a853529",
+      "fingerprint": "eaf0d72807471e20",
       "id": "GET /embeddings/models",
       "method": "GET",
       "operation_id": "listEmbeddingsModels",
@@ -73,7 +73,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "d1003df9e8071eb3",
+      "fingerprint": "ea35d92c6e907def",
       "id": "GET /endpoints/zdr",
       "method": "GET",
       "operation_id": "listEndpointsZdr",
@@ -84,7 +84,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "0d89a883fbf084b8",
+      "fingerprint": "e10b43ade78233c8",
       "id": "GET /generation",
       "method": "GET",
       "operation_id": "getGeneration",
@@ -95,7 +95,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "ed2d40a8d670846d",
+      "fingerprint": "6f92a5d33c7f972f",
       "id": "GET /guardrails",
       "method": "GET",
       "operation_id": "listGuardrails",
@@ -106,7 +106,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "3c0ed0ef06947c89",
+      "fingerprint": "4d19859eff470863",
       "id": "GET /guardrails/assignments/keys",
       "method": "GET",
       "operation_id": "listKeyAssignments",
@@ -117,7 +117,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "ed06b4113d099985",
+      "fingerprint": "ccc5b8db50cbce6f",
       "id": "GET /guardrails/assignments/members",
       "method": "GET",
       "operation_id": "listMemberAssignments",
@@ -128,7 +128,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "622a03090285537f",
+      "fingerprint": "c84f4172e684f9bd",
       "id": "GET /guardrails/{id}",
       "method": "GET",
       "operation_id": "getGuardrail",
@@ -139,7 +139,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "bcc9ae76e69c3dbc",
+      "fingerprint": "fc3b3a9ea0b3adba",
       "id": "GET /guardrails/{id}/assignments/keys",
       "method": "GET",
       "operation_id": "listGuardrailKeyAssignments",
@@ -150,7 +150,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "543dad11b3c0de50",
+      "fingerprint": "05b0d39c00bf3352",
       "id": "GET /guardrails/{id}/assignments/members",
       "method": "GET",
       "operation_id": "listGuardrailMemberAssignments",
@@ -161,7 +161,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "0cd366efc1034881",
+      "fingerprint": "eda1e061818d02ca",
       "id": "GET /key",
       "method": "GET",
       "operation_id": "getCurrentKey",
@@ -172,7 +172,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "0525540c96eaa9b5",
+      "fingerprint": "13c9853a05da61e2",
       "id": "GET /keys",
       "method": "GET",
       "operation_id": "list",
@@ -183,7 +183,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "137a01707025b7b0",
+      "fingerprint": "18127f043834024a",
       "id": "GET /keys/{hash}",
       "method": "GET",
       "operation_id": "getKey",
@@ -194,7 +194,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "e1bb69144425c619",
+      "fingerprint": "fadc8a1ad75a8722",
       "id": "GET /models",
       "method": "GET",
       "operation_id": "getModels",
@@ -205,7 +205,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "a26d23d59c150b3a",
+      "fingerprint": "360a71c424058693",
       "id": "GET /models/count",
       "method": "GET",
       "operation_id": "listModelsCount",
@@ -216,7 +216,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "3de5bddc7b25f821",
+      "fingerprint": "262fc549b6cad8f6",
       "id": "GET /models/user",
       "method": "GET",
       "operation_id": "listModelsUser",
@@ -227,7 +227,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "5045d59c62cd76f1",
+      "fingerprint": "b151ca257c76aa63",
       "id": "GET /models/{author}/{slug}/endpoints",
       "method": "GET",
       "operation_id": "listEndpoints",
@@ -238,7 +238,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "06f94136625f38c4",
+      "fingerprint": "57d547118cea0508",
       "id": "GET /providers",
       "method": "GET",
       "operation_id": "listProviders",
@@ -249,7 +249,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "e0653fbc8ceec5d6",
+      "fingerprint": "0fbdc84c2d5e2407",
       "id": "PATCH /guardrails/{id}",
       "method": "PATCH",
       "operation_id": "updateGuardrail",
@@ -260,7 +260,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "03fc32ffa7905b33",
+      "fingerprint": "f8e9f4d0943cb4f3",
       "id": "PATCH /keys/{hash}",
       "method": "PATCH",
       "operation_id": "updateKeys",
@@ -271,7 +271,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "4f8f938c4f0e76a2",
+      "fingerprint": "350024ac1009cddb",
       "id": "POST /auth/keys",
       "method": "POST",
       "operation_id": "exchangeAuthCodeForAPIKey",
@@ -282,7 +282,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "1cdd29378fd4b1dc",
+      "fingerprint": "9d776b9b16b44ad4",
       "id": "POST /auth/keys/code",
       "method": "POST",
       "operation_id": "createAuthKeysCode",
@@ -293,7 +293,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "c9990dc9c0ed8d27",
+      "fingerprint": "b985f0ef5cd2a9ce",
       "id": "POST /chat/completions",
       "method": "POST",
       "operation_id": "sendChatCompletionRequest",
@@ -304,7 +304,7 @@
     },
     {
       "deprecated": true,
-      "fingerprint": "810eed4e56f10cf6",
+      "fingerprint": "3aae29d559805e6d",
       "id": "POST /credits/coinbase",
       "method": "POST",
       "operation_id": "createCoinbaseCharge",
@@ -315,7 +315,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "3006e9be0fb90a69",
+      "fingerprint": "4cf37e3514298c1e",
       "id": "POST /embeddings",
       "method": "POST",
       "operation_id": "createEmbeddings",
@@ -326,7 +326,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "865711b698747ac4",
+      "fingerprint": "af77e8c907dffe8e",
       "id": "POST /guardrails",
       "method": "POST",
       "operation_id": "createGuardrail",
@@ -337,7 +337,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "6c9fa4efd346e18b",
+      "fingerprint": "cac6ec19bd951299",
       "id": "POST /guardrails/{id}/assignments/keys",
       "method": "POST",
       "operation_id": "bulkAssignKeysToGuardrail",
@@ -348,7 +348,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "35fd3681c0ed9d2e",
+      "fingerprint": "fc5f8809122a9fec",
       "id": "POST /guardrails/{id}/assignments/keys/remove",
       "method": "POST",
       "operation_id": "bulkUnassignKeysFromGuardrail",
@@ -359,7 +359,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "3b008ddef5f8855b",
+      "fingerprint": "a60d54c8a1dd80c0",
       "id": "POST /guardrails/{id}/assignments/members",
       "method": "POST",
       "operation_id": "bulkAssignMembersToGuardrail",
@@ -370,7 +370,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "4277ede23eb89d2a",
+      "fingerprint": "95cd05e9fbc9490b",
       "id": "POST /guardrails/{id}/assignments/members/remove",
       "method": "POST",
       "operation_id": "bulkUnassignMembersFromGuardrail",
@@ -381,7 +381,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "4f5c26d1123be51f",
+      "fingerprint": "69a3d30aeb58672b",
       "id": "POST /keys",
       "method": "POST",
       "operation_id": "createKeys",
@@ -392,7 +392,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "e7771e45f314058e",
+      "fingerprint": "c8ea6e8a471a620a",
       "id": "POST /messages",
       "method": "POST",
       "operation_id": "createMessages",
@@ -403,7 +403,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "48e21727babf9385",
+      "fingerprint": "b2dfa714d35acc21",
       "id": "POST /responses",
       "method": "POST",
       "operation_id": "createResponses",

@@ -20,8 +20,13 @@ This keeps `openrouter-rs` aligned with upstream changes without blocking releas
 - Nightly workflow: `.github/workflows/openapi-drift.yml`
 
 The comparison is operation-level (`METHOD /path`). It first resolves local `#/components/...`
-references, including referenced Path Item objects, then folds in inherited Path Item fields
-(`parameters` and `servers`) before hashing, and intentionally ignores docs-only fields:
+references, including referenced Path Item objects, then folds in effective defaults before hashing:
+
+- Path Item inheritance: `parameters`, `servers`
+- OpenAPI root defaults: `servers`, `security`
+- Referenced security scheme definitions for the effective `security` requirements
+
+It intentionally ignores docs-only fields:
 
 - `summary`
 - `description`

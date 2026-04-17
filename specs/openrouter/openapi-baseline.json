@@ -26872,6 +26872,11 @@
       }
     }
   },
+  "security": [
+    {
+      "apiKey": []
+    }
+  ],
   "servers": [
     {
       "description": "Production server",

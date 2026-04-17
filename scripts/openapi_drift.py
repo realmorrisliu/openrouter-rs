@@ -21,6 +21,7 @@ BASELINE_TOP_LEVEL_FIELDS = (
     "jsonSchemaDialect",
     "openapi",
     "paths",
+    "security",
     "servers",
     "tags",
 )
@@ -177,7 +178,36 @@ def merge_parameter_lists(
     return merged
 
 
-def inherit_path_item_fields(raw_operation: dict[str, Any], path_item: dict[str, Any]) -> dict[str, Any]:
+def collect_effective_security_schemes(
+    effective_security: Any,
+    spec: dict[str, Any],
+) -> dict[str, Any] | None:
+    if not isinstance(effective_security, list):
+        return None
+
+    security_schemes = spec.get("components", {}).get("securitySchemes", {})
+    if not isinstance(security_schemes, dict):
+        return None
+
+    resolved_schemes: dict[str, Any] = {}
+    for requirement in effective_security:
+        if not isinstance(requirement, dict):
+            continue
+
+        for scheme_name in sorted(requirement):
+            scheme_definition = security_schemes.get(scheme_name)
+            if scheme_definition is None:
+                continue
+            resolved_schemes[scheme_name] = resolve_local_refs(scheme_definition, spec)
+
+    return resolved_schemes or None
+
+
+def inherit_effective_operation_fields(
+    raw_operation: dict[str, Any],
+    path_item: dict[str, Any],
+    spec: dict[str, Any],
+) -> dict[str, Any]:
     inherited_operation = dict(raw_operation)
 
     path_parameters = path_item.get("parameters", [])
@@ -188,8 +218,21 @@ def inherit_path_item_fields(raw_operation: dict[str, Any], path_item: dict[str,
             operation_parameters if isinstance(operation_parameters, list) else [],
         )
 
-    if "servers" not in inherited_operation and "servers" in path_item:
-        inherited_operation["servers"] = path_item["servers"]
+    if "servers" not in inherited_operation:
+        if "servers" in path_item:
+            inherited_operation["servers"] = path_item["servers"]
+        elif "servers" in spec:
+            inherited_operation["servers"] = spec["servers"]
+
+    if "security" not in inherited_operation and "security" in spec:
+        inherited_operation["security"] = spec["security"]
+
+    resolved_security_schemes = collect_effective_security_schemes(
+        inherited_operation.get("security"),
+        spec,
+    )
+    if resolved_security_schemes:
+        inherited_operation["_effective_security_schemes"] = resolved_security_schemes
 
     return inherited_operation
 
@@ -201,8 +244,8 @@ def normalize_path_item(path_item: dict[str, Any], spec: dict[str, Any]) -> dict
     return resolved_path_item
 
 
-def normalize_operation(raw_operation: dict[str, Any], path_item: dict[str, Any]) -> Any:
-    inherited_operation = inherit_path_item_fields(raw_operation, path_item)
+def normalize_operation(raw_operation: dict[str, Any], path_item: dict[str, Any], spec: dict[str, Any]) -> Any:
+    inherited_operation = inherit_effective_operation_fields(raw_operation, path_item, spec)
     return strip_doc_only_fields(inherited_operation)
 
 
@@ -219,7 +262,7 @@ def collect_operations(spec: dict[str, Any]) -> dict[str, dict[str, Any]]:
             if not isinstance(raw_operation, dict):
                 continue
 
-            normalized = normalize_operation(raw_operation, path_item)
+            normalized = normalize_operation(raw_operation, path_item, spec)
             operation_key = f"{method.upper()} {path}"
             operations[operation_key] = {
                 "id": operation_key,
