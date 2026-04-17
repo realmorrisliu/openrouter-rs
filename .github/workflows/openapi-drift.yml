@@ -1,0 +1,111 @@
+name: OpenAPI Drift
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: openapi-drift-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  detect-drift:
+    name: Detect OpenAPI Drift
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Fetch latest upstream OpenAPI spec
+        run: curl --fail --show-error -L "https://openrouter.ai/openapi.json" -o /tmp/openapi-latest.json
+
+      - name: Compare upstream spec against tracked baseline
+        id: compare
+        run: |
+          python3 scripts/openapi_drift.py compare \
+            --baseline specs/openrouter/openapi-baseline.json \
+            --candidate /tmp/openapi-latest.json \
+            --source-url https://openrouter.ai/openapi.json \
+            --baseline-label "tracked baseline" \
+            --candidate-label "latest upstream" \
+            --report-md /tmp/openapi-drift-report.md \
+            --report-json /tmp/openapi-drift-report.json \
+            --candidate-operations /tmp/openapi-latest.operations.json \
+            --github-output "$GITHUB_OUTPUT" \
+            --step-summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload drift report artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-drift-report
+          path: |
+            /tmp/openapi-drift-report.md
+            /tmp/openapi-drift-report.json
+            /tmp/openapi-latest.operations.json
+
+      - name: Open or refresh follow-up issue
+        if: github.event_name == 'schedule' && steps.compare.outputs.has_drift == 'true'
+        uses: actions/github-script@v7
+        env:
+          REPORT_PATH: /tmp/openapi-drift-report.md
+        with:
+          script: |
+            const fs = require('fs');
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const title = 'chore: review latest OpenRouter OpenAPI drift';
+            const report = fs.readFileSync(process.env.REPORT_PATH, 'utf8');
+            const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            const maxBodyLength = 60000;
+            const body = [
+              'Detected upstream OpenAPI drift against the tracked baseline.',
+              '',
+              `Workflow run: ${runUrl}`,
+              '',
+              'This issue is maintained automatically by `.github/workflows/openapi-drift.yml`.',
+              '',
+              report.length > maxBodyLength
+                ? `${report.slice(0, maxBodyLength)}\n\n... report truncated; see workflow artifact for the full diff ...`
+                : report,
+            ].join('\n');
+
+            const issues = await github.paginate(
+              github.rest.issues.listForRepo,
+              {
+                owner,
+                repo,
+                state: 'open',
+                per_page: 100,
+              },
+            );
+
+            const existing = issues.find(
+              (issue) => !issue.pull_request && issue.title === title,
+            );
+            if (existing) {
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: existing.number,
+                body,
+              });
+              return;
+            }
+
+            await github.rest.issues.create({
+              owner,
+              repo,
+              title,
+              body,
+              labels: ['ci', 'migration'],
+            });
