@@ -1,7 +1,9 @@
 # Official Endpoint Test Matrix
 
 Snapshot date: 2026-03-10  
-Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)
+Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)  
+Tracked baseline: `specs/openrouter/openapi-baseline.json`  
+Nightly drift workflow: `.github/workflows/openapi-drift.yml`
 
 ## Coverage Summary
 
@@ -82,3 +84,5 @@ The endpoint below is intentionally kept as legacy compatibility and is not part
 curl -L 'https://openrouter.ai/openapi.json' -o /tmp/openrouter-openapi.json
 jq -r '.paths | to_entries[] | .key as $p | (.value | keys[] | select(. != "parameters")) as $m | "\($m|ascii_upcase) \($p)"' /tmp/openrouter-openapi.json | sort
 ```
+
+For the repo-level drift report and baseline refresh flow, see [`docs/openapi-drift-reporting.md`](openapi-drift-reporting.md).

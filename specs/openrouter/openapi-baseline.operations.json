@@ -1,0 +1,417 @@
+{
+  "captured_at": "2026-04-17T05:47:58+00:00",
+  "info": {
+    "contact": {
+      "email": "support@openrouter.ai",
+      "name": "OpenRouter Support",
+      "url": "https://openrouter.ai/docs"
+    },
+    "description": "OpenAI-compatible API with additional OpenRouter features",
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    },
+    "title": "OpenRouter API",
+    "version": "1.0.0"
+  },
+  "operation_count": 36,
+  "operations": [
+    {
+      "deprecated": false,
+      "fingerprint": "d3484a7a0fb4f9a7",
+      "id": "DELETE /guardrails/{id}",
+      "method": "DELETE",
+      "operation_id": "deleteGuardrail",
+      "path": "/guardrails/{id}",
+      "tags": [
+        "Guardrails"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "b989f1da5ab45daa",
+      "id": "DELETE /keys/{hash}",
+      "method": "DELETE",
+      "operation_id": "deleteKeys",
+      "path": "/keys/{hash}",
+      "tags": [
+        "API Keys"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "472ba7c693ce8503",
+      "id": "GET /activity",
+      "method": "GET",
+      "operation_id": "getUserActivity",
+      "path": "/activity",
+      "tags": [
+        "Analytics"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "8a0f4f70bd09a863",
+      "id": "GET /credits",
+      "method": "GET",
+      "operation_id": "getCredits",
+      "path": "/credits",
+      "tags": [
+        "Credits"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "9052d6b07a853529",
+      "id": "GET /embeddings/models",
+      "method": "GET",
+      "operation_id": "listEmbeddingsModels",
+      "path": "/embeddings/models",
+      "tags": [
+        "Embeddings"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "d1003df9e8071eb3",
+      "id": "GET /endpoints/zdr",
+      "method": "GET",
+      "operation_id": "listEndpointsZdr",
+      "path": "/endpoints/zdr",
+      "tags": [
+        "Endpoints"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "0d89a883fbf084b8",
+      "id": "GET /generation",
+      "method": "GET",
+      "operation_id": "getGeneration",
+      "path": "/generation",
+      "tags": [
+        "Generations"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "ed2d40a8d670846d",
+      "id": "GET /guardrails",
+      "method": "GET",
+      "operation_id": "listGuardrails",
+      "path": "/guardrails",
+      "tags": [
+        "Guardrails"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "3c0ed0ef06947c89",
+      "id": "GET /guardrails/assignments/keys",
+      "method": "GET",
+      "operation_id": "listKeyAssignments",
+      "path": "/guardrails/assignments/keys",
+      "tags": [
+        "Guardrails"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "ed06b4113d099985",
+      "id": "GET /guardrails/assignments/members",
+      "method": "GET",
+      "operation_id": "listMemberAssignments",
+      "path": "/guardrails/assignments/members",
+      "tags": [
+        "Guardrails"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "622a03090285537f",
+      "id": "GET /guardrails/{id}",
+      "method": "GET",
+      "operation_id": "getGuardrail",
+      "path": "/guardrails/{id}",
+      "tags": [
+        "Guardrails"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "bcc9ae76e69c3dbc",
+      "id": "GET /guardrails/{id}/assignments/keys",
+      "method": "GET",
+      "operation_id": "listGuardrailKeyAssignments",
+      "path": "/guardrails/{id}/assignments/keys",
+      "tags": [
+        "Guardrails"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "543dad11b3c0de50",
+      "id": "GET /guardrails/{id}/assignments/members",
+      "method": "GET",
+      "operation_id": "listGuardrailMemberAssignments",
+      "path": "/guardrails/{id}/assignments/members",
+      "tags": [
+        "Guardrails"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "0cd366efc1034881",
+      "id": "GET /key",
+      "method": "GET",
+      "operation_id": "getCurrentKey",
+      "path": "/key",
+      "tags": [
+        "API Keys"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "0525540c96eaa9b5",
+      "id": "GET /keys",
+      "method": "GET",
+      "operation_id": "list",
+      "path": "/keys",
+      "tags": [
+        "API Keys"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "137a01707025b7b0",
+      "id": "GET /keys/{hash}",
+      "method": "GET",
+      "operation_id": "getKey",
+      "path": "/keys/{hash}",
+      "tags": [
+        "API Keys"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "e1bb69144425c619",
+      "id": "GET /models",
+      "method": "GET",
+      "operation_id": "getModels",
+      "path": "/models",
+      "tags": [
+        "Models"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "a26d23d59c150b3a",
+      "id": "GET /models/count",
+      "method": "GET",
+      "operation_id": "listModelsCount",
+      "path": "/models/count",
+      "tags": [
+        "Models"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "3de5bddc7b25f821",
+      "id": "GET /models/user",
+      "method": "GET",
+      "operation_id": "listModelsUser",
+      "path": "/models/user",
+      "tags": [
+        "Models"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "5045d59c62cd76f1",
+      "id": "GET /models/{author}/{slug}/endpoints",
+      "method": "GET",
+      "operation_id": "listEndpoints",
+      "path": "/models/{author}/{slug}/endpoints",
+      "tags": [
+        "Endpoints"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "06f94136625f38c4",
+      "id": "GET /providers",
+      "method": "GET",
+      "operation_id": "listProviders",
+      "path": "/providers",
+      "tags": [
+        "Providers"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "e0653fbc8ceec5d6",
+      "id": "PATCH /guardrails/{id}",
+      "method": "PATCH",
+      "operation_id": "updateGuardrail",
+      "path": "/guardrails/{id}",
+      "tags": [
+        "Guardrails"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "03fc32ffa7905b33",
+      "id": "PATCH /keys/{hash}",
+      "method": "PATCH",
+      "operation_id": "updateKeys",
+      "path": "/keys/{hash}",
+      "tags": [
+        "API Keys"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "4f8f938c4f0e76a2",
+      "id": "POST /auth/keys",
+      "method": "POST",
+      "operation_id": "exchangeAuthCodeForAPIKey",
+      "path": "/auth/keys",
+      "tags": [
+        "OAuth"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "1cdd29378fd4b1dc",
+      "id": "POST /auth/keys/code",
+      "method": "POST",
+      "operation_id": "createAuthKeysCode",
+      "path": "/auth/keys/code",
+      "tags": [
+        "OAuth"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "c9990dc9c0ed8d27",
+      "id": "POST /chat/completions",
+      "method": "POST",
+      "operation_id": "sendChatCompletionRequest",
+      "path": "/chat/completions",
+      "tags": [
+        "Chat"
+      ]
+    },
+    {
+      "deprecated": true,
+      "fingerprint": "810eed4e56f10cf6",
+      "id": "POST /credits/coinbase",
+      "method": "POST",
+      "operation_id": "createCoinbaseCharge",
+      "path": "/credits/coinbase",
+      "tags": [
+        "Credits"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "3006e9be0fb90a69",
+      "id": "POST /embeddings",
+      "method": "POST",
+      "operation_id": "createEmbeddings",
+      "path": "/embeddings",
+      "tags": [
+        "Embeddings"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "865711b698747ac4",
+      "id": "POST /guardrails",
+      "method": "POST",
+      "operation_id": "createGuardrail",
+      "path": "/guardrails",
+      "tags": [
+        "Guardrails"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "6c9fa4efd346e18b",
+      "id": "POST /guardrails/{id}/assignments/keys",
+      "method": "POST",
+      "operation_id": "bulkAssignKeysToGuardrail",
+      "path": "/guardrails/{id}/assignments/keys",
+      "tags": [
+        "Guardrails"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "35fd3681c0ed9d2e",
+      "id": "POST /guardrails/{id}/assignments/keys/remove",
+      "method": "POST",
+      "operation_id": "bulkUnassignKeysFromGuardrail",
+      "path": "/guardrails/{id}/assignments/keys/remove",
+      "tags": [
+        "Guardrails"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "3b008ddef5f8855b",
+      "id": "POST /guardrails/{id}/assignments/members",
+      "method": "POST",
+      "operation_id": "bulkAssignMembersToGuardrail",
+      "path": "/guardrails/{id}/assignments/members",
+      "tags": [
+        "Guardrails"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "4277ede23eb89d2a",
+      "id": "POST /guardrails/{id}/assignments/members/remove",
+      "method": "POST",
+      "operation_id": "bulkUnassignMembersFromGuardrail",
+      "path": "/guardrails/{id}/assignments/members/remove",
+      "tags": [
+        "Guardrails"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "4f5c26d1123be51f",
+      "id": "POST /keys",
+      "method": "POST",
+      "operation_id": "createKeys",
+      "path": "/keys",
+      "tags": [
+        "API Keys"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "e7771e45f314058e",
+      "id": "POST /messages",
+      "method": "POST",
+      "operation_id": "createMessages",
+      "path": "/messages",
+      "tags": [
+        "Anthropic Messages"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "48e21727babf9385",
+      "id": "POST /responses",
+      "method": "POST",
+      "operation_id": "createResponses",
+      "path": "/responses",
+      "tags": [
+        "beta.responses"
+      ]
+    }
+  ],
+  "source_url": "https://openrouter.ai/openapi.json"
+}

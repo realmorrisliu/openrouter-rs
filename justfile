@@ -54,6 +54,26 @@ check-migration-docs:
 test-migration-smoke:
     cargo test --test migration_smoke --all-features
 
+openapi-refresh-baseline:
+    curl -L 'https://openrouter.ai/openapi.json' -o /tmp/openrouter-openapi.latest.json
+    python3 scripts/openapi_drift.py refresh-baseline \
+        --source-file /tmp/openrouter-openapi.latest.json \
+        --baseline-json specs/openrouter/openapi-baseline.json \
+        --operations-json specs/openrouter/openapi-baseline.operations.json
+
+openapi-drift-check:
+    curl -L 'https://openrouter.ai/openapi.json' -o /tmp/openrouter-openapi.latest.json
+    python3 scripts/openapi_drift.py compare \
+        --baseline specs/openrouter/openapi-baseline.json \
+        --candidate /tmp/openrouter-openapi.latest.json \
+        --source-url https://openrouter.ai/openapi.json \
+        --baseline-label "tracked baseline" \
+        --candidate-label "latest upstream" \
+        --report-md /tmp/openrouter-openapi-drift-report.md \
+        --report-json /tmp/openrouter-openapi-drift-report.json \
+        --candidate-operations /tmp/openrouter-openapi-latest.operations.json \
+        --fail-on-drift
+
 quality: fmt-check check clippy test-unit test-lib test-doc
 
 quality-ci: quality test-integration-subsets test-cli check-migration-docs test-migration-smoke
