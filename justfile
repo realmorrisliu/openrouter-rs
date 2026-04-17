@@ -55,14 +55,14 @@ test-migration-smoke:
     cargo test --test migration_smoke --all-features
 
 openapi-refresh-baseline:
-    curl -L 'https://openrouter.ai/openapi.json' -o /tmp/openrouter-openapi.latest.json
+    curl --fail --show-error -L 'https://openrouter.ai/openapi.json' -o /tmp/openrouter-openapi.latest.json
     python3 scripts/openapi_drift.py refresh-baseline \
         --source-file /tmp/openrouter-openapi.latest.json \
         --baseline-json specs/openrouter/openapi-baseline.json \
         --operations-json specs/openrouter/openapi-baseline.operations.json
 
 openapi-drift-check:
-    curl -L 'https://openrouter.ai/openapi.json' -o /tmp/openrouter-openapi.latest.json
+    curl --fail --show-error -L 'https://openrouter.ai/openapi.json' -o /tmp/openrouter-openapi.latest.json
     python3 scripts/openapi_drift.py compare \
         --baseline specs/openrouter/openapi-baseline.json \
         --candidate /tmp/openrouter-openapi.latest.json \

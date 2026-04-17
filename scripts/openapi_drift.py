@@ -79,6 +79,21 @@ def short_hash(value: Any) -> str:
     return hashlib.sha256(canonical_json(value).encode("utf-8")).hexdigest()[:16]
 
 
+def validate_openapi_spec(spec: Any, source: str) -> dict[str, Any]:
+    if not isinstance(spec, dict):
+        raise ValueError(f"{source} did not contain a top-level JSON object.")
+
+    openapi_version = spec.get("openapi")
+    if not isinstance(openapi_version, str) or not openapi_version:
+        raise ValueError(f"{source} is not an OpenAPI document: missing top-level `openapi` string.")
+
+    paths = spec.get("paths")
+    if not isinstance(paths, dict):
+        raise ValueError(f"{source} is not an OpenAPI document: missing top-level `paths` object.")
+
+    return spec
+
+
 def decode_json_pointer_token(token: str) -> str:
     return token.replace("~1", "/").replace("~0", "~")
 
@@ -575,7 +590,9 @@ def write_github_output(path: Path, *, has_drift: bool, report_md: Path, report_
 
 def command_refresh_baseline(args: argparse.Namespace) -> int:
     source_url = args.source_url or UPSTREAM_OPENAPI_URL
-    spec = read_json(args.source_file) if args.source_file else fetch_spec(source_url)
+    source_label = str(args.source_file) if args.source_file else source_url
+    raw_spec = read_json(args.source_file) if args.source_file else fetch_spec(source_url)
+    spec = validate_openapi_spec(raw_spec, source_label)
     reduced_spec = reduce_spec_for_baseline(spec)
     snapshot = build_snapshot(reduced_spec, source_url)
     write_json(args.baseline_json, reduced_spec)
@@ -590,8 +607,10 @@ def command_refresh_baseline(args: argparse.Namespace) -> int:
 
 
 def command_compare(args: argparse.Namespace) -> int:
-    baseline_spec = read_json(args.baseline)
-    candidate_spec = fetch_spec(args.candidate_url) if args.candidate_url else read_json(args.candidate)
+    baseline_spec = validate_openapi_spec(read_json(args.baseline), str(args.baseline))
+    candidate_label = args.candidate_url or str(args.candidate)
+    raw_candidate_spec = fetch_spec(args.candidate_url) if args.candidate_url else read_json(args.candidate)
+    candidate_spec = validate_openapi_spec(raw_candidate_spec, candidate_label)
     report = build_report(
         baseline_spec=baseline_spec,
         candidate_spec=candidate_spec,
@@ -748,7 +767,11 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
-    return args.func(args)
+    try:
+        return args.func(args)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":

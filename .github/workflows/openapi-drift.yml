@@ -27,7 +27,7 @@ jobs:
           python-version: "3.x"
 
       - name: Fetch latest upstream OpenAPI spec
-        run: curl -L "https://openrouter.ai/openapi.json" -o /tmp/openapi-latest.json
+        run: curl --fail --show-error -L "https://openrouter.ai/openapi.json" -o /tmp/openapi-latest.json
 
       - name: Compare upstream spec against tracked baseline
         id: compare
