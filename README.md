@@ -224,6 +224,7 @@ Environment and model-pool details live in [`tests/integration/README.md`](tests
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) for contributor workflow and review expectations
 - [`docs/maintenance-policy.md`](docs/maintenance-policy.md) for release, MSRV, and breaking-change policy
 - [`docs/community/awesome-openrouter/README.md`](docs/community/awesome-openrouter/README.md) for the Awesome OpenRouter submission kit and directory-safe assets
+- [`docs/generated-core-architecture.md`](docs/generated-core-architecture.md) for the generated-core plus idiomatic-wrapper design baseline
 - [`docs/openapi-drift-reporting.md`](docs/openapi-drift-reporting.md) for nightly upstream-spec drift detection and baseline refresh workflow
 - [`SECURITY.md`](SECURITY.md) for vulnerability reporting
 - [`SUPPORT.md`](SUPPORT.md) for support boundaries and issue-reporting guidance
