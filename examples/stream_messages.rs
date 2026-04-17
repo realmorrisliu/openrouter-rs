@@ -22,11 +22,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     while let Some(item) = stream.next().await {
         let event = item?;
         match event.data {
-            AnthropicMessagesStreamEvent::ContentBlockDelta { delta, .. } => {
-                if delta["type"] == "text_delta" {
-                    if let Some(text) = delta["text"].as_str() {
-                        print!("{text}");
-                    }
+            AnthropicMessagesStreamEvent::ContentBlockDelta { delta, .. }
+                if delta["type"] == "text_delta" =>
+            {
+                if let Some(text) = delta["text"].as_str() {
+                    print!("{text}");
                 }
             }
             AnthropicMessagesStreamEvent::MessageStop => {
