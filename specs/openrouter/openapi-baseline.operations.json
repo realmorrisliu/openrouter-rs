@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-04-17T11:37:20+00:00",
+  "captured_at": "2026-04-17T11:44:18+00:00",
   "info": {
     "contact": {
       "email": "support@openrouter.ai",
@@ -40,7 +40,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "22d1aedb07103087",
+      "fingerprint": "a8e8f18928c3c86a",
       "id": "GET /activity",
       "method": "GET",
       "operation_id": "getUserActivity",
@@ -62,7 +62,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "eaf0d72807471e20",
+      "fingerprint": "7ba94090fe4a8dfe",
       "id": "GET /embeddings/models",
       "method": "GET",
       "operation_id": "listEmbeddingsModels",
@@ -73,7 +73,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "ea35d92c6e907def",
+      "fingerprint": "95f59af93f2a1940",
       "id": "GET /endpoints/zdr",
       "method": "GET",
       "operation_id": "listEndpointsZdr",
@@ -84,7 +84,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "e10b43ade78233c8",
+      "fingerprint": "97e1f2697bd3066c",
       "id": "GET /generation",
       "method": "GET",
       "operation_id": "getGeneration",
@@ -95,7 +95,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "bf4ec48e2e758578",
+      "fingerprint": "0600f3ad77c10704",
       "id": "GET /guardrails",
       "method": "GET",
       "operation_id": "listGuardrails",
@@ -106,7 +106,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "215bf1c5253f6da3",
+      "fingerprint": "50df372af92b0439",
       "id": "GET /guardrails/assignments/keys",
       "method": "GET",
       "operation_id": "listKeyAssignments",
@@ -117,7 +117,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "97b420c303c73d36",
+      "fingerprint": "48ed8bcc9c811a11",
       "id": "GET /guardrails/assignments/members",
       "method": "GET",
       "operation_id": "listMemberAssignments",
@@ -128,7 +128,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "c84f4172e684f9bd",
+      "fingerprint": "fcf564f45586fdb8",
       "id": "GET /guardrails/{id}",
       "method": "GET",
       "operation_id": "getGuardrail",
@@ -139,7 +139,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "e3e803b9531afd58",
+      "fingerprint": "bdcc5f13eb39b87d",
       "id": "GET /guardrails/{id}/assignments/keys",
       "method": "GET",
       "operation_id": "listGuardrailKeyAssignments",
@@ -150,7 +150,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "d3539904724e0153",
+      "fingerprint": "622584d38112ff60",
       "id": "GET /guardrails/{id}/assignments/members",
       "method": "GET",
       "operation_id": "listGuardrailMemberAssignments",
@@ -161,7 +161,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "eda1e061818d02ca",
+      "fingerprint": "c73983473e1c0e0e",
       "id": "GET /key",
       "method": "GET",
       "operation_id": "getCurrentKey",
@@ -172,7 +172,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "13c9853a05da61e2",
+      "fingerprint": "db7ebd49d1f65e47",
       "id": "GET /keys",
       "method": "GET",
       "operation_id": "list",
@@ -183,7 +183,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "18127f043834024a",
+      "fingerprint": "b86d5630a59ac36b",
       "id": "GET /keys/{hash}",
       "method": "GET",
       "operation_id": "getKey",
@@ -194,7 +194,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "136614cae2f70f23",
+      "fingerprint": "e954ef6e86b52be4",
       "id": "GET /models",
       "method": "GET",
       "operation_id": "getModels",
@@ -216,7 +216,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "262fc549b6cad8f6",
+      "fingerprint": "c62675934a04d95e",
       "id": "GET /models/user",
       "method": "GET",
       "operation_id": "listModelsUser",
@@ -227,7 +227,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b151ca257c76aa63",
+      "fingerprint": "0a831f35217698f2",
       "id": "GET /models/{author}/{slug}/endpoints",
       "method": "GET",
       "operation_id": "listEndpoints",
@@ -238,7 +238,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "57d547118cea0508",
+      "fingerprint": "6d3ec9bee71dc2ce",
       "id": "GET /providers",
       "method": "GET",
       "operation_id": "listProviders",
@@ -249,7 +249,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "0fbdc84c2d5e2407",
+      "fingerprint": "b91f5f39cec8fec0",
       "id": "PATCH /guardrails/{id}",
       "method": "PATCH",
       "operation_id": "updateGuardrail",
@@ -260,7 +260,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f8e9f4d0943cb4f3",
+      "fingerprint": "48a3cb500e61e8dd",
       "id": "PATCH /keys/{hash}",
       "method": "PATCH",
       "operation_id": "updateKeys",
@@ -282,7 +282,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "9d776b9b16b44ad4",
+      "fingerprint": "ce53dfc76885c522",
       "id": "POST /auth/keys/code",
       "method": "POST",
       "operation_id": "createAuthKeysCode",
@@ -293,7 +293,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b985f0ef5cd2a9ce",
+      "fingerprint": "48a58f7ad520ca2e",
       "id": "POST /chat/completions",
       "method": "POST",
       "operation_id": "sendChatCompletionRequest",
@@ -315,7 +315,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "4cf37e3514298c1e",
+      "fingerprint": "b4cd1ac5aa0b708f",
       "id": "POST /embeddings",
       "method": "POST",
       "operation_id": "createEmbeddings",
@@ -326,7 +326,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "af77e8c907dffe8e",
+      "fingerprint": "dd8e0956b7e1c9ec",
       "id": "POST /guardrails",
       "method": "POST",
       "operation_id": "createGuardrail",
@@ -381,7 +381,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "69a3d30aeb58672b",
+      "fingerprint": "d47c5f120c2fb0b6",
       "id": "POST /keys",
       "method": "POST",
       "operation_id": "createKeys",
@@ -392,7 +392,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "c8ea6e8a471a620a",
+      "fingerprint": "3e6939ae948a68db",
       "id": "POST /messages",
       "method": "POST",
       "operation_id": "createMessages",
@@ -403,7 +403,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b2dfa714d35acc21",
+      "fingerprint": "258dc171d1242855",
       "id": "POST /responses",
       "method": "POST",
       "operation_id": "createResponses",

@@ -26,6 +26,7 @@ references, including referenced Path Item objects, then folds in effective defa
 - OpenAPI root defaults: `servers`, `security`
 - Referenced security scheme definitions for the effective `security` requirements
 - Order-insensitive canonicalization for `parameters` and `security` requirement lists
+- Order-insensitive canonicalization for known unordered JSON Schema collections such as `required`, `enum`, `type`, `allOf`, `anyOf`, and `oneOf`
 
 It intentionally ignores docs-only fields:
 

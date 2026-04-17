@@ -217,6 +217,44 @@ def normalize_security_order(security: Any) -> Any:
     return sorted(normalized_requirements, key=canonical_json)
 
 
+def canonicalize_unordered_schema_collections(value: Any, key: str | None = None) -> Any:
+    if isinstance(value, dict):
+        normalized: dict[str, Any] = {}
+        for child_key, child_value in value.items():
+            normalized[child_key] = canonicalize_unordered_schema_collections(
+                child_value,
+                child_key,
+            )
+
+        dependent_required = normalized.get("dependentRequired")
+        if isinstance(dependent_required, dict):
+            normalized["dependentRequired"] = {
+                dependency_key: canonicalize_unordered_schema_collections(
+                    dependency_value,
+                    "required",
+                )
+                for dependency_key, dependency_value in dependent_required.items()
+            }
+
+        return normalized
+
+    if isinstance(value, list):
+        normalized_items = [
+            canonicalize_unordered_schema_collections(item)
+            for item in value
+        ]
+
+        if key in {"required", "enum", "type"}:
+            return sorted(normalized_items, key=canonical_json)
+
+        if key in {"allOf", "anyOf", "oneOf"}:
+            return sorted(normalized_items, key=canonical_json)
+
+        return normalized_items
+
+    return value
+
+
 def collect_effective_security_schemes(
     effective_security: Any,
     spec: dict[str, Any],
@@ -292,7 +330,8 @@ def normalize_path_item(path_item: dict[str, Any], spec: dict[str, Any]) -> dict
 
 def normalize_operation(raw_operation: dict[str, Any], path_item: dict[str, Any], spec: dict[str, Any]) -> Any:
     inherited_operation = inherit_effective_operation_fields(raw_operation, path_item, spec)
-    return strip_doc_only_fields(inherited_operation)
+    normalized_operation = strip_doc_only_fields(inherited_operation)
+    return canonicalize_unordered_schema_collections(normalized_operation)
 
 
 def collect_operations(spec: dict[str, Any]) -> dict[str, dict[str, Any]]:

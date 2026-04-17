@@ -79,14 +79,19 @@ jobs:
                 : report,
             ].join('\n');
 
-            const { data: issues } = await github.rest.issues.listForRepo({
-              owner,
-              repo,
-              state: 'open',
-              per_page: 100,
-            });
+            const issues = await github.paginate(
+              github.rest.issues.listForRepo,
+              {
+                owner,
+                repo,
+                state: 'open',
+                per_page: 100,
+              },
+            );
 
-            const existing = issues.find((issue) => issue.title === title);
+            const existing = issues.find(
+              (issue) => !issue.pull_request && issue.title === title,
+            );
             if (existing) {
               await github.rest.issues.update({
                 owner,
