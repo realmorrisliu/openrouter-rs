@@ -23,4 +23,4 @@ Compare the tracked baseline against the latest upstream spec with:
 just openapi-drift-check
 ```
 
-This directory is intentionally limited to baseline tracking for now. Generated-module seams, overlays, and broader spec tooling remain future work under the generated-core scaffold roadmap.
+This directory is intentionally limited to baseline tracking for now. Generated-module seams, overlays, and broader spec tooling remain future work under the generated-core scaffold roadmap described in [`docs/generated-core-architecture.md`](../../docs/generated-core-architecture.md).
