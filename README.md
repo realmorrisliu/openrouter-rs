@@ -15,6 +15,7 @@ Type-safe, async Rust SDK for the OpenRouter API.
 [openrouter-cli](https://github.com/realmorrisliu/openrouter-rs/tree/main/crates/openrouter-cli) |
 [contributing](CONTRIBUTING.md) |
 [endpoint matrix](docs/official-endpoint-test-matrix.md) |
+[awesome-openrouter kit](docs/community/awesome-openrouter/README.md) |
 [changelog](CHANGELOG.md)
 
 </div>
@@ -222,6 +223,7 @@ Environment and model-pool details live in [`tests/integration/README.md`](tests
 - [`MIGRATION.md`](MIGRATION.md) for migration guidance
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) for contributor workflow and review expectations
 - [`docs/maintenance-policy.md`](docs/maintenance-policy.md) for release, MSRV, and breaking-change policy
+- [`docs/community/awesome-openrouter/README.md`](docs/community/awesome-openrouter/README.md) for the Awesome OpenRouter submission kit and directory-safe assets
 - [`SECURITY.md`](SECURITY.md) for vulnerability reporting
 - [`SUPPORT.md`](SUPPORT.md) for support boundaries and issue-reporting guidance
 - [`docs/official-endpoint-test-matrix.md`](docs/official-endpoint-test-matrix.md) for endpoint-by-endpoint implementation and test status
