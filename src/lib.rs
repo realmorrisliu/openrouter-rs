@@ -173,6 +173,7 @@
 pub mod api;
 pub mod client;
 pub mod error;
+mod generated;
 pub mod types;
 pub mod utils;
 

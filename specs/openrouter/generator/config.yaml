@@ -1,0 +1,9 @@
+version: 1
+source_snapshot: ../source/openapi.json
+overlays:
+  - ../overlays/auth.yaml
+  - ../overlays/naming.yaml
+  - ../overlays/rust.yaml
+output:
+  rust_module_dir: ../../../src/generated
+  visibility: internal

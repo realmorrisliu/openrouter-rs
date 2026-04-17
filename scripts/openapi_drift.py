@@ -606,6 +606,17 @@ def command_refresh_baseline(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_refresh_source(args: argparse.Namespace) -> int:
+    source_url = args.source_url or UPSTREAM_OPENAPI_URL
+    source_label = str(args.source_file) if args.source_file else source_url
+    raw_spec = read_json(args.source_file) if args.source_file else fetch_spec(source_url)
+    spec = validate_openapi_spec(raw_spec, source_label)
+    write_json(args.source_json, spec)
+    print(f"Refreshed generation source snapshot from {source_url}.")
+    print(f"- source snapshot: {args.source_json}")
+    return 0
+
+
 def command_compare(args: argparse.Namespace) -> int:
     baseline_spec = validate_openapi_spec(read_json(args.baseline), str(args.baseline))
     candidate_label = args.candidate_url or str(args.candidate)
@@ -685,6 +696,29 @@ def build_parser() -> argparse.ArgumentParser:
         help="Path where the normalized operations snapshot should be written.",
     )
     refresh.set_defaults(func=command_refresh_baseline)
+
+    refresh_source = subparsers.add_parser(
+        "refresh-source",
+        help="Fetch and validate a full accepted source snapshot for future generation work.",
+    )
+    refresh_source_input = refresh_source.add_mutually_exclusive_group()
+    refresh_source_input.add_argument(
+        "--source-url",
+        default=UPSTREAM_OPENAPI_URL,
+        help="OpenAPI URL used to refresh the accepted source snapshot.",
+    )
+    refresh_source_input.add_argument(
+        "--source-file",
+        type=Path,
+        help="Local OpenAPI JSON file used to refresh the accepted source snapshot.",
+    )
+    refresh_source.add_argument(
+        "--source-json",
+        type=Path,
+        required=True,
+        help="Path where the validated full source snapshot should be written.",
+    )
+    refresh_source.set_defaults(func=command_refresh_source)
 
     compare = subparsers.add_parser(
         "compare",
