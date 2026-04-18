@@ -191,7 +191,7 @@ It should not try to become a public backend plugin system.
 
 ## Client Ownership Direction
 
-[`src/client.rs`](../src/client.rs) should eventually own a reusable `reqwest::Client`.
+[`src/client.rs`](../../src/client.rs) should eventually own a reusable `reqwest::Client`.
 
 Recommended additions:
 
