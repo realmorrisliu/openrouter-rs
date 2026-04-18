@@ -38,7 +38,6 @@ pub struct OpenRouterClient {
         default = "Some(String::from(\"openrouter-rs\"))"
     )]
     x_title: Option<String>,
-    #[allow(dead_code)]
     #[builder(setter(skip), default = "crate::transport::new_client()?")]
     http_client: reqwest::Client,
 }
@@ -154,7 +153,6 @@ impl OpenRouterClient {
         LegacyClient { client: self }
     }
 
-    #[allow(dead_code)]
     pub(crate) fn http_client(&self) -> &reqwest::Client {
         &self.http_client
     }
@@ -786,7 +784,8 @@ impl OpenRouterClient {
     ) -> Result<BoxStream<'static, Result<CompletionsResponse, OpenRouterError>>, OpenRouterError>
     {
         if let Some(api_key) = &self.api_key {
-            chat::stream_chat_completion(
+            chat::stream_chat_completion_with_client(
+                self.http_client(),
                 &self.base_url,
                 api_key,
                 &self.x_title,
@@ -902,7 +901,8 @@ impl OpenRouterClient {
         OpenRouterError,
     > {
         if let Some(api_key) = &self.api_key {
-            responses::stream_response(
+            responses::stream_response_with_client(
+                self.http_client(),
                 &self.base_url,
                 api_key,
                 &self.x_title,
@@ -953,7 +953,8 @@ impl OpenRouterClient {
         OpenRouterError,
     > {
         if let Some(api_key) = &self.api_key {
-            messages::stream_messages(
+            messages::stream_messages_with_client(
+                self.http_client(),
                 &self.base_url,
                 api_key,
                 &self.x_title,
@@ -1945,7 +1946,8 @@ impl<'a> LegacyCompletionsClient<'a> {
         request: &completion::CompletionRequest,
     ) -> Result<CompletionsResponse, OpenRouterError> {
         if let Some(api_key) = &self.client.api_key {
-            completion::send_completion_request(
+            completion::send_completion_request_with_client(
+                self.client.http_client(),
                 &self.client.base_url,
                 api_key,
                 &self.client.x_title,

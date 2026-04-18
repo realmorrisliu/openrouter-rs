@@ -1,5 +1,6 @@
 pub(crate) mod request;
 pub(crate) mod response;
+pub(crate) mod sse;
 
 use reqwest::Client;
 

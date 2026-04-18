@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use derive_builder::Builder;
-use futures_util::{AsyncBufReadExt, StreamExt, stream::BoxStream};
+use futures_util::{StreamExt, stream::BoxStream};
 use reqwest::Client as HttpClient;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -10,9 +10,11 @@ use crate::{
     api::chat::{Plugin, TraceOptions},
     error::OpenRouterError,
     strip_option_map_setter, strip_option_vec_setter,
-    transport::{request as transport_request, response as transport_response},
+    transport::{
+        request as transport_request, response as transport_response, sse::response_lines,
+    },
     types::ProviderPreferences,
-    utils::{handle_error, parse_sse_frames, with_client_request_headers},
+    utils::parse_sse_frames,
 };
 
 /// Request body for the OpenRouter Responses API (`POST /responses`).
@@ -281,16 +283,41 @@ pub async fn stream_response(
     http_referer: &Option<String>,
     request: &ResponsesRequest,
 ) -> Result<BoxStream<'static, Result<ResponsesStreamEvent, OpenRouterError>>, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    stream_response_with_client(
+        &http_client,
+        base_url,
+        api_key,
+        x_title,
+        http_referer,
+        request,
+    )
+    .await
+}
+
+pub(crate) async fn stream_response_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    x_title: &Option<String>,
+    http_referer: &Option<String>,
+    request: &ResponsesRequest,
+) -> Result<BoxStream<'static, Result<ResponsesStreamEvent, OpenRouterError>>, OpenRouterError> {
     let url = format!("{base_url}/responses");
     let request = request.stream(true);
 
-    let surf_req = with_client_request_headers(surf::post(url), api_key, x_title, http_referer)
-        .body_json(&request)?;
-
-    let response = surf_req.await?;
+    let response = transport_request::with_client_request_headers(
+        transport_request::post(http_client, &url),
+        api_key,
+        x_title,
+        http_referer,
+    )
+    .json(&request)
+    .send()
+    .await?;
 
     if response.status().is_success() {
-        let lines = parse_sse_frames(response.lines())
+        let lines = parse_sse_frames(response_lines(response))
             .filter_map(async |line| match line {
                 Ok(frame) if frame.data == "[DONE]" => None,
                 Ok(frame) => Some(
@@ -303,7 +330,7 @@ pub async fn stream_response(
 
         Ok(lines)
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }

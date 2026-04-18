@@ -262,12 +262,6 @@ pub enum OpenRouterError {
     Unknown(String),
 }
 
-impl From<surf::Error> for OpenRouterError {
-    fn from(err: surf::Error) -> Self {
-        OpenRouterError::HttpRequest(HttpRequestError::new(err.to_string()))
-    }
-}
-
 impl From<reqwest::Error> for OpenRouterError {
     fn from(err: reqwest::Error) -> Self {
         OpenRouterError::HttpRequest(HttpRequestError::new(err.to_string()))
