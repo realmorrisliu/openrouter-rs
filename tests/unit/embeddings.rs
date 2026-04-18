@@ -81,6 +81,37 @@ fn test_embedding_response_float_deserialization() {
 }
 
 #[test]
+fn test_embedding_response_deserializes_prompt_tokens_details() {
+    let raw = r#"{
+        "object": "list",
+        "data": [
+            {"object":"embedding","embedding":[0.1,0.2],"index":0}
+        ],
+        "model": "openai/text-embedding-3-large",
+        "usage": {
+            "prompt_tokens": 8,
+            "total_tokens": 8,
+            "prompt_tokens_details": {
+                "text_tokens": 6,
+                "image_tokens": 2
+            }
+        }
+    }"#;
+
+    let response: EmbeddingResponse =
+        serde_json::from_str(raw).expect("embedding response should deserialize");
+    let usage = response.usage.expect("usage should be present");
+    let details = usage
+        .prompt_tokens_details
+        .expect("prompt token details should deserialize");
+
+    assert_eq!(details.text_tokens, Some(6));
+    assert_eq!(details.image_tokens, Some(2));
+    assert_eq!(details.audio_tokens, None);
+    assert_eq!(details.video_tokens, None);
+}
+
+#[test]
 fn test_embedding_response_base64_deserialization() {
     let raw = r#"{
         "object": "list",
