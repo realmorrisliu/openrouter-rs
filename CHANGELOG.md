@@ -11,11 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added an `axum` gateway example and a practical typed-tool agent example so the repository covers copyable Rust application patterns instead of only endpoint-level demos.
 - Added `docs/cli-automation-workflows.md` with JSON-first shell and CI recipes for discovery, usage reporting, and ephemeral key automation.
 - Added `docs/compatibility-update-policy.md` and a reusable upstream-compatibility issue template so upstream OpenRouter changes can be tracked outside normal release cuts.
+- Added typed SDK support for `POST /rerank`, `POST /videos`, `GET /videos/models`, `GET /videos/{jobId}`, `GET /videos/{jobId}/content`, and `GET /organization/members`, including canonical `rerank()`, `videos()`, and `management().list_organization_members(...)` surfaces.
+- Added runnable examples for rerank requests, video generation submission, and organization-member listing.
 
 ### Changed
 - Reorganized the README example/docs surface around application patterns, Tokio streaming, and CLI automation workflows.
 - Aligned OpenAPI drift follow-up docs and issue wording with the new compatibility-update cadence and reporting surfaces.
-- Accepted the 2026-04-18 upstream OpenAPI drift baseline, tracked newly official `/rerank`, `/videos*`, and `/organization/members` endpoints in the endpoint matrix, and added typed embedding usage support for `prompt_tokens_details`.
+- Accepted the 2026-04-18 upstream OpenAPI drift baseline and added typed embedding usage support for `prompt_tokens_details`.
+- Restored the repository snapshot to `42 / 42` official endpoint coverage and aligned the endpoint matrix, README, docs.rs surface, and Awesome OpenRouter submission materials with the newly implemented rerank, videos, and organization-member endpoints.
 
 ## [0.7.0] - 2026-03-16
 
