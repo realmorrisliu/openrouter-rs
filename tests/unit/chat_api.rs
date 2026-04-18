@@ -328,7 +328,7 @@ async fn test_send_chat_completion_treats_error_payload_with_200_status_as_api_e
 
     match error {
         openrouter_rs::error::OpenRouterError::Api(api_error) => {
-            assert_eq!(api_error.status, surf::StatusCode::InternalServerError);
+            assert_eq!(api_error.status, http::StatusCode::INTERNAL_SERVER_ERROR);
             assert_eq!(api_error.api_code, Some(500));
             assert_eq!(api_error.message, "Internal Server Error");
             assert!(api_error.is_retryable());

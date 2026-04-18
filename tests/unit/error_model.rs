@@ -1,3 +1,4 @@
+use http::StatusCode;
 use std::{
     io::{Read, Write},
     net::TcpListener,
@@ -6,9 +7,8 @@ use std::{
 
 use openrouter_rs::{
     api::models,
-    error::{ApiErrorKind, OpenRouterError},
+    error::{ApiErrorKind, HttpRequestError, OpenRouterError},
 };
-use surf::StatusCode;
 
 fn spawn_error_server(
     status_line: &str,
@@ -70,7 +70,7 @@ async fn test_normalized_generic_api_error_shape() {
     let error = result.expect_err("request should fail");
     match error {
         OpenRouterError::Api(api_error) => {
-            assert_eq!(api_error.status, StatusCode::TooManyRequests);
+            assert_eq!(api_error.status, StatusCode::TOO_MANY_REQUESTS);
             assert_eq!(api_error.api_code, Some(429));
             assert_eq!(api_error.message, "Rate limit exceeded");
             assert_eq!(api_error.request_id.as_deref(), Some("req_123"));
@@ -127,7 +127,7 @@ async fn test_unreadable_error_body_preserves_read_failure_context() {
 
     match error {
         OpenRouterError::Api(api_error) => {
-            assert_eq!(api_error.status, StatusCode::InternalServerError);
+            assert_eq!(api_error.status, StatusCode::INTERNAL_SERVER_ERROR);
             assert_eq!(api_error.request_id.as_deref(), Some("req_truncated"));
             assert!(
                 api_error
@@ -173,7 +173,7 @@ async fn test_normalized_provider_error_shape() {
     let error = result.expect_err("request should fail");
     match error {
         OpenRouterError::Api(api_error) => {
-            assert_eq!(api_error.status, StatusCode::BadGateway);
+            assert_eq!(api_error.status, StatusCode::BAD_GATEWAY);
             assert_eq!(api_error.api_code, Some(502));
             assert_eq!(api_error.request_id.as_deref(), Some("req_provider"));
             assert!(api_error.is_retryable());
@@ -219,7 +219,7 @@ async fn test_normalized_moderation_error_shape() {
     let error = result.expect_err("request should fail");
     match error {
         OpenRouterError::Api(api_error) => {
-            assert_eq!(api_error.status, StatusCode::BadRequest);
+            assert_eq!(api_error.status, StatusCode::BAD_REQUEST);
             assert_eq!(api_error.api_code, Some(400));
             assert_eq!(api_error.request_id.as_deref(), Some("req_mod"));
             assert!(!api_error.is_retryable());
@@ -302,7 +302,7 @@ async fn test_plain_text_error_is_still_normalized() {
     let error = result.expect_err("request should fail");
     match error {
         OpenRouterError::Api(api_error) => {
-            assert_eq!(api_error.status, StatusCode::GatewayTimeout);
+            assert_eq!(api_error.status, StatusCode::GATEWAY_TIMEOUT);
             assert_eq!(api_error.api_code, Some(504));
             assert_eq!(api_error.request_id.as_deref(), Some("req_plain"));
             assert_eq!(api_error.message, "upstream timeout");
@@ -315,4 +315,12 @@ async fn test_plain_text_error_is_still_normalized() {
     server
         .join()
         .expect("server thread should join in reasonable time");
+}
+
+#[test]
+fn test_http_request_error_is_backend_neutral() {
+    let error = HttpRequestError::new("connection refused");
+
+    assert_eq!(error.message(), "connection refused");
+    assert_eq!(error.to_string(), "connection refused");
 }

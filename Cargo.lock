@@ -1572,6 +1572,7 @@ dependencies = [
  "dotenvy",
  "dotenvy_macro",
  "futures-util",
+ "http 1.4.0",
  "schemars",
  "serde",
  "serde_json",

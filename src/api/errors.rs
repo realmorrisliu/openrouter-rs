@@ -1,6 +1,6 @@
+use http::StatusCode;
 use serde::Deserialize;
 use serde_json::Value;
-use surf::StatusCode;
 
 use crate::error::{ApiErrorContext, ApiErrorKind, OpenRouterError};
 
