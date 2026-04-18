@@ -21,17 +21,17 @@ Type-safe, async Rust SDK for the OpenRouter API.
 
 </div>
 
-`openrouter-rs` is a community-maintained Rust SDK for OpenRouter. It exposes a domain-oriented client for chat, responses, messages, models, embeddings, and management APIs, plus a companion CLI in the same repository.
+`openrouter-rs` is a community-maintained Rust SDK for OpenRouter. It exposes a domain-oriented client for chat, responses, messages, rerank, video generation, models, embeddings, and management APIs, plus a companion CLI in the same repository.
 
-The current repo snapshot implements `36 / 42` official OpenAPI method/path entries, with published live integration coverage tracked in [`docs/official-endpoint-test-matrix.md`](docs/official-endpoint-test-matrix.md).
+The current repo snapshot implements `42 / 42` official OpenAPI method/path entries, with published live integration coverage tracked in [`docs/official-endpoint-test-matrix.md`](docs/official-endpoint-test-matrix.md).
 
 ## Why `openrouter-rs`
 
-- Domain-oriented clients: `chat()`, `responses()`, `messages()`, `models()`, `management()`, and opt-in `legacy()`
+- Domain-oriented clients: `chat()`, `responses()`, `messages()`, `rerank()`, `videos()`, `models()`, `management()`, and opt-in `legacy()`
 - Typed request/response models with builder-style ergonomics
 - Streaming support for chat, responses, and messages, including a unified stream abstraction
 - Typed tools, manual JSON-schema tools, and multimodal chat content
-- Discovery, embeddings, API-key management, guardrails, activity, credits, and generation coverage
+- Discovery, rerank, video generation, embeddings, API-key management, organization members, guardrails, activity, credits, and generation coverage
 - A companion CLI for profile resolution, discovery, management, and billing/usage workflows
 
 ## Installation
@@ -100,8 +100,10 @@ The canonical public surface in `0.7.x` is domain-oriented:
 | `chat()` | `create`, `stream`, `stream_tool_aware`, `stream_unified` | `/chat/completions` | API key |
 | `responses()` | `create`, `stream`, `stream_unified` | `/responses` | API key |
 | `messages()` | `create`, `stream`, `stream_unified` | `/messages` | API key |
+| `rerank()` | `create` | `/rerank` | API key |
+| `videos()` | `create`, `list_models`, `get_generation`, `get_content` | `/videos*` | API key |
 | `models()` | `list`, `list_by_category`, `list_by_parameters`, `list_endpoints`, `list_providers`, `list_user_models`, `get_model_count`, `list_zdr_endpoints`, `create_embedding`, `list_embedding_models` | `/models*`, `/providers`, `/endpoints/zdr`, `/embeddings*` | API key |
-| `management()` | `create_api_key`, `list_api_keys`, `create_auth_code`, `create_api_key_from_auth_code`, `list_guardrails`, `get_activity`, `get_credits`, `create_coinbase_charge`, `get_generation` | `/keys*`, `/auth/keys*`, `/guardrails*`, `/activity`, `/credits*`, `/generation`, `/key` | Governed endpoints require a management key; billing/session endpoints still use the normal API key because that is how OpenRouter authenticates them |
+| `management()` | `create_api_key`, `list_api_keys`, `create_auth_code`, `create_api_key_from_auth_code`, `list_guardrails`, `list_organization_members`, `get_activity`, `get_credits`, `create_coinbase_charge`, `get_generation` | `/keys*`, `/auth/keys*`, `/guardrails*`, `/organization/members`, `/activity`, `/credits*`, `/generation`, `/key` | Governed endpoints require a management key; billing/session endpoints still use the normal API key because that is how OpenRouter authenticates them |
 | `legacy()` | `completions().create` | `/completions` | `legacy-completions` feature + API key |
 
 At runtime, the builder/client exposes the values the SDK directly consumes:
@@ -117,11 +119,12 @@ At runtime, the builder/client exposes the values the SDK directly consumes:
 `openrouter-rs` is not just a thin `/chat/completions` wrapper. The repo currently covers:
 
 - chat completions, responses, and Anthropic-compatible messages
+- rerank and video generation polling/content retrieval
 - unified streaming across chat, responses, and messages
 - manual tools and typed tools backed by `schemars`
 - multimodal chat content, including image, audio, video, and file parts
 - model discovery, provider discovery, embeddings, and ZDR endpoints
-- management-key workflows for keys, auth codes, guardrails, and activity, plus API-key-authenticated credits and generation endpoints
+- management-key workflows for keys, auth codes, organization members, guardrails, and activity, plus API-key-authenticated credits and generation endpoints
 
 For deeper examples, prefer the runnable examples in [`examples/`](examples) over long README snippets.
 
@@ -154,8 +157,11 @@ The repo includes runnable examples for the highest-value workflows:
 | [`examples/typed_tool_calling.rs`](examples/typed_tool_calling.rs) | Typed tools with generated schema |
 | [`examples/create_response.rs`](examples/create_response.rs) | `responses()` create |
 | [`examples/create_message.rs`](examples/create_message.rs) | `messages()` create |
+| [`examples/create_rerank.rs`](examples/create_rerank.rs) | `rerank().create(...)` |
+| [`examples/create_video_generation.rs`](examples/create_video_generation.rs) | `videos().create(...)` |
 | [`examples/create_embedding.rs`](examples/create_embedding.rs) | `models().create_embedding(...)` |
 | [`examples/domain_management_api_keys.rs`](examples/domain_management_api_keys.rs) | API-key management via `management()` |
+| [`examples/list_organization_members.rs`](examples/list_organization_members.rs) | `management().list_organization_members(...)` |
 | [`examples/exchange_code_for_api_key.rs`](examples/exchange_code_for_api_key.rs) | PKCE/auth-code flow |
 | [`examples/send_completion_request.rs`](examples/send_completion_request.rs) | Legacy completions (`legacy-completions` required) |
 
@@ -171,6 +177,7 @@ cargo run --example typed_tool_agent
 cargo run --example typed_tool_calling
 cargo run --example create_response
 cargo run --example create_message
+cargo run --example create_rerank
 cargo run --example create_embedding
 ```
 

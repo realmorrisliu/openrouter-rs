@@ -8,8 +8,10 @@
 //! - `client.chat()` -> [`chat`]
 //! - `client.responses()` -> [`responses`]
 //! - `client.messages()` -> [`messages`]
+//! - `client.rerank()` -> [`rerank`]
+//! - `client.videos()` -> [`videos`]
 //! - `client.models()` -> [`models`], [`embeddings`], [`discovery`]
-//! - `client.management()` -> [`api_keys`], [`auth`], [`credits`], [`generation`], [`guardrails`]
+//! - `client.management()` -> [`api_keys`], [`auth`], [`credits`], [`generation`], [`guardrails`], [`organization`]
 //! - `client.legacy()` -> [`legacy`] (feature `legacy-completions`)
 //!
 //! Endpoint families currently implemented here:
@@ -17,11 +19,14 @@
 //! - chat completions and multimodal content
 //! - Responses API
 //! - Anthropic-compatible Messages API
+//! - rerank
+//! - video generation and polling
 //! - model discovery, providers, user model filters, model counts, and ZDR endpoints
 //! - embeddings
 //! - API-key and auth-code flows
 //! - credits, Coinbase charge creation, generation lookup, and activity
 //! - guardrails and guardrail assignments
+//! - organization member listing
 //! - structured API error payloads
 //!
 //! ## Quick Examples
@@ -116,7 +121,10 @@ pub mod generation;
 pub mod guardrails;
 pub mod messages;
 pub mod models;
+pub mod organization;
+pub mod rerank;
 pub mod responses;
+pub mod videos;
 
 #[cfg(feature = "legacy-completions")]
 pub mod legacy;

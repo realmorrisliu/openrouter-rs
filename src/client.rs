@@ -6,7 +6,7 @@ use crate::api::legacy::completion;
 use crate::{
     api::{
         api_keys, auth, chat, credits, discovery, embeddings, generation, guardrails, messages,
-        models, responses,
+        models, organization, rerank, responses, videos,
     },
     error::OpenRouterError,
     types::{
@@ -123,6 +123,16 @@ impl OpenRouterClient {
     /// Domain client for Anthropic-compatible `/messages` operations.
     pub fn messages(&self) -> MessagesClient<'_> {
         MessagesClient { client: self }
+    }
+
+    /// Domain client for rerank operations.
+    pub fn rerank(&self) -> RerankClient<'_> {
+        RerankClient { client: self }
+    }
+
+    /// Domain client for video generation operations.
+    pub fn videos(&self) -> VideosClient<'_> {
+        VideosClient { client: self }
     }
 
     /// Domain client for model/discovery/embedding operations.
@@ -886,6 +896,78 @@ impl OpenRouterClient {
         }
     }
 
+    /// Submit a rerank request.
+    pub async fn create_rerank(
+        &self,
+        request: &rerank::RerankRequest,
+    ) -> Result<rerank::RerankResponse, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            rerank::create_rerank(
+                &self.base_url,
+                api_key,
+                &self.x_title,
+                &self.http_referer,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Submit a video generation request.
+    pub async fn create_video_generation(
+        &self,
+        request: &videos::VideoGenerationRequest,
+    ) -> Result<videos::VideoGenerationResponse, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            videos::create_video_generation(
+                &self.base_url,
+                api_key,
+                &self.x_title,
+                &self.http_referer,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// List all available video generation models.
+    pub async fn list_video_models(&self) -> Result<Vec<videos::VideoModel>, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            videos::list_video_models(&self.base_url, api_key).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Get the status of one video generation job.
+    pub async fn get_video_generation(
+        &self,
+        job_id: &str,
+    ) -> Result<videos::VideoGenerationResponse, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            videos::get_video_generation(&self.base_url, api_key, job_id).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Download the binary output for a completed video generation job.
+    pub async fn get_video_content(
+        &self,
+        job_id: &str,
+        index: Option<u32>,
+    ) -> Result<Vec<u8>, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            videos::get_video_content(&self.base_url, api_key, job_id, index).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
     /// List all available embeddings models.
     pub async fn list_embedding_models(&self) -> Result<Vec<models::Model>, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
@@ -1177,6 +1259,19 @@ impl OpenRouterClient {
             Err(OpenRouterError::KeyNotConfigured)
         }
     }
+
+    /// List organization members for the configured management key.
+    pub async fn list_organization_members(
+        &self,
+        pagination: Option<PaginationOptions>,
+    ) -> Result<organization::OrganizationMembersResponse, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            organization::list_organization_members(&self.base_url, management_key, pagination)
+                .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
 }
 
 /// Domain client for chat completions.
@@ -1287,6 +1382,60 @@ impl<'a> MessagesClient<'a> {
         request: &messages::AnthropicMessagesRequest,
     ) -> Result<UnifiedStream, OpenRouterError> {
         self.client.stream_messages_unified(request).await
+    }
+}
+
+/// Domain client for rerank endpoints.
+#[derive(Debug, Clone, Copy)]
+pub struct RerankClient<'a> {
+    client: &'a OpenRouterClient,
+}
+
+impl<'a> RerankClient<'a> {
+    /// Create a rerank result set (`POST /rerank`).
+    pub async fn create(
+        &self,
+        request: &rerank::RerankRequest,
+    ) -> Result<rerank::RerankResponse, OpenRouterError> {
+        self.client.create_rerank(request).await
+    }
+}
+
+/// Domain client for video generation endpoints.
+#[derive(Debug, Clone, Copy)]
+pub struct VideosClient<'a> {
+    client: &'a OpenRouterClient,
+}
+
+impl<'a> VideosClient<'a> {
+    /// Submit a video generation request (`POST /videos`).
+    pub async fn create(
+        &self,
+        request: &videos::VideoGenerationRequest,
+    ) -> Result<videos::VideoGenerationResponse, OpenRouterError> {
+        self.client.create_video_generation(request).await
+    }
+
+    /// List available video generation models (`GET /videos/models`).
+    pub async fn list_models(&self) -> Result<Vec<videos::VideoModel>, OpenRouterError> {
+        self.client.list_video_models().await
+    }
+
+    /// Poll a submitted video generation (`GET /videos/{jobId}`).
+    pub async fn get_generation(
+        &self,
+        job_id: &str,
+    ) -> Result<videos::VideoGenerationResponse, OpenRouterError> {
+        self.client.get_video_generation(job_id).await
+    }
+
+    /// Download video output bytes for a completed job (`GET /videos/{jobId}/content`).
+    pub async fn get_content(
+        &self,
+        job_id: &str,
+        index: Option<u32>,
+    ) -> Result<Vec<u8>, OpenRouterError> {
+        self.client.get_video_content(job_id, index).await
     }
 }
 
@@ -1584,6 +1733,14 @@ impl<'a> ManagementClient<'a> {
         pagination: Option<PaginationOptions>,
     ) -> Result<guardrails::GuardrailMemberAssignmentsResponse, OpenRouterError> {
         self.client.list_member_assignments(pagination).await
+    }
+
+    /// List organization members (`GET /organization/members`).
+    pub async fn list_organization_members(
+        &self,
+        pagination: Option<PaginationOptions>,
+    ) -> Result<organization::OrganizationMembersResponse, OpenRouterError> {
+        self.client.list_organization_members(pagination).await
     }
 }
 

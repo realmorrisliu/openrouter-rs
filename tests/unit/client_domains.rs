@@ -8,7 +8,7 @@ use std::{
 
 use openrouter_rs::{
     OpenRouterClient,
-    api::{auth, chat, credits, embeddings, guardrails, messages, responses},
+    api::{auth, chat, credits, embeddings, guardrails, messages, rerank, responses, videos},
     error::OpenRouterError,
     types::{ModelCategory, PaginationOptions, Role, SupportedParameters},
 };
@@ -265,6 +265,51 @@ async fn test_models_domain_renamed_methods_require_api_key() {
 }
 
 #[tokio::test]
+async fn test_rerank_domain_requires_api_key() {
+    let client = OpenRouterClient::builder()
+        .build()
+        .expect("client should build");
+    let request = rerank::RerankRequest::builder()
+        .model("cohere/rerank-v3.5")
+        .query("capital of France")
+        .documents(vec!["Paris is the capital of France.".to_string()])
+        .build()
+        .expect("rerank request should build");
+
+    let result = client.rerank().create(&request).await;
+    assert!(matches!(result, Err(OpenRouterError::KeyNotConfigured)));
+}
+
+#[tokio::test]
+async fn test_videos_domain_requires_api_key() {
+    let client = OpenRouterClient::builder()
+        .build()
+        .expect("client should build");
+    let request = videos::VideoGenerationRequest::builder()
+        .model("google/veo-3.1")
+        .prompt("Generate a short clip")
+        .build()
+        .expect("video generation request should build");
+
+    assert!(matches!(
+        client.videos().create(&request).await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client.videos().list_models().await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client.videos().get_generation("job_123").await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client.videos().get_content("job_123", Some(0)).await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+}
+
+#[tokio::test]
 async fn test_management_domain_requires_management_key() {
     let client = OpenRouterClient::builder()
         .api_key("user-key")
@@ -454,6 +499,10 @@ async fn test_management_domain_remaining_methods_require_configured_key() {
         client.management().list_member_assignments(None).await,
         Err(OpenRouterError::KeyNotConfigured)
     ));
+    assert!(matches!(
+        client.management().list_organization_members(None).await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
 }
 
 #[tokio::test]
@@ -521,6 +570,70 @@ async fn test_models_domain_list_endpoints_delegates_to_api_module() {
 }
 
 #[tokio::test]
+async fn test_rerank_domain_create_delegates_to_api_module() {
+    let response_body = r#"{
+        "model":"cohere/rerank-v3.5",
+        "results":[{"index":0,"relevance_score":0.98,"document":{"text":"Paris"}}]
+    }"#;
+    let (base_url, rx, server) = spawn_json_server(response_body);
+    let client = OpenRouterClient::builder()
+        .base_url(base_url)
+        .api_key("api-key")
+        .build()
+        .expect("client should build");
+    let request = rerank::RerankRequest::builder()
+        .model("cohere/rerank-v3.5")
+        .query("capital of France")
+        .documents(vec!["Paris is the capital of France.".to_string()])
+        .build()
+        .expect("rerank request should build");
+
+    let response = client
+        .rerank()
+        .create(&request)
+        .await
+        .expect("rerank should succeed");
+    assert_eq!(response.results.len(), 1);
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(captured.request_line, "POST /api/v1/rerank HTTP/1.1");
+
+    let body_json: serde_json::Value =
+        serde_json::from_str(&captured.body_text).expect("body should be valid json");
+    assert_eq!(body_json["model"], "cohere/rerank-v3.5");
+    assert_eq!(body_json["query"], "capital of France");
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_videos_domain_methods_delegate_to_api_module() {
+    let response_body = r#"{"data":[]}"#;
+    let (base_url, rx, server) = spawn_json_server(response_body);
+    let client = OpenRouterClient::builder()
+        .base_url(base_url)
+        .api_key("api-key")
+        .build()
+        .expect("client should build");
+
+    let response = client
+        .videos()
+        .list_models()
+        .await
+        .expect("list video models should succeed");
+    assert!(response.is_empty());
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(captured.request_line, "GET /api/v1/videos/models HTTP/1.1");
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
 async fn test_management_domain_list_guardrails_without_pagination_delegates() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
     let client = OpenRouterClient::builder()
@@ -540,6 +653,45 @@ async fn test_management_domain_list_guardrails_without_pagination_delegates() {
         .recv_timeout(Duration::from_secs(2))
         .expect("should capture request");
     assert_eq!(captured.request_line, "GET /api/v1/guardrails HTTP/1.1");
+    assert!(
+        captured
+            .request_text
+            .to_ascii_lowercase()
+            .contains("authorization: bearer management-key")
+            || captured
+                .request_text
+                .to_ascii_lowercase()
+                .contains("authorization:bearer management-key"),
+        "authorization header should include management key, request:\n{}",
+        captured.request_text
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_management_domain_list_organization_members_without_pagination_delegates() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
+    let client = OpenRouterClient::builder()
+        .base_url(base_url)
+        .management_key("management-key")
+        .build()
+        .expect("client should build");
+
+    let response = client
+        .management()
+        .list_organization_members(None)
+        .await
+        .expect("list_organization_members should succeed");
+    assert_eq!(response.total_count, 0);
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/organization/members HTTP/1.1"
+    );
     assert!(
         captured
             .request_text

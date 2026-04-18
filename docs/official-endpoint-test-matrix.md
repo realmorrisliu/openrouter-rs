@@ -8,14 +8,14 @@ Nightly drift workflow: `.github/workflows/openapi-drift.yml`
 ## Coverage Summary
 
 - Official OpenAPI endpoints: `42` method+path entries.
-- SDK implementation coverage (`src/api` + domain client): `36 / 42` (`86%`).
+- SDK implementation coverage (`src/api` + domain client): `42 / 42` (`100%`).
 - Live integration coverage (`tests/integration`): `22 / 42` endpoints currently exercised.
   - Covered live now: `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`
 
 Legend:
 
 - `SDK`: endpoint implemented in `openrouter-rs`.
-- Canonical surface note: the `0.6.x` docs and examples prefer domain clients (`chat()`, `responses()`, `messages()`, `models()`, `management()`). Some rows still mention retained flat `OpenRouterClient::*` wrappers when they exist.
+- Canonical surface note: the `0.7.x` docs and examples prefer domain clients (`chat()`, `responses()`, `messages()`, `rerank()`, `videos()`, `models()`, `management()`). Some rows still mention retained flat `OpenRouterClient::*` wrappers when they exist.
 - `Unit`: unit coverage depth.
   - `Path` = test asserts HTTP method/path (often with header/body checks).
   - `Contract` = serde/request-shape/parser coverage only.
@@ -60,15 +60,15 @@ Legend:
 | `GET /models/{author}/{slug}/endpoints` | `client.list_model_endpoints(...)` / `client.models().list_endpoints(...)` | Yes | Path | Yes | Keep |
 | `GET /models/count` | `client.count_models()` / `client.models().get_model_count()` | Yes | Contract | Yes | Keep |
 | `GET /models/user` | `client.list_models_for_user()` / `client.models().list_user_models()` | Yes | Path | Yes | Keep |
-| `GET /organization/members` | Not implemented yet | No | None | No | P2 |
+| `GET /organization/members` | `client.management().list_organization_members(...)` | Yes | Path | No | P2 |
 | `GET /providers` | `client.list_providers()` / `client.models().list_providers()` | Yes | Contract | Yes | Keep |
 | `POST /messages` | `client.messages().create(...)` / `client.messages().stream(...)` | Yes | Path | Yes | Keep |
-| `POST /rerank` | Not implemented yet | No | None | No | P1 |
+| `POST /rerank` | `client.rerank().create(...)` | Yes | Path | No | P1 |
 | `POST /responses` | `client.responses().create(...)` / `client.responses().stream(...)` | Yes | Contract | Yes | Keep |
-| `POST /videos` | Not implemented yet | No | None | No | P2 |
-| `GET /videos/models` | Not implemented yet | No | None | No | P2 |
-| `GET /videos/{jobId}` | Not implemented yet | No | None | No | P2 |
-| `GET /videos/{jobId}/content` | Not implemented yet | No | None | No | P2 |
+| `POST /videos` | `client.videos().create(...)` | Yes | Path | No | P2 |
+| `GET /videos/models` | `client.videos().list_models()` | Yes | Path | No | P2 |
+| `GET /videos/{jobId}` | `client.videos().get_generation(...)` | Yes | Path | No | P2 |
+| `GET /videos/{jobId}/content` | `client.videos().get_content(...)` | Yes | Path | No | P2 |
 
 ## Supplemental (Legacy)
 
@@ -83,7 +83,7 @@ The endpoint below is intentionally kept as legacy compatibility and is not part
 1. P1: add management-key live coverage for assignment endpoints (`/guardrails/*/assignments/*` and `/guardrails/assignments/*`).
 2. P1: add management-key live smoke coverage for `/activity`.
 3. P2: keep `/credits`, `/credits/coinbase`, `/generation`, `/auth/keys*` as controlled scenarios (manual or mocked contract-first) due cost/side effects.
-4. P1/P2: track implementation decisions for the newly official `/rerank`, `/videos*`, and `/organization/members` endpoints in [#168](https://github.com/realmorrisliu/openrouter-rs/issues/168) before claiming full OpenAPI coverage again.
+4. P1/P2: add low-cost live or smoke coverage for `/rerank`, `/videos*`, and `/organization/members` once stable fixtures and cost controls are defined.
 
 ## Reproduce Snapshot
 
