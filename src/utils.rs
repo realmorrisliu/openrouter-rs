@@ -214,7 +214,11 @@ pub(crate) async fn parse_json_response<T: DeserializeOwned>(
         Ok(parsed) => Ok(parsed),
         Err(error) => {
             if body_contains_api_error(&body_text) {
-                Err(parse_api_error(to_http_status(status), request_id, &body_text))
+                Err(parse_api_error(
+                    to_http_status(status),
+                    request_id,
+                    &body_text,
+                ))
             } else {
                 Err(response_deserialization_error(
                     context, status, &error, &body_text,
