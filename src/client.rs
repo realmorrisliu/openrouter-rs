@@ -38,6 +38,9 @@ pub struct OpenRouterClient {
         default = "Some(String::from(\"openrouter-rs\"))"
     )]
     x_title: Option<String>,
+    #[allow(dead_code)]
+    #[builder(setter(skip), default = "crate::transport::new_client()?")]
+    http_client: reqwest::Client,
 }
 
 impl OpenRouterClient {
@@ -149,6 +152,11 @@ impl OpenRouterClient {
     #[cfg(feature = "legacy-completions")]
     pub fn legacy(&self) -> LegacyClient<'_> {
         LegacyClient { client: self }
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn http_client(&self) -> &reqwest::Client {
+        &self.http_client
     }
 }
 
