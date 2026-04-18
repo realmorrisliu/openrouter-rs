@@ -20874,6 +20874,30 @@
                           "example": 8,
                           "type": "integer"
                         },
+                        "prompt_tokens_details": {
+                          "description": "Per-modality token breakdown. Only present when the input contains 2+ modalities (e.g. text + image) and the upstream provider returns modality-level usage data. Only non-zero modality counts are included.",
+                          "properties": {
+                            "audio_tokens": {
+                              "description": "Number of audio tokens in the input",
+                              "type": "integer"
+                            },
+                            "image_tokens": {
+                              "description": "Number of image tokens in the input",
+                              "example": 258,
+                              "type": "integer"
+                            },
+                            "text_tokens": {
+                              "description": "Number of text tokens in the input",
+                              "example": 8,
+                              "type": "integer"
+                            },
+                            "video_tokens": {
+                              "description": "Number of video tokens in the input",
+                              "type": "integer"
+                            }
+                          },
+                          "type": "object"
+                        },
                         "total_tokens": {
                           "description": "Total number of tokens used",
                           "example": 8,
@@ -25930,6 +25954,194 @@
         "x-speakeasy-name-override": "list"
       }
     },
+    "/organization/members": {
+      "get": {
+        "description": "List all members of the organization associated with the authenticated management key. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "operationId": "listOrganizationMembers",
+        "parameters": [
+          {
+            "description": "Number of records to skip for pagination",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "description": "Number of records to skip for pagination",
+              "example": 0,
+              "minimum": 0,
+              "nullable": true,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of records to return (max 100)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "description": "Maximum number of records to return (max 100)",
+              "example": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": [
+                    {
+                      "email": "jane.doe@example.com",
+                      "first_name": "Jane",
+                      "id": "user_2dHFtVWx2n56w6HkM0000000000",
+                      "last_name": "Doe",
+                      "role": "member"
+                    }
+                  ],
+                  "total_count": 25
+                },
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "description": "List of organization members",
+                      "items": {
+                        "properties": {
+                          "email": {
+                            "description": "Email address of the member",
+                            "example": "jane.doe@example.com",
+                            "type": "string"
+                          },
+                          "first_name": {
+                            "description": "First name of the member",
+                            "example": "Jane",
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "id": {
+                            "description": "User ID of the organization member",
+                            "example": "user_2dHFtVWx2n56w6HkM0000000000",
+                            "type": "string"
+                          },
+                          "last_name": {
+                            "description": "Last name of the member",
+                            "example": "Doe",
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "role": {
+                            "description": "Role of the member in the organization",
+                            "enum": [
+                              "org:admin",
+                              "org:member"
+                            ],
+                            "example": "org:member",
+                            "type": "string",
+                            "x-speakeasy-unknown-values": "allow"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "first_name",
+                          "last_name",
+                          "email",
+                          "role"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "total_count": {
+                      "description": "Total number of members in the organization",
+                      "example": 25,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "total_count"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "List of organization members"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 404,
+                    "message": "Resource not found"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundResponse"
+                }
+              }
+            },
+            "description": "Not Found - Resource does not exist"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "summary": "List organization members",
+        "tags": [
+          "Organization"
+        ],
+        "x-speakeasy-name-override": "listMembers",
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "offset",
+              "type": "offset"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "results": "$.data"
+          },
+          "type": "offsetLimit"
+        }
+      }
+    },
     "/providers": {
       "get": {
         "operationId": "listProviders",
@@ -26581,6 +26793,382 @@
         "x-speakeasy-name-override": "list"
       }
     },
+    "/rerank": {
+      "post": {
+        "description": "Submits a rerank request to the rerank router",
+        "operationId": "createRerank",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "description": "Rerank request input",
+                "example": {
+                  "documents": [
+                    "Paris is the capital of France.",
+                    "Berlin is the capital of Germany."
+                  ],
+                  "model": "cohere/rerank-v3.5",
+                  "query": "What is the capital of France?",
+                  "top_n": 3
+                },
+                "properties": {
+                  "documents": {
+                    "description": "The list of documents to rerank",
+                    "example": [
+                      "Paris is the capital of France.",
+                      "Berlin is the capital of Germany."
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "model": {
+                    "description": "The rerank model to use",
+                    "example": "cohere/rerank-v3.5",
+                    "type": "string"
+                  },
+                  "provider": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/ProviderPreferences"
+                      },
+                      {
+                        "description": "Provider routing preferences for the request."
+                      }
+                    ]
+                  },
+                  "query": {
+                    "description": "The search query to rerank documents against",
+                    "example": "What is the capital of France?",
+                    "type": "string"
+                  },
+                  "top_n": {
+                    "description": "Number of most relevant documents to return",
+                    "example": 3,
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "model",
+                  "query",
+                  "documents"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Rerank response containing ranked results",
+                  "example": {
+                    "id": "gen-rerank-1234567890-abc",
+                    "model": "cohere/rerank-v3.5",
+                    "results": [
+                      {
+                        "document": {
+                          "text": "Paris is the capital of France."
+                        },
+                        "index": 0,
+                        "relevance_score": 0.98
+                      }
+                    ],
+                    "usage": {
+                      "search_units": 1,
+                      "total_tokens": 150
+                    }
+                  },
+                  "properties": {
+                    "id": {
+                      "description": "Unique identifier for the rerank response (ORID format)",
+                      "example": "gen-rerank-1234567890-abc",
+                      "type": "string"
+                    },
+                    "model": {
+                      "description": "The model used for reranking",
+                      "example": "cohere/rerank-v3.5",
+                      "type": "string"
+                    },
+                    "provider": {
+                      "description": "The provider that served the rerank request",
+                      "example": "Cohere",
+                      "type": "string"
+                    },
+                    "results": {
+                      "description": "List of rerank results sorted by relevance",
+                      "example": [
+                        {
+                          "document": {
+                            "text": "Paris is the capital of France."
+                          },
+                          "index": 0,
+                          "relevance_score": 0.98
+                        }
+                      ],
+                      "items": {
+                        "description": "A single rerank result",
+                        "example": {
+                          "document": {
+                            "text": "Paris is the capital of France."
+                          },
+                          "index": 0,
+                          "relevance_score": 0.98
+                        },
+                        "properties": {
+                          "document": {
+                            "description": "The document object containing the original text",
+                            "properties": {
+                              "text": {
+                                "description": "The document text",
+                                "example": "Paris is the capital of France.",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "text"
+                            ],
+                            "type": "object"
+                          },
+                          "index": {
+                            "description": "Index of the document in the original input list",
+                            "example": 0,
+                            "type": "integer"
+                          },
+                          "relevance_score": {
+                            "description": "Relevance score of the document to the query",
+                            "example": 0.98,
+                            "format": "double",
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "index",
+                          "relevance_score",
+                          "document"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "usage": {
+                      "description": "Usage statistics",
+                      "example": {
+                        "search_units": 1,
+                        "total_tokens": 150
+                      },
+                      "properties": {
+                        "cost": {
+                          "description": "Cost of the request in credits",
+                          "example": 0.001,
+                          "format": "double",
+                          "type": "number"
+                        },
+                        "search_units": {
+                          "description": "Number of search units consumed (Cohere billing)",
+                          "example": 1,
+                          "type": "integer"
+                        },
+                        "total_tokens": {
+                          "description": "Total number of tokens used",
+                          "example": 150,
+                          "type": "integer"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "model",
+                    "results"
+                  ],
+                  "type": "object"
+                }
+              },
+              "text/event-stream": {
+                "example": "data: [DONE]",
+                "schema": {
+                  "description": "Not used for rerank - rerank does not support streaming",
+                  "type": "string"
+                },
+                "x-speakeasy-sse-sentinel": "[DONE]"
+              }
+            },
+            "description": "Rerank response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 400,
+                    "message": "Invalid request parameters"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            },
+            "description": "Bad Request - Invalid request parameters or malformed input"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 402,
+                    "message": "Insufficient credits. Add more using https://openrouter.ai/credits"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRequiredResponse"
+                }
+              }
+            },
+            "description": "Payment Required - Insufficient credits or quota to complete request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 404,
+                    "message": "Resource not found"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundResponse"
+                }
+              }
+            },
+            "description": "Not Found - Resource does not exist"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 429,
+                    "message": "Rate limit exceeded"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests - Rate limit exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 502,
+                    "message": "Provider returned error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadGatewayResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway - Provider/upstream API failure"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 503,
+                    "message": "Service temporarily unavailable"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailableResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable - Service temporarily unavailable"
+          },
+          "524": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 524,
+                    "message": "Request timed out. Please try again later."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/EdgeNetworkTimeoutResponse"
+                }
+              }
+            },
+            "description": "Infrastructure Timeout - Provider request timed out at edge network"
+          },
+          "529": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 529,
+                    "message": "Provider returned error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderOverloadedResponse"
+                }
+              }
+            },
+            "description": "Provider Overloaded - Provider is temporarily overloaded"
+          }
+        },
+        "summary": "Submit a rerank request",
+        "tags": [
+          "Rerank"
+        ],
+        "x-speakeasy-name-override": "rerank"
+      }
+    },
     "/responses": {
       "post": {
         "description": "Creates a streaming or non-streaming response using OpenResponses API format",
@@ -26869,6 +27457,458 @@
         ],
         "x-speakeasy-name-override": "send",
         "x-speakeasy-stream-request-field": "stream"
+      }
+    },
+    "/videos": {
+      "post": {
+        "description": "Submits a video generation request and returns a polling URL to check status",
+        "operationId": "createVideos",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "aspect_ratio": "16:9",
+                "duration": 8,
+                "model": "google/veo-3.1",
+                "prompt": "A serene mountain landscape at sunset",
+                "resolution": "720p"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/VideoGenerationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "generation_id": "gen-xyz789",
+                  "id": "job-abc123",
+                  "polling_url": "/api/v1/videos/job-abc123",
+                  "status": "pending"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/VideoGenerationResponse"
+                }
+              }
+            },
+            "description": "Video generation request accepted"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 400,
+                    "message": "Invalid request parameters"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            },
+            "description": "Bad Request - Invalid request parameters or malformed input"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 402,
+                    "message": "Insufficient credits. Add more using https://openrouter.ai/credits"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRequiredResponse"
+                }
+              }
+            },
+            "description": "Payment Required - Insufficient credits or quota to complete request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 404,
+                    "message": "Resource not found"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundResponse"
+                }
+              }
+            },
+            "description": "Not Found - Resource does not exist"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 429,
+                    "message": "Rate limit exceeded"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests - Rate limit exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "summary": "Submit a video generation request",
+        "tags": [
+          "Video Generation"
+        ],
+        "x-speakeasy-name-override": "generate"
+      }
+    },
+    "/videos/models": {
+      "get": {
+        "description": "Returns a list of all available video generation models and their properties",
+        "operationId": "listVideosModels",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": [
+                    {
+                      "allowed_passthrough_parameters": [],
+                      "canonical_slug": "google/veo-3.1",
+                      "created": 1700000000,
+                      "description": "Google video generation model",
+                      "generate_audio": true,
+                      "id": "google/veo-3.1",
+                      "name": "Veo 3.1",
+                      "pricing_skus": {
+                        "generate": "0.50"
+                      },
+                      "seed": null,
+                      "supported_aspect_ratios": [
+                        "16:9"
+                      ],
+                      "supported_durations": [
+                        5,
+                        8
+                      ],
+                      "supported_frame_images": [
+                        "first_frame",
+                        "last_frame"
+                      ],
+                      "supported_resolutions": [
+                        "720p"
+                      ],
+                      "supported_sizes": null
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/VideoModelsListResponse"
+                }
+              }
+            },
+            "description": "Returns a list of video generation models"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 400,
+                    "message": "Invalid request parameters"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            },
+            "description": "Bad Request - Invalid request parameters or malformed input"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "summary": "List all video generation models",
+        "tags": [
+          "Video Generation"
+        ]
+      }
+    },
+    "/videos/{jobId}": {
+      "get": {
+        "description": "Returns job status and content URLs when completed",
+        "operationId": "getVideos",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "required": true,
+            "schema": {
+              "example": "job-abc123",
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "generation_id": "gen-xyz789",
+                  "id": "job-abc123",
+                  "polling_url": "/api/v1/videos/job-abc123",
+                  "status": "complete",
+                  "unsigned_urls": [
+                    "https://storage.example.com/video.mp4"
+                  ],
+                  "usage": {
+                    "cost": 0.5
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/VideoGenerationResponse"
+                }
+              }
+            },
+            "description": "Video generation status"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 404,
+                    "message": "Resource not found"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundResponse"
+                }
+              }
+            },
+            "description": "Not Found - Resource does not exist"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "summary": "Poll video generation status",
+        "tags": [
+          "Video Generation"
+        ],
+        "x-speakeasy-name-override": "getGeneration"
+      }
+    },
+    "/videos/{jobId}/content": {
+      "get": {
+        "description": "Streams the generated video content from the upstream provider",
+        "operationId": "listVideosContent",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "required": true,
+            "schema": {
+              "example": "job-abc123",
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "index",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "example": 0,
+              "minimum": 0,
+              "nullable": true,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {
+                "example": "<binary video data>",
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Video content stream"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 400,
+                    "message": "Invalid request parameters"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            },
+            "description": "Bad Request - Invalid request parameters or malformed input"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 404,
+                    "message": "Resource not found"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundResponse"
+                }
+              }
+            },
+            "description": "Not Found - Resource does not exist"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 502,
+                    "message": "Provider returned error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadGatewayResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway - Provider/upstream API failure"
+          }
+        },
+        "summary": "Download generated video content",
+        "tags": [
+          "Video Generation"
+        ],
+        "x-speakeasy-name-override": "getVideoContent"
       }
     }
   },

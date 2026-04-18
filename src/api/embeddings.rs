@@ -145,11 +145,26 @@ pub struct EmbeddingData {
     pub index: Option<u32>,
 }
 
+/// Token breakdown details for embedding requests.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct EmbeddingPromptTokensDetails {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub audio_tokens: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub image_tokens: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text_tokens: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub video_tokens: Option<u32>,
+}
+
 /// Token/cost usage for embedding request.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct EmbeddingUsage {
     pub prompt_tokens: u32,
     pub total_tokens: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prompt_tokens_details: Option<EmbeddingPromptTokensDetails>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cost: Option<f64>,
 }

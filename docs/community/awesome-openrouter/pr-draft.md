@@ -23,7 +23,7 @@ Snapshot date: `2026-04-17`
 - `openrouter-rs` on crates.io: `11,900` total downloads, `4,232` recent downloads
 - `openrouter-cli` on crates.io: published companion CLI with `59` downloads across its first three releases
 - docs.rs documentation is live and the repo includes runnable SDK and CLI examples
-- The repository tracks `36 / 36` official OpenAPI method/path entries against the current OpenRouter spec, with a published endpoint matrix
+- The repository publishes an endpoint matrix against the current OpenRouter spec and tracks nightly OpenAPI drift in-repo
 
 ## Submission Links
 
