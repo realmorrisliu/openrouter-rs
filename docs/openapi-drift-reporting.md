@@ -72,10 +72,14 @@ That updates:
 
 When the nightly workflow reports drift:
 
-1. Review the generated report and candidate operations snapshot artifact.
-2. Update `docs/official-endpoint-test-matrix.md` if the upstream operation surface changed.
-3. Decide whether the SDK, tests, docs, or migration notes need follow-up work.
-4. If the change is accepted as the new baseline, run `just openapi-refresh-baseline` and commit the refreshed artifacts.
+1. Keep the generated issue open as the active compatibility-update record.
+2. Review the generated report and candidate operations snapshot artifact.
+3. Decide whether the drift is accepted now, deferred, or intentionally out of scope.
+4. Update `docs/official-endpoint-test-matrix.md` if the reviewed upstream operation surface changed.
+5. Update `CHANGELOG.md` and `MIGRATION.md` when the accepted change modifies user-visible behavior or migration expectations.
+6. If the change is accepted as the new baseline, run `just openapi-refresh-baseline` and commit the refreshed artifacts.
+
+For the reporting cadence and surface-selection rules behind those steps, see [`docs/compatibility-update-policy.md`](compatibility-update-policy.md).
 
 ## Relationship To The Endpoint Matrix
 

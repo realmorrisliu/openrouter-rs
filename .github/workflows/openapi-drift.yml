@@ -66,17 +66,33 @@ jobs:
             const title = 'chore: review latest OpenRouter OpenAPI drift';
             const report = fs.readFileSync(process.env.REPORT_PATH, 'utf8');
             const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            const policyUrl = `${context.serverUrl}/${owner}/${repo}/blob/main/docs/compatibility-update-policy.md`;
             const maxBodyLength = 60000;
+            const truncatedReport = report.length > maxBodyLength
+              ? `${report.slice(0, maxBodyLength)}\n\n... report truncated; see workflow artifact for the full diff ...`
+              : report;
             const body = [
+              '## Summary',
               'Detected upstream OpenAPI drift against the tracked baseline.',
               '',
-              `Workflow run: ${runUrl}`,
+              '## Trigger',
+              '- Source: nightly OpenAPI drift workflow',
+              `- Workflow run: ${runUrl}`,
+              '',
+              '## Expected Repo Follow-Up',
+              '- [ ] Review the drift report and decide whether the change is accepted, deferred, or out of scope',
+              '- [ ] Update `docs/official-endpoint-test-matrix.md` if the reviewed operation surface changed',
+              '- [ ] Update `CHANGELOG.md` if a user-visible repo change lands in response',
+              '- [ ] Update `MIGRATION.md` if canonical usage or compatibility bridges changed',
+              '- [ ] Refresh the tracked baseline with `just openapi-refresh-baseline` if the upstream change is accepted',
+              '',
+              `Policy: ${policyUrl}`,
               '',
               'This issue is maintained automatically by `.github/workflows/openapi-drift.yml`.',
+              'For manual reports that are not driven by spec drift, use `.github/ISSUE_TEMPLATE/upstream-compatibility-update.md`.',
               '',
-              report.length > maxBodyLength
-                ? `${report.slice(0, maxBodyLength)}\n\n... report truncated; see workflow artifact for the full diff ...`
-                : report,
+              '## Drift Report',
+              truncatedReport,
             ].join('\n');
 
             const issues = await github.paginate(
@@ -98,6 +114,7 @@ jobs:
                 repo,
                 issue_number: existing.number,
                 body,
+                labels: ['ci', 'docs', 'migration'],
               });
               return;
             }
@@ -107,5 +124,5 @@ jobs:
               repo,
               title,
               body,
-              labels: ['ci', 'migration'],
+              labels: ['ci', 'docs', 'migration'],
             });

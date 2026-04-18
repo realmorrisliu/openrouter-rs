@@ -1,4 +1,4 @@
-See `CONTRIBUTING.md` and `docs/maintenance-policy.md` for contributor workflow, release expectations, MSRV policy, and breaking-change guidance.
+See `CONTRIBUTING.md`, `docs/maintenance-policy.md`, and `docs/compatibility-update-policy.md` for contributor workflow, release expectations, compatibility-update cadence, MSRV policy, and breaking-change guidance.
 
 ## Summary
 - What problem does this PR solve?
