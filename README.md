@@ -246,6 +246,7 @@ Environment and model-pool details live in [`tests/integration/README.md`](tests
 - [`docs/compatibility-update-policy.md`](docs/compatibility-update-policy.md) for upstream compatibility reporting cadence, templates, and update rules
 - [`docs/community/awesome-openrouter/README.md`](docs/community/awesome-openrouter/README.md) for the Awesome OpenRouter submission kit and directory-safe assets
 - [`docs/generated-core-architecture.md`](docs/generated-core-architecture.md) for the generated-core plus idiomatic-wrapper design baseline
+- [`docs/http-transport-migration.md`](docs/http-transport-migration.md) for the `surf` -> `reqwest + rustls` migration plan
 - [`docs/cli-automation-workflows.md`](docs/cli-automation-workflows.md) for JSON-first shell and CI recipes built around `openrouter-cli`
 - [`docs/openapi-drift-reporting.md`](docs/openapi-drift-reporting.md) for nightly upstream-spec drift detection and baseline refresh workflow
 - [`SECURITY.md`](SECURITY.md) for vulnerability reporting
