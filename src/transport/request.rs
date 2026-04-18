@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use reqwest::{Client, Method, RequestBuilder};
 
 pub(crate) fn request(client: &Client, method: Method, url: &str) -> RequestBuilder {

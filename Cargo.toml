@@ -28,8 +28,8 @@ http = "1"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-surf = "2.3.2"
 tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7", features = ["io"] }
 thiserror = "1.0"
 urlencoding = "2.1.3"
 derive_builder = "0.20.2"

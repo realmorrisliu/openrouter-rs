@@ -1,14 +1,6 @@
 use futures_util::{Stream, StreamExt, stream, stream::BoxStream};
-use http::StatusCode as HttpStatusCode;
-use serde::de::DeserializeOwned;
-use serde_json::Value;
 
-use crate::{
-    api::errors::{parse_api_error, unreadable_error_response},
-    error::OpenRouterError,
-};
-use surf::http::headers::AUTHORIZATION;
-use surf::{Response, StatusCode};
+use crate::error::OpenRouterError;
 
 #[macro_export]
 macro_rules! strip_option_vec_setter {
@@ -42,35 +34,6 @@ macro_rules! strip_option_map_setter {
             self
         }
     };
-}
-
-pub fn with_bearer_auth(req: surf::RequestBuilder, api_key: &str) -> surf::RequestBuilder {
-    req.header(AUTHORIZATION, format!("Bearer {api_key}"))
-}
-
-pub fn with_request_metadata(
-    mut req: surf::RequestBuilder,
-    x_title: &Option<String>,
-    http_referer: &Option<String>,
-) -> surf::RequestBuilder {
-    if let Some(x_title) = x_title {
-        req = req.header("X-OpenRouter-Title", x_title);
-        req = req.header("X-Title", x_title);
-    }
-    if let Some(http_referer) = http_referer {
-        req = req.header("HTTP-Referer", http_referer);
-    }
-
-    req
-}
-
-pub fn with_client_request_headers(
-    req: surf::RequestBuilder,
-    api_key: &str,
-    x_title: &Option<String>,
-    http_referer: &Option<String>,
-) -> surf::RequestBuilder {
-    with_request_metadata(with_bearer_auth(req, api_key), x_title, http_referer)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -144,107 +107,4 @@ where
         },
     )
     .boxed()
-}
-
-#[allow(dead_code)]
-fn body_preview(body_text: &str, limit: usize) -> String {
-    let normalized = body_text.replace('\r', "\\r").replace('\n', "\\n");
-    let mut preview = String::new();
-    let mut chars = normalized.chars();
-
-    for _ in 0..limit {
-        match chars.next() {
-            Some(ch) => preview.push(ch),
-            None => return preview,
-        }
-    }
-
-    if chars.next().is_some() {
-        preview.push_str("...");
-    }
-
-    preview
-}
-
-fn to_http_status(status: StatusCode) -> HttpStatusCode {
-    HttpStatusCode::from_u16(u16::from(status))
-        .expect("surf/http-types status code should map to http::StatusCode")
-}
-
-fn response_request_id(response: &Response) -> Option<String> {
-    response
-        .header("x-request-id")
-        .and_then(|values| values.get(0))
-        .map(|value| value.as_str().to_string())
-        .or_else(|| {
-            response
-                .header("request-id")
-                .and_then(|values| values.get(0))
-                .map(|value| value.as_str().to_string())
-        })
-}
-
-#[allow(dead_code)]
-fn body_contains_api_error(body_text: &str) -> bool {
-    serde_json::from_str::<Value>(body_text)
-        .ok()
-        .and_then(|value| value.get("error").cloned())
-        .is_some()
-}
-
-#[allow(dead_code)]
-pub(crate) fn response_deserialization_error(
-    context: &str,
-    status: StatusCode,
-    error: &serde_json::Error,
-    body_text: &str,
-) -> OpenRouterError {
-    OpenRouterError::Unknown(format!(
-        "Failed to deserialize {context} response (status {status}): {error}; body preview: {}",
-        body_preview(body_text, 240)
-    ))
-}
-
-#[allow(dead_code)]
-pub(crate) async fn parse_json_response<T: DeserializeOwned>(
-    mut response: Response,
-    context: &str,
-) -> Result<T, OpenRouterError> {
-    let status = response.status();
-    let request_id = response_request_id(&response);
-    let body_text = response.body_string().await?;
-
-    match serde_json::from_str(&body_text) {
-        Ok(parsed) => Ok(parsed),
-        Err(error) => {
-            if body_contains_api_error(&body_text) {
-                Err(parse_api_error(
-                    to_http_status(status),
-                    request_id,
-                    &body_text,
-                ))
-            } else {
-                Err(response_deserialization_error(
-                    context, status, &error, &body_text,
-                ))
-            }
-        }
-    }
-}
-
-pub async fn handle_error(mut response: Response) -> Result<(), OpenRouterError> {
-    let status = response.status();
-    let request_id = response_request_id(&response);
-    let text = match response.body_string().await {
-        Ok(text) => text,
-        Err(error) => {
-            return Err(unreadable_error_response(
-                to_http_status(status),
-                request_id,
-                &error.to_string(),
-            ));
-        }
-    };
-
-    Err(parse_api_error(to_http_status(status), request_id, &text))
 }
