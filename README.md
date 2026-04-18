@@ -12,11 +12,9 @@ Type-safe, async Rust SDK for the OpenRouter API.
 [docs.rs](https://docs.rs/openrouter-rs) |
 [examples](https://github.com/realmorrisliu/openrouter-rs/tree/main/examples) |
 [crate](https://crates.io/crates/openrouter-rs) |
+[docs map](docs/README.md) |
 [openrouter-cli](https://github.com/realmorrisliu/openrouter-rs/tree/main/crates/openrouter-cli) |
-[cli automation](docs/cli-automation-workflows.md) |
 [contributing](CONTRIBUTING.md) |
-[endpoint matrix](docs/official-endpoint-test-matrix.md) |
-[awesome-openrouter kit](docs/community/awesome-openrouter/README.md) |
 [changelog](CHANGELOG.md)
 
 </div>
@@ -245,23 +243,36 @@ Focused commands:
 
 Environment and model-pool details live in [`tests/integration/README.md`](tests/integration/README.md). A starter env file lives at [`.env.example`](.env.example).
 
-## Repository Docs
+## Docs Map
 
-- [`MIGRATION.md`](MIGRATION.md) for migration guidance
+Start with [`docs/README.md`](docs/README.md) for grouped navigation across root docs, `docs/`, `specs/`, and subsystem READMEs.
+
+### Users And Setup
+
+- [`MIGRATION.md`](MIGRATION.md) for upgrade guidance across breaking SDK changes
+- [`crates/openrouter-cli/README.md`](crates/openrouter-cli/README.md) for CLI behavior, examples, and auth/config precedence
+- [`CHANGELOG.md`](CHANGELOG.md) for release-by-release history
+
+### Contributors And Project Policies
+
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) for contributor workflow and review expectations
 - [`docs/maintenance-policy.md`](docs/maintenance-policy.md) for release, MSRV, and breaking-change policy
 - [`docs/compatibility-update-policy.md`](docs/compatibility-update-policy.md) for upstream compatibility reporting cadence, templates, and update rules
-- [`docs/community/awesome-openrouter/README.md`](docs/community/awesome-openrouter/README.md) for the Awesome OpenRouter submission kit and directory-safe assets
-- [`docs/generated-core-architecture.md`](docs/generated-core-architecture.md) for the generated-core plus idiomatic-wrapper design baseline
-- [`docs/http-transport-migration.md`](docs/http-transport-migration.md) for the `surf` -> `reqwest + rustls` migration plan
-- [`docs/cli-automation-workflows.md`](docs/cli-automation-workflows.md) for JSON-first shell and CI recipes built around `openrouter-cli`
-- [`docs/openapi-drift-reporting.md`](docs/openapi-drift-reporting.md) for nightly upstream-spec drift detection and baseline refresh workflow
 - [`SECURITY.md`](SECURITY.md) for vulnerability reporting
 - [`SUPPORT.md`](SUPPORT.md) for support boundaries and issue-reporting guidance
+
+### Design And Roadmap
+
+- [`docs/generated-core-architecture.md`](docs/generated-core-architecture.md) for the generated-core plus idiomatic-wrapper design baseline
+- [`docs/http-transport-migration.md`](docs/http-transport-migration.md) for the `surf` -> `reqwest + rustls` migration plan
+
+### Operations, Validation, And Distribution
+
 - [`docs/official-endpoint-test-matrix.md`](docs/official-endpoint-test-matrix.md) for endpoint-by-endpoint implementation and test status
+- [`docs/openapi-drift-reporting.md`](docs/openapi-drift-reporting.md) for nightly upstream-spec drift detection and baseline refresh workflow
+- [`docs/cli-automation-workflows.md`](docs/cli-automation-workflows.md) for JSON-first shell and CI recipes built around `openrouter-cli`
 - [`tests/integration/README.md`](tests/integration/README.md) for live test pools and env switches
-- [`crates/openrouter-cli/README.md`](crates/openrouter-cli/README.md) for CLI behavior and examples
-- [`CHANGELOG.md`](CHANGELOG.md) for release-by-release changes
+- [`docs/community/awesome-openrouter/README.md`](docs/community/awesome-openrouter/README.md) for the Awesome OpenRouter submission kit and directory-safe assets
 
 ## Contributing
 

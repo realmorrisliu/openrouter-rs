@@ -88,7 +88,7 @@ Use the following reviewer-facing signals in the Awesome OpenRouter PR body. Sna
 - `openrouter-rs` crate: `11,900` total downloads and `4,232` recent downloads on crates.io
 - `openrouter-cli` crate: published companion CLI with `59` downloads across its first three releases
 - Published API docs on docs.rs and runnable examples in-repo
-- Current repo snapshot implements `42 / 42` official OpenAPI method/path entries, with live coverage tracked in [`docs/official-endpoint-test-matrix.md`](../../official-endpoint-test-matrix.md), and the repository tracks nightly OpenAPI drift in-repo.
+- Endpoint coverage, live test status, and nightly OpenAPI drift reporting are published in [`docs/official-endpoint-test-matrix.md`](../../official-endpoint-test-matrix.md) and [`docs/openapi-drift-reporting.md`](../../openapi-drift-reporting.md)
 - Contributor, security, support, release, MSRV, and breaking-change policies are public in-repo
 
 Refresh the numbers above if submission happens materially later than this snapshot date.
