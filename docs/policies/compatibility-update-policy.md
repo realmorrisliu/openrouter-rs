@@ -4,9 +4,9 @@ This document defines how `openrouter-rs` records upstream OpenRouter compatibil
 
 It complements:
 
-- [`docs/maintenance-policy.md`](maintenance-policy.md) for release, MSRV, and breaking-change rules
-- [`docs/openapi-drift-reporting.md`](openapi-drift-reporting.md) for nightly spec-drift detection
-- [`CHANGELOG.md`](../CHANGELOG.md) and [`MIGRATION.md`](../MIGRATION.md) for durable user-facing notes
+- [`docs/policies/maintenance-policy.md`](maintenance-policy.md) for release, MSRV, and breaking-change rules
+- [`docs/operations/openapi-drift-reporting.md`](../operations/openapi-drift-reporting.md) for nightly spec-drift detection
+- [`CHANGELOG.md`](../../CHANGELOG.md) and [`MIGRATION.md`](../../MIGRATION.md) for durable user-facing notes
 
 The goal is to keep upstream-alignment reporting predictable without creating a heavy editorial workflow.
 
@@ -37,11 +37,11 @@ Compatibility updates use different surfaces for different jobs:
 
 | Surface | Role | When to update |
 | --- | --- | --- |
-| GitHub issue using [`.github/ISSUE_TEMPLATE/upstream-compatibility-update.md`](../.github/ISSUE_TEMPLATE/upstream-compatibility-update.md) | Active working record for one upstream change or one drift batch | When drift is detected, a non-spec upstream change is noticed, or follow-up work needs coordination |
-| [`CHANGELOG.md`](../CHANGELOG.md) | Durable user-facing summary of accepted compatibility-affecting repo changes | In the same PR that lands a user-visible SDK/docs/test/support change |
-| [`MIGRATION.md`](../MIGRATION.md) | Durable upgrade guidance | When canonical usage, public API names, compatibility bridges, required config, or migration steps changed |
-| [`docs/official-endpoint-test-matrix.md`](official-endpoint-test-matrix.md) | Current implementation and live-test status by operation | When the accepted upstream operation surface changed or support status changed |
-| [`docs/openapi-drift-reporting.md`](openapi-drift-reporting.md) | Detection workflow and baseline refresh rules | When the nightly detection/reporting mechanics change |
+| GitHub issue using [`.github/ISSUE_TEMPLATE/upstream-compatibility-update.md`](../../.github/ISSUE_TEMPLATE/upstream-compatibility-update.md) | Active working record for one upstream change or one drift batch | When drift is detected, a non-spec upstream change is noticed, or follow-up work needs coordination |
+| [`CHANGELOG.md`](../../CHANGELOG.md) | Durable user-facing summary of accepted compatibility-affecting repo changes | In the same PR that lands a user-visible SDK/docs/test/support change |
+| [`MIGRATION.md`](../../MIGRATION.md) | Durable upgrade guidance | When canonical usage, public API names, compatibility bridges, required config, or migration steps changed |
+| [`docs/operations/official-endpoint-test-matrix.md`](../operations/official-endpoint-test-matrix.md) | Current implementation and live-test status by operation | When the accepted upstream operation surface changed or support status changed |
+| [`docs/operations/openapi-drift-reporting.md`](../operations/openapi-drift-reporting.md) | Detection workflow and baseline refresh rules | When the nightly detection/reporting mechanics change |
 
 This repository does not maintain a separate compatibility newsletter or a second standalone changelog.
 
@@ -70,16 +70,16 @@ When a compatibility update issue is opened:
 
 When a compatibility update is accepted:
 
-- update [`docs/official-endpoint-test-matrix.md`](official-endpoint-test-matrix.md) if the operation surface or support status changed
-- update [`CHANGELOG.md`](../CHANGELOG.md) if a user-visible SDK/docs/test/support change landed
-- update [`MIGRATION.md`](../MIGRATION.md) if callers need a concrete upgrade path or if a compatibility bridge changed
+- update [`docs/operations/official-endpoint-test-matrix.md`](../operations/official-endpoint-test-matrix.md) if the operation surface or support status changed
+- update [`CHANGELOG.md`](../../CHANGELOG.md) if a user-visible SDK/docs/test/support change landed
+- update [`MIGRATION.md`](../../MIGRATION.md) if callers need a concrete upgrade path or if a compatibility bridge changed
 - refresh the tracked baseline with `just openapi-refresh-baseline` if the upstream OpenAPI change is accepted as the new reviewed baseline
 
 When no migration path is required, do not force `MIGRATION.md` churn. The threshold for touching `MIGRATION.md` is a real caller-facing action item.
 
 ## Reusable Template
 
-Use [`.github/ISSUE_TEMPLATE/upstream-compatibility-update.md`](../.github/ISSUE_TEMPLATE/upstream-compatibility-update.md) for manual reports and for follow-up issues derived from the nightly drift workflow.
+Use [`.github/ISSUE_TEMPLATE/upstream-compatibility-update.md`](../../.github/ISSUE_TEMPLATE/upstream-compatibility-update.md) for manual reports and for follow-up issues derived from the nightly drift workflow.
 
 The template deliberately asks for:
 

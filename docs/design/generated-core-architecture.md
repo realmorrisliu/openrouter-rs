@@ -9,8 +9,8 @@ It is the design baseline for [#152](https://github.com/realmorrisliu/openrouter
 The repository already has a useful OpenAPI drift loop:
 
 - tracked baseline snapshots under `specs/openrouter/`
-- endpoint coverage review via `docs/official-endpoint-test-matrix.md`
-- nightly drift reporting in `docs/openapi-drift-reporting.md`
+- endpoint coverage review via `docs/operations/official-endpoint-test-matrix.md`
+- nightly drift reporting in `docs/operations/openapi-drift-reporting.md`
 
 That is enough to detect upstream change, but not enough to define how spec data should eventually drive implementation.
 

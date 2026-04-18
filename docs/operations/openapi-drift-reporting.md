@@ -75,15 +75,15 @@ When the nightly workflow reports drift:
 1. Keep the generated issue open as the active compatibility-update record.
 2. Review the generated report and candidate operations snapshot artifact.
 3. Decide whether the drift is accepted now, deferred, or intentionally out of scope.
-4. Update `docs/official-endpoint-test-matrix.md` if the reviewed upstream operation surface changed.
+4. Update `docs/operations/official-endpoint-test-matrix.md` if the reviewed upstream operation surface changed.
 5. Update `CHANGELOG.md` and `MIGRATION.md` when the accepted change modifies user-visible behavior or migration expectations.
 6. If the change is accepted as the new baseline, run `just openapi-refresh-baseline` and commit the refreshed artifacts.
 
-For the reporting cadence and surface-selection rules behind those steps, see [`docs/compatibility-update-policy.md`](compatibility-update-policy.md).
+For the reporting cadence and surface-selection rules behind those steps, see [`docs/policies/compatibility-update-policy.md`](../policies/compatibility-update-policy.md).
 
 ## Relationship To The Endpoint Matrix
 
-The drift workflow does not replace [`docs/official-endpoint-test-matrix.md`](official-endpoint-test-matrix.md).
+The drift workflow does not replace [`docs/operations/official-endpoint-test-matrix.md`](official-endpoint-test-matrix.md).
 
 Their roles are different:
 

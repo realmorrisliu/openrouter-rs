@@ -570,7 +570,7 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         [
             "## Follow-up",
             "",
-            "- Review the upstream spec change against `docs/official-endpoint-test-matrix.md`.",
+            "- Review the upstream spec change against `docs/operations/official-endpoint-test-matrix.md`.",
             "- If the upstream change is accepted, refresh the tracked baseline with `just openapi-refresh-baseline`.",
             "- Update docs, tests, or endpoint coverage notes before closing the follow-up issue.",
             "",
