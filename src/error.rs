@@ -100,14 +100,33 @@
 //!
 //! The SDK automatically converts common error types:
 //!
-//! - `surf::Error` → `OpenRouterError::HttpRequest`
+//! - transport client errors → `OpenRouterError::HttpRequest`
 //! - `serde_json::Error` → `OpenRouterError::Serialization`
 //! - `std::io::Error` → `OpenRouterError::Io`
 //! - `derive_builder::UninitializedFieldError` → `OpenRouterError::UninitializedFieldError`
 
+use http::StatusCode;
 use serde_json::Value;
-use surf::StatusCode;
 use thiserror::Error;
+
+/// Stable, backend-neutral request error wrapper used by [`OpenRouterError::HttpRequest`].
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[error("{message}")]
+pub struct HttpRequestError {
+    message: String,
+}
+
+impl HttpRequestError {
+    pub fn new(message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+        }
+    }
+
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+}
 
 /// Normalized API error category.
 #[derive(Debug, Clone)]
@@ -141,12 +160,12 @@ impl ApiErrorContext {
     pub fn is_retryable(&self) -> bool {
         matches!(
             self.status,
-            StatusCode::RequestTimeout
-                | StatusCode::TooManyRequests
-                | StatusCode::InternalServerError
-                | StatusCode::BadGateway
-                | StatusCode::ServiceUnavailable
-                | StatusCode::GatewayTimeout
+            StatusCode::REQUEST_TIMEOUT
+                | StatusCode::TOO_MANY_REQUESTS
+                | StatusCode::INTERNAL_SERVER_ERROR
+                | StatusCode::BAD_GATEWAY
+                | StatusCode::SERVICE_UNAVAILABLE
+                | StatusCode::GATEWAY_TIMEOUT
         )
     }
 
@@ -194,7 +213,7 @@ impl std::fmt::Display for ApiErrorContext {
 /// // Pattern matching on specific error types
 /// fn handle_error(error: OpenRouterError) {
 ///     match error {
-///         OpenRouterError::Api(api_error) if api_error.status == surf::StatusCode::Unauthorized => {
+///         OpenRouterError::Api(api_error) if api_error.status == http::StatusCode::UNAUTHORIZED => {
 ///             println!("Check your API key");
 ///         }
 ///         OpenRouterError::Api(api_error) => match &api_error.kind {
@@ -214,7 +233,7 @@ impl std::fmt::Display for ApiErrorContext {
 pub enum OpenRouterError {
     // HTTP request errors
     #[error("HTTP request failed: {0}")]
-    HttpRequest(surf::Error),
+    HttpRequest(HttpRequestError),
 
     // API response errors
     #[error("{0}")]
@@ -245,6 +264,6 @@ pub enum OpenRouterError {
 
 impl From<surf::Error> for OpenRouterError {
     fn from(err: surf::Error) -> Self {
-        OpenRouterError::HttpRequest(err)
+        OpenRouterError::HttpRequest(HttpRequestError::new(err.to_string()))
     }
 }

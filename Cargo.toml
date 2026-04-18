@@ -24,6 +24,7 @@ legacy-completions = []
 [dependencies]
 dotenvy_macro = "0.15.7"
 futures-util = "0.3.31"
+http = "1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 surf = "2.3.2"

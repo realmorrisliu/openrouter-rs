@@ -1,4 +1,5 @@
 use futures_util::{Stream, StreamExt, stream, stream::BoxStream};
+use http::StatusCode as HttpStatusCode;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
@@ -164,6 +165,11 @@ fn body_preview(body_text: &str, limit: usize) -> String {
     preview
 }
 
+fn to_http_status(status: StatusCode) -> HttpStatusCode {
+    HttpStatusCode::from_u16(u16::from(status))
+        .expect("surf/http-types status code should map to http::StatusCode")
+}
+
 fn response_request_id(response: &Response) -> Option<String> {
     response
         .header("x-request-id")
@@ -208,7 +214,11 @@ pub(crate) async fn parse_json_response<T: DeserializeOwned>(
         Ok(parsed) => Ok(parsed),
         Err(error) => {
             if body_contains_api_error(&body_text) {
-                Err(parse_api_error(status, request_id, &body_text))
+                Err(parse_api_error(
+                    to_http_status(status),
+                    request_id,
+                    &body_text,
+                ))
             } else {
                 Err(response_deserialization_error(
                     context, status, &error, &body_text,
@@ -225,12 +235,12 @@ pub async fn handle_error(mut response: Response) -> Result<(), OpenRouterError>
         Ok(text) => text,
         Err(error) => {
             return Err(unreadable_error_response(
-                status,
+                to_http_status(status),
                 request_id,
                 &error.to_string(),
             ));
         }
     };
 
-    Err(parse_api_error(status, request_id, &text))
+    Err(parse_api_error(to_http_status(status), request_id, &text))
 }
