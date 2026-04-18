@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-04-17T11:44:18+00:00",
+  "captured_at": "2026-04-18T06:19:32+00:00",
   "info": {
     "contact": {
       "email": "support@openrouter.ai",
@@ -14,7 +14,7 @@
     "title": "OpenRouter API",
     "version": "1.0.0"
   },
-  "operation_count": 36,
+  "operation_count": 42,
   "operations": [
     {
       "deprecated": false,
@@ -238,6 +238,17 @@
     },
     {
       "deprecated": false,
+      "fingerprint": "afba5151a3299caf",
+      "id": "GET /organization/members",
+      "method": "GET",
+      "operation_id": "listOrganizationMembers",
+      "path": "/organization/members",
+      "tags": [
+        "Organization"
+      ]
+    },
+    {
+      "deprecated": false,
       "fingerprint": "6d3ec9bee71dc2ce",
       "id": "GET /providers",
       "method": "GET",
@@ -245,6 +256,39 @@
       "path": "/providers",
       "tags": [
         "Providers"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "14596fe6b03e4428",
+      "id": "GET /videos/models",
+      "method": "GET",
+      "operation_id": "listVideosModels",
+      "path": "/videos/models",
+      "tags": [
+        "Video Generation"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "0c91e369c0a0d9e1",
+      "id": "GET /videos/{jobId}",
+      "method": "GET",
+      "operation_id": "getVideos",
+      "path": "/videos/{jobId}",
+      "tags": [
+        "Video Generation"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "f762b88d789b2723",
+      "id": "GET /videos/{jobId}/content",
+      "method": "GET",
+      "operation_id": "listVideosContent",
+      "path": "/videos/{jobId}/content",
+      "tags": [
+        "Video Generation"
       ]
     },
     {
@@ -315,7 +359,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b4cd1ac5aa0b708f",
+      "fingerprint": "92a8447c3b7e796f",
       "id": "POST /embeddings",
       "method": "POST",
       "operation_id": "createEmbeddings",
@@ -403,6 +447,17 @@
     },
     {
       "deprecated": false,
+      "fingerprint": "18f4810d9d6d8bd0",
+      "id": "POST /rerank",
+      "method": "POST",
+      "operation_id": "createRerank",
+      "path": "/rerank",
+      "tags": [
+        "Rerank"
+      ]
+    },
+    {
+      "deprecated": false,
       "fingerprint": "258dc171d1242855",
       "id": "POST /responses",
       "method": "POST",
@@ -410,6 +465,17 @@
       "path": "/responses",
       "tags": [
         "beta.responses"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "624263f08072d641",
+      "id": "POST /videos",
+      "method": "POST",
+      "operation_id": "createVideos",
+      "path": "/videos",
+      "tags": [
+        "Video Generation"
       ]
     }
   ],

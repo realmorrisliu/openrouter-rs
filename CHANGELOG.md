@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Reorganized the README example/docs surface around application patterns, Tokio streaming, and CLI automation workflows.
 - Aligned OpenAPI drift follow-up docs and issue wording with the new compatibility-update cadence and reporting surfaces.
+- Accepted the 2026-04-18 upstream OpenAPI drift baseline, tracked newly official `/rerank`, `/videos*`, and `/organization/members` endpoints in the endpoint matrix, and added typed embedding usage support for `prompt_tokens_details`.
 
 ## [0.7.0] - 2026-03-16
 
