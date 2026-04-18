@@ -92,4 +92,4 @@ curl -L 'https://openrouter.ai/openapi.json' -o /tmp/openrouter-openapi.json
 jq -r '.paths | to_entries[] | .key as $p | (.value | keys[] | select(. != "parameters")) as $m | "\($m|ascii_upcase) \($p)"' /tmp/openrouter-openapi.json | sort
 ```
 
-For the repo-level drift report and baseline refresh flow, see [`docs/openapi-drift-reporting.md`](openapi-drift-reporting.md).
+For the repo-level drift report and baseline refresh flow, see [`docs/operations/openapi-drift-reporting.md`](openapi-drift-reporting.md).

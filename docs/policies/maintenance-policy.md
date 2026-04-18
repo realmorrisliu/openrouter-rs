@@ -2,7 +2,7 @@
 
 This document describes the repository's contributor-facing maintenance expectations for releases, MSRV, and breaking changes.
 
-Upstream compatibility-update cadence is handled separately in [`docs/compatibility-update-policy.md`](compatibility-update-policy.md) so release policy and upstream-sync policy do not get mixed together.
+Upstream compatibility-update cadence is handled separately in [`docs/policies/compatibility-update-policy.md`](compatibility-update-policy.md) so release policy and upstream-sync policy do not get mixed together.
 
 ## Release Policy
 
@@ -55,6 +55,6 @@ Breaking changes should:
 - be called out explicitly in the PR body
 - be documented in `CHANGELOG.md`
 - update README/examples if canonical usage changed
-- update [`MIGRATION.md`](../MIGRATION.md) when a migration path is needed
+- update [`MIGRATION.md`](../../MIGRATION.md) when a migration path is needed
 
 When a compatibility bridge exists, removals should normally be announced before they are deleted in a later release line.

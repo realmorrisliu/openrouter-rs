@@ -21,7 +21,7 @@ Type-safe, async Rust SDK for the OpenRouter API.
 
 `openrouter-rs` is a community-maintained Rust SDK for OpenRouter. It exposes a domain-oriented client for chat, responses, messages, rerank, video generation, models, embeddings, and management APIs, plus a companion CLI in the same repository.
 
-The current repo snapshot implements `42 / 42` official OpenAPI method/path entries, with published live integration coverage tracked in [`docs/official-endpoint-test-matrix.md`](docs/official-endpoint-test-matrix.md).
+The current repo snapshot implements `42 / 42` official OpenAPI method/path entries, with published live integration coverage tracked in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md).
 
 ## Why `openrouter-rs`
 
@@ -179,7 +179,7 @@ cargo run --example create_rerank
 cargo run --example create_embedding
 ```
 
-For shell and CI automation recipes built around the companion CLI, see [`docs/cli-automation-workflows.md`](docs/cli-automation-workflows.md).
+For shell and CI automation recipes built around the companion CLI, see [`docs/operations/cli-automation-workflows.md`](docs/operations/cli-automation-workflows.md).
 
 ## CLI Companion
 
@@ -196,14 +196,14 @@ cargo run -p openrouter-cli -- usage activity --date 2026-03-01
 ```
 
 See [`crates/openrouter-cli/README.md`](crates/openrouter-cli/README.md) for the full command surface and config/auth precedence rules.
-For copy-paste shell/CI recipes, see [`docs/cli-automation-workflows.md`](docs/cli-automation-workflows.md).
+For copy-paste shell/CI recipes, see [`docs/operations/cli-automation-workflows.md`](docs/operations/cli-automation-workflows.md).
 
 ## Project Status
 
 - Community-maintained third-party SDK; not affiliated with OpenRouter
 - Canonical docs and examples prefer the domain clients over older flat helpers
 - Full endpoint coverage is tracked against the current OpenAPI snapshot
-- Live integration coverage and gaps are published in [`docs/official-endpoint-test-matrix.md`](docs/official-endpoint-test-matrix.md)
+- Live integration coverage and gaps are published in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md)
 - Migration guidance for the `0.5.x -> 0.6.x` transition lives in [`MIGRATION.md`](MIGRATION.md)
 - Legacy `POST /completions` support remains available behind the `legacy-completions` feature
 
@@ -256,21 +256,21 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 ### Contributors And Project Policies
 
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) for contributor workflow and review expectations
-- [`docs/maintenance-policy.md`](docs/maintenance-policy.md) for release, MSRV, and breaking-change policy
-- [`docs/compatibility-update-policy.md`](docs/compatibility-update-policy.md) for upstream compatibility reporting cadence, templates, and update rules
+- [`docs/policies/maintenance-policy.md`](docs/policies/maintenance-policy.md) for release, MSRV, and breaking-change policy
+- [`docs/policies/compatibility-update-policy.md`](docs/policies/compatibility-update-policy.md) for upstream compatibility reporting cadence, templates, and update rules
 - [`SECURITY.md`](SECURITY.md) for vulnerability reporting
 - [`SUPPORT.md`](SUPPORT.md) for support boundaries and issue-reporting guidance
 
 ### Design And Roadmap
 
-- [`docs/generated-core-architecture.md`](docs/generated-core-architecture.md) for the generated-core plus idiomatic-wrapper design baseline
-- [`docs/http-transport-migration.md`](docs/http-transport-migration.md) for the `surf` -> `reqwest + rustls` migration plan
+- [`docs/design/generated-core-architecture.md`](docs/design/generated-core-architecture.md) for the generated-core plus idiomatic-wrapper design baseline
+- [`docs/design/http-transport-migration.md`](docs/design/http-transport-migration.md) for the `surf` to `reqwest + rustls` migration plan
 
 ### Operations, Validation, And Distribution
 
-- [`docs/official-endpoint-test-matrix.md`](docs/official-endpoint-test-matrix.md) for endpoint-by-endpoint implementation and test status
-- [`docs/openapi-drift-reporting.md`](docs/openapi-drift-reporting.md) for nightly upstream-spec drift detection and baseline refresh workflow
-- [`docs/cli-automation-workflows.md`](docs/cli-automation-workflows.md) for JSON-first shell and CI recipes built around `openrouter-cli`
+- [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md) for endpoint-by-endpoint implementation and test status
+- [`docs/operations/openapi-drift-reporting.md`](docs/operations/openapi-drift-reporting.md) for nightly upstream-spec drift detection and baseline refresh workflow
+- [`docs/operations/cli-automation-workflows.md`](docs/operations/cli-automation-workflows.md) for JSON-first shell and CI recipes built around `openrouter-cli`
 - [`tests/integration/README.md`](tests/integration/README.md) for live test pools and env switches
 - [`docs/community/awesome-openrouter/README.md`](docs/community/awesome-openrouter/README.md) for the Awesome OpenRouter submission kit and directory-safe assets
 
@@ -286,7 +286,7 @@ At a minimum, if you change public API surface, examples, or docs:
 
 Related policies:
 
-- [`docs/maintenance-policy.md`](docs/maintenance-policy.md)
+- [`docs/policies/maintenance-policy.md`](docs/policies/maintenance-policy.md)
 - [`SECURITY.md`](SECURITY.md)
 - [`SUPPORT.md`](SUPPORT.md)
 

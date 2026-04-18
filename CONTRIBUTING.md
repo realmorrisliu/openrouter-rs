@@ -94,7 +94,7 @@ Reviewers will usually look for:
 
 Contributor-facing project policies live here:
 
-- [`docs/maintenance-policy.md`](docs/maintenance-policy.md) for release, MSRV, and breaking-change policy
+- [`docs/policies/maintenance-policy.md`](docs/policies/maintenance-policy.md) for release, MSRV, and breaking-change policy
 - [`SECURITY.md`](SECURITY.md) for vulnerability reporting and coordinated disclosure expectations
 - [`SUPPORT.md`](SUPPORT.md) for usage questions, bug reports, and support boundaries
 

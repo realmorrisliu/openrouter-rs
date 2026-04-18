@@ -8,7 +8,7 @@ It is a follow-up design baseline for [#158](https://github.com/realmorrisliu/op
 
 Today the SDK depends on:
 
-- `surf = 2.3.2` in [`Cargo.toml`](../Cargo.toml)
+- `surf = 2.3.2` in [`Cargo.toml`](../../Cargo.toml)
 - `isahc = 0.9.14` transitively through `surf`
 - `curl` / `curl-sys` transitively through `surf -> http-client -> isahc -> curl`
 
@@ -52,13 +52,13 @@ The current codebase has four relevant constraints:
 
 2. The code does not centralize an owned HTTP client yet.
 
-   - [`src/client.rs`](../src/client.rs) stores auth and metadata fields
+   - [`src/client.rs`](../../src/client.rs) stores auth and metadata fields
    - endpoint modules currently build requests ad hoc with `surf::get/post/patch/delete`
 
 3. `surf` leaks into shared utility and error surfaces.
 
-   - [`src/utils.rs`](../src/utils.rs) accepts and returns `surf::RequestBuilder`, `surf::Response`, and `surf::StatusCode`
-   - [`src/error.rs`](../src/error.rs) exposes `OpenRouterError::HttpRequest(surf::Error)` and stores `surf::StatusCode` in `ApiErrorContext`
+   - [`src/utils.rs`](../../src/utils.rs) accepts and returns `surf::RequestBuilder`, `surf::Response`, and `surf::StatusCode`
+   - [`src/error.rs`](../../src/error.rs) exposes `OpenRouterError::HttpRequest(surf::Error)` and stores `surf::StatusCode` in `ApiErrorContext`
    - tests also match against `surf::StatusCode`
 
 4. SSE streaming is concentrated, not pervasive.

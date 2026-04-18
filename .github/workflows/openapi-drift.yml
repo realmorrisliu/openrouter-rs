@@ -66,7 +66,7 @@ jobs:
             const title = 'chore: review latest OpenRouter OpenAPI drift';
             const report = fs.readFileSync(process.env.REPORT_PATH, 'utf8');
             const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
-            const policyUrl = `${context.serverUrl}/${owner}/${repo}/blob/main/docs/compatibility-update-policy.md`;
+            const policyUrl = `${context.serverUrl}/${owner}/${repo}/blob/main/docs/policies/compatibility-update-policy.md`;
             const maxBodyLength = 60000;
             const truncatedReport = report.length > maxBodyLength
               ? `${report.slice(0, maxBodyLength)}\n\n... report truncated; see workflow artifact for the full diff ...`
@@ -81,7 +81,7 @@ jobs:
               '',
               '## Expected Repo Follow-Up',
               '- [ ] Review the drift report and decide whether the change is accepted, deferred, or out of scope',
-              '- [ ] Update `docs/official-endpoint-test-matrix.md` if the reviewed operation surface changed',
+              '- [ ] Update `docs/operations/official-endpoint-test-matrix.md` if the reviewed operation surface changed',
               '- [ ] Update `CHANGELOG.md` if a user-visible repo change lands in response',
               '- [ ] Update `MIGRATION.md` if canonical usage or compatibility bridges changed',
               '- [ ] Refresh the tracked baseline with `just openapi-refresh-baseline` if the upstream change is accepted',

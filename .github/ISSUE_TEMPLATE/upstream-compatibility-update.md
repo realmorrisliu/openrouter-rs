@@ -25,7 +25,7 @@ Briefly describe the upstream change and why it matters for `openrouter-rs`.
 
 ## Expected Repo Follow-Up
 
-- [ ] Update `docs/official-endpoint-test-matrix.md`
+- [ ] Update `docs/operations/official-endpoint-test-matrix.md`
 - [ ] Update `CHANGELOG.md`
 - [ ] Update `MIGRATION.md`
 - [ ] Refresh the tracked OpenAPI baseline or source snapshot
