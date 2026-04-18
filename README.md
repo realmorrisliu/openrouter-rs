@@ -27,6 +27,7 @@ The current repo snapshot implements `42 / 42` official OpenAPI method/path entr
 
 - Domain-oriented clients: `chat()`, `responses()`, `messages()`, `rerank()`, `videos()`, `models()`, `management()`, and opt-in `legacy()`
 - Typed request/response models with builder-style ergonomics
+- Tokio-native `reqwest + rustls` transport with no `surf` / `curl` dependency chain
 - Streaming support for chat, responses, and messages, including a unified stream abstraction
 - Typed tools, manual JSON-schema tools, and multimodal chat content
 - Discovery, rerank, video generation, embeddings, API-key management, organization members, guardrails, activity, credits, and generation coverage
@@ -36,7 +37,7 @@ The current repo snapshot implements `42 / 42` official OpenAPI method/path entr
 
 ```toml
 [dependencies]
-openrouter-rs = "0.7.0"
+openrouter-rs = "0.8.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -44,7 +45,7 @@ Legacy text completions are opt-in:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.7.0", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.8.0", features = ["legacy-completions"] }
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -91,7 +92,7 @@ The SDK keeps setup intentionally narrow: configure runtime values on `OpenRoute
 
 ## API Surface
 
-The canonical public surface in `0.7.x` is domain-oriented:
+The canonical public surface in `0.8.x` is domain-oriented:
 
 | Domain | Canonical methods | Primary endpoints | Auth note |
 | --- | --- | --- | --- |
@@ -204,8 +205,17 @@ For copy-paste shell/CI recipes, see [`docs/operations/cli-automation-workflows.
 - Canonical docs and examples prefer the domain clients over older flat helpers
 - Full endpoint coverage is tracked against the current OpenAPI snapshot
 - Live integration coverage and gaps are published in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md)
-- Migration guidance for the `0.5.x -> 0.6.x` transition lives in [`MIGRATION.md`](MIGRATION.md)
+- Migration guidance for the `0.7.x -> 0.8.0` transport/error-surface release, plus the archived `0.5.x -> 0.6.x` naming guide, lives in [`MIGRATION.md`](MIGRATION.md)
 - Legacy `POST /completions` support remains available behind the `legacy-completions` feature
+
+### 🔁 0.8 Transport/Error Migration
+
+Full migration guide: [`MIGRATION.md`](MIGRATION.md)
+
+- `OpenRouterError::HttpRequest(surf::Error)` -> `OpenRouterError::HttpRequest(HttpRequestError)`
+- `ApiErrorContext.status: surf::StatusCode` -> `ApiErrorContext.status: http::StatusCode`
+- `openrouter_rs::utils::{with_bearer_auth, with_request_metadata, with_client_request_headers, handle_error}` -> caller-owned transport helpers or direct use of the canonical domain clients
+- No API migration is required if you only use `OpenRouterClient` plus `chat()`, `responses()`, `messages()`, `models()`, `management()`, and `legacy()`
 
 ### 🔁 0.6 Naming/Pagination Migration
 
@@ -264,7 +274,7 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 ### Design And Roadmap
 
 - [`docs/design/generated-core-architecture.md`](docs/design/generated-core-architecture.md) for the generated-core plus idiomatic-wrapper design baseline
-- [`docs/design/http-transport-migration.md`](docs/design/http-transport-migration.md) for the `surf` to `reqwest + rustls` migration plan
+- [`docs/design/http-transport-migration.md`](docs/design/http-transport-migration.md) for the historical design baseline behind the completed `reqwest + rustls` transport migration
 
 ### Operations, Validation, And Distribution
 
@@ -273,6 +283,20 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 - [`docs/operations/cli-automation-workflows.md`](docs/operations/cli-automation-workflows.md) for JSON-first shell and CI recipes built around `openrouter-cli`
 - [`tests/integration/README.md`](tests/integration/README.md) for live test pools and env switches
 - [`docs/community/awesome-openrouter/README.md`](docs/community/awesome-openrouter/README.md) for the Awesome OpenRouter submission kit and directory-safe assets
+
+## 📈 Release History
+
+### Version 0.8.0 *(Latest)*
+
+- Completed the SDK transport migration to `reqwest + rustls` and removed the legacy `surf` / `curl` dependency chain.
+- Made the public HTTP error surface backend-neutral and documented the `0.7.x -> 0.8.0` breaking changes.
+- Expanded the repo snapshot with rerank, video, and organization-member coverage plus refreshed examples and CLI automation docs.
+
+### Version 0.7.0
+
+- Removed the SDK-level config surface and kept file/profile config out of the core crate.
+- Standardized the canonical domain-oriented client docs around the `0.7.x` API surface.
+- Improved error normalization for `HTTP 200` payloads that actually contain API error bodies.
 
 ## Contributing
 

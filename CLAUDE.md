@@ -4,7 +4,7 @@ This file gives repository-specific guidance for coding agents working in `openr
 
 ## Current SDK Shape
 
-The crate is on `0.6.0` and the public documentation treats the domain-oriented surface as canonical:
+The crate is on `0.8.0` and the public documentation treats the domain-oriented surface as canonical:
 
 - `client.chat()`
 - `client.responses()`
@@ -79,13 +79,13 @@ cargo run -p openrouter-cli -- --help
 ## Implementation Notes
 
 - Request and client construction use the builder pattern (`derive_builder`).
-- The crate uses `surf` for HTTP and `tokio` for async runtime.
+- The crate uses `reqwest + rustls` for HTTP and `tokio` for async runtime.
 - Streaming is exposed in three forms:
   - raw endpoint streams
   - `ToolAwareStream` for assembled tool calls
   - `UnifiedStreamEvent` across chat, responses, and messages
 - File/profile config resolution is intentionally scoped to `openrouter-cli`, not the core SDK crate.
-- `legacy-completions` is opt-in in `0.6.x`.
+- `legacy-completions` is opt-in in `0.8.x`.
 
 ## Documentation Expectations
 

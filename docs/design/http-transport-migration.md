@@ -1,5 +1,8 @@
 # HTTP Transport Migration Plan
 
+> Status: completed in `0.8.0` on `2026-04-18`.
+> This document is retained as the design baseline and validation checklist for the landed migration away from `surf`.
+
 This document defines the recommended path for moving `openrouter-rs` away from the current `surf`-based HTTP stack and toward `reqwest` with `rustls`.
 
 It is a follow-up design baseline for [#158](https://github.com/realmorrisliu/openrouter-rs/issues/158), where transport maintenance risk and runtime `libcurl` dependence were called out explicitly.

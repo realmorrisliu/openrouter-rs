@@ -1,5 +1,104 @@
 # Migration Guide: 0.5.x -> 0.6.0
 
+This document keeps the historical `0.5.x -> 0.6.0` migration guide intact because the repo still smoke-tests that older domain/naming transition.
+
+> Latest breaking release: `0.7.x -> 0.8.0`.
+> `0.8.0` completes the HTTP transport migration to `reqwest + rustls` and removes the remaining `surf`-shaped public helpers from the SDK surface.
+
+## Latest: 0.7.x -> 0.8.0
+
+If you already use the canonical domain clients (`chat()`, `responses()`, `messages()`, `models()`, `management()`, and opt-in `legacy()`), this upgrade is usually just a version bump plus a recompile. The breaking changes mainly affect callers that coupled themselves to the old transport-facing error and utility surface.
+
+### Quick Checklist For 0.8.0
+
+- Replace `OpenRouterError::HttpRequest(surf::Error)` handling with backend-neutral `OpenRouterError::HttpRequest(HttpRequestError)` handling.
+- Replace `surf::StatusCode` comparisons with `http::StatusCode`.
+- Stop importing `openrouter_rs::utils::{with_bearer_auth, with_request_metadata, with_client_request_headers, handle_error}`.
+- Keep any custom auth/header/request glue in your own application code, or prefer the canonical domain clients directly.
+
+### Breaking-Change Mapping For 0.8.0
+
+| Area | Old Usage (`0.7.x` and earlier) | New Usage (`0.8.0`) |
+| --- | --- | --- |
+| HTTP request errors | `OpenRouterError::HttpRequest(surf::Error)` | `OpenRouterError::HttpRequest(HttpRequestError)` |
+| API status comparisons | `api_error.status == surf::StatusCode::BadRequest` | `api_error.status == http::StatusCode::BAD_REQUEST` |
+| Public transport helpers | `openrouter_rs::utils::with_bearer_auth(...)`, `with_request_metadata(...)`, `with_client_request_headers(...)`, `handle_error(...)` | Use `OpenRouterClient` domain methods or caller-owned transport/header helpers |
+| SDK transport stack | `surf -> isahc -> curl` | `reqwest + rustls` |
+
+### Example: HTTP request error matching
+
+Before:
+
+```rust
+use openrouter_rs::error::OpenRouterError;
+
+fn describe(error: OpenRouterError) {
+    match error {
+        OpenRouterError::HttpRequest(surf_error) => {
+            eprintln!("transport failed: {}", surf_error);
+        }
+        other => eprintln!("{other}"),
+    }
+}
+```
+
+After:
+
+```rust
+use openrouter_rs::error::OpenRouterError;
+
+fn describe(error: OpenRouterError) {
+    match error {
+        OpenRouterError::HttpRequest(request_error) => {
+            eprintln!("transport failed: {}", request_error);
+        }
+        other => eprintln!("{other}"),
+    }
+}
+```
+
+### Example: API status comparisons
+
+Before:
+
+```rust
+if api_error.status == surf::StatusCode::BadRequest {
+    eprintln!("bad request");
+}
+```
+
+After:
+
+```rust
+if api_error.status == http::StatusCode::BAD_REQUEST {
+    eprintln!("bad request");
+}
+```
+
+### Example: removing `utils` transport imports
+
+Before:
+
+```rust
+use openrouter_rs::utils::{
+    handle_error,
+    with_bearer_auth,
+    with_client_request_headers,
+    with_request_metadata,
+};
+```
+
+After:
+
+```rust
+use openrouter_rs::OpenRouterClient;
+
+// Prefer the SDK's domain clients, or keep any custom transport glue local
+// to your application instead of importing transport-specific SDK utilities.
+```
+
+## Historical: 0.5.x -> 0.6.0
+
 This guide is for users upgrading from the `0.5.x` API surface to `0.6.0`.
 All "Before" snippets in this document represent compatibility aliases removed in `0.6.0`.
 
@@ -219,7 +318,7 @@ let guardrails = client
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.6", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.8", features = ["legacy-completions"] }
 ```
 
 ## Validation Tips

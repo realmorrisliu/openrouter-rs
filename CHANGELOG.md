@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-04-18
+
 ### Added
 - Added an `axum` gateway example and a practical typed-tool agent example so the repository covers copyable Rust application patterns instead of only endpoint-level demos.
 - Added `docs/cli-automation-workflows.md` with JSON-first shell and CI recipes for discovery, usage reporting, and ephemeral key automation.
@@ -15,10 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added runnable examples for rerank requests, video generation submission, and organization-member listing.
 
 ### Changed
+- Completed the SDK HTTP transport migration from `surf -> isahc -> curl` to a Tokio-native `reqwest + rustls` stack while keeping the canonical domain-oriented client surface and SSE semantics intact.
+- Normalized the public HTTP error surface around backend-neutral `HttpRequestError` and `http::StatusCode` so transport details no longer leak through public SDK types.
 - Reorganized the README example/docs surface around application patterns, Tokio streaming, and CLI automation workflows.
 - Aligned OpenAPI drift follow-up docs and issue wording with the new compatibility-update cadence and reporting surfaces.
 - Accepted the 2026-04-18 upstream OpenAPI drift baseline and added typed embedding usage support for `prompt_tokens_details`.
 - Restored the repository snapshot to `42 / 42` official endpoint coverage and aligned the endpoint matrix, README, docs.rs surface, and Awesome OpenRouter submission materials with the newly implemented rerank, videos, and organization-member endpoints.
+
+### Removed
+- Removed `surf` from the SDK dependency graph, including the transitive `curl` chain that came from the legacy transport stack.
+- Removed the public `utils` transport shims `with_bearer_auth`, `with_request_metadata`, `with_client_request_headers`, and `handle_error`. Callers that need custom HTTP glue should keep it in their own application code and treat `openrouter-rs` as the typed domain client layer.
 
 ## [0.7.0] - 2026-03-16
 
