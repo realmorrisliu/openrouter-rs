@@ -1,9 +1,10 @@
+use reqwest::Client as HttpClient;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     error::OpenRouterError,
+    transport::{request as transport_request, response as transport_response},
     types::{ApiResponse, PaginationOptions},
-    utils::{handle_error, parse_json_response, with_bearer_auth},
 };
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -105,15 +106,28 @@ pub async fn get_current_api_key(
     base_url: &str,
     api_key: &str,
 ) -> Result<ApiKeyDetails, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    get_current_api_key_with_client(&http_client, base_url, api_key).await
+}
+
+pub(crate) async fn get_current_api_key_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+) -> Result<ApiKeyDetails, OpenRouterError> {
     let url = format!("{base_url}/key");
 
-    let response = with_bearer_auth(surf::get(url), api_key).send().await?;
+    let response =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
+            .send()
+            .await?;
 
     if response.status().is_success() {
-        let api_response: ApiResponse<_> = parse_json_response(response, "current API key").await?;
+        let api_response: ApiResponse<_> =
+            transport_response::parse_json_response(response, "current API key").await?;
         Ok(api_response.data)
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }
@@ -136,23 +150,45 @@ pub async fn list_api_keys(
     pagination: Option<PaginationOptions>,
     include_disabled: Option<bool>,
 ) -> Result<Vec<ApiKey>, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    list_api_keys_with_client(
+        &http_client,
+        base_url,
+        management_key,
+        pagination,
+        include_disabled,
+    )
+    .await
+}
+
+pub(crate) async fn list_api_keys_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    management_key: &str,
+    pagination: Option<PaginationOptions>,
+    include_disabled: Option<bool>,
+) -> Result<Vec<ApiKey>, OpenRouterError> {
     let url = format!("{base_url}/keys");
     let query = ListApiKeysQuery {
         offset: pagination.and_then(|p| p.offset),
         include_disabled,
     };
-    let req = with_bearer_auth(surf::get(url), management_key);
+    let req = transport_request::with_bearer_auth(
+        transport_request::get(http_client, &url),
+        management_key,
+    );
     let response = if query.offset.is_none() && query.include_disabled.is_none() {
-        req.await?
+        req.send().await?
     } else {
-        req.query(&query)?.await?
+        req.query(&query).send().await?
     };
 
     if response.status().is_success() {
-        let api_response: ApiResponse<_> = parse_json_response(response, "API key list").await?;
+        let api_response: ApiResponse<_> =
+            transport_response::parse_json_response(response, "API key list").await?;
         Ok(api_response.data)
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }
@@ -175,22 +211,37 @@ pub async fn create_api_key(
     name: &str,
     limit: Option<f64>,
 ) -> Result<ApiKey, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    create_api_key_with_client(&http_client, base_url, management_key, name, limit).await
+}
+
+pub(crate) async fn create_api_key_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    management_key: &str,
+    name: &str,
+    limit: Option<f64>,
+) -> Result<ApiKey, OpenRouterError> {
     let url = format!("{base_url}/keys");
     let request = CreateApiKeyRequest {
         name: name.to_string(),
         limit,
     };
 
-    let response = with_bearer_auth(surf::post(url), management_key)
-        .body_json(&request)?
-        .await?;
+    let response = transport_request::with_bearer_auth(
+        transport_request::post(http_client, &url),
+        management_key,
+    )
+    .json(&request)
+    .send()
+    .await?;
 
     if response.status().is_success() {
         let api_response: ApiResponse<_> =
-            parse_json_response(response, "API key creation").await?;
+            transport_response::parse_json_response(response, "API key creation").await?;
         Ok(api_response.data)
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }
@@ -211,15 +262,31 @@ pub async fn get_api_key(
     management_key: &str,
     hash: &str,
 ) -> Result<ApiKey, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    get_api_key_with_client(&http_client, base_url, management_key, hash).await
+}
+
+pub(crate) async fn get_api_key_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    management_key: &str,
+    hash: &str,
+) -> Result<ApiKey, OpenRouterError> {
     let url = format!("{base_url}/keys/{hash}");
 
-    let response = with_bearer_auth(surf::get(&url), management_key).await?;
+    let response = transport_request::with_bearer_auth(
+        transport_request::get(http_client, &url),
+        management_key,
+    )
+    .send()
+    .await?;
 
     if response.status().is_success() {
-        let api_response: ApiResponse<_> = parse_json_response(response, "API key").await?;
+        let api_response: ApiResponse<_> =
+            transport_response::parse_json_response(response, "API key").await?;
         Ok(api_response.data)
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }
@@ -240,14 +307,29 @@ pub async fn delete_api_key(
     management_key: &str,
     hash: &str,
 ) -> Result<bool, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    delete_api_key_with_client(&http_client, base_url, management_key, hash).await
+}
+
+pub(crate) async fn delete_api_key_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    management_key: &str,
+    hash: &str,
+) -> Result<bool, OpenRouterError> {
     let url = format!("{base_url}/keys/{hash}");
 
-    let response = with_bearer_auth(surf::delete(&url), management_key).await?;
+    let response = transport_request::with_bearer_auth(
+        transport_request::delete(http_client, &url),
+        management_key,
+    )
+    .send()
+    .await?;
 
     if response.status().is_success() {
         Ok(true)
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }
@@ -274,6 +356,28 @@ pub async fn update_api_key(
     disabled: Option<bool>,
     limit: Option<f64>,
 ) -> Result<ApiKey, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    update_api_key_with_client(
+        &http_client,
+        base_url,
+        management_key,
+        hash,
+        name,
+        disabled,
+        limit,
+    )
+    .await
+}
+
+pub(crate) async fn update_api_key_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    management_key: &str,
+    hash: &str,
+    name: Option<String>,
+    disabled: Option<bool>,
+    limit: Option<f64>,
+) -> Result<ApiKey, OpenRouterError> {
     let url = format!("{base_url}/keys/{hash}");
     let request = UpdateApiKeyRequest {
         name,
@@ -281,15 +385,20 @@ pub async fn update_api_key(
         limit,
     };
 
-    let response = with_bearer_auth(surf::patch(&url), management_key)
-        .body_json(&request)?
-        .await?;
+    let response = transport_request::with_bearer_auth(
+        transport_request::patch(http_client, &url),
+        management_key,
+    )
+    .json(&request)
+    .send()
+    .await?;
 
     if response.status().is_success() {
-        let api_response: ApiResponse<_> = parse_json_response(response, "API key update").await?;
+        let api_response: ApiResponse<_> =
+            transport_response::parse_json_response(response, "API key update").await?;
         Ok(api_response.data)
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }

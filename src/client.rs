@@ -190,7 +190,14 @@ impl OpenRouterClient {
         limit: Option<f64>,
     ) -> Result<api_keys::ApiKey, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
-            api_keys::create_api_key(&self.base_url, management_key, name, limit).await
+            api_keys::create_api_key_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                name,
+                limit,
+            )
+            .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -217,7 +224,8 @@ impl OpenRouterClient {
         &self,
     ) -> Result<api_keys::ApiKeyDetails, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            api_keys::get_current_api_key(&self.base_url, api_key).await
+            api_keys::get_current_api_key_with_client(self.http_client(), &self.base_url, api_key)
+                .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -246,7 +254,13 @@ impl OpenRouterClient {
     /// ```
     pub async fn delete_api_key(&self, hash: &str) -> Result<bool, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
-            api_keys::delete_api_key(&self.base_url, management_key, hash).await
+            api_keys::delete_api_key_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                hash,
+            )
+            .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -284,8 +298,16 @@ impl OpenRouterClient {
         limit: Option<f64>,
     ) -> Result<api_keys::ApiKey, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
-            api_keys::update_api_key(&self.base_url, management_key, hash, name, disabled, limit)
-                .await
+            api_keys::update_api_key_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                hash,
+                name,
+                disabled,
+                limit,
+            )
+            .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -297,8 +319,14 @@ impl OpenRouterClient {
         include_disabled: Option<bool>,
     ) -> Result<Vec<api_keys::ApiKey>, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
-            api_keys::list_api_keys(&self.base_url, management_key, pagination, include_disabled)
-                .await
+            api_keys::list_api_keys_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                pagination,
+                include_disabled,
+            )
+            .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -327,7 +355,13 @@ impl OpenRouterClient {
     /// ```
     pub async fn get_api_key(&self, hash: &str) -> Result<api_keys::ApiKey, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
-            api_keys::get_api_key(&self.base_url, management_key, hash).await
+            api_keys::get_api_key_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                hash,
+            )
+            .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -375,7 +409,8 @@ impl OpenRouterClient {
         request: &auth::CreateAuthCodeRequest,
     ) -> Result<auth::AuthCodeData, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            auth::create_auth_code(&self.base_url, api_key, request).await
+            auth::create_auth_code_with_client(self.http_client(), &self.base_url, api_key, request)
+                .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -387,7 +422,13 @@ impl OpenRouterClient {
         pagination: Option<PaginationOptions>,
     ) -> Result<guardrails::GuardrailListResponse, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
-            guardrails::list_guardrails(&self.base_url, management_key, pagination).await
+            guardrails::list_guardrails_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                pagination,
+            )
+            .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -399,7 +440,13 @@ impl OpenRouterClient {
         request: &guardrails::CreateGuardrailRequest,
     ) -> Result<guardrails::Guardrail, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
-            guardrails::create_guardrail(&self.base_url, management_key, request).await
+            guardrails::create_guardrail_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                request,
+            )
+            .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -408,7 +455,13 @@ impl OpenRouterClient {
     /// Get a guardrail by ID (`GET /guardrails/{id}`). Requires a management key.
     pub async fn get_guardrail(&self, id: &str) -> Result<guardrails::Guardrail, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
-            guardrails::get_guardrail(&self.base_url, management_key, id).await
+            guardrails::get_guardrail_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                id,
+            )
+            .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -421,7 +474,14 @@ impl OpenRouterClient {
         request: &guardrails::UpdateGuardrailRequest,
     ) -> Result<guardrails::Guardrail, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
-            guardrails::update_guardrail(&self.base_url, management_key, id, request).await
+            guardrails::update_guardrail_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                id,
+                request,
+            )
+            .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -430,7 +490,13 @@ impl OpenRouterClient {
     /// Delete a guardrail (`DELETE /guardrails/{id}`). Requires a management key.
     pub async fn delete_guardrail(&self, id: &str) -> Result<bool, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
-            guardrails::delete_guardrail(&self.base_url, management_key, id).await
+            guardrails::delete_guardrail_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                id,
+            )
+            .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -443,7 +509,8 @@ impl OpenRouterClient {
         pagination: Option<PaginationOptions>,
     ) -> Result<guardrails::GuardrailKeyAssignmentsResponse, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
-            guardrails::list_guardrail_key_assignments(
+            guardrails::list_guardrail_key_assignments_with_client(
+                self.http_client(),
                 &self.base_url,
                 management_key,
                 id,
@@ -462,8 +529,14 @@ impl OpenRouterClient {
         request: &guardrails::BulkKeyAssignmentRequest,
     ) -> Result<guardrails::AssignedCountResponse, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
-            guardrails::bulk_assign_keys_to_guardrail(&self.base_url, management_key, id, request)
-                .await
+            guardrails::bulk_assign_keys_to_guardrail_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                id,
+                request,
+            )
+            .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -476,7 +549,8 @@ impl OpenRouterClient {
         request: &guardrails::BulkKeyAssignmentRequest,
     ) -> Result<guardrails::UnassignedCountResponse, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
-            guardrails::bulk_unassign_keys_from_guardrail(
+            guardrails::bulk_unassign_keys_from_guardrail_with_client(
+                self.http_client(),
                 &self.base_url,
                 management_key,
                 id,
@@ -495,7 +569,8 @@ impl OpenRouterClient {
         pagination: Option<PaginationOptions>,
     ) -> Result<guardrails::GuardrailMemberAssignmentsResponse, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
-            guardrails::list_guardrail_member_assignments(
+            guardrails::list_guardrail_member_assignments_with_client(
+                self.http_client(),
                 &self.base_url,
                 management_key,
                 id,
@@ -514,7 +589,8 @@ impl OpenRouterClient {
         request: &guardrails::BulkMemberAssignmentRequest,
     ) -> Result<guardrails::AssignedCountResponse, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
-            guardrails::bulk_assign_members_to_guardrail(
+            guardrails::bulk_assign_members_to_guardrail_with_client(
+                self.http_client(),
                 &self.base_url,
                 management_key,
                 id,
@@ -533,7 +609,8 @@ impl OpenRouterClient {
         request: &guardrails::BulkMemberAssignmentRequest,
     ) -> Result<guardrails::UnassignedCountResponse, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
-            guardrails::bulk_unassign_members_from_guardrail(
+            guardrails::bulk_unassign_members_from_guardrail_with_client(
+                self.http_client(),
                 &self.base_url,
                 management_key,
                 id,
@@ -551,7 +628,13 @@ impl OpenRouterClient {
         pagination: Option<PaginationOptions>,
     ) -> Result<guardrails::GuardrailKeyAssignmentsResponse, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
-            guardrails::list_key_assignments(&self.base_url, management_key, pagination).await
+            guardrails::list_key_assignments_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                pagination,
+            )
+            .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -563,7 +646,13 @@ impl OpenRouterClient {
         pagination: Option<PaginationOptions>,
     ) -> Result<guardrails::GuardrailMemberAssignmentsResponse, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
-            guardrails::list_member_assignments(&self.base_url, management_key, pagination).await
+            guardrails::list_member_assignments_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                pagination,
+            )
+            .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -602,8 +691,14 @@ impl OpenRouterClient {
         code_verifier: Option<&str>,
         code_challenge_method: Option<auth::CodeChallengeMethod>,
     ) -> Result<auth::AuthResponse, OpenRouterError> {
-        auth::exchange_code_for_api_key(&self.base_url, code, code_verifier, code_challenge_method)
-            .await
+        auth::exchange_code_for_api_key_with_client(
+            self.http_client(),
+            &self.base_url,
+            code,
+            code_verifier,
+            code_challenge_method,
+        )
+        .await
     }
 
     /// Send a chat completion request to a selected model.
@@ -638,7 +733,8 @@ impl OpenRouterClient {
         request: &chat::ChatCompletionRequest,
     ) -> Result<CompletionsResponse, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            chat::send_chat_completion(
+            chat::send_chat_completion_with_client(
+                self.http_client(),
                 &self.base_url,
                 api_key,
                 &self.x_title,
@@ -775,7 +871,8 @@ impl OpenRouterClient {
         request: &responses::ResponsesRequest,
     ) -> Result<responses::ResponsesResponse, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            responses::create_response(
+            responses::create_response_with_client(
+                self.http_client(),
                 &self.base_url,
                 api_key,
                 &self.x_title,
@@ -833,7 +930,8 @@ impl OpenRouterClient {
         request: &messages::AnthropicMessagesRequest,
     ) -> Result<messages::AnthropicMessagesResponse, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            messages::create_message(
+            messages::create_message_with_client(
+                self.http_client(),
                 &self.base_url,
                 api_key,
                 &self.x_title,
@@ -891,7 +989,8 @@ impl OpenRouterClient {
         request: &embeddings::EmbeddingRequest,
     ) -> Result<embeddings::EmbeddingResponse, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            embeddings::create_embedding(
+            embeddings::create_embedding_with_client(
+                self.http_client(),
                 &self.base_url,
                 api_key,
                 &self.x_title,
@@ -910,7 +1009,8 @@ impl OpenRouterClient {
         request: &rerank::RerankRequest,
     ) -> Result<rerank::RerankResponse, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            rerank::create_rerank(
+            rerank::create_rerank_with_client(
+                self.http_client(),
                 &self.base_url,
                 api_key,
                 &self.x_title,
@@ -929,7 +1029,8 @@ impl OpenRouterClient {
         request: &videos::VideoGenerationRequest,
     ) -> Result<videos::VideoGenerationResponse, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            videos::create_video_generation(
+            videos::create_video_generation_with_client(
+                self.http_client(),
                 &self.base_url,
                 api_key,
                 &self.x_title,
@@ -945,7 +1046,7 @@ impl OpenRouterClient {
     /// List all available video generation models.
     pub async fn list_video_models(&self) -> Result<Vec<videos::VideoModel>, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            videos::list_video_models(&self.base_url, api_key).await
+            videos::list_video_models_with_client(self.http_client(), &self.base_url, api_key).await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -957,7 +1058,13 @@ impl OpenRouterClient {
         job_id: &str,
     ) -> Result<videos::VideoGenerationResponse, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            videos::get_video_generation(&self.base_url, api_key, job_id).await
+            videos::get_video_generation_with_client(
+                self.http_client(),
+                &self.base_url,
+                api_key,
+                job_id,
+            )
+            .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -970,7 +1077,14 @@ impl OpenRouterClient {
         index: Option<u32>,
     ) -> Result<Vec<u8>, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            videos::get_video_content(&self.base_url, api_key, job_id, index).await
+            videos::get_video_content_with_client(
+                self.http_client(),
+                &self.base_url,
+                api_key,
+                job_id,
+                index,
+            )
+            .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -979,7 +1093,12 @@ impl OpenRouterClient {
     /// List all available embeddings models.
     pub async fn list_embedding_models(&self) -> Result<Vec<models::Model>, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            embeddings::list_embedding_models(&self.base_url, api_key).await
+            embeddings::list_embedding_models_with_client(
+                self.http_client(),
+                &self.base_url,
+                api_key,
+            )
+            .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -1016,7 +1135,13 @@ impl OpenRouterClient {
         request: &credits::CoinbaseChargeRequest,
     ) -> Result<credits::CoinbaseChargeData, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            credits::create_coinbase_charge(&self.base_url, api_key, request).await
+            credits::create_coinbase_charge_with_client(
+                self.http_client(),
+                &self.base_url,
+                api_key,
+                request,
+            )
+            .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -1041,7 +1166,7 @@ impl OpenRouterClient {
     /// ```
     pub async fn get_credits(&self) -> Result<credits::CreditsData, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            credits::get_credits(&self.base_url, api_key).await
+            credits::get_credits_with_client(self.http_client(), &self.base_url, api_key).await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -1073,7 +1198,8 @@ impl OpenRouterClient {
         id: impl Into<String>,
     ) -> Result<generation::GenerationData, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            generation::get_generation(&self.base_url, api_key, id).await
+            generation::get_generation_with_client(self.http_client(), &self.base_url, api_key, id)
+                .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -1098,7 +1224,8 @@ impl OpenRouterClient {
     /// ```
     pub async fn list_models(&self) -> Result<Vec<models::Model>, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            models::list_models(&self.base_url, api_key, None, None).await
+            models::list_models_with_client(self.http_client(), &self.base_url, api_key, None, None)
+                .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -1130,7 +1257,14 @@ impl OpenRouterClient {
         category: ModelCategory,
     ) -> Result<Vec<models::Model>, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            models::list_models(&self.base_url, api_key, Some(category), None).await
+            models::list_models_with_client(
+                self.http_client(),
+                &self.base_url,
+                api_key,
+                Some(category),
+                None,
+            )
+            .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -1162,7 +1296,14 @@ impl OpenRouterClient {
         supported_parameters: SupportedParameters,
     ) -> Result<Vec<models::Model>, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            models::list_models(&self.base_url, api_key, None, Some(supported_parameters)).await
+            models::list_models_with_client(
+                self.http_client(),
+                &self.base_url,
+                api_key,
+                None,
+                Some(supported_parameters),
+            )
+            .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -1196,7 +1337,14 @@ impl OpenRouterClient {
         slug: &str,
     ) -> Result<models::EndpointData, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            models::list_model_endpoints(&self.base_url, api_key, author, slug).await
+            models::list_model_endpoints_with_client(
+                self.http_client(),
+                &self.base_url,
+                api_key,
+                author,
+                slug,
+            )
+            .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -1208,7 +1356,7 @@ impl OpenRouterClient {
     /// for consistency with other client operations.
     pub async fn list_providers(&self) -> Result<Vec<discovery::Provider>, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            discovery::list_providers(&self.base_url, api_key).await
+            discovery::list_providers_with_client(self.http_client(), &self.base_url, api_key).await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -1219,7 +1367,8 @@ impl OpenRouterClient {
     /// Equivalent to `GET /models/user`.
     pub async fn list_models_for_user(&self) -> Result<Vec<discovery::UserModel>, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            discovery::list_models_for_user(&self.base_url, api_key).await
+            discovery::list_models_for_user_with_client(self.http_client(), &self.base_url, api_key)
+                .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -1230,7 +1379,7 @@ impl OpenRouterClient {
     /// Equivalent to `GET /models/count`.
     pub async fn count_models(&self) -> Result<discovery::ModelsCountData, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            discovery::count_models(&self.base_url, api_key).await
+            discovery::count_models_with_client(self.http_client(), &self.base_url, api_key).await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -1243,7 +1392,8 @@ impl OpenRouterClient {
         &self,
     ) -> Result<Vec<discovery::PublicEndpoint>, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            discovery::list_zdr_endpoints(&self.base_url, api_key).await
+            discovery::list_zdr_endpoints_with_client(self.http_client(), &self.base_url, api_key)
+                .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -1262,7 +1412,13 @@ impl OpenRouterClient {
         date: Option<&str>,
     ) -> Result<Vec<discovery::ActivityItem>, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
-            discovery::get_activity(&self.base_url, management_key, date).await
+            discovery::get_activity_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                date,
+            )
+            .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -1274,8 +1430,13 @@ impl OpenRouterClient {
         pagination: Option<PaginationOptions>,
     ) -> Result<organization::OrganizationMembersResponse, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
-            organization::list_organization_members(&self.base_url, management_key, pagination)
-                .await
+            organization::list_organization_members_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                pagination,
+            )
+            .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }

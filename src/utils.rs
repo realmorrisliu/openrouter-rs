@@ -146,6 +146,7 @@ where
     .boxed()
 }
 
+#[allow(dead_code)]
 fn body_preview(body_text: &str, limit: usize) -> String {
     let normalized = body_text.replace('\r', "\\r").replace('\n', "\\n");
     let mut preview = String::new();
@@ -183,6 +184,7 @@ fn response_request_id(response: &Response) -> Option<String> {
         })
 }
 
+#[allow(dead_code)]
 fn body_contains_api_error(body_text: &str) -> bool {
     serde_json::from_str::<Value>(body_text)
         .ok()
@@ -190,6 +192,7 @@ fn body_contains_api_error(body_text: &str) -> bool {
         .is_some()
 }
 
+#[allow(dead_code)]
 pub(crate) fn response_deserialization_error(
     context: &str,
     status: StatusCode,
@@ -202,6 +205,7 @@ pub(crate) fn response_deserialization_error(
     ))
 }
 
+#[allow(dead_code)]
 pub(crate) async fn parse_json_response<T: DeserializeOwned>(
     mut response: Response,
     context: &str,

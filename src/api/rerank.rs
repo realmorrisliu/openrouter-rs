@@ -1,10 +1,11 @@
 use derive_builder::Builder;
+use reqwest::Client as HttpClient;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     error::OpenRouterError,
+    transport::{request as transport_request, response as transport_response},
     types::ProviderPreferences,
-    utils::{handle_error, parse_json_response, with_client_request_headers},
 };
 
 /// Request payload for `POST /rerank`.
@@ -76,15 +77,41 @@ pub async fn create_rerank(
     http_referer: &Option<String>,
     request: &RerankRequest,
 ) -> Result<RerankResponse, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    create_rerank_with_client(
+        &http_client,
+        base_url,
+        api_key,
+        x_title,
+        http_referer,
+        request,
+    )
+    .await
+}
+
+pub(crate) async fn create_rerank_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    x_title: &Option<String>,
+    http_referer: &Option<String>,
+    request: &RerankRequest,
+) -> Result<RerankResponse, OpenRouterError> {
     let url = format!("{base_url}/rerank");
-    let response = with_client_request_headers(surf::post(url), api_key, x_title, http_referer)
-        .body_json(request)?
-        .await?;
+    let response = transport_request::with_client_request_headers(
+        transport_request::post(http_client, &url),
+        api_key,
+        x_title,
+        http_referer,
+    )
+    .json(request)
+    .send()
+    .await?;
 
     if response.status().is_success() {
-        parse_json_response(response, "rerank").await
+        transport_response::parse_json_response(response, "rerank").await
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }

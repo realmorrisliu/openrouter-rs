@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 
+use reqwest::Client as HttpClient;
 use serde::{Deserialize, Serialize};
 use urlencoding::encode;
 
 use crate::{
     error::OpenRouterError,
+    transport::{request as transport_request, response as transport_response},
     types::ApiResponse,
-    utils::{handle_error, parse_json_response, with_bearer_auth},
 };
 
 /// Number-like value used by OpenRouter pricing fields.
@@ -191,15 +192,27 @@ pub async fn list_providers(
     base_url: &str,
     api_key: &str,
 ) -> Result<Vec<Provider>, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    list_providers_with_client(&http_client, base_url, api_key).await
+}
+
+pub(crate) async fn list_providers_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+) -> Result<Vec<Provider>, OpenRouterError> {
     let url = format!("{base_url}/providers");
-    let response = with_bearer_auth(surf::get(url), api_key).await?;
+    let response =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
+            .send()
+            .await?;
 
     if response.status().is_success() {
         let parsed: ApiResponse<Vec<Provider>> =
-            parse_json_response(response, "provider list").await?;
+            transport_response::parse_json_response(response, "provider list").await?;
         Ok(parsed.data)
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }
@@ -209,15 +222,27 @@ pub async fn list_models_for_user(
     base_url: &str,
     api_key: &str,
 ) -> Result<Vec<UserModel>, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    list_models_for_user_with_client(&http_client, base_url, api_key).await
+}
+
+pub(crate) async fn list_models_for_user_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+) -> Result<Vec<UserModel>, OpenRouterError> {
     let url = format!("{base_url}/models/user");
-    let response = with_bearer_auth(surf::get(url), api_key).await?;
+    let response =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
+            .send()
+            .await?;
 
     if response.status().is_success() {
         let parsed: ApiResponse<Vec<UserModel>> =
-            parse_json_response(response, "user model list").await?;
+            transport_response::parse_json_response(response, "user model list").await?;
         Ok(parsed.data)
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }
@@ -227,15 +252,27 @@ pub async fn count_models(
     base_url: &str,
     api_key: &str,
 ) -> Result<ModelsCountData, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    count_models_with_client(&http_client, base_url, api_key).await
+}
+
+pub(crate) async fn count_models_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+) -> Result<ModelsCountData, OpenRouterError> {
     let url = format!("{base_url}/models/count");
-    let response = with_bearer_auth(surf::get(url), api_key).await?;
+    let response =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
+            .send()
+            .await?;
 
     if response.status().is_success() {
         let parsed: ApiResponse<ModelsCountData> =
-            parse_json_response(response, "model count").await?;
+            transport_response::parse_json_response(response, "model count").await?;
         Ok(parsed.data)
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }
@@ -245,15 +282,27 @@ pub async fn list_zdr_endpoints(
     base_url: &str,
     api_key: &str,
 ) -> Result<Vec<PublicEndpoint>, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    list_zdr_endpoints_with_client(&http_client, base_url, api_key).await
+}
+
+pub(crate) async fn list_zdr_endpoints_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+) -> Result<Vec<PublicEndpoint>, OpenRouterError> {
     let url = format!("{base_url}/endpoints/zdr");
-    let response = with_bearer_auth(surf::get(url), api_key).await?;
+    let response =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
+            .send()
+            .await?;
 
     if response.status().is_success() {
         let parsed: ApiResponse<Vec<PublicEndpoint>> =
-            parse_json_response(response, "ZDR endpoint list").await?;
+            transport_response::parse_json_response(response, "ZDR endpoint list").await?;
         Ok(parsed.data)
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }
@@ -266,20 +315,35 @@ pub async fn get_activity(
     management_key: &str,
     date: Option<&str>,
 ) -> Result<Vec<ActivityItem>, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    get_activity_with_client(&http_client, base_url, management_key, date).await
+}
+
+pub(crate) async fn get_activity_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    management_key: &str,
+    date: Option<&str>,
+) -> Result<Vec<ActivityItem>, OpenRouterError> {
     let url = if let Some(date) = date {
         format!("{base_url}/activity?date={}", encode(date))
     } else {
         format!("{base_url}/activity")
     };
 
-    let response = with_bearer_auth(surf::get(url), management_key).await?;
+    let response = transport_request::with_bearer_auth(
+        transport_request::get(http_client, &url),
+        management_key,
+    )
+    .send()
+    .await?;
 
     if response.status().is_success() {
         let parsed: ApiResponse<Vec<ActivityItem>> =
-            parse_json_response(response, "activity list").await?;
+            transport_response::parse_json_response(response, "activity list").await?;
         Ok(parsed.data)
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }

@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 
 use derive_builder::Builder;
+use reqwest::Client as HttpClient;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     error::OpenRouterError,
+    transport::{request as transport_request, response as transport_response},
     types::ApiResponse,
-    utils::{handle_error, parse_json_response, with_bearer_auth},
 };
 
 #[derive(Serialize, Deserialize, Debug, Builder)]
@@ -64,18 +65,30 @@ pub async fn create_coinbase_charge(
     api_key: &str,
     request: &CoinbaseChargeRequest,
 ) -> Result<CoinbaseChargeData, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    create_coinbase_charge_with_client(&http_client, base_url, api_key, request).await
+}
+
+pub(crate) async fn create_coinbase_charge_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    request: &CoinbaseChargeRequest,
+) -> Result<CoinbaseChargeData, OpenRouterError> {
     let url = format!("{base_url}/credits/coinbase");
 
-    let response = with_bearer_auth(surf::post(url), api_key)
-        .body_json(request)?
-        .await?;
+    let response =
+        transport_request::with_bearer_auth(transport_request::post(http_client, &url), api_key)
+            .json(request)
+            .send()
+            .await?;
 
     if response.status().is_success() {
         let charge_response: ApiResponse<CoinbaseChargeData> =
-            parse_json_response(response, "coinbase charge").await?;
+            transport_response::parse_json_response(response, "coinbase charge").await?;
         Ok(charge_response.data)
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }
@@ -91,15 +104,28 @@ pub async fn create_coinbase_charge(
 ///
 /// * `Result<CreditsData, OpenRouterError>` - The response data containing the total credits and usage.
 pub async fn get_credits(base_url: &str, api_key: &str) -> Result<CreditsData, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    get_credits_with_client(&http_client, base_url, api_key).await
+}
+
+pub(crate) async fn get_credits_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+) -> Result<CreditsData, OpenRouterError> {
     let url = format!("{base_url}/credits");
 
-    let response = with_bearer_auth(surf::get(url), api_key).await?;
+    let response =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
+            .send()
+            .await?;
 
     if response.status().is_success() {
-        let credits_response: ApiResponse<_> = parse_json_response(response, "credits").await?;
+        let credits_response: ApiResponse<_> =
+            transport_response::parse_json_response(response, "credits").await?;
         Ok(credits_response.data)
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }

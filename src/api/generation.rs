@@ -1,9 +1,10 @@
+use reqwest::Client as HttpClient;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     error::OpenRouterError,
+    transport::{request as transport_request, response as transport_response},
     types::ApiResponse,
-    utils::{handle_error, parse_json_response, with_bearer_auth},
 };
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -52,17 +53,30 @@ pub async fn get_generation(
     api_key: &str,
     id: impl Into<String>,
 ) -> Result<GenerationData, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    get_generation_with_client(&http_client, base_url, api_key, id).await
+}
+
+pub(crate) async fn get_generation_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    id: impl Into<String>,
+) -> Result<GenerationData, OpenRouterError> {
     let id = id.into();
     let url = format!("{base_url}/generation?id={id}");
 
-    let response = with_bearer_auth(surf::get(url), api_key).await?;
+    let response =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
+            .send()
+            .await?;
 
     if response.status().is_success() {
         let generation_response: ApiResponse<_> =
-            parse_json_response(response, "generation").await?;
+            transport_response::parse_json_response(response, "generation").await?;
         Ok(generation_response.data)
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }
