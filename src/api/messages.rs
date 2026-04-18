@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use derive_builder::Builder;
 use futures_util::{AsyncBufReadExt, StreamExt, stream::BoxStream};
+use reqwest::Client as HttpClient;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
@@ -9,8 +10,9 @@ use crate::{
     api::chat::{CacheControl, Plugin, TraceOptions},
     error::OpenRouterError,
     strip_option_vec_setter,
+    transport::{request as transport_request, response as transport_response},
     types::ProviderPreferences,
-    utils::{handle_error, parse_json_response, parse_sse_frames, with_client_request_headers},
+    utils::{handle_error, parse_sse_frames, with_client_request_headers},
 };
 
 /// Role for Anthropic-compatible messages.
@@ -670,20 +672,45 @@ pub async fn create_message(
     http_referer: &Option<String>,
     request: &AnthropicMessagesRequest,
 ) -> Result<AnthropicMessagesResponse, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    create_message_with_client(
+        &http_client,
+        base_url,
+        api_key,
+        x_title,
+        http_referer,
+        request,
+    )
+    .await
+}
+
+pub(crate) async fn create_message_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    x_title: &Option<String>,
+    http_referer: &Option<String>,
+    request: &AnthropicMessagesRequest,
+) -> Result<AnthropicMessagesResponse, OpenRouterError> {
     let url = format!("{base_url}/messages");
     let request = request.stream(false);
 
-    let surf_req = with_client_request_headers(surf::post(url), api_key, x_title, http_referer)
-        .body_json(&request)?;
-
-    let response = surf_req.await?;
+    let response = transport_request::with_client_request_headers(
+        transport_request::post(http_client, &url),
+        api_key,
+        x_title,
+        http_referer,
+    )
+    .json(&request)
+    .send()
+    .await?;
 
     if response.status().is_success() {
         let response_data: AnthropicMessagesResponse =
-            parse_json_response(response, "messages API").await?;
+            transport_response::parse_json_response(response, "messages API").await?;
         Ok(response_data)
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }

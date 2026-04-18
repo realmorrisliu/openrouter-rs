@@ -1,10 +1,11 @@
+use reqwest::Client as HttpClient;
 use serde::{Deserialize, Serialize};
 use urlencoding::encode;
 
 use crate::{
     error::OpenRouterError,
+    transport::{request as transport_request, response as transport_response},
     types::{ApiResponse, ModelCategory, SupportedParameters},
-    utils::{handle_error, parse_json_response, with_bearer_auth},
 };
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -104,6 +105,24 @@ pub async fn list_models(
     category: Option<ModelCategory>,
     supported_parameters: Option<SupportedParameters>,
 ) -> Result<Vec<Model>, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    list_models_with_client(
+        &http_client,
+        base_url,
+        api_key,
+        category,
+        supported_parameters,
+    )
+    .await
+}
+
+pub(crate) async fn list_models_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    category: Option<ModelCategory>,
+    supported_parameters: Option<SupportedParameters>,
+) -> Result<Vec<Model>, OpenRouterError> {
     #[derive(Serialize)]
     struct ListModelsQuery {
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -118,19 +137,20 @@ pub async fn list_models(
         supported_parameters,
     };
 
-    let req = with_bearer_auth(surf::get(url), api_key);
+    let req =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
     let response = if query.category.is_none() && query.supported_parameters.is_none() {
-        req.await?
+        req.send().await?
     } else {
-        req.query(&query)?.await?
+        req.query(&query).send().await?
     };
 
     if response.status().is_success() {
         let model_list_response: ApiResponse<_> =
-            parse_json_response(response, "model list").await?;
+            transport_response::parse_json_response(response, "model list").await?;
         Ok(model_list_response.data)
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }
@@ -153,18 +173,32 @@ pub async fn list_model_endpoints(
     author: &str,
     slug: &str,
 ) -> Result<EndpointData, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    list_model_endpoints_with_client(&http_client, base_url, api_key, author, slug).await
+}
+
+pub(crate) async fn list_model_endpoints_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    author: &str,
+    slug: &str,
+) -> Result<EndpointData, OpenRouterError> {
     let encoded_author = encode(author);
     let encoded_slug = encode(slug);
     let url = format!("{base_url}/models/{encoded_author}/{encoded_slug}/endpoints");
 
-    let response = with_bearer_auth(surf::get(&url), api_key).await?;
+    let response =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
+            .send()
+            .await?;
 
     if response.status().is_success() {
         let endpoint_list_response: ApiResponse<_> =
-            parse_json_response(response, "model endpoint list").await?;
+            transport_response::parse_json_response(response, "model endpoint list").await?;
         Ok(endpoint_list_response.data)
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }

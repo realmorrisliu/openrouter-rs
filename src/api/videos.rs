@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 
 use derive_builder::Builder;
+use reqwest::Client as HttpClient;
 use serde::{Deserialize, Serialize};
 use urlencoding::encode;
 
 use crate::{
     error::OpenRouterError,
-    utils::{handle_error, parse_json_response, with_bearer_auth, with_client_request_headers},
+    transport::{request as transport_request, response as transport_response},
 };
 
 /// One image URL payload used in video generation requests.
@@ -165,15 +166,41 @@ pub async fn create_video_generation(
     http_referer: &Option<String>,
     request: &VideoGenerationRequest,
 ) -> Result<VideoGenerationResponse, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    create_video_generation_with_client(
+        &http_client,
+        base_url,
+        api_key,
+        x_title,
+        http_referer,
+        request,
+    )
+    .await
+}
+
+pub(crate) async fn create_video_generation_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    x_title: &Option<String>,
+    http_referer: &Option<String>,
+    request: &VideoGenerationRequest,
+) -> Result<VideoGenerationResponse, OpenRouterError> {
     let url = format!("{base_url}/videos");
-    let response = with_client_request_headers(surf::post(url), api_key, x_title, http_referer)
-        .body_json(request)?
+    let response = transport_request::with_client_request_headers(
+        transport_request::post(http_client, &url),
+        api_key,
+        x_title,
+        http_referer,
+    )
+        .json(request)
+        .send()
         .await?;
 
     if response.status().is_success() {
-        parse_json_response(response, "video generation").await
+        transport_response::parse_json_response(response, "video generation").await
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }
@@ -183,15 +210,27 @@ pub async fn list_video_models(
     base_url: &str,
     api_key: &str,
 ) -> Result<Vec<VideoModel>, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    list_video_models_with_client(&http_client, base_url, api_key).await
+}
+
+pub(crate) async fn list_video_models_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+) -> Result<Vec<VideoModel>, OpenRouterError> {
     let url = format!("{base_url}/videos/models");
-    let response = with_bearer_auth(surf::get(url), api_key).await?;
+    let response =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
+            .send()
+            .await?;
 
     if response.status().is_success() {
         let payload: crate::types::ApiResponse<Vec<VideoModel>> =
-            parse_json_response(response, "video models").await?;
+            transport_response::parse_json_response(response, "video models").await?;
         Ok(payload.data)
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }
@@ -202,13 +241,26 @@ pub async fn get_video_generation(
     api_key: &str,
     job_id: &str,
 ) -> Result<VideoGenerationResponse, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    get_video_generation_with_client(&http_client, base_url, api_key, job_id).await
+}
+
+pub(crate) async fn get_video_generation_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    job_id: &str,
+) -> Result<VideoGenerationResponse, OpenRouterError> {
     let url = format!("{base_url}/videos/{}", encode(job_id));
-    let response = with_bearer_auth(surf::get(url), api_key).await?;
+    let response =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
+            .send()
+            .await?;
 
     if response.status().is_success() {
-        parse_json_response(response, "video generation status").await
+        transport_response::parse_json_response(response, "video generation status").await
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }
@@ -220,17 +272,31 @@ pub async fn get_video_content(
     job_id: &str,
     index: Option<u32>,
 ) -> Result<Vec<u8>, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    get_video_content_with_client(&http_client, base_url, api_key, job_id, index).await
+}
+
+pub(crate) async fn get_video_content_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    job_id: &str,
+    index: Option<u32>,
+) -> Result<Vec<u8>, OpenRouterError> {
     let mut url = format!("{base_url}/videos/{}/content", encode(job_id));
     if let Some(index) = index {
         url = format!("{url}?index={index}");
     }
 
-    let mut response = with_bearer_auth(surf::get(url), api_key).await?;
+    let response =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
+            .send()
+            .await?;
 
     if response.status().is_success() {
-        Ok(response.body_bytes().await?)
+        Ok(response.bytes().await?.to_vec())
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }

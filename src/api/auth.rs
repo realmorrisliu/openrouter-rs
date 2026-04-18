@@ -1,10 +1,11 @@
 use derive_builder::Builder;
+use reqwest::Client as HttpClient;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     error::OpenRouterError,
+    transport::{request as transport_request, response as transport_response},
     types::ApiResponse,
-    utils::{handle_error, parse_json_response, with_bearer_auth},
 };
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -100,6 +101,24 @@ pub async fn exchange_code_for_api_key(
     code_verifier: Option<&str>,
     code_challenge_method: Option<CodeChallengeMethod>,
 ) -> Result<AuthResponse, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    exchange_code_for_api_key_with_client(
+        &http_client,
+        base_url,
+        code,
+        code_verifier,
+        code_challenge_method,
+    )
+    .await
+}
+
+pub(crate) async fn exchange_code_for_api_key_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    code: &str,
+    code_verifier: Option<&str>,
+    code_challenge_method: Option<CodeChallengeMethod>,
+) -> Result<AuthResponse, OpenRouterError> {
     let url = format!("{base_url}/auth/keys");
     let request = AuthRequest {
         code: code.to_string(),
@@ -107,14 +126,17 @@ pub async fn exchange_code_for_api_key(
         code_challenge_method,
     };
 
-    let response = surf::post(url).body_json(&request)?.await?;
+    let response = transport_request::post(http_client, &url)
+        .json(&request)
+        .send()
+        .await?;
 
     if response.status().is_success() {
         let auth_response: AuthResponse =
-            parse_json_response(response, "auth key exchange").await?;
+            transport_response::parse_json_response(response, "auth key exchange").await?;
         Ok(auth_response)
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }
@@ -127,17 +149,28 @@ pub async fn create_auth_code(
     api_key: &str,
     request: &CreateAuthCodeRequest,
 ) -> Result<AuthCodeData, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    create_auth_code_with_client(&http_client, base_url, api_key, request).await
+}
+
+pub(crate) async fn create_auth_code_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    request: &CreateAuthCodeRequest,
+) -> Result<AuthCodeData, OpenRouterError> {
     let url = format!("{base_url}/auth/keys/code");
-    let response = with_bearer_auth(surf::post(url), api_key)
-        .body_json(request)?
+    let response = transport_request::with_bearer_auth(transport_request::post(http_client, &url), api_key)
+        .json(request)
+        .send()
         .await?;
 
     if response.status().is_success() {
         let payload: ApiResponse<AuthCodeData> =
-            parse_json_response(response, "auth code creation").await?;
+            transport_response::parse_json_response(response, "auth code creation").await?;
         Ok(payload.data)
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }

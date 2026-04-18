@@ -1,9 +1,10 @@
+use reqwest::Client as HttpClient;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     error::OpenRouterError,
+    transport::{request as transport_request, response as transport_response},
     types::PaginationOptions,
-    utils::{handle_error, parse_json_response, with_bearer_auth},
 };
 
 /// One organization member returned by `GET /organization/members`.
@@ -46,13 +47,28 @@ pub async fn list_organization_members(
     management_key: &str,
     pagination: Option<PaginationOptions>,
 ) -> Result<OrganizationMembersResponse, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    list_organization_members_with_client(&http_client, base_url, management_key, pagination).await
+}
+
+pub(crate) async fn list_organization_members_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    management_key: &str,
+    pagination: Option<PaginationOptions>,
+) -> Result<OrganizationMembersResponse, OpenRouterError> {
     let url = with_pagination(format!("{base_url}/organization/members"), pagination);
-    let response = with_bearer_auth(surf::get(url), management_key).await?;
+    let response = transport_request::with_bearer_auth(
+        transport_request::get(http_client, &url),
+        management_key,
+    )
+    .send()
+    .await?;
 
     if response.status().is_success() {
-        parse_json_response(response, "organization members").await
+        transport_response::parse_json_response(response, "organization members").await
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }

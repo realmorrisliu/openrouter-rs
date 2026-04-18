@@ -1,11 +1,12 @@
 use derive_builder::Builder;
+use reqwest::Client as HttpClient;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     api::models,
     error::OpenRouterError,
+    transport::{request as transport_request, response as transport_response},
     types::{ApiResponse, ProviderPreferences},
-    utils::{handle_error, parse_json_response, with_bearer_auth, with_client_request_headers},
 };
 
 /// Supported embedding encoding formats.
@@ -189,19 +190,44 @@ pub async fn create_embedding(
     http_referer: &Option<String>,
     request: &EmbeddingRequest,
 ) -> Result<EmbeddingResponse, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    create_embedding_with_client(
+        &http_client,
+        base_url,
+        api_key,
+        x_title,
+        http_referer,
+        request,
+    )
+    .await
+}
+
+pub(crate) async fn create_embedding_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    x_title: &Option<String>,
+    http_referer: &Option<String>,
+    request: &EmbeddingRequest,
+) -> Result<EmbeddingResponse, OpenRouterError> {
     let url = format!("{base_url}/embeddings");
 
-    let surf_req = with_client_request_headers(surf::post(url), api_key, x_title, http_referer)
-        .body_json(request)?;
-
-    let response = surf_req.await?;
+    let response = transport_request::with_client_request_headers(
+        transport_request::post(http_client, &url),
+        api_key,
+        x_title,
+        http_referer,
+    )
+    .json(request)
+    .send()
+    .await?;
 
     if response.status().is_success() {
         let embedding_response: EmbeddingResponse =
-            parse_json_response(response, "embedding").await?;
+            transport_response::parse_json_response(response, "embedding").await?;
         Ok(embedding_response)
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }
@@ -211,16 +237,28 @@ pub async fn list_embedding_models(
     base_url: &str,
     api_key: &str,
 ) -> Result<Vec<models::Model>, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    list_embedding_models_with_client(&http_client, base_url, api_key).await
+}
+
+pub(crate) async fn list_embedding_models_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+) -> Result<Vec<models::Model>, OpenRouterError> {
     let url = format!("{base_url}/embeddings/models");
 
-    let response = with_bearer_auth(surf::get(url), api_key).await?;
+    let response =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
+            .send()
+            .await?;
 
     if response.status().is_success() {
         let models_response: ApiResponse<Vec<models::Model>> =
-            parse_json_response(response, "embedding models").await?;
+            transport_response::parse_json_response(response, "embedding models").await?;
         Ok(models_response.data)
     } else {
-        handle_error(response).await?;
+        transport_response::handle_error(response).await?;
         unreachable!()
     }
 }
