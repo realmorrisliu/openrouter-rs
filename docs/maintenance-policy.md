@@ -2,6 +2,8 @@
 
 This document describes the repository's contributor-facing maintenance expectations for releases, MSRV, and breaking changes.
 
+Upstream compatibility-update cadence is handled separately in [`docs/compatibility-update-policy.md`](compatibility-update-policy.md) so release policy and upstream-sync policy do not get mixed together.
+
 ## Release Policy
 
 The repository aims to keep `main` in a releasable state.

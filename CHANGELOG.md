@@ -10,9 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added an `axum` gateway example and a practical typed-tool agent example so the repository covers copyable Rust application patterns instead of only endpoint-level demos.
 - Added `docs/cli-automation-workflows.md` with JSON-first shell and CI recipes for discovery, usage reporting, and ephemeral key automation.
+- Added `docs/compatibility-update-policy.md` and a reusable upstream-compatibility issue template so upstream OpenRouter changes can be tracked outside normal release cuts.
 
 ### Changed
 - Reorganized the README example/docs surface around application patterns, Tokio streaming, and CLI automation workflows.
+- Aligned OpenAPI drift follow-up docs and issue wording with the new compatibility-update cadence and reporting surfaces.
 
 ## [0.7.0] - 2026-03-16
 
