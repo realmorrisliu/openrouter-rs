@@ -160,10 +160,11 @@ pub(crate) async fn create_auth_code_with_client(
     request: &CreateAuthCodeRequest,
 ) -> Result<AuthCodeData, OpenRouterError> {
     let url = format!("{base_url}/auth/keys/code");
-    let response = transport_request::with_bearer_auth(transport_request::post(http_client, &url), api_key)
-        .json(request)
-        .send()
-        .await?;
+    let response =
+        transport_request::with_bearer_auth(transport_request::post(http_client, &url), api_key)
+            .json(request)
+            .send()
+            .await?;
 
     if response.status().is_success() {
         let payload: ApiResponse<AuthCodeData> =

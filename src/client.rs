@@ -1046,8 +1046,7 @@ impl OpenRouterClient {
     /// List all available video generation models.
     pub async fn list_video_models(&self) -> Result<Vec<videos::VideoModel>, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            videos::list_video_models_with_client(self.http_client(), &self.base_url, api_key)
-                .await
+            videos::list_video_models_with_client(self.http_client(), &self.base_url, api_key).await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -1357,8 +1356,7 @@ impl OpenRouterClient {
     /// for consistency with other client operations.
     pub async fn list_providers(&self) -> Result<Vec<discovery::Provider>, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            discovery::list_providers_with_client(self.http_client(), &self.base_url, api_key)
-                .await
+            discovery::list_providers_with_client(self.http_client(), &self.base_url, api_key).await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -1369,12 +1367,8 @@ impl OpenRouterClient {
     /// Equivalent to `GET /models/user`.
     pub async fn list_models_for_user(&self) -> Result<Vec<discovery::UserModel>, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            discovery::list_models_for_user_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-            )
-            .await
+            discovery::list_models_for_user_with_client(self.http_client(), &self.base_url, api_key)
+                .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -1385,8 +1379,7 @@ impl OpenRouterClient {
     /// Equivalent to `GET /models/count`.
     pub async fn count_models(&self) -> Result<discovery::ModelsCountData, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            discovery::count_models_with_client(self.http_client(), &self.base_url, api_key)
-                .await
+            discovery::count_models_with_client(self.http_client(), &self.base_url, api_key).await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -1399,12 +1392,8 @@ impl OpenRouterClient {
         &self,
     ) -> Result<Vec<discovery::PublicEndpoint>, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            discovery::list_zdr_endpoints_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-            )
-            .await
+            discovery::list_zdr_endpoints_with_client(self.http_client(), &self.base_url, api_key)
+                .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }

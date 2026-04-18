@@ -232,9 +232,9 @@ pub(crate) async fn create_api_key_with_client(
         transport_request::post(http_client, &url),
         management_key,
     )
-        .json(&request)
-        .send()
-        .await?;
+    .json(&request)
+    .send()
+    .await?;
 
     if response.status().is_success() {
         let api_response: ApiResponse<_> =
@@ -389,9 +389,9 @@ pub(crate) async fn update_api_key_with_client(
         transport_request::patch(http_client, &url),
         management_key,
     )
-        .json(&request)
-        .send()
-        .await?;
+    .json(&request)
+    .send()
+    .await?;
 
     if response.status().is_success() {
         let api_response: ApiResponse<_> =

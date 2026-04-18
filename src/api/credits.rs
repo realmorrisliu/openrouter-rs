@@ -77,10 +77,11 @@ pub(crate) async fn create_coinbase_charge_with_client(
 ) -> Result<CoinbaseChargeData, OpenRouterError> {
     let url = format!("{base_url}/credits/coinbase");
 
-    let response = transport_request::with_bearer_auth(transport_request::post(http_client, &url), api_key)
-        .json(request)
-        .send()
-        .await?;
+    let response =
+        transport_request::with_bearer_auth(transport_request::post(http_client, &url), api_key)
+            .json(request)
+            .send()
+            .await?;
 
     if response.status().is_success() {
         let charge_response: ApiResponse<CoinbaseChargeData> =

@@ -104,9 +104,9 @@ pub(crate) async fn create_rerank_with_client(
         x_title,
         http_referer,
     )
-        .json(request)
-        .send()
-        .await?;
+    .json(request)
+    .send()
+    .await?;
 
     if response.status().is_success() {
         transport_response::parse_json_response(response, "rerank").await

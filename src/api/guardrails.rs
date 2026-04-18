@@ -260,9 +260,9 @@ pub(crate) async fn create_guardrail_with_client(
         transport_request::post(http_client, &url),
         management_key,
     )
-        .json(request)
-        .send()
-        .await?;
+    .json(request)
+    .send()
+    .await?;
 
     if response.status().is_success() {
         let payload: ApiResponse<Guardrail> =
@@ -329,9 +329,9 @@ pub(crate) async fn update_guardrail_with_client(
         transport_request::patch(http_client, &url),
         management_key,
     )
-        .json(request)
-        .send()
-        .await?;
+    .json(request)
+    .send()
+    .await?;
 
     if response.status().is_success() {
         let payload: ApiResponse<Guardrail> =
@@ -442,9 +442,9 @@ pub(crate) async fn bulk_assign_keys_to_guardrail_with_client(
         transport_request::post(http_client, &url),
         management_key,
     )
-        .json(request)
-        .send()
-        .await?;
+    .json(request)
+    .send()
+    .await?;
 
     if response.status().is_success() {
         transport_response::parse_json_response(response, "guardrail key bulk assignment").await
@@ -486,9 +486,9 @@ pub(crate) async fn bulk_unassign_keys_from_guardrail_with_client(
         transport_request::post(http_client, &url),
         management_key,
     )
-        .json(request)
-        .send()
-        .await?;
+    .json(request)
+    .send()
+    .await?;
 
     if response.status().is_success() {
         transport_response::parse_json_response(response, "guardrail key bulk removal").await
@@ -570,9 +570,9 @@ pub(crate) async fn bulk_assign_members_to_guardrail_with_client(
         transport_request::post(http_client, &url),
         management_key,
     )
-        .json(request)
-        .send()
-        .await?;
+    .json(request)
+    .send()
+    .await?;
 
     if response.status().is_success() {
         transport_response::parse_json_response(response, "guardrail member bulk assignment").await
@@ -614,9 +614,9 @@ pub(crate) async fn bulk_unassign_members_from_guardrail_with_client(
         transport_request::post(http_client, &url),
         management_key,
     )
-        .json(request)
-        .send()
-        .await?;
+    .json(request)
+    .send()
+    .await?;
 
     if response.status().is_success() {
         transport_response::parse_json_response(response, "guardrail member bulk removal").await
