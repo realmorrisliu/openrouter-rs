@@ -137,6 +137,7 @@ pub async fn send_completion_request(
     api_key: &str,
     x_title: &Option<String>,
     http_referer: &Option<String>,
+    app_categories: &Option<Vec<String>>,
     request: &CompletionRequest,
 ) -> Result<CompletionsResponse, OpenRouterError> {
     let http_client = crate::transport::new_client()?;
@@ -146,6 +147,7 @@ pub async fn send_completion_request(
         api_key,
         x_title,
         http_referer,
+        app_categories,
         request,
     )
     .await
@@ -157,6 +159,7 @@ pub(crate) async fn send_completion_request_with_client(
     api_key: &str,
     x_title: &Option<String>,
     http_referer: &Option<String>,
+    app_categories: &Option<Vec<String>>,
     request: &CompletionRequest,
 ) -> Result<CompletionsResponse, OpenRouterError> {
     let url = format!("{base_url}/completions");
@@ -166,7 +169,8 @@ pub(crate) async fn send_completion_request_with_client(
         api_key,
         x_title,
         http_referer,
-    )
+        app_categories,
+    )?
     .json(request)
     .send()
     .await?;

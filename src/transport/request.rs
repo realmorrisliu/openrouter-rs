@@ -28,7 +28,8 @@ pub(crate) fn with_request_metadata(
     mut req: RequestBuilder,
     x_title: &Option<String>,
     http_referer: &Option<String>,
-) -> RequestBuilder {
+    app_categories: &Option<Vec<String>>,
+) -> Result<RequestBuilder, crate::error::OpenRouterError> {
     if let Some(x_title) = x_title {
         req = req.header("X-OpenRouter-Title", x_title);
         req = req.header("X-Title", x_title);
@@ -36,8 +37,14 @@ pub(crate) fn with_request_metadata(
     if let Some(http_referer) = http_referer {
         req = req.header("HTTP-Referer", http_referer);
     }
+    if let Some(app_categories) = app_categories {
+        req = req.header(
+            "X-OpenRouter-Categories",
+            serialize_app_categories(app_categories)?,
+        );
+    }
 
-    req
+    Ok(req)
 }
 
 pub(crate) fn with_client_request_headers(
@@ -45,8 +52,55 @@ pub(crate) fn with_client_request_headers(
     api_key: &str,
     x_title: &Option<String>,
     http_referer: &Option<String>,
-) -> RequestBuilder {
-    with_request_metadata(with_bearer_auth(req, api_key), x_title, http_referer)
+    app_categories: &Option<Vec<String>>,
+) -> Result<RequestBuilder, crate::error::OpenRouterError> {
+    with_request_metadata(
+        with_bearer_auth(req, api_key),
+        x_title,
+        http_referer,
+        app_categories,
+    )
+}
+
+fn serialize_app_categories(
+    app_categories: &[String],
+) -> Result<String, crate::error::OpenRouterError> {
+    if app_categories.is_empty() {
+        return Err(crate::error::OpenRouterError::ConfigError(
+            "app_categories cannot be empty when provided".to_string(),
+        ));
+    }
+    if app_categories.len() > 2 {
+        return Err(crate::error::OpenRouterError::ConfigError(
+            "app_categories supports at most 2 categories per request".to_string(),
+        ));
+    }
+
+    let mut serialized = Vec::with_capacity(app_categories.len());
+    for category in app_categories {
+        let trimmed = category.trim();
+        if trimmed.is_empty() {
+            return Err(crate::error::OpenRouterError::ConfigError(
+                "app_categories cannot contain empty values".to_string(),
+            ));
+        }
+        if trimmed.len() > 30 {
+            return Err(crate::error::OpenRouterError::ConfigError(format!(
+                "app category `{trimmed}` exceeds the 30 character OpenRouter limit"
+            )));
+        }
+        if !trimmed
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
+        {
+            return Err(crate::error::OpenRouterError::ConfigError(format!(
+                "app category `{trimmed}` must be lowercase and hyphen-separated"
+            )));
+        }
+        serialized.push(trimmed.to_string());
+    }
+
+    Ok(serialized.join(","))
 }
 
 #[cfg(test)]
@@ -63,7 +117,9 @@ mod tests {
             "test-key",
             &Some("openrouter-rs-tests".to_string()),
             &Some("https://example.com".to_string()),
+            &Some(vec!["cli-agent".to_string(), "cloud-agent".to_string()]),
         )
+        .expect("request builder should be created")
         .build()
         .expect("request should build");
 
@@ -94,6 +150,31 @@ mod tests {
                 .get("HTTP-Referer")
                 .expect("http-referer should exist"),
             "https://example.com"
+        );
+        assert_eq!(
+            request
+                .headers()
+                .get("X-OpenRouter-Categories")
+                .expect("x-openrouter-categories should exist"),
+            "cli-agent,cloud-agent"
+        );
+    }
+
+    #[test]
+    fn test_with_client_request_headers_rejects_invalid_app_categories() {
+        let client = reqwest::Client::new();
+        let error = with_client_request_headers(
+            post(&client, "http://example.com/test"),
+            "test-key",
+            &Some("openrouter-rs-tests".to_string()),
+            &Some("https://example.com".to_string()),
+            &Some(vec!["CLI-Agent".to_string()]),
+        )
+        .expect_err("invalid categories should fail");
+
+        assert!(
+            matches!(error, crate::error::OpenRouterError::ConfigError(_)),
+            "expected config error, got {error:?}"
         );
     }
 }

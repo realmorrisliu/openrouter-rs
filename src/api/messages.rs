@@ -672,6 +672,7 @@ pub async fn create_message(
     api_key: &str,
     x_title: &Option<String>,
     http_referer: &Option<String>,
+    app_categories: &Option<Vec<String>>,
     request: &AnthropicMessagesRequest,
 ) -> Result<AnthropicMessagesResponse, OpenRouterError> {
     let http_client = crate::transport::new_client()?;
@@ -681,6 +682,7 @@ pub async fn create_message(
         api_key,
         x_title,
         http_referer,
+        app_categories,
         request,
     )
     .await
@@ -692,6 +694,7 @@ pub(crate) async fn create_message_with_client(
     api_key: &str,
     x_title: &Option<String>,
     http_referer: &Option<String>,
+    app_categories: &Option<Vec<String>>,
     request: &AnthropicMessagesRequest,
 ) -> Result<AnthropicMessagesResponse, OpenRouterError> {
     let url = format!("{base_url}/messages");
@@ -702,7 +705,8 @@ pub(crate) async fn create_message_with_client(
         api_key,
         x_title,
         http_referer,
-    )
+        app_categories,
+    )?
     .json(&request)
     .send()
     .await?;
@@ -723,6 +727,7 @@ pub async fn stream_messages(
     api_key: &str,
     x_title: &Option<String>,
     http_referer: &Option<String>,
+    app_categories: &Option<Vec<String>>,
     request: &AnthropicMessagesRequest,
 ) -> Result<BoxStream<'static, Result<AnthropicMessagesSseEvent, OpenRouterError>>, OpenRouterError>
 {
@@ -733,6 +738,7 @@ pub async fn stream_messages(
         api_key,
         x_title,
         http_referer,
+        app_categories,
         request,
     )
     .await
@@ -744,6 +750,7 @@ pub(crate) async fn stream_messages_with_client(
     api_key: &str,
     x_title: &Option<String>,
     http_referer: &Option<String>,
+    app_categories: &Option<Vec<String>>,
     request: &AnthropicMessagesRequest,
 ) -> Result<BoxStream<'static, Result<AnthropicMessagesSseEvent, OpenRouterError>>, OpenRouterError>
 {
@@ -755,7 +762,8 @@ pub(crate) async fn stream_messages_with_client(
         api_key,
         x_title,
         http_referer,
-    )
+        app_categories,
+    )?
     .json(&request)
     .send()
     .await?;

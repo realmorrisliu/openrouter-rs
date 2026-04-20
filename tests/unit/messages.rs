@@ -254,7 +254,7 @@ async fn test_stream_messages_parses_event_and_data_lines() {
         .expect("messages request should build");
 
     let base_url = format!("http://{addr}/api/v1");
-    let mut stream = stream_messages(&base_url, "test-key", &None, &None, &request)
+    let mut stream = stream_messages(&base_url, "test-key", &None, &None, &None, &request)
         .await
         .expect("stream_messages should succeed");
 
@@ -356,7 +356,7 @@ async fn test_stream_messages_parses_multiline_sse_frames() {
         .expect("messages request should build");
 
     let base_url = format!("http://{addr}/api/v1");
-    let mut stream = stream_messages(&base_url, "test-key", &None, &None, &request)
+    let mut stream = stream_messages(&base_url, "test-key", &None, &None, &None, &request)
         .await
         .expect("stream_messages should succeed");
 
@@ -455,11 +455,19 @@ async fn test_create_message_sets_stream_false_and_headers() {
         .expect("messages request should build");
     let x_title = Some("openrouter-rs-tests".to_string());
     let http_referer = Some("https://github.com/realmorrisliu/openrouter-rs".to_string());
+    let app_categories = Some(vec!["cli-agent".to_string()]);
 
     let base_url = format!("http://{addr}/api/v1");
-    let response = create_message(&base_url, "api-key", &x_title, &http_referer, &request)
-        .await
-        .expect("create_message should succeed");
+    let response = create_message(
+        &base_url,
+        "api-key",
+        &x_title,
+        &http_referer,
+        &app_categories,
+        &request,
+    )
+    .await
+    .expect("create_message should succeed");
     assert_eq!(response.id.as_deref(), Some("msg_1"));
     assert_eq!(response.object_type.as_deref(), Some("message"));
 
@@ -489,6 +497,11 @@ async fn test_create_message_sets_stream_false_and_headers() {
             || headers_lower
                 .contains("http-referer:https://github.com/realmorrisliu/openrouter-rs"),
         "http-referer header should be present, headers:\n{header_text}"
+    );
+    assert!(
+        headers_lower.contains("x-openrouter-categories: cli-agent")
+            || headers_lower.contains("x-openrouter-categories:cli-agent"),
+        "x-openrouter-categories header should be present, headers:\n{header_text}"
     );
 
     let request_json: serde_json::Value =
