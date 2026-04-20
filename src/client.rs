@@ -6,7 +6,7 @@ use crate::api::legacy::completion;
 use crate::{
     api::{
         api_keys, auth, chat, credits, discovery, embeddings, generation, guardrails, messages,
-        models, organization, rerank, responses, videos,
+        models, organization, rerank, responses, tts, videos,
     },
     error::OpenRouterError,
     strip_option_vec_setter,
@@ -133,6 +133,11 @@ impl OpenRouterClient {
     /// Domain client for rerank operations.
     pub fn rerank(&self) -> RerankClient<'_> {
         RerankClient { client: self }
+    }
+
+    /// Domain client for text-to-speech operations.
+    pub fn tts(&self) -> TtsClient<'_> {
+        TtsClient { client: self }
     }
 
     /// Domain client for video generation operations.
@@ -1039,6 +1044,24 @@ impl OpenRouterClient {
         }
     }
 
+    /// Submit a text-to-speech request and return raw audio bytes.
+    pub async fn create_tts(&self, request: &tts::TtsRequest) -> Result<Vec<u8>, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            tts::create_tts_with_client(
+                self.http_client(),
+                &self.base_url,
+                api_key,
+                &self.x_title,
+                &self.http_referer,
+                &self.app_categories,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
     /// Submit a video generation request.
     pub async fn create_video_generation(
         &self,
@@ -1584,6 +1607,19 @@ impl<'a> RerankClient<'a> {
         request: &rerank::RerankRequest,
     ) -> Result<rerank::RerankResponse, OpenRouterError> {
         self.client.create_rerank(request).await
+    }
+}
+
+/// Domain client for text-to-speech endpoints.
+#[derive(Debug, Clone, Copy)]
+pub struct TtsClient<'a> {
+    client: &'a OpenRouterClient,
+}
+
+impl<'a> TtsClient<'a> {
+    /// Create speech audio bytes (`POST /tts`).
+    pub async fn create(&self, request: &tts::TtsRequest) -> Result<Vec<u8>, OpenRouterError> {
+        self.client.create_tts(request).await
     }
 }
 

@@ -8,7 +8,7 @@ use std::{
 
 use openrouter_rs::{
     OpenRouterClient,
-    api::{auth, chat, credits, embeddings, guardrails, messages, rerank, responses, videos},
+    api::{auth, chat, credits, embeddings, guardrails, messages, rerank, responses, tts, videos},
     error::OpenRouterError,
     types::{ModelCategory, PaginationOptions, Role, SupportedParameters},
 };
@@ -98,6 +98,95 @@ fn spawn_json_server(
         stream
             .write_all(response.as_bytes())
             .expect("server should write response");
+    });
+
+    (format!("http://{addr}/api/v1"), rx, server)
+}
+
+fn spawn_binary_server(
+    response_body: &[u8],
+    content_type: &str,
+) -> (
+    String,
+    mpsc::Receiver<CapturedRequest>,
+    thread::JoinHandle<()>,
+) {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("listener should bind");
+    let addr = listener
+        .local_addr()
+        .expect("listener should have local addr");
+    let body = response_body.to_vec();
+    let content_type = content_type.to_string();
+    let (tx, rx) = mpsc::channel::<CapturedRequest>();
+
+    let server = thread::spawn(move || {
+        let (mut stream, _) = listener
+            .accept()
+            .expect("server should accept one connection");
+
+        let mut request_bytes = Vec::new();
+        let mut chunk = [0_u8; 1024];
+        let header_end = loop {
+            let read = stream.read(&mut chunk).expect("server should read request");
+            if read == 0 {
+                break None;
+            }
+            request_bytes.extend_from_slice(&chunk[..read]);
+            if let Some(pos) = request_bytes
+                .windows(4)
+                .position(|window| window == b"\r\n\r\n")
+            {
+                break Some(pos + 4);
+            }
+        }
+        .expect("request should contain header terminator");
+
+        let header_text = String::from_utf8_lossy(&request_bytes[..header_end]).to_string();
+        let request_line = header_text.lines().next().unwrap_or_default().to_string();
+
+        let content_length = header_text
+            .lines()
+            .find_map(|line| {
+                let lower = line.to_ascii_lowercase();
+                if lower.starts_with("content-length:") {
+                    line.split(':').nth(1)?.trim().parse::<usize>().ok()
+                } else {
+                    None
+                }
+            })
+            .unwrap_or(0);
+
+        let mut body_bytes = request_bytes[header_end..].to_vec();
+        while body_bytes.len() < content_length {
+            let read = stream
+                .read(&mut chunk)
+                .expect("server should read request body");
+            if read == 0 {
+                break;
+            }
+            body_bytes.extend_from_slice(&chunk[..read]);
+        }
+
+        let body_text = String::from_utf8_lossy(&body_bytes[..content_length]).to_string();
+        let request_text = format!("{header_text}{body_text}");
+        tx.send(CapturedRequest {
+            request_line,
+            request_text,
+            body_text,
+        })
+        .expect("server should send captured request");
+
+        let header = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+            content_type,
+            body.len()
+        );
+        stream
+            .write_all(header.as_bytes())
+            .expect("server should write response header");
+        stream
+            .write_all(&body)
+            .expect("server should write response body");
     });
 
     (format!("http://{addr}/api/v1"), rx, server)
@@ -277,6 +366,22 @@ async fn test_rerank_domain_requires_api_key() {
         .expect("rerank request should build");
 
     let result = client.rerank().create(&request).await;
+    assert!(matches!(result, Err(OpenRouterError::KeyNotConfigured)));
+}
+
+#[tokio::test]
+async fn test_tts_domain_requires_api_key() {
+    let client = OpenRouterClient::builder()
+        .build()
+        .expect("client should build");
+    let request = tts::TtsRequest::builder()
+        .model("elevenlabs/eleven-turbo-v2")
+        .input("hello")
+        .voice("alloy")
+        .build()
+        .expect("tts request should build");
+
+    let result = client.tts().create(&request).await;
     assert!(matches!(result, Err(OpenRouterError::KeyNotConfigured)));
 }
 
@@ -604,6 +709,44 @@ async fn test_rerank_domain_create_delegates_to_api_module() {
         serde_json::from_str(&captured.body_text).expect("body should be valid json");
     assert_eq!(body_json["model"], "cohere/rerank-v3.5");
     assert_eq!(body_json["query"], "capital of France");
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_tts_domain_create_delegates_to_api_module() {
+    let (base_url, rx, server) = spawn_binary_server(b"ID3tts-audio", "audio/mpeg");
+    let client = OpenRouterClient::builder()
+        .base_url(base_url)
+        .api_key("api-key")
+        .build()
+        .expect("client should build");
+    let request = tts::TtsRequest::builder()
+        .model("elevenlabs/eleven-turbo-v2")
+        .input("Hello world")
+        .voice("alloy")
+        .response_format(tts::TtsResponseFormat::Mp3)
+        .build()
+        .expect("tts request should build");
+
+    let response = client
+        .tts()
+        .create(&request)
+        .await
+        .expect("tts should succeed");
+    assert_eq!(response, b"ID3tts-audio");
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(captured.request_line, "POST /api/v1/tts HTTP/1.1");
+
+    let body_json: serde_json::Value =
+        serde_json::from_str(&captured.body_text).expect("body should be valid json");
+    assert_eq!(body_json["model"], "elevenlabs/eleven-turbo-v2");
+    assert_eq!(body_json["input"], "Hello world");
+    assert_eq!(body_json["voice"], "alloy");
+    assert_eq!(body_json["response_format"], "mp3");
 
     server.join().expect("server thread should finish");
 }
