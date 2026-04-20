@@ -21,7 +21,7 @@ Type-safe, async Rust SDK for the OpenRouter API.
 
 `openrouter-rs` is a community-maintained Rust SDK for OpenRouter. It exposes a domain-oriented client for chat, responses, messages, rerank, video generation, models, embeddings, and management APIs, plus a companion CLI in the same repository.
 
-The current repo snapshot implements `42 / 42` official OpenAPI method/path entries, with published live integration coverage tracked in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md).
+The current repo snapshot implements `42 / 43` official OpenAPI method/path entries, with published live integration coverage tracked in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md).
 
 ## Why `openrouter-rs`
 
