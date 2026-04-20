@@ -80,6 +80,8 @@ Useful entrypoints:
 - SVG source logo: [`logo.svg`](logo.svg)
 - PNG submission logo: [`logo.png`](logo.png)
 
+The logo combines the OpenRouter mark from `openrouter.ai` with the official Ferris `flat-happy` SVG from `rustacean.net` (CC0).
+
 ## Traction Snapshot
 
 Use the following reviewer-facing signals in the Awesome OpenRouter PR body. Snapshot date: `2026-04-20`.
