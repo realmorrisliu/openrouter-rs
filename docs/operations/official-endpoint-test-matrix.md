@@ -1,16 +1,20 @@
 # Official Endpoint Test Matrix
 
-Snapshot date: 2026-04-18  
+Snapshot date: 2026-04-20  
 Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)  
 Tracked baseline: `specs/openrouter/openapi-baseline.json`  
 Nightly drift workflow: `.github/workflows/openapi-drift.yml`
 
 ## Coverage Summary
 
-- Official OpenAPI endpoints: `42` method+path entries.
-- SDK implementation coverage (`src/api` + domain client): `42 / 42` (`100%`).
-- Live integration coverage (`tests/integration`): `22 / 42` endpoints currently exercised.
+- Official OpenAPI endpoints: `43` method+path entries.
+- SDK implementation coverage (`src/api` + domain client): `42 / 43` (`97.7%`).
+- Live integration coverage (`tests/integration`): `22 / 43` endpoints currently exercised.
   - Covered live now: `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`
+
+Drift review note:
+
+- Upstream now declares `X-OpenRouter-Categories` on many existing operations. SDK support for that request metadata is tracked in `#183`.
 
 Legend:
 
@@ -65,6 +69,7 @@ Legend:
 | `POST /messages` | `client.messages().create(...)` / `client.messages().stream(...)` | Yes | Path | Yes | Keep |
 | `POST /rerank` | `client.rerank().create(...)` | Yes | Path | No | P1 |
 | `POST /responses` | `client.responses().create(...)` / `client.responses().stream(...)` | Yes | Contract | Yes | Keep |
+| `POST /tts` | Not yet implemented. Tracked in `#182` | No | None | No | P1 |
 | `POST /videos` | `client.videos().create(...)` | Yes | Path | No | P2 |
 | `GET /videos/models` | `client.videos().list_models()` | Yes | Path | No | P2 |
 | `GET /videos/{jobId}` | `client.videos().get_generation(...)` | Yes | Path | No | P2 |
@@ -83,7 +88,7 @@ The endpoint below is intentionally kept as legacy compatibility and is not part
 1. P1: add management-key live coverage for assignment endpoints (`/guardrails/*/assignments/*` and `/guardrails/assignments/*`).
 2. P1: add management-key live smoke coverage for `/activity`.
 3. P2: keep `/credits`, `/credits/coinbase`, `/generation`, `/auth/keys*` as controlled scenarios (manual or mocked contract-first) due cost/side effects.
-4. P1/P2: add low-cost live or smoke coverage for `/rerank`, `/videos*`, and `/organization/members` once stable fixtures and cost controls are defined.
+4. P1/P2: add low-cost live or smoke coverage for `/rerank`, `/tts`, `/videos*`, and `/organization/members` once stable fixtures and cost controls are defined.
 
 ## Reproduce Snapshot
 
