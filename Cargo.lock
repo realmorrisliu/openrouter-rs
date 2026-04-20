@@ -1002,7 +1002,7 @@ dependencies = [
 
 [[package]]
 name = "openrouter-rs"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "axum",
  "derive_builder",

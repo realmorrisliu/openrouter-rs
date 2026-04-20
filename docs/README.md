@@ -27,7 +27,7 @@ If you are not sure where to start, use the groups below.
 ## Design Docs
 
 - [`design/generated-core-architecture.md`](design/generated-core-architecture.md) for the generated-core plus idiomatic-wrapper direction
-- [`design/http-transport-migration.md`](design/http-transport-migration.md) for the `surf` to `reqwest + rustls` migration plan
+- [`design/http-transport-migration.md`](design/http-transport-migration.md) for the historical design baseline behind the completed `reqwest + rustls` transport migration
 
 ## Operations And Validation
 
