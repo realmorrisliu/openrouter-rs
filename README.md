@@ -71,6 +71,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .api_key(std::env::var("OPENROUTER_API_KEY")?)
         .http_referer("https://yourapp.example")
         .x_title("my-openrouter-app")
+        .app_categories(["cli-agent"])
         .build()?;
 
     let request = ChatCompletionRequest::builder()
@@ -112,6 +113,7 @@ At runtime, the builder/client exposes the values the SDK directly consumes:
 - `management_key`
 - `http_referer`
 - `x_title`
+- `app_categories`
 
 ## Common Workflows
 

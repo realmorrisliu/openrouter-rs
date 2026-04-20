@@ -117,10 +117,18 @@ async fn test_send_chat_completion_sets_stream_false_and_headers() {
         .expect("chat request should build");
     let x_title = Some("openrouter-rs-tests".to_string());
     let http_referer = Some("https://github.com/realmorrisliu/openrouter-rs".to_string());
+    let app_categories = Some(vec!["cli-agent".to_string()]);
 
-    let response = send_chat_completion(&base_url, "api-key", &x_title, &http_referer, &request)
-        .await
-        .expect("send_chat_completion should succeed");
+    let response = send_chat_completion(
+        &base_url,
+        "api-key",
+        &x_title,
+        &http_referer,
+        &app_categories,
+        &request,
+    )
+    .await
+    .expect("send_chat_completion should succeed");
     assert_eq!(response.id, "gen-123");
     assert_eq!(response.choices[0].content(), Some("Hello from mock"));
 
@@ -158,6 +166,12 @@ async fn test_send_chat_completion_sets_stream_false_and_headers() {
         "http-referer header should be present, headers:\n{}",
         captured.header_text
     );
+    assert!(
+        headers_lower.contains("x-openrouter-categories: cli-agent")
+            || headers_lower.contains("x-openrouter-categories:cli-agent"),
+        "x-openrouter-categories header should be present, headers:\n{}",
+        captured.header_text
+    );
 
     let request_json: serde_json::Value =
         serde_json::from_str(&captured.body_text).expect("request body should be valid JSON");
@@ -187,11 +201,18 @@ async fn test_stream_chat_completion_sets_stream_true_and_parses_sse() {
 
     let x_title = Some("openrouter-rs-tests".to_string());
     let http_referer = Some("https://github.com/realmorrisliu/openrouter-rs".to_string());
+    let app_categories = Some(vec!["cli-agent".to_string()]);
 
-    let mut stream =
-        stream_chat_completion(&base_url, "api-key", &x_title, &http_referer, &request)
-            .await
-            .expect("stream_chat_completion should succeed");
+    let mut stream = stream_chat_completion(
+        &base_url,
+        "api-key",
+        &x_title,
+        &http_referer,
+        &app_categories,
+        &request,
+    )
+    .await
+    .expect("stream_chat_completion should succeed");
     let mut chunks = Vec::new();
     while let Some(item) = stream.next().await {
         chunks.push(item.expect("stream chunk should parse"));
@@ -268,7 +289,7 @@ async fn test_stream_chat_completion_parses_multiline_sse_data_frames() {
         .build()
         .expect("chat request should build");
 
-    let mut stream = stream_chat_completion(&base_url, "api-key", &None, &None, &request)
+    let mut stream = stream_chat_completion(&base_url, "api-key", &None, &None, &None, &request)
         .await
         .expect("stream_chat_completion should succeed");
     let mut chunks = Vec::new();
@@ -293,7 +314,7 @@ async fn test_send_chat_completion_returns_contextual_parse_error_on_invalid_jso
         .build()
         .expect("chat request should build");
 
-    let error = send_chat_completion(&base_url, "api-key", &None, &None, &request)
+    let error = send_chat_completion(&base_url, "api-key", &None, &None, &None, &request)
         .await
         .expect_err("invalid JSON should fail");
 
@@ -322,7 +343,7 @@ async fn test_send_chat_completion_treats_error_payload_with_200_status_as_api_e
         .build()
         .expect("chat request should build");
 
-    let error = send_chat_completion(&base_url, "api-key", &None, &None, &request)
+    let error = send_chat_completion(&base_url, "api-key", &None, &None, &None, &request)
         .await
         .expect_err("error payload should fail");
 

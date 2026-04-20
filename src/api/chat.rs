@@ -848,6 +848,7 @@ pub async fn send_chat_completion(
     api_key: &str,
     x_title: &Option<String>,
     http_referer: &Option<String>,
+    app_categories: &Option<Vec<String>>,
     request: &ChatCompletionRequest,
 ) -> Result<CompletionsResponse, OpenRouterError> {
     let http_client = crate::transport::new_client()?;
@@ -857,6 +858,7 @@ pub async fn send_chat_completion(
         api_key,
         x_title,
         http_referer,
+        app_categories,
         request,
     )
     .await
@@ -868,6 +870,7 @@ pub(crate) async fn send_chat_completion_with_client(
     api_key: &str,
     x_title: &Option<String>,
     http_referer: &Option<String>,
+    app_categories: &Option<Vec<String>>,
     request: &ChatCompletionRequest,
 ) -> Result<CompletionsResponse, OpenRouterError> {
     let url = format!("{base_url}/chat/completions");
@@ -880,7 +883,8 @@ pub(crate) async fn send_chat_completion_with_client(
         api_key,
         x_title,
         http_referer,
-    )
+        app_categories,
+    )?
     .json(&request)
     .send()
     .await?;
@@ -909,6 +913,7 @@ pub async fn stream_chat_completion(
     api_key: &str,
     x_title: &Option<String>,
     http_referer: &Option<String>,
+    app_categories: &Option<Vec<String>>,
     request: &ChatCompletionRequest,
 ) -> Result<BoxStream<'static, Result<CompletionsResponse, OpenRouterError>>, OpenRouterError> {
     let http_client = crate::transport::new_client()?;
@@ -918,6 +923,7 @@ pub async fn stream_chat_completion(
         api_key,
         x_title,
         http_referer,
+        app_categories,
         request,
     )
     .await
@@ -929,6 +935,7 @@ pub(crate) async fn stream_chat_completion_with_client(
     api_key: &str,
     x_title: &Option<String>,
     http_referer: &Option<String>,
+    app_categories: &Option<Vec<String>>,
     request: &ChatCompletionRequest,
 ) -> Result<BoxStream<'static, Result<CompletionsResponse, OpenRouterError>>, OpenRouterError> {
     let url = format!("{base_url}/chat/completions");
@@ -941,7 +948,8 @@ pub(crate) async fn stream_chat_completion_with_client(
         api_key,
         x_title,
         http_referer,
-    )
+        app_categories,
+    )?
     .json(&request)
     .send()
     .await?;

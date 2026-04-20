@@ -9,6 +9,7 @@ use crate::{
         models, organization, rerank, responses, videos,
     },
     error::OpenRouterError,
+    strip_option_vec_setter,
     types::{
         ModelCategory, PaginationOptions, SupportedParameters,
         completion::CompletionsResponse,
@@ -38,6 +39,8 @@ pub struct OpenRouterClient {
         default = "Some(String::from(\"openrouter-rs\"))"
     )]
     x_title: Option<String>,
+    #[builder(setter(custom), default)]
+    app_categories: Option<Vec<String>>,
     #[builder(setter(skip), default = "crate::transport::new_client()?")]
     http_client: reqwest::Client,
 }
@@ -156,6 +159,10 @@ impl OpenRouterClient {
     pub(crate) fn http_client(&self) -> &reqwest::Client {
         &self.http_client
     }
+}
+
+impl OpenRouterClientBuilder {
+    strip_option_vec_setter!(app_categories, String);
 }
 
 #[doc(hidden)]
@@ -737,6 +744,7 @@ impl OpenRouterClient {
                 api_key,
                 &self.x_title,
                 &self.http_referer,
+                &self.app_categories,
                 request,
             )
             .await
@@ -790,6 +798,7 @@ impl OpenRouterClient {
                 api_key,
                 &self.x_title,
                 &self.http_referer,
+                &self.app_categories,
                 request,
             )
             .await
@@ -876,6 +885,7 @@ impl OpenRouterClient {
                 api_key,
                 &self.x_title,
                 &self.http_referer,
+                &self.app_categories,
                 request,
             )
             .await
@@ -907,6 +917,7 @@ impl OpenRouterClient {
                 api_key,
                 &self.x_title,
                 &self.http_referer,
+                &self.app_categories,
                 request,
             )
             .await
@@ -936,6 +947,7 @@ impl OpenRouterClient {
                 api_key,
                 &self.x_title,
                 &self.http_referer,
+                &self.app_categories,
                 request,
             )
             .await
@@ -959,6 +971,7 @@ impl OpenRouterClient {
                 api_key,
                 &self.x_title,
                 &self.http_referer,
+                &self.app_categories,
                 request,
             )
             .await
@@ -996,6 +1009,7 @@ impl OpenRouterClient {
                 api_key,
                 &self.x_title,
                 &self.http_referer,
+                &self.app_categories,
                 request,
             )
             .await
@@ -1016,6 +1030,7 @@ impl OpenRouterClient {
                 api_key,
                 &self.x_title,
                 &self.http_referer,
+                &self.app_categories,
                 request,
             )
             .await
@@ -1036,6 +1051,7 @@ impl OpenRouterClient {
                 api_key,
                 &self.x_title,
                 &self.http_referer,
+                &self.app_categories,
                 request,
             )
             .await
@@ -1952,6 +1968,7 @@ impl<'a> LegacyCompletionsClient<'a> {
                 api_key,
                 &self.client.x_title,
                 &self.client.http_referer,
+                &self.client.app_categories,
                 request,
             )
             .await

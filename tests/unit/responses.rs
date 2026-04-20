@@ -262,10 +262,18 @@ async fn test_create_response_sets_stream_false_and_headers() {
         .expect("responses request should build");
     let x_title = Some("openrouter-rs-tests".to_string());
     let http_referer = Some("https://github.com/realmorrisliu/openrouter-rs".to_string());
+    let app_categories = Some(vec!["cli-agent".to_string()]);
 
-    let response = create_response(&base_url, "api-key", &x_title, &http_referer, &request)
-        .await
-        .expect("create response should succeed");
+    let response = create_response(
+        &base_url,
+        "api-key",
+        &x_title,
+        &http_referer,
+        &app_categories,
+        &request,
+    )
+    .await
+    .expect("create response should succeed");
     assert_eq!(response.id.as_deref(), Some("resp_1"));
     assert_eq!(response.status.as_deref(), Some("completed"));
 
@@ -300,6 +308,12 @@ async fn test_create_response_sets_stream_false_and_headers() {
         "http-referer header should be present, headers:\n{}",
         captured.header_text
     );
+    assert!(
+        headers_lower.contains("x-openrouter-categories: cli-agent")
+            || headers_lower.contains("x-openrouter-categories:cli-agent"),
+        "x-openrouter-categories header should be present, headers:\n{}",
+        captured.header_text
+    );
 
     let request_json: serde_json::Value =
         serde_json::from_str(&captured.body_text).expect("request body should be valid JSON");
@@ -328,10 +342,18 @@ async fn test_stream_response_sets_stream_true_and_parses_sse() {
         .expect("responses request should build");
     let x_title = Some("openrouter-rs-tests".to_string());
     let http_referer = Some("https://github.com/realmorrisliu/openrouter-rs".to_string());
+    let app_categories = Some(vec!["cli-agent".to_string()]);
 
-    let mut stream = stream_response(&base_url, "api-key", &x_title, &http_referer, &request)
-        .await
-        .expect("stream response should succeed");
+    let mut stream = stream_response(
+        &base_url,
+        "api-key",
+        &x_title,
+        &http_referer,
+        &app_categories,
+        &request,
+    )
+    .await
+    .expect("stream response should succeed");
     let mut events = Vec::new();
     while let Some(item) = stream.next().await {
         events.push(item.expect("stream event should parse"));
@@ -379,7 +401,7 @@ async fn test_stream_response_parses_multiline_sse_data_frames() {
         .build()
         .expect("responses request should build");
 
-    let mut stream = stream_response(&base_url, "api-key", &None, &None, &request)
+    let mut stream = stream_response(&base_url, "api-key", &None, &None, &None, &request)
         .await
         .expect("stream response should succeed");
     let mut events = Vec::new();

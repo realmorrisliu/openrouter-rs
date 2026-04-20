@@ -198,6 +198,7 @@ async fn test_create_video_generation_path_body_and_headers() {
         "api-key",
         &Some("openrouter-rs".to_string()),
         &Some("https://example.com".to_string()),
+        &Some(vec!["cli-agent".to_string()]),
         &request,
     )
     .await

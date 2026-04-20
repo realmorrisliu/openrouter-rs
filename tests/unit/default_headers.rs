@@ -7,7 +7,7 @@ use std::{
 };
 
 use futures_util::StreamExt;
-use openrouter_rs::{OpenRouterClient, api::chat, types::Role};
+use openrouter_rs::{OpenRouterClient, api::chat, error::OpenRouterError, types::Role};
 
 struct CapturedRequest {
     request_line: String,
@@ -228,6 +228,59 @@ async fn test_explicit_x_title_overrides_default() {
     );
 
     server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_app_categories_header_is_sent_when_configured() {
+    let (base_url, rx, server) = spawn_json_server(chat_response_json());
+    let client = OpenRouterClient::builder()
+        .base_url(base_url)
+        .api_key("api-key")
+        .app_categories(["cli-agent", "cloud-agent"])
+        .build()
+        .expect("client should build");
+
+    let request = build_chat_request();
+    let _response = client
+        .chat()
+        .create(&request)
+        .await
+        .expect("chat request should succeed");
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("request should be captured");
+    let request_lower = captured.request_text.to_ascii_lowercase();
+    assert!(
+        request_lower.contains("x-openrouter-categories: cli-agent,cloud-agent")
+            || request_lower.contains("x-openrouter-categories:cli-agent,cloud-agent"),
+        "app categories header should be present, request:\n{}",
+        captured.request_text
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_invalid_app_categories_fail_request_build_path() {
+    let client = OpenRouterClient::builder()
+        .base_url("http://127.0.0.1:1/api/v1")
+        .api_key("api-key")
+        .app_categories(["CLI-Agent"])
+        .build()
+        .expect("client should build");
+
+    let request = build_chat_request();
+    let error = client
+        .chat()
+        .create(&request)
+        .await
+        .expect_err("invalid categories should fail");
+
+    assert!(
+        matches!(error, OpenRouterError::ConfigError(_)),
+        "expected config error, got {error:?}"
+    );
 }
 
 #[tokio::test]

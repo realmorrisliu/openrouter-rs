@@ -273,10 +273,17 @@ async fn test_create_embedding_path_body_and_headers() {
     let base_url = format!("http://{addr}/api/v1");
     let x_title = Some("openrouter-rs-tests".to_string());
     let http_referer = Some("https://github.com/realmorrisliu/openrouter-rs".to_string());
-    let response =
-        embeddings::create_embedding(&base_url, "api-key", &x_title, &http_referer, &request)
-            .await
-            .expect("create embedding should succeed");
+    let app_categories = Some(vec!["cli-agent".to_string()]);
+    let response = embeddings::create_embedding(
+        &base_url,
+        "api-key",
+        &x_title,
+        &http_referer,
+        &app_categories,
+        &request,
+    )
+    .await
+    .expect("create embedding should succeed");
     assert_eq!(response.object, "list");
     assert_eq!(response.model, "openai/text-embedding-3-large");
     assert_eq!(response.data.len(), 1);
@@ -307,6 +314,11 @@ async fn test_create_embedding_path_body_and_headers() {
             || headers_lower
                 .contains("http-referer:https://github.com/realmorrisliu/openrouter-rs"),
         "http-referer header should be present, headers:\n{header_text}"
+    );
+    assert!(
+        headers_lower.contains("x-openrouter-categories: cli-agent")
+            || headers_lower.contains("x-openrouter-categories:cli-agent"),
+        "x-openrouter-categories header should be present, headers:\n{header_text}"
     );
 
     let request_json: serde_json::Value =

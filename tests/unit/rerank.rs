@@ -155,6 +155,7 @@ async fn test_create_rerank_path_body_and_headers() {
         "api-key",
         &Some("openrouter-rs".to_string()),
         &Some("https://example.com".to_string()),
+        &Some(vec!["cli-agent".to_string()]),
         &request,
     )
     .await
@@ -189,6 +190,12 @@ async fn test_create_rerank_path_body_and_headers() {
         request_lower.contains("http-referer: https://example.com")
             || request_lower.contains("http-referer:https://example.com"),
         "http-referer header should be present, request:\n{}",
+        request_text
+    );
+    assert!(
+        request_lower.contains("x-openrouter-categories: cli-agent")
+            || request_lower.contains("x-openrouter-categories:cli-agent"),
+        "x-openrouter-categories header should be present, request:\n{}",
         request_text
     );
 

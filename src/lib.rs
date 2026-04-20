@@ -41,6 +41,7 @@
 //!         .api_key("your_api_key")
 //!         .http_referer("https://yourapp.com")
 //!         .x_title("My App")
+//!         .app_categories(["cli-agent"])
 //!         .build()?;
 //!
 //!     // Build chat request
