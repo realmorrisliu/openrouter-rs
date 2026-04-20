@@ -37,7 +37,7 @@ Add the crate:
 
 ```toml
 [dependencies]
-openrouter-rs = "0.7.0"
+openrouter-rs = "0.8.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -82,11 +82,12 @@ Useful entrypoints:
 
 ## Traction Snapshot
 
-Use the following reviewer-facing signals in the Awesome OpenRouter PR body. Snapshot date: `2026-04-17`.
+Use the following reviewer-facing signals in the Awesome OpenRouter PR body. Snapshot date: `2026-04-20`.
 
-- GitHub repository: `62` stars and `15` forks
-- `openrouter-rs` crate: `11,900` total downloads and `4,232` recent downloads on crates.io
+- GitHub repository: `63` stars and `15` forks
+- `openrouter-rs` crate: `12,007` total downloads and `4,255` recent downloads on crates.io
 - `openrouter-cli` crate: published companion CLI with `59` downloads across its first three releases
+- Current stable SDK release is `0.8.0`, which ships on `reqwest + rustls` instead of the old `surf -> isahc -> curl` stack
 - Published API docs on docs.rs and runnable examples in-repo
 - Endpoint coverage, live test status, and nightly OpenAPI drift reporting are published in [`docs/operations/official-endpoint-test-matrix.md`](../../operations/official-endpoint-test-matrix.md) and [`docs/operations/openapi-drift-reporting.md`](../../operations/openapi-drift-reporting.md)
 - Contributor, security, support, release, MSRV, and breaking-change policies are public in-repo

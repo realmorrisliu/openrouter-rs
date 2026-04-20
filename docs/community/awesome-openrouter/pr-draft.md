@@ -14,13 +14,14 @@ Add `openrouter-rs` as the default community Rust SDK entry for OpenRouter, with
 - Users bring their own `OPENROUTER_API_KEY`
 - It has a stable public docs/setup page for OpenRouter-specific usage
 - The repo already publishes both a typed SDK and a companion CLI for account and workflow automation
+- The current stable release (`0.8.0`) ships on `reqwest + rustls` rather than the older `surf -> isahc -> curl` dependency chain
 
 ## Traction / Notability
 
-Snapshot date: `2026-04-17`
+Snapshot date: `2026-04-20`
 
-- GitHub: `62` stars, `15` forks
-- `openrouter-rs` on crates.io: `11,900` total downloads, `4,232` recent downloads
+- GitHub: `63` stars, `15` forks
+- `openrouter-rs` on crates.io: `12,007` total downloads, `4,255` recent downloads
 - `openrouter-cli` on crates.io: published companion CLI with `59` downloads across its first three releases
 - docs.rs documentation is live and the repo includes runnable SDK and CLI examples
 - The repository publishes an endpoint matrix for accepted OpenAPI coverage and live-test status, plus nightly in-repo OpenAPI drift reporting
