@@ -37,7 +37,7 @@ The current repo snapshot implements `43 / 43` official OpenAPI method/path entr
 
 ```toml
 [dependencies]
-openrouter-rs = "0.8.0"
+openrouter-rs = "0.8.1"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -45,7 +45,7 @@ Legacy text completions are opt-in:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.8.0", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.8.1", features = ["legacy-completions"] }
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -290,7 +290,13 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 ## 📈 Release History
 
-### Version 0.8.0 *(Latest)*
+### Version 0.8.1 *(Latest)*
+
+- Added typed `POST /tts` support with the canonical `tts()` client surface and a runnable example.
+- Added live smoke coverage for `POST /rerank` and `GET /organization/members`, and restored the repo snapshot to `43 / 43` accepted OpenAPI endpoints.
+- Added `openrouter-cli organization members list` and aligned the CLI/docs surface with the latest management coverage.
+
+### Version 0.8.0
 
 - Completed the SDK transport migration to `reqwest + rustls` and removed the legacy `surf` / `curl` dependency chain.
 - Made the public HTTP error surface backend-neutral and documented the `0.7.x -> 0.8.0` breaking changes.

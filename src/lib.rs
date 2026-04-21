@@ -21,7 +21,7 @@
 //! Add to your `Cargo.toml`:
 //! ```toml
 //! [dependencies]
-//! openrouter-rs = "0.8.0"
+//! openrouter-rs = "0.8.1"
 //! tokio = { version = "1", features = ["full"] }
 //! ```
 //!
