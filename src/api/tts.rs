@@ -152,21 +152,36 @@ fn should_retry_legacy_tts(error: &OpenRouterError) -> bool {
         return false;
     };
 
-    if !matches!(
-        api_error.status,
-        StatusCode::NOT_FOUND | StatusCode::METHOD_NOT_ALLOWED
-    ) {
-        return false;
-    }
-
     let message = api_error.message.trim().to_ascii_lowercase();
-    if matches!(message.as_str(), "not found" | "method not allowed") {
-        return true;
+    match api_error.status {
+        StatusCode::NOT_FOUND => {
+            is_generic_status_page(&message, "404", "not found")
+                || is_path_specific_route_error(&message)
+        }
+        StatusCode::METHOD_NOT_ALLOWED => {
+            is_generic_status_page(&message, "405", "method not allowed")
+                || is_path_specific_route_error(&message)
+        }
+        _ => false,
     }
+}
 
+fn is_generic_status_page(message: &str, code: &str, reason_phrase: &str) -> bool {
+    matches!(message, "not found" | "method not allowed")
+        || message.contains(&format!("{code} page {reason_phrase}"))
+        || message.contains(&format!("{code} {reason_phrase}"))
+        || message.starts_with(&format!("{code} ")) && message.contains(reason_phrase)
+        || message.starts_with(&format!("{code}:")) && message.contains(reason_phrase)
+        || message.starts_with(&format!("http/1.1 {code}")) && message.contains(reason_phrase)
+        || message.starts_with(&format!("http/2 {code}")) && message.contains(reason_phrase)
+}
+
+fn is_path_specific_route_error(message: &str) -> bool {
     let route_unavailable_signal = message.contains("cannot post")
+        || message.contains("cannot get")
         || message.contains("route")
         || message.contains("endpoint")
+        || message.contains("path")
         || message.contains("method not allowed");
 
     route_unavailable_signal && message.contains(OFFICIAL_TTS_PATH)

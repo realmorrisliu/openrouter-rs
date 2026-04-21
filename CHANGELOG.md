@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added typed SDK support for `GET /generation/content`, including `client.get_generation_content(...)` and `client.management().get_generation_content(...)`.
 
 ### Changed
-- `client.tts().create(...)` now targets the official `POST /audio/speech` endpoint and falls back to legacy `POST /tts` only for route-unavailable signals, so request-level `404/405` errors on the official endpoint are preserved.
+- `client.tts().create(...)` now targets the official `POST /audio/speech` endpoint and falls back to legacy `POST /tts` only for route-unavailable signals, including generic plain-text `404/405` status pages, so request-level `404/405` errors on the official endpoint are still preserved.
 - Accepted the 2026-04-21 OpenAPI drift review, refreshed the tracked compatibility surfaces, and recorded workspace-management follow-up work in `#190`.
 
 ## [0.8.1] - 2026-04-21
