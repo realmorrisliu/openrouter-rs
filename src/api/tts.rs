@@ -86,7 +86,7 @@ pub(crate) async fn create_tts_with_client(
     request: &TtsRequest,
 ) -> Result<Vec<u8>, OpenRouterError> {
     let request_metadata = (x_title, http_referer, app_categories);
-    let response = send_tts_request(
+    let official_response = send_tts_request(
         http_client,
         base_url,
         api_key,
@@ -96,13 +96,17 @@ pub(crate) async fn create_tts_with_client(
     )
     .await?;
 
+    if official_response.status().is_success() {
+        return Ok(official_response.bytes().await?.to_vec());
+    }
+
+    let official_error = transport_response::error_from_response(official_response).await;
+
     // Keep a narrow legacy fallback while upstream finishes the `/tts` -> `/audio/speech`
-    // transition so the canonical `client.tts()` surface continues to work across both paths.
-    let response = if matches!(
-        response.status(),
-        StatusCode::NOT_FOUND | StatusCode::METHOD_NOT_ALLOWED
-    ) {
-        send_tts_request(
+    // transition so the canonical `client.tts()` surface continues to work across both paths
+    // without masking request-level failures from the official route.
+    if should_retry_legacy_tts(&official_error) {
+        let legacy_response = send_tts_request(
             http_client,
             base_url,
             api_key,
@@ -110,17 +114,16 @@ pub(crate) async fn create_tts_with_client(
             request,
             LEGACY_TTS_PATH,
         )
-        .await?
-    } else {
-        response
-    };
+        .await?;
 
-    if response.status().is_success() {
-        Ok(response.bytes().await?.to_vec())
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
+        if legacy_response.status().is_success() {
+            return Ok(legacy_response.bytes().await?.to_vec());
+        }
+
+        transport_response::handle_error(legacy_response).await?;
     }
+
+    Err(official_error)
 }
 
 async fn send_tts_request(
@@ -142,4 +145,29 @@ async fn send_tts_request(
     .json(request)
     .send()
     .await?)
+}
+
+fn should_retry_legacy_tts(error: &OpenRouterError) -> bool {
+    let OpenRouterError::Api(api_error) = error else {
+        return false;
+    };
+
+    if !matches!(
+        api_error.status,
+        StatusCode::NOT_FOUND | StatusCode::METHOD_NOT_ALLOWED
+    ) {
+        return false;
+    }
+
+    let message = api_error.message.trim().to_ascii_lowercase();
+    if matches!(message.as_str(), "not found" | "method not allowed") {
+        return true;
+    }
+
+    let route_unavailable_signal = message.contains("cannot post")
+        || message.contains("route")
+        || message.contains("endpoint")
+        || message.contains("method not allowed");
+
+    route_unavailable_signal && message.contains(OFFICIAL_TTS_PATH)
 }
