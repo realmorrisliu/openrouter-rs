@@ -7,13 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-04-21
+
 ### Added
 - Added typed SDK support for `POST /tts`, including the canonical `client.tts().create(...)` surface, raw audio-byte handling, and a runnable example.
 - Added live smoke coverage for `POST /rerank` and read-only management coverage for `GET /organization/members`.
 - Added `openrouter-cli organization members list` for management-key-backed organization member discovery.
 
 ### Changed
+- Added `X-OpenRouter-Categories` request metadata support across the existing attribution-enabled SDK request surfaces.
 - Restored the repository snapshot to `43 / 43` official OpenAPI endpoint coverage and aligned the endpoint matrix, README, and docs.rs surface with the newly implemented text-to-speech endpoint.
+
 
 ## [0.8.0] - 2026-04-18
 
