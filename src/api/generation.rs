@@ -1,5 +1,8 @@
+use std::collections::HashMap;
+
 use reqwest::Client as HttpClient;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use crate::{
     error::OpenRouterError,
@@ -35,6 +38,15 @@ pub struct GenerationData {
     pub num_media_prompt: Option<u32>,
     pub num_media_completion: Option<u32>,
     pub num_search_results: Option<u32>,
+}
+
+/// Stored prompt/input and completion/output content returned by `GET /generation/content`.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct GenerationContentData {
+    #[serde(default)]
+    pub input: HashMap<String, Value>,
+    #[serde(default)]
+    pub output: HashMap<String, Value>,
 }
 
 /// Returns metadata about a specific generation request
@@ -74,6 +86,40 @@ pub(crate) async fn get_generation_with_client(
     if response.status().is_success() {
         let generation_response: ApiResponse<_> =
             transport_response::parse_json_response(response, "generation").await?;
+        Ok(generation_response.data)
+    } else {
+        transport_response::handle_error(response).await?;
+        unreachable!()
+    }
+}
+
+/// Returns the stored prompt/input and completion/output content for a specific generation.
+pub async fn get_generation_content(
+    base_url: &str,
+    api_key: &str,
+    id: impl Into<String>,
+) -> Result<GenerationContentData, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    get_generation_content_with_client(&http_client, base_url, api_key, id).await
+}
+
+pub(crate) async fn get_generation_content_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    id: impl Into<String>,
+) -> Result<GenerationContentData, OpenRouterError> {
+    let id = id.into();
+    let url = format!("{base_url}/generation/content?id={id}");
+
+    let response =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
+            .send()
+            .await?;
+
+    if response.status().is_success() {
+        let generation_response: ApiResponse<_> =
+            transport_response::parse_json_response(response, "generation content").await?;
         Ok(generation_response.data)
     } else {
         transport_response::handle_error(response).await?;

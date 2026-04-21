@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use derive_builder::Builder;
-use reqwest::Client as HttpClient;
+use reqwest::{Client as HttpClient, StatusCode};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -9,7 +9,10 @@ use crate::{
     transport::{request as transport_request, response as transport_response},
 };
 
-/// Supported audio output formats for `POST /tts`.
+const OFFICIAL_TTS_PATH: &str = "/audio/speech";
+const LEGACY_TTS_PATH: &str = "/tts";
+
+/// Supported audio output formats for `POST /audio/speech`.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum TtsResponseFormat {
@@ -24,7 +27,7 @@ pub struct TtsProviderOptions {
     pub options: Option<HashMap<String, serde_json::Value>>,
 }
 
-/// Request payload for `POST /tts`.
+/// Request payload for `POST /audio/speech`.
 #[derive(Serialize, Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 pub struct TtsRequest {
@@ -82,17 +85,35 @@ pub(crate) async fn create_tts_with_client(
     app_categories: &Option<Vec<String>>,
     request: &TtsRequest,
 ) -> Result<Vec<u8>, OpenRouterError> {
-    let url = format!("{base_url}/tts");
-    let response = transport_request::with_client_request_headers(
-        transport_request::post(http_client, &url),
+    let request_metadata = (x_title, http_referer, app_categories);
+    let response = send_tts_request(
+        http_client,
+        base_url,
         api_key,
-        x_title,
-        http_referer,
-        app_categories,
-    )?
-    .json(request)
-    .send()
+        request_metadata,
+        request,
+        OFFICIAL_TTS_PATH,
+    )
     .await?;
+
+    // Keep a narrow legacy fallback while upstream finishes the `/tts` -> `/audio/speech`
+    // transition so the canonical `client.tts()` surface continues to work across both paths.
+    let response = if matches!(
+        response.status(),
+        StatusCode::NOT_FOUND | StatusCode::METHOD_NOT_ALLOWED
+    ) {
+        send_tts_request(
+            http_client,
+            base_url,
+            api_key,
+            request_metadata,
+            request,
+            LEGACY_TTS_PATH,
+        )
+        .await?
+    } else {
+        response
+    };
 
     if response.status().is_success() {
         Ok(response.bytes().await?.to_vec())
@@ -100,4 +121,25 @@ pub(crate) async fn create_tts_with_client(
         transport_response::handle_error(response).await?;
         unreachable!()
     }
+}
+
+async fn send_tts_request(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    request_metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
+    request: &TtsRequest,
+    endpoint_path: &str,
+) -> Result<reqwest::Response, OpenRouterError> {
+    let url = format!("{base_url}{endpoint_path}");
+    Ok(transport_request::with_client_request_headers(
+        transport_request::post(http_client, &url),
+        api_key,
+        request_metadata.0,
+        request_metadata.1,
+        request_metadata.2,
+    )?
+    .json(request)
+    .send()
+    .await?)
 }

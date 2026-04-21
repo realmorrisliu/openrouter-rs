@@ -21,7 +21,7 @@ Type-safe, async Rust SDK for the OpenRouter API.
 
 `openrouter-rs` is a community-maintained Rust SDK for OpenRouter. It exposes a domain-oriented client for chat, responses, messages, rerank, text-to-speech, video generation, models, embeddings, and management APIs, plus a companion CLI in the same repository.
 
-The current repo snapshot implements `43 / 43` official OpenAPI method/path entries, with published live integration coverage tracked in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md).
+The current repo snapshot implements `44 / 51` official OpenAPI method/path entries, with published live integration coverage tracked in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md). Newly official workspace management endpoints are tracked separately in [#190](https://github.com/realmorrisliu/openrouter-rs/issues/190).
 
 ## Why `openrouter-rs`
 
@@ -30,7 +30,7 @@ The current repo snapshot implements `43 / 43` official OpenAPI method/path entr
 - Tokio-native `reqwest + rustls` transport with no `surf` / `curl` dependency chain
 - Streaming support for chat, responses, and messages, including a unified stream abstraction
 - Typed tools, manual JSON-schema tools, and multimodal chat content
-- Discovery, rerank, text-to-speech, video generation, embeddings, API-key management, organization members, guardrails, activity, credits, and generation coverage
+- Discovery, rerank, text-to-speech, video generation, embeddings, API-key management, organization members, guardrails, activity, credits, and generation metadata/content coverage
 - A companion CLI for profile resolution, discovery, management, and billing/usage workflows
 
 ## Installation
@@ -101,10 +101,10 @@ The canonical public surface in `0.8.x` is domain-oriented:
 | `responses()` | `create`, `stream`, `stream_unified` | `/responses` | API key |
 | `messages()` | `create`, `stream`, `stream_unified` | `/messages` | API key |
 | `rerank()` | `create` | `/rerank` | API key |
-| `tts()` | `create` | `/tts` | API key |
+| `tts()` | `create` | `/audio/speech` (legacy `/tts` fallback) | API key |
 | `videos()` | `create`, `list_models`, `get_generation`, `get_content` | `/videos*` | API key |
 | `models()` | `list`, `list_by_category`, `list_by_parameters`, `list_endpoints`, `list_providers`, `list_user_models`, `get_model_count`, `list_zdr_endpoints`, `create_embedding`, `list_embedding_models` | `/models*`, `/providers`, `/endpoints/zdr`, `/embeddings*` | API key |
-| `management()` | `create_api_key`, `list_api_keys`, `create_auth_code`, `create_api_key_from_auth_code`, `list_guardrails`, `list_organization_members`, `get_activity`, `get_credits`, `create_coinbase_charge`, `get_generation` | `/keys*`, `/auth/keys*`, `/guardrails*`, `/organization/members`, `/activity`, `/credits*`, `/generation`, `/key` | Governed endpoints require a management key; billing/session endpoints still use the normal API key because that is how OpenRouter authenticates them |
+| `management()` | `create_api_key`, `list_api_keys`, `create_auth_code`, `create_api_key_from_auth_code`, `list_guardrails`, `list_organization_members`, `get_activity`, `get_credits`, `create_coinbase_charge`, `get_generation`, `get_generation_content` | `/keys*`, `/auth/keys*`, `/guardrails*`, `/organization/members`, `/activity`, `/credits*`, `/generation*`, `/key` | Governed endpoints require a management key; billing/session endpoints still use the normal API key because that is how OpenRouter authenticates them |
 | `legacy()` | `completions().create` | `/completions` | `legacy-completions` feature + API key |
 
 At runtime, the builder/client exposes the values the SDK directly consumes:
@@ -126,7 +126,7 @@ At runtime, the builder/client exposes the values the SDK directly consumes:
 - manual tools and typed tools backed by `schemars`
 - multimodal chat content, including image, audio, video, and file parts
 - model discovery, provider discovery, embeddings, and ZDR endpoints
-- management-key workflows for keys, auth codes, organization members, guardrails, and activity, plus API-key-authenticated credits and generation endpoints
+- management-key workflows for keys, auth codes, organization members, guardrails, and activity, plus API-key-authenticated credits and generation metadata/content endpoints
 
 For deeper examples, prefer the runnable examples in [`examples/`](examples) over long README snippets.
 
@@ -207,7 +207,7 @@ For copy-paste shell/CI recipes, see [`docs/operations/cli-automation-workflows.
 
 - Community-maintained third-party SDK; not affiliated with OpenRouter
 - Canonical docs and examples prefer the domain clients over older flat helpers
-- Full endpoint coverage is tracked against the current OpenAPI snapshot
+- Accepted endpoint coverage is tracked against the current OpenAPI snapshot, with the current workspace-management gap tracked in [#190](https://github.com/realmorrisliu/openrouter-rs/issues/190)
 - Live integration coverage and gaps are published in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md)
 - Migration guidance for the `0.7.x -> 0.8.0` transport/error-surface release, plus the archived `0.5.x -> 0.6.x` naming guide, lives in [`MIGRATION.md`](MIGRATION.md)
 - Legacy `POST /completions` support remains available behind the `legacy-completions` feature

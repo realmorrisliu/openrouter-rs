@@ -7,14 +7,16 @@ Nightly drift workflow: `.github/workflows/openapi-drift.yml`
 
 ## Coverage Summary
 
-- Official OpenAPI endpoints: `43` method+path entries.
-- SDK implementation coverage (`src/api` + domain client): `43 / 43` (`100%`).
-- Live integration coverage (`tests/integration`): `24 / 43` endpoints currently exercised.
+- Official OpenAPI endpoints: `51` method+path entries.
+- SDK implementation coverage (`src/api` + domain client): `44 / 51` (`86.3%`).
+- Live integration coverage (`tests/integration`): `24 / 51` endpoints currently exercised.
   - Covered live now: `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `POST /rerank`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`, `GET /organization/members`
 
 Drift review note:
 
-- Upstream now declares `X-OpenRouter-Categories` on many existing operations. SDK support for that request metadata is tracked in `#183`.
+- Official text-to-speech routing is now `POST /audio/speech`. The SDK keeps the canonical `client.tts().create(...)` surface and retries legacy `POST /tts` only as a compatibility fallback.
+- Upstream added `GET /generation/content`, now exposed as `client.get_generation_content(...)` / `client.management().get_generation_content(...)`.
+- Upstream added official workspace-management endpoints and workspace-aware management fields. The SDK follow-up is tracked in `#190`.
 
 Legend:
 
@@ -41,6 +43,7 @@ Legend:
 | `GET /embeddings/models` | `client.list_embedding_models()` / `client.models().list_embedding_models()` | Yes | Path | Yes | Keep |
 | `GET /endpoints/zdr` | `client.models().list_zdr_endpoints(...)` | Yes | Contract | Yes | Keep |
 | `GET /generation` | `client.get_generation(...)` / `client.management().get_generation(...)` | Yes | Path | No | P2 |
+| `GET /generation/content` | `client.get_generation_content(...)` / `client.management().get_generation_content(...)` | Yes | Path | No | P2 |
 | `GET /guardrails` | `client.management().list_guardrails(...)` | Yes | Path | Yes | Keep |
 | `POST /guardrails` | `client.management().create_guardrail(...)` | Yes | Contract | Yes | Keep |
 | `GET /guardrails/{id}` | `client.management().get_guardrail(...)` | Yes | Contract | Yes | Keep |
@@ -66,14 +69,21 @@ Legend:
 | `GET /models/user` | `client.list_models_for_user()` / `client.models().list_user_models()` | Yes | Path | Yes | Keep |
 | `GET /organization/members` | `client.management().list_organization_members(...)` | Yes | Path | Yes | Keep |
 | `GET /providers` | `client.list_providers()` / `client.models().list_providers()` | Yes | Contract | Yes | Keep |
+| `GET /workspaces` | Tracked in `#190` | No | None | No | P1 |
+| `GET /workspaces/{id}` | Tracked in `#190` | No | None | No | P1 |
 | `POST /messages` | `client.messages().create(...)` / `client.messages().stream(...)` | Yes | Path | Yes | Keep |
 | `POST /rerank` | `client.rerank().create(...)` | Yes | Path | Yes | Keep |
 | `POST /responses` | `client.responses().create(...)` / `client.responses().stream(...)` | Yes | Contract | Yes | Keep |
-| `POST /tts` | `client.tts().create(...)` | Yes | Path | No | P1 |
+| `POST /audio/speech` | `client.tts().create(...)` | Yes | Path | No | P1 |
 | `POST /videos` | `client.videos().create(...)` | Yes | Path | No | P2 |
+| `POST /workspaces` | Tracked in `#190` | No | None | No | P1 |
+| `POST /workspaces/{id}/members/add` | Tracked in `#190` | No | None | No | P1 |
+| `POST /workspaces/{id}/members/remove` | Tracked in `#190` | No | None | No | P1 |
 | `GET /videos/models` | `client.videos().list_models()` | Yes | Path | No | P2 |
 | `GET /videos/{jobId}` | `client.videos().get_generation(...)` | Yes | Path | No | P2 |
 | `GET /videos/{jobId}/content` | `client.videos().get_content(...)` | Yes | Path | No | P2 |
+| `PATCH /workspaces/{id}` | Tracked in `#190` | No | None | No | P1 |
+| `DELETE /workspaces/{id}` | Tracked in `#190` | No | None | No | P1 |
 
 ## Supplemental (Legacy)
 
@@ -82,13 +92,15 @@ The endpoint below is intentionally kept as legacy compatibility and is not part
 | Endpoint | SDK surface | Notes |
 | --- | --- | --- |
 | `POST /completions` | `client.legacy().completions().create(...)` (feature `legacy-completions`) | Migration-only surface toward `chat`/`responses` |
+| `POST /tts` | `client.tts().create(...)` | Compatibility fallback while upstream rolls out `POST /audio/speech` everywhere |
 
 ## Incremental Test Plan
 
 1. P1: add management-key live coverage for assignment endpoints (`/guardrails/*/assignments/*` and `/guardrails/assignments/*`).
 2. P1: add management-key live smoke coverage for `/activity`.
-3. P2: keep `/credits`, `/credits/coinbase`, `/generation`, `/auth/keys*` as controlled scenarios (manual or mocked contract-first) due cost/side effects.
-4. P1/P2: add low-cost live or smoke coverage for `/tts` and `/videos*` once stable fixtures and cost controls are defined.
+3. P2: keep `/credits`, `/credits/coinbase`, `/generation`, `/generation/content`, and `/auth/keys*` as controlled scenarios (manual or mocked contract-first) due cost/side effects.
+4. P1/P2: add low-cost live or smoke coverage for `/audio/speech` and `/videos*` once stable fixtures and cost controls are defined.
+5. P1: add typed workspace management support and then cover `/workspaces*` in unit and live management-key validation (`#190`).
 
 ## Reproduce Snapshot
 
