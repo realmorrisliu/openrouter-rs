@@ -167,13 +167,14 @@ fn should_retry_legacy_tts(error: &OpenRouterError) -> bool {
 }
 
 fn is_generic_status_page(message: &str, code: &str, reason_phrase: &str) -> bool {
-    matches!(message, "not found" | "method not allowed")
-        || message.contains(&format!("{code} page {reason_phrase}"))
-        || message.contains(&format!("{code} {reason_phrase}"))
-        || message.starts_with(&format!("{code} ")) && message.contains(reason_phrase)
-        || message.starts_with(&format!("{code}:")) && message.contains(reason_phrase)
-        || message.starts_with(&format!("http/1.1 {code}")) && message.contains(reason_phrase)
-        || message.starts_with(&format!("http/2 {code}")) && message.contains(reason_phrase)
+    let message = message.trim_end_matches(['.', '!', '?', ';']);
+    let bare_reason_phrase = matches!(message, "not found" | "method not allowed");
+    let exact_status_page = message == format!("{code} page {reason_phrase}")
+        || message == format!("{code} {reason_phrase}")
+        || message == format!("http/1.1 {code} {reason_phrase}")
+        || message == format!("http/2 {code} {reason_phrase}");
+
+    bare_reason_phrase || exact_status_page
 }
 
 fn is_path_specific_route_error(message: &str) -> bool {
