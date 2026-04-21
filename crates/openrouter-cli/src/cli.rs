@@ -86,6 +86,21 @@ pub enum UsageCommands {
     Activity(UsageActivityArgs),
 }
 
+#[derive(Debug, Clone, Subcommand)]
+pub enum OrganizationMemberCommands {
+    /// List organization members.
+    List(PaginationArgs),
+}
+
+#[derive(Debug, Clone, Subcommand)]
+pub enum OrganizationCommands {
+    /// Organization member commands.
+    Members {
+        #[command(subcommand)]
+        command: OrganizationMemberCommands,
+    },
+}
+
 #[derive(Debug, Clone, Copy, Eq, PartialEq, ValueEnum)]
 pub enum ModelCategoryArg {
     Roleplay,
@@ -503,6 +518,11 @@ pub enum Commands {
     Guardrails {
         #[command(subcommand)]
         command: GuardrailsCommands,
+    },
+    /// Organization management commands.
+    Organization {
+        #[command(subcommand)]
+        command: OrganizationCommands,
     },
     /// Usage commands.
     Usage {

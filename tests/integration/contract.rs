@@ -6,6 +6,7 @@ use openrouter_rs::{
         chat::{ChatCompletionRequestBuilder, Message},
         embeddings::{EmbeddingRequest, EmbeddingVector},
         messages::{AnthropicMessage, AnthropicMessagesRequest},
+        rerank::RerankRequest,
         responses::ResponsesRequest,
     },
     error::OpenRouterError,
@@ -22,6 +23,7 @@ use super::{
 };
 
 const DEFAULT_RESPONSES_MODEL: &str = "openai/gpt-4o-mini";
+const DEFAULT_RERANK_MODEL: &str = "cohere/rerank-v3.5";
 const MAX_MODEL_ENDPOINT_PROBES: usize = 8;
 const MAX_EMBEDDING_MODEL_PROBES: usize = 8;
 
@@ -39,6 +41,14 @@ fn test_messages_model() -> String {
         .map(|model| model.trim().to_string())
         .filter(|model| !model.is_empty())
         .unwrap_or_else(test_chat_model)
+}
+
+fn test_rerank_model() -> String {
+    env::var("OPENROUTER_TEST_RERANK_MODEL")
+        .ok()
+        .map(|model| model.trim().to_string())
+        .filter(|model| !model.is_empty())
+        .unwrap_or_else(|| DEFAULT_RERANK_MODEL.to_string())
 }
 
 fn configured_embeddings_model() -> Option<String> {
@@ -271,6 +281,48 @@ async fn test_read_only_contract_responses_and_messages_surface() -> Result<(), 
     rate_limit_delay().await;
     let messages_stream = client.messages().stream_unified(&messages_request).await?;
     assert_stream_completes(messages_stream, UnifiedStreamSource::Messages).await?;
+
+    Ok(())
+}
+
+#[tokio::test]
+#[allow(clippy::result_large_err)]
+async fn test_read_only_contract_rerank_surface() -> Result<(), OpenRouterError> {
+    let client = create_test_client()?;
+    let model = test_rerank_model();
+
+    let request = RerankRequest::builder()
+        .model(model.clone())
+        .query("Which city is the capital of France?")
+        .documents(vec![
+            "Berlin is the capital of Germany.".to_string(),
+            "Paris is the capital of France.".to_string(),
+            "Tokyo is the capital of Japan.".to_string(),
+        ])
+        .top_n(2)
+        .build()?;
+
+    rate_limit_delay().await;
+    let response = client.rerank().create(&request).await?;
+    assert!(
+        !response.model.trim().is_empty(),
+        "rerank response model should be present"
+    );
+    assert!(
+        !response.results.is_empty(),
+        "rerank response should include at least one result"
+    );
+    assert!(
+        response.results.len() <= 2,
+        "rerank response should respect top_n"
+    );
+    assert!(
+        response
+            .results
+            .iter()
+            .all(|result| result.index < 3 && result.relevance_score.is_finite()),
+        "rerank results should include valid indices and finite scores"
+    );
 
     Ok(())
 }

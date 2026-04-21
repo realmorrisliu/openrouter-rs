@@ -14,8 +14,9 @@ use crate::{
     cli::{
         Cli, Commands, ConfigCommands, CreditsCommands, GuardrailAssignmentCommands,
         GuardrailKeyAssignmentCommands, GuardrailMemberAssignmentCommands, GuardrailsCommands,
-        KeysCommands, ModelCategoryArg, ModelsCommands, OutputFormat, PaginationArgs,
-        ProfileCommands, ProvidersCommands, SupportedParameterArg, UsageCommands,
+        KeysCommands, ModelCategoryArg, ModelsCommands, OrganizationCommands,
+        OrganizationMemberCommands, OutputFormat, PaginationArgs, ProfileCommands,
+        ProvidersCommands, SupportedParameterArg, UsageCommands,
     },
     config::{Environment, ResolvedProfile, resolve_profile},
 };
@@ -760,6 +761,20 @@ async fn run(cli: Cli) -> Result<()> {
                             print_value(&response, cli.global.output)?;
                         }
                     },
+                },
+            }
+        }
+        Commands::Organization { command } => {
+            let client = build_management_client(&resolved)?;
+            let management = client.management();
+
+            match command {
+                OrganizationCommands::Members { command } => match command {
+                    OrganizationMemberCommands::List(args) => {
+                        let pagination = pagination_from_args(&args);
+                        let response = management.list_organization_members(pagination).await?;
+                        print_value(&response, cli.global.output)?;
+                    }
                 },
             }
         }

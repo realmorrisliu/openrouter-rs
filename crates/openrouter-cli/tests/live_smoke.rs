@@ -183,9 +183,30 @@ fn test_live_cli_read_smoke() {
                     .is_some(),
                 "usage activity should include data array",
             )?;
+
+            let organization = run_cli_json(
+                &["organization", "members", "list", "--limit", "5"],
+                Some(&api_key),
+                Some(management_key),
+            )?;
+            ensure_schema(&organization)?;
+            ensure(
+                organization
+                    .pointer("/data/total_count")
+                    .and_then(Value::as_f64)
+                    .is_some(),
+                "organization members should include numeric total_count",
+            )?;
+            ensure(
+                organization
+                    .pointer("/data/data")
+                    .and_then(Value::as_array)
+                    .is_some(),
+                "organization members should include data array",
+            )?;
         } else {
             println!(
-                "Skipping usage activity check in read smoke; OPENROUTER_MANAGEMENT_KEY is not configured"
+                "Skipping usage activity and organization members checks in read smoke; OPENROUTER_MANAGEMENT_KEY is not configured"
             );
         }
 

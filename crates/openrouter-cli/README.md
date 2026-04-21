@@ -6,7 +6,7 @@ It currently focuses on four areas:
 
 - profile/config resolution
 - model and provider discovery
-- API-key and guardrail management
+- API-key, organization, and guardrail management
 - credits, billing, and usage activity
 
 The implementation lives in [`crates/openrouter-cli/src`](./src), and the crate currently publishes as `0.1.2`.
@@ -54,13 +54,14 @@ keys list|create|get|update|delete
 guardrails list|create|get|update|delete
 guardrails assignments keys list|assign|unassign
 guardrails assignments members list|assign|unassign
+organization members list
 usage activity
 ```
 
 Auth expectations by command group:
 
 - `models`, `providers`, `credits show`, `credits charge`: API key
-- `keys`, `guardrails`, `usage activity`: management key
+- `keys`, `guardrails`, `organization`, `usage activity`: management key
 - `profile`, `config`: no API call required
 
 ## Config And Resolution Order
@@ -207,6 +208,15 @@ openrouter-cli \
 
 Member assignment commands mirror the same shape under `guardrails assignments members ...`.
 
+### Organization members
+
+```bash
+# List organization members
+openrouter-cli \
+  --management-key "$OPENROUTER_MANAGEMENT_KEY" \
+  organization members list --limit 25
+```
+
 ## Credits And Usage
 
 ```bash
@@ -268,7 +278,7 @@ Environment switches:
 Required secrets:
 
 - `OPENROUTER_API_KEY` for read smoke
-- `OPENROUTER_MANAGEMENT_KEY` for usage and write smoke
+- `OPENROUTER_MANAGEMENT_KEY` for usage, organization-members, and write smoke
 
 Examples:
 

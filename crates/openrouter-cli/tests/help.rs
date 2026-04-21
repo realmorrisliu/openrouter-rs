@@ -9,7 +9,8 @@ fn test_help_starts() {
         .success()
         .stdout(contains("OpenRouter CLI"))
         .stdout(contains("--profile"))
-        .stdout(contains("profile"));
+        .stdout(contains("profile"))
+        .stdout(contains("organization"));
 }
 
 #[test]

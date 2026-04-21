@@ -301,6 +301,52 @@ fn test_guardrail_member_assignment_list_global_happy_path() {
 }
 
 #[test]
+fn test_organization_members_list_happy_path() {
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":[{"id":"mem_1","first_name":"Ada","last_name":"Lovelace","email":"ada@example.com","role":"owner"}],"total_count":1}"#,
+    );
+
+    let mut cmd = base_cmd(&base_url);
+    cmd.arg("organization")
+        .arg("members")
+        .arg("list")
+        .arg("--offset")
+        .arg("2")
+        .arg("--limit")
+        .arg("4");
+    let output = cmd.assert().success().get_output().stdout.clone();
+    let parsed: Value = serde_json::from_slice(&output).expect("stdout should be json");
+    assert_eq!(
+        parsed
+            .get("data")
+            .and_then(|value| value.get("total_count"))
+            .and_then(Value::as_f64),
+        Some(1.0)
+    );
+    assert_eq!(
+        parsed.pointer("/data/data/0/email").and_then(Value::as_str),
+        Some("ada@example.com")
+    );
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("request should be captured");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/organization/members?offset=2&limit=4 HTTP/1.1"
+    );
+    let lower = captured.request_text.to_ascii_lowercase();
+    assert!(
+        lower.contains("authorization: bearer mgmt-test-key")
+            || lower.contains("authorization:bearer mgmt-test-key"),
+        "request should include management authorization header: {}",
+        captured.request_text
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[test]
 fn test_guardrails_update_can_clear_allowlists() {
     let (base_url, rx, server) = spawn_json_server(
         r#"{"data":{"id":"gr_1","name":"Prod","created_at":"2026-03-01T00:00:00.000Z"}}"#,
