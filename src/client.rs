@@ -6,7 +6,7 @@ use crate::api::legacy::completion;
 use crate::{
     api::{
         api_keys, auth, chat, credits, discovery, embeddings, generation, guardrails, messages,
-        models, organization, rerank, responses, tts, videos,
+        models, organization, rerank, responses, tts, videos, workspaces,
     },
     error::OpenRouterError,
     strip_option_vec_setter,
@@ -213,6 +213,28 @@ impl OpenRouterClient {
         }
     }
 
+    /// Creates a new API key in the specified workspace. Requires a management API key.
+    pub async fn create_api_key_in_workspace(
+        &self,
+        name: &str,
+        limit: Option<f64>,
+        workspace_id: Option<&str>,
+    ) -> Result<api_keys::ApiKey, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            api_keys::create_api_key_in_workspace_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                name,
+                limit,
+                workspace_id,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
     /// Get information on the API key associated with the current authentication session.
     ///
     /// # Returns
@@ -342,6 +364,27 @@ impl OpenRouterClient {
         }
     }
 
+    async fn list_api_keys_in_workspace_paginated(
+        &self,
+        pagination: Option<PaginationOptions>,
+        include_disabled: Option<bool>,
+        workspace_id: Option<&str>,
+    ) -> Result<Vec<api_keys::ApiKey>, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            api_keys::list_api_keys_in_workspace_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                pagination,
+                include_disabled,
+                workspace_id,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
     /// Returns details about a specific API key. Requires a management API key.
     ///
     /// # Arguments
@@ -437,6 +480,26 @@ impl OpenRouterClient {
                 &self.base_url,
                 management_key,
                 pagination,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// List guardrails scoped to a workspace (`GET /guardrails?workspace_id=...`).
+    pub async fn list_guardrails_in_workspace(
+        &self,
+        pagination: Option<PaginationOptions>,
+        workspace_id: Option<&str>,
+    ) -> Result<guardrails::GuardrailListResponse, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            guardrails::list_guardrails_in_workspace_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                pagination,
+                workspace_id,
             )
             .await
         } else {
@@ -1515,6 +1578,132 @@ impl OpenRouterClient {
             Err(OpenRouterError::KeyNotConfigured)
         }
     }
+
+    /// List workspaces for the configured management key.
+    pub async fn list_workspaces(
+        &self,
+        pagination: Option<PaginationOptions>,
+    ) -> Result<workspaces::WorkspaceListResponse, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            workspaces::list_workspaces_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                pagination,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Create a workspace (`POST /workspaces`).
+    pub async fn create_workspace(
+        &self,
+        request: &workspaces::CreateWorkspaceRequest,
+    ) -> Result<workspaces::Workspace, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            workspaces::create_workspace_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Get a workspace (`GET /workspaces/{id}`).
+    pub async fn get_workspace(&self, id: &str) -> Result<workspaces::Workspace, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            workspaces::get_workspace_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                id,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Update a workspace (`PATCH /workspaces/{id}`).
+    pub async fn update_workspace(
+        &self,
+        id: &str,
+        request: &workspaces::UpdateWorkspaceRequest,
+    ) -> Result<workspaces::Workspace, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            workspaces::update_workspace_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                id,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Delete a workspace (`DELETE /workspaces/{id}`).
+    pub async fn delete_workspace(&self, id: &str) -> Result<bool, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            workspaces::delete_workspace_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                id,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Add multiple organization members to a workspace (`POST /workspaces/{id}/members/add`).
+    pub async fn add_workspace_members(
+        &self,
+        id: &str,
+        request: &workspaces::WorkspaceMembersRequest,
+    ) -> Result<workspaces::WorkspaceMembersAddResponse, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            workspaces::add_workspace_members_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                id,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Remove multiple organization members from a workspace (`POST /workspaces/{id}/members/remove`).
+    pub async fn remove_workspace_members(
+        &self,
+        id: &str,
+        request: &workspaces::WorkspaceMembersRequest,
+    ) -> Result<workspaces::WorkspaceMembersRemoveResponse, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            workspaces::remove_workspace_members_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                id,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
 }
 
 /// Domain client for chat completions.
@@ -1786,6 +1975,18 @@ impl<'a> ManagementClient<'a> {
         self.client.create_api_key(name, limit).await
     }
 
+    /// Create a managed API key in a workspace (`POST /keys`).
+    pub async fn create_api_key_in_workspace(
+        &self,
+        name: &str,
+        limit: Option<f64>,
+        workspace_id: Option<&str>,
+    ) -> Result<api_keys::ApiKey, OpenRouterError> {
+        self.client
+            .create_api_key_in_workspace(name, limit, workspace_id)
+            .await
+    }
+
     /// Get current key session info (`GET /key`).
     pub async fn get_current_api_key_info(
         &self,
@@ -1819,6 +2020,18 @@ impl<'a> ManagementClient<'a> {
     ) -> Result<Vec<api_keys::ApiKey>, OpenRouterError> {
         self.client
             .list_api_keys_paginated(pagination, include_disabled)
+            .await
+    }
+
+    /// List API keys scoped to a workspace (`GET /keys?workspace_id=...`).
+    pub async fn list_api_keys_in_workspace(
+        &self,
+        pagination: Option<PaginationOptions>,
+        include_disabled: Option<bool>,
+        workspace_id: Option<&str>,
+    ) -> Result<Vec<api_keys::ApiKey>, OpenRouterError> {
+        self.client
+            .list_api_keys_in_workspace_paginated(pagination, include_disabled, workspace_id)
             .await
     }
 
@@ -1890,6 +2103,17 @@ impl<'a> ManagementClient<'a> {
         pagination: Option<PaginationOptions>,
     ) -> Result<guardrails::GuardrailListResponse, OpenRouterError> {
         self.client.list_guardrails(pagination).await
+    }
+
+    /// List guardrails scoped to a workspace (`GET /guardrails?workspace_id=...`).
+    pub async fn list_guardrails_in_workspace(
+        &self,
+        pagination: Option<PaginationOptions>,
+        workspace_id: Option<&str>,
+    ) -> Result<guardrails::GuardrailListResponse, OpenRouterError> {
+        self.client
+            .list_guardrails_in_workspace(pagination, workspace_id)
+            .await
     }
 
     /// Create a guardrail (`POST /guardrails`).
@@ -2005,6 +2229,59 @@ impl<'a> ManagementClient<'a> {
         pagination: Option<PaginationOptions>,
     ) -> Result<organization::OrganizationMembersResponse, OpenRouterError> {
         self.client.list_organization_members(pagination).await
+    }
+
+    /// List workspaces (`GET /workspaces`).
+    pub async fn list_workspaces(
+        &self,
+        pagination: Option<PaginationOptions>,
+    ) -> Result<workspaces::WorkspaceListResponse, OpenRouterError> {
+        self.client.list_workspaces(pagination).await
+    }
+
+    /// Create a workspace (`POST /workspaces`).
+    pub async fn create_workspace(
+        &self,
+        request: &workspaces::CreateWorkspaceRequest,
+    ) -> Result<workspaces::Workspace, OpenRouterError> {
+        self.client.create_workspace(request).await
+    }
+
+    /// Get a workspace (`GET /workspaces/{id}`).
+    pub async fn get_workspace(&self, id: &str) -> Result<workspaces::Workspace, OpenRouterError> {
+        self.client.get_workspace(id).await
+    }
+
+    /// Update a workspace (`PATCH /workspaces/{id}`).
+    pub async fn update_workspace(
+        &self,
+        id: &str,
+        request: &workspaces::UpdateWorkspaceRequest,
+    ) -> Result<workspaces::Workspace, OpenRouterError> {
+        self.client.update_workspace(id, request).await
+    }
+
+    /// Delete a workspace (`DELETE /workspaces/{id}`).
+    pub async fn delete_workspace(&self, id: &str) -> Result<bool, OpenRouterError> {
+        self.client.delete_workspace(id).await
+    }
+
+    /// Add workspace members (`POST /workspaces/{id}/members/add`).
+    pub async fn add_workspace_members(
+        &self,
+        id: &str,
+        request: &workspaces::WorkspaceMembersRequest,
+    ) -> Result<workspaces::WorkspaceMembersAddResponse, OpenRouterError> {
+        self.client.add_workspace_members(id, request).await
+    }
+
+    /// Remove workspace members (`POST /workspaces/{id}/members/remove`).
+    pub async fn remove_workspace_members(
+        &self,
+        id: &str,
+        request: &workspaces::WorkspaceMembersRequest,
+    ) -> Result<workspaces::WorkspaceMembersRemoveResponse, OpenRouterError> {
+        self.client.remove_workspace_members(id, request).await
     }
 }
 

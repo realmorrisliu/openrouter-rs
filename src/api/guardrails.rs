@@ -30,6 +30,8 @@ pub struct Guardrail {
     pub created_at: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workspace_id: Option<String>,
 }
 
 /// Paginated guardrails list response.
@@ -63,6 +65,9 @@ pub struct CreateGuardrailRequest {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     enforce_zdr: Option<bool>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    workspace_id: Option<String>,
 }
 
 impl CreateGuardrailRequestBuilder {
@@ -194,6 +199,16 @@ pub struct UnassignedCountResponse {
     pub unassigned_count: f64,
 }
 
+#[derive(Serialize)]
+struct ListGuardrailsQuery {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    offset: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    limit: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    workspace_id: Option<String>,
+}
+
 fn with_pagination(url: String, pagination: Option<PaginationOptions>) -> String {
     let params = pagination
         .map(PaginationOptions::to_query_pairs)
@@ -215,7 +230,14 @@ pub async fn list_guardrails(
     pagination: Option<PaginationOptions>,
 ) -> Result<GuardrailListResponse, OpenRouterError> {
     let http_client = crate::transport::new_client()?;
-    list_guardrails_with_client(&http_client, base_url, management_key, pagination).await
+    list_guardrails_in_workspace_with_client(
+        &http_client,
+        base_url,
+        management_key,
+        pagination,
+        None,
+    )
+    .await
 }
 
 pub(crate) async fn list_guardrails_with_client(
@@ -224,13 +246,56 @@ pub(crate) async fn list_guardrails_with_client(
     management_key: &str,
     pagination: Option<PaginationOptions>,
 ) -> Result<GuardrailListResponse, OpenRouterError> {
-    let url = with_pagination(format!("{base_url}/guardrails"), pagination);
-    let response = transport_request::with_bearer_auth(
+    list_guardrails_in_workspace_with_client(
+        http_client,
+        base_url,
+        management_key,
+        pagination,
+        None,
+    )
+    .await
+}
+
+pub async fn list_guardrails_in_workspace(
+    base_url: &str,
+    management_key: &str,
+    pagination: Option<PaginationOptions>,
+    workspace_id: Option<&str>,
+) -> Result<GuardrailListResponse, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    list_guardrails_in_workspace_with_client(
+        &http_client,
+        base_url,
+        management_key,
+        pagination,
+        workspace_id,
+    )
+    .await
+}
+
+pub(crate) async fn list_guardrails_in_workspace_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    management_key: &str,
+    pagination: Option<PaginationOptions>,
+    workspace_id: Option<&str>,
+) -> Result<GuardrailListResponse, OpenRouterError> {
+    let url = format!("{base_url}/guardrails");
+    let query = ListGuardrailsQuery {
+        offset: pagination.and_then(|p| p.offset),
+        limit: pagination.and_then(|p| p.limit),
+        workspace_id: workspace_id.map(ToOwned::to_owned),
+    };
+    let req = transport_request::with_bearer_auth(
         transport_request::get(http_client, &url),
         management_key,
-    )
-    .send()
-    .await?;
+    );
+    let response =
+        if query.offset.is_none() && query.limit.is_none() && query.workspace_id.is_none() {
+            req.send().await?
+        } else {
+            req.query(&query).send().await?
+        };
 
     if response.status().is_success() {
         transport_response::parse_json_response(response, "guardrail list").await

@@ -210,6 +210,10 @@ pub struct KeysListArgs {
     /// Include disabled keys.
     #[arg(long)]
     pub include_disabled: bool,
+
+    /// Filter keys by workspace ID.
+    #[arg(long)]
+    pub workspace_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -221,6 +225,10 @@ pub struct KeysCreateArgs {
     /// Optional spending limit in USD.
     #[arg(long)]
     pub limit: Option<f64>,
+
+    /// Create the key inside a specific workspace.
+    #[arg(long)]
+    pub workspace_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -287,6 +295,16 @@ pub struct PaginationArgs {
 }
 
 #[derive(Debug, Clone, Args)]
+pub struct GuardrailsListArgs {
+    #[command(flatten)]
+    pub pagination: PaginationArgs,
+
+    /// Filter guardrails by workspace ID.
+    #[arg(long)]
+    pub workspace_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Args)]
 pub struct GuardrailsGetArgs {
     /// Guardrail ID.
     pub id: String,
@@ -331,6 +349,10 @@ pub struct GuardrailsCreateArgs {
     /// Enforce ZDR.
     #[arg(long)]
     pub enforce_zdr: bool,
+
+    /// Create the guardrail inside a specific workspace.
+    #[arg(long)]
+    pub workspace_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -466,7 +488,7 @@ pub enum GuardrailAssignmentCommands {
 #[derive(Debug, Clone, Subcommand)]
 pub enum GuardrailsCommands {
     /// List guardrails.
-    List(PaginationArgs),
+    List(GuardrailsListArgs),
     /// Create a guardrail.
     Create(GuardrailsCreateArgs),
     /// Get a guardrail.
@@ -479,6 +501,210 @@ pub enum GuardrailsCommands {
     Assignments {
         #[command(subcommand)]
         command: GuardrailAssignmentCommands,
+    },
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct WorkspaceGetArgs {
+    /// Workspace ID or slug.
+    pub id: String,
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct WorkspaceDeleteArgs {
+    /// Workspace ID or slug.
+    pub id: String,
+
+    /// Confirm destructive action.
+    #[arg(long)]
+    pub yes: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct WorkspacesCreateArgs {
+    /// Workspace name.
+    #[arg(long)]
+    pub name: String,
+
+    /// Optional URL-friendly slug.
+    #[arg(long)]
+    pub slug: Option<String>,
+
+    /// Optional description.
+    #[arg(long)]
+    pub description: Option<String>,
+
+    /// Optional default text model.
+    #[arg(long)]
+    pub default_text_model: Option<String>,
+
+    /// Optional default image model.
+    #[arg(long)]
+    pub default_image_model: Option<String>,
+
+    /// Optional default provider sort.
+    #[arg(long)]
+    pub default_provider_sort: Option<String>,
+
+    /// Set data discount logging enabled.
+    #[arg(
+        long = "enable-data-discount-logging",
+        conflicts_with = "disable_data_discount_logging"
+    )]
+    pub enable_data_discount_logging: bool,
+
+    /// Set data discount logging disabled.
+    #[arg(
+        long = "disable-data-discount-logging",
+        conflicts_with = "enable_data_discount_logging"
+    )]
+    pub disable_data_discount_logging: bool,
+
+    /// Set observability broadcast enabled.
+    #[arg(
+        long = "enable-observability-broadcast",
+        conflicts_with = "disable_observability_broadcast"
+    )]
+    pub enable_observability_broadcast: bool,
+
+    /// Set observability broadcast disabled.
+    #[arg(
+        long = "disable-observability-broadcast",
+        conflicts_with = "enable_observability_broadcast"
+    )]
+    pub disable_observability_broadcast: bool,
+
+    /// Set observability IO logging enabled.
+    #[arg(
+        long = "enable-observability-io-logging",
+        conflicts_with = "disable_observability_io_logging"
+    )]
+    pub enable_observability_io_logging: bool,
+
+    /// Set observability IO logging disabled.
+    #[arg(
+        long = "disable-observability-io-logging",
+        conflicts_with = "enable_observability_io_logging"
+    )]
+    pub disable_observability_io_logging: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct WorkspacesUpdateArgs {
+    /// Workspace ID or slug.
+    pub id: String,
+
+    /// Optional new name.
+    #[arg(long)]
+    pub name: Option<String>,
+
+    /// Optional new slug.
+    #[arg(long)]
+    pub slug: Option<String>,
+
+    /// Optional new description.
+    #[arg(long)]
+    pub description: Option<String>,
+
+    /// Optional new default text model.
+    #[arg(long)]
+    pub default_text_model: Option<String>,
+
+    /// Optional new default image model.
+    #[arg(long)]
+    pub default_image_model: Option<String>,
+
+    /// Optional new default provider sort.
+    #[arg(long)]
+    pub default_provider_sort: Option<String>,
+
+    /// Set data discount logging enabled.
+    #[arg(
+        long = "enable-data-discount-logging",
+        conflicts_with = "disable_data_discount_logging"
+    )]
+    pub enable_data_discount_logging: bool,
+
+    /// Set data discount logging disabled.
+    #[arg(
+        long = "disable-data-discount-logging",
+        conflicts_with = "enable_data_discount_logging"
+    )]
+    pub disable_data_discount_logging: bool,
+
+    /// Set observability broadcast enabled.
+    #[arg(
+        long = "enable-observability-broadcast",
+        conflicts_with = "disable_observability_broadcast"
+    )]
+    pub enable_observability_broadcast: bool,
+
+    /// Set observability broadcast disabled.
+    #[arg(
+        long = "disable-observability-broadcast",
+        conflicts_with = "enable_observability_broadcast"
+    )]
+    pub disable_observability_broadcast: bool,
+
+    /// Set observability IO logging enabled.
+    #[arg(
+        long = "enable-observability-io-logging",
+        conflicts_with = "disable_observability_io_logging"
+    )]
+    pub enable_observability_io_logging: bool,
+
+    /// Set observability IO logging disabled.
+    #[arg(
+        long = "disable-observability-io-logging",
+        conflicts_with = "enable_observability_io_logging"
+    )]
+    pub disable_observability_io_logging: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct WorkspaceMembersApplyArgs {
+    /// Workspace ID or slug.
+    pub workspace_id: String,
+
+    /// One or more member user IDs.
+    #[arg(value_name = "MEMBER_USER_ID", required = true, num_args = 1..)]
+    pub user_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct WorkspaceMembersRemoveArgs {
+    #[command(flatten)]
+    pub request: WorkspaceMembersApplyArgs,
+
+    /// Confirm destructive action.
+    #[arg(long)]
+    pub yes: bool,
+}
+
+#[derive(Debug, Clone, Subcommand)]
+pub enum WorkspaceMemberCommands {
+    /// Add organization members to a workspace.
+    Add(WorkspaceMembersApplyArgs),
+    /// Remove organization members from a workspace.
+    Remove(WorkspaceMembersRemoveArgs),
+}
+
+#[derive(Debug, Clone, Subcommand)]
+pub enum WorkspacesCommands {
+    /// List workspaces.
+    List(PaginationArgs),
+    /// Create a workspace.
+    Create(WorkspacesCreateArgs),
+    /// Get a workspace.
+    Get(WorkspaceGetArgs),
+    /// Update a workspace.
+    Update(WorkspacesUpdateArgs),
+    /// Delete a workspace.
+    Delete(WorkspaceDeleteArgs),
+    /// Manage workspace members.
+    Members {
+        #[command(subcommand)]
+        command: WorkspaceMemberCommands,
     },
 }
 
@@ -523,6 +749,11 @@ pub enum Commands {
     Organization {
         #[command(subcommand)]
         command: OrganizationCommands,
+    },
+    /// Workspace management commands.
+    Workspaces {
+        #[command(subcommand)]
+        command: WorkspacesCommands,
     },
     /// Usage commands.
     Usage {

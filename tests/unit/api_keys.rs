@@ -298,6 +298,169 @@ async fn test_list_api_keys_serializes_pagination_query() {
     server.join().expect("server thread should finish");
 }
 
+#[test]
+fn test_api_key_deserializes_workspace_id() {
+    let raw = r#"{
+        "name":"ops",
+        "label":"Operations",
+        "hash":"key_hash_1",
+        "workspace_id":"ws_123"
+    }"#;
+
+    let parsed: api_keys::ApiKey = serde_json::from_str(raw).expect("api key should deserialize");
+    assert_eq!(parsed.workspace_id.as_deref(), Some("ws_123"));
+}
+
+#[tokio::test]
+async fn test_list_api_keys_serializes_workspace_filter_query() {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("listener should bind");
+    let addr = listener
+        .local_addr()
+        .expect("listener should have local addr");
+    let (tx, rx) = mpsc::channel::<String>();
+
+    let server = thread::spawn(move || {
+        let (mut stream, _) = listener
+            .accept()
+            .expect("server should accept one connection");
+        let mut request_bytes = Vec::new();
+        let mut chunk = [0_u8; 1024];
+
+        loop {
+            let read = stream.read(&mut chunk).expect("server should read request");
+            if read == 0 {
+                break;
+            }
+            request_bytes.extend_from_slice(&chunk[..read]);
+            if request_bytes.windows(4).any(|window| window == b"\r\n\r\n") {
+                break;
+            }
+        }
+
+        let request_line = String::from_utf8_lossy(&request_bytes)
+            .lines()
+            .next()
+            .unwrap_or_default()
+            .to_string();
+        tx.send(request_line)
+            .expect("server should send request line");
+
+        let response = b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"data\":[]}";
+        stream
+            .write_all(response)
+            .expect("server should write response");
+    });
+
+    let base_url = format!("http://{addr}/api/v1");
+    let response = api_keys::list_api_keys_in_workspace(
+        &base_url,
+        "mgmt-key",
+        Some(PaginationOptions::with_offset(7)),
+        Some(true),
+        Some("ws_123"),
+    )
+    .await
+    .expect("list_api_keys_in_workspace should succeed");
+    assert!(response.is_empty());
+
+    let request_line = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request line");
+    assert_eq!(
+        request_line,
+        "GET /api/v1/keys?offset=7&include_disabled=true&workspace_id=ws_123 HTTP/1.1"
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_list_api_keys_serializes_workspace_filter_without_other_query_params() {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("listener should bind");
+    let addr = listener
+        .local_addr()
+        .expect("listener should have local addr");
+    let (tx, rx) = mpsc::channel::<String>();
+
+    let server = thread::spawn(move || {
+        let (mut stream, _) = listener
+            .accept()
+            .expect("server should accept one connection");
+        let mut request_bytes = Vec::new();
+        let mut chunk = [0_u8; 1024];
+
+        loop {
+            let read = stream.read(&mut chunk).expect("server should read request");
+            if read == 0 {
+                break;
+            }
+            request_bytes.extend_from_slice(&chunk[..read]);
+            if request_bytes.windows(4).any(|window| window == b"\r\n\r\n") {
+                break;
+            }
+        }
+
+        let request_line = String::from_utf8_lossy(&request_bytes)
+            .lines()
+            .next()
+            .unwrap_or_default()
+            .to_string();
+        tx.send(request_line)
+            .expect("server should send request line");
+
+        let response = b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"data\":[]}";
+        stream
+            .write_all(response)
+            .expect("server should write response");
+    });
+
+    let base_url = format!("http://{addr}/api/v1");
+    let response =
+        api_keys::list_api_keys_in_workspace(&base_url, "mgmt-key", None, None, Some("ws_456"))
+            .await
+            .expect("list_api_keys_in_workspace should succeed");
+    assert!(response.is_empty());
+
+    let request_line = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request line");
+    assert_eq!(
+        request_line,
+        "GET /api/v1/keys?workspace_id=ws_456 HTTP/1.1"
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_create_api_key_serializes_workspace_id() {
+    let (base_url, rx, server) =
+        spawn_json_server(r#"{"data":{"name":"ops","hash":"key_hash_1","workspace_id":"ws_123"}}"#);
+
+    let response = api_keys::create_api_key_in_workspace(
+        &base_url,
+        "mgmt-key",
+        "ops",
+        Some(25.0),
+        Some("ws_123"),
+    )
+    .await
+    .expect("create_api_key_in_workspace should succeed");
+    assert_eq!(response.workspace_id.as_deref(), Some("ws_123"));
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(captured.request_line, "POST /api/v1/keys HTTP/1.1");
+    let body: serde_json::Value =
+        serde_json::from_str(&captured.body_text).expect("request body should be valid json");
+    assert_eq!(body["name"], "ops");
+    assert_eq!(body["limit"], 25.0);
+    assert_eq!(body["workspace_id"], "ws_123");
+
+    server.join().expect("server thread should finish");
+}
+
 #[tokio::test]
 async fn test_create_api_key_sends_path_body_and_auth_header() {
     let (base_url, rx, server) =

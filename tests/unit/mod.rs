@@ -32,3 +32,4 @@ pub mod tool_builder;
 pub mod tts;
 pub mod unified_stream;
 pub mod videos;
+pub mod workspaces;

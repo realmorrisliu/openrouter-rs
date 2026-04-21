@@ -118,6 +118,7 @@ fn test_create_guardrail_request_serialization() {
             "anthropic/claude-sonnet-4".to_string(),
         ])
         .enforce_zdr(true)
+        .workspace_id("ws_123")
         .build()
         .expect("create guardrail request should build");
 
@@ -129,6 +130,7 @@ fn test_create_guardrail_request_serialization() {
     assert_eq!(value["allowed_providers"][0], "openai");
     assert_eq!(value["allowed_models"][1], "anthropic/claude-sonnet-4");
     assert_eq!(value["enforce_zdr"], true);
+    assert_eq!(value["workspace_id"], "ws_123");
 }
 
 #[test]
@@ -158,6 +160,7 @@ fn test_guardrail_response_deserialization() {
             "allowed_providers": ["openai"],
             "allowed_models": ["openai/gpt-4.1"],
             "enforce_zdr": true,
+            "workspace_id": "ws_123",
             "created_at": "2025-01-01T00:00:00.000Z",
             "updated_at": "2025-01-02T00:00:00.000Z"
         }
@@ -169,6 +172,7 @@ fn test_guardrail_response_deserialization() {
     assert_eq!(parsed.data.name, "Production Guardrail");
     assert_eq!(parsed.data.allowed_providers.unwrap_or_default().len(), 1);
     assert_eq!(parsed.data.enforce_zdr, Some(true));
+    assert_eq!(parsed.data.workspace_id.as_deref(), Some("ws_123"));
 }
 
 #[test]
@@ -183,6 +187,7 @@ fn test_guardrail_list_and_assignment_deserialization() {
             "allowed_providers": ["openai"],
             "allowed_models": ["openai/gpt-4.1"],
             "enforce_zdr": true,
+            "workspace_id": "ws_123",
             "created_at": "2025-01-01T00:00:00.000Z",
             "updated_at": "2025-01-02T00:00:00.000Z"
         }],
@@ -269,6 +274,27 @@ async fn test_list_guardrails_with_pagination_and_auth_header() {
             || request_lower.contains("authorization:bearer mgmt-key"),
         "authorization header should include management key, request:\n{}",
         captured.request_text
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_list_guardrails_with_workspace_filter_and_auth_header() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
+
+    let result =
+        guardrails::list_guardrails_in_workspace(&base_url, "mgmt-key", None, Some("ws_123"))
+            .await
+            .expect("list guardrails should succeed");
+    assert_eq!(result.total_count, 0.0);
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/guardrails?workspace_id=ws_123 HTTP/1.1"
     );
 
     server.join().expect("server thread should finish");
