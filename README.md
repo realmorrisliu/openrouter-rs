@@ -19,18 +19,18 @@ Type-safe, async Rust SDK for the OpenRouter API.
 
 </div>
 
-`openrouter-rs` is a community-maintained Rust SDK for OpenRouter. It exposes a domain-oriented client for chat, responses, messages, rerank, video generation, models, embeddings, and management APIs, plus a companion CLI in the same repository.
+`openrouter-rs` is a community-maintained Rust SDK for OpenRouter. It exposes a domain-oriented client for chat, responses, messages, rerank, text-to-speech, video generation, models, embeddings, and management APIs, plus a companion CLI in the same repository.
 
-The current repo snapshot implements `42 / 43` official OpenAPI method/path entries, with published live integration coverage tracked in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md).
+The current repo snapshot implements `43 / 43` official OpenAPI method/path entries, with published live integration coverage tracked in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md).
 
 ## Why `openrouter-rs`
 
-- Domain-oriented clients: `chat()`, `responses()`, `messages()`, `rerank()`, `videos()`, `models()`, `management()`, and opt-in `legacy()`
+- Domain-oriented clients: `chat()`, `responses()`, `messages()`, `rerank()`, `tts()`, `videos()`, `models()`, `management()`, and opt-in `legacy()`
 - Typed request/response models with builder-style ergonomics
 - Tokio-native `reqwest + rustls` transport with no `surf` / `curl` dependency chain
 - Streaming support for chat, responses, and messages, including a unified stream abstraction
 - Typed tools, manual JSON-schema tools, and multimodal chat content
-- Discovery, rerank, video generation, embeddings, API-key management, organization members, guardrails, activity, credits, and generation coverage
+- Discovery, rerank, text-to-speech, video generation, embeddings, API-key management, organization members, guardrails, activity, credits, and generation coverage
 - A companion CLI for profile resolution, discovery, management, and billing/usage workflows
 
 ## Installation
@@ -101,6 +101,7 @@ The canonical public surface in `0.8.x` is domain-oriented:
 | `responses()` | `create`, `stream`, `stream_unified` | `/responses` | API key |
 | `messages()` | `create`, `stream`, `stream_unified` | `/messages` | API key |
 | `rerank()` | `create` | `/rerank` | API key |
+| `tts()` | `create` | `/tts` | API key |
 | `videos()` | `create`, `list_models`, `get_generation`, `get_content` | `/videos*` | API key |
 | `models()` | `list`, `list_by_category`, `list_by_parameters`, `list_endpoints`, `list_providers`, `list_user_models`, `get_model_count`, `list_zdr_endpoints`, `create_embedding`, `list_embedding_models` | `/models*`, `/providers`, `/endpoints/zdr`, `/embeddings*` | API key |
 | `management()` | `create_api_key`, `list_api_keys`, `create_auth_code`, `create_api_key_from_auth_code`, `list_guardrails`, `list_organization_members`, `get_activity`, `get_credits`, `create_coinbase_charge`, `get_generation` | `/keys*`, `/auth/keys*`, `/guardrails*`, `/organization/members`, `/activity`, `/credits*`, `/generation`, `/key` | Governed endpoints require a management key; billing/session endpoints still use the normal API key because that is how OpenRouter authenticates them |
@@ -120,7 +121,7 @@ At runtime, the builder/client exposes the values the SDK directly consumes:
 `openrouter-rs` is not just a thin `/chat/completions` wrapper. The repo currently covers:
 
 - chat completions, responses, and Anthropic-compatible messages
-- rerank and video generation polling/content retrieval
+- rerank, text-to-speech, and video generation polling/content retrieval
 - unified streaming across chat, responses, and messages
 - manual tools and typed tools backed by `schemars`
 - multimodal chat content, including image, audio, video, and file parts
@@ -159,6 +160,7 @@ The repo includes runnable examples for the highest-value workflows:
 | [`examples/create_response.rs`](examples/create_response.rs) | `responses()` create |
 | [`examples/create_message.rs`](examples/create_message.rs) | `messages()` create |
 | [`examples/create_rerank.rs`](examples/create_rerank.rs) | `rerank().create(...)` |
+| [`examples/create_tts.rs`](examples/create_tts.rs) | `tts().create(...)` |
 | [`examples/create_video_generation.rs`](examples/create_video_generation.rs) | `videos().create(...)` |
 | [`examples/create_embedding.rs`](examples/create_embedding.rs) | `models().create_embedding(...)` |
 | [`examples/domain_management_api_keys.rs`](examples/domain_management_api_keys.rs) | API-key management via `management()` |
@@ -217,7 +219,7 @@ Full migration guide: [`MIGRATION.md`](MIGRATION.md)
 - `OpenRouterError::HttpRequest(surf::Error)` -> `OpenRouterError::HttpRequest(HttpRequestError)`
 - `ApiErrorContext.status: surf::StatusCode` -> `ApiErrorContext.status: http::StatusCode`
 - `openrouter_rs::utils::{with_bearer_auth, with_request_metadata, with_client_request_headers, handle_error}` -> caller-owned transport helpers or direct use of the canonical domain clients
-- No API migration is required if you only use `OpenRouterClient` plus `chat()`, `responses()`, `messages()`, `models()`, `management()`, and `legacy()`
+- No API migration is required if you only use `OpenRouterClient` plus `chat()`, `responses()`, `messages()`, `rerank()`, `tts()`, `videos()`, `models()`, `management()`, and `legacy()`
 
 ### 🔁 0.6 Naming/Pagination Migration
 

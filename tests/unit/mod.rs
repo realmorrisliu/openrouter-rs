@@ -29,5 +29,6 @@ pub mod response_format;
 pub mod responses;
 pub mod stream;
 pub mod tool_builder;
+pub mod tts;
 pub mod unified_stream;
 pub mod videos;

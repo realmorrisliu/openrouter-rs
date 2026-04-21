@@ -9,6 +9,7 @@
 //! - `client.responses()` -> [`responses`]
 //! - `client.messages()` -> [`messages`]
 //! - `client.rerank()` -> [`rerank`]
+//! - `client.tts()` -> [`tts`]
 //! - `client.videos()` -> [`videos`]
 //! - `client.models()` -> [`models`], [`embeddings`], [`discovery`]
 //! - `client.management()` -> [`api_keys`], [`auth`], [`credits`], [`generation`], [`guardrails`], [`organization`]
@@ -20,6 +21,7 @@
 //! - Responses API
 //! - Anthropic-compatible Messages API
 //! - rerank
+//! - text-to-speech
 //! - video generation and polling
 //! - model discovery, providers, user model filters, model counts, and ZDR endpoints
 //! - embeddings
@@ -124,6 +126,7 @@ pub mod models;
 pub mod organization;
 pub mod rerank;
 pub mod responses;
+pub mod tts;
 pub mod videos;
 
 #[cfg(feature = "legacy-completions")]

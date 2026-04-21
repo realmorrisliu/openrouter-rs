@@ -8,7 +8,7 @@ Nightly drift workflow: `.github/workflows/openapi-drift.yml`
 ## Coverage Summary
 
 - Official OpenAPI endpoints: `43` method+path entries.
-- SDK implementation coverage (`src/api` + domain client): `42 / 43` (`97.7%`).
+- SDK implementation coverage (`src/api` + domain client): `43 / 43` (`100%`).
 - Live integration coverage (`tests/integration`): `22 / 43` endpoints currently exercised.
   - Covered live now: `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`
 
@@ -19,7 +19,7 @@ Drift review note:
 Legend:
 
 - `SDK`: endpoint implemented in `openrouter-rs`.
-- Canonical surface note: the `0.7.x` docs and examples prefer domain clients (`chat()`, `responses()`, `messages()`, `rerank()`, `videos()`, `models()`, `management()`). Some rows still mention retained flat `OpenRouterClient::*` wrappers when they exist.
+- Canonical surface note: the `0.7.x` docs and examples prefer domain clients (`chat()`, `responses()`, `messages()`, `rerank()`, `tts()`, `videos()`, `models()`, `management()`). Some rows still mention retained flat `OpenRouterClient::*` wrappers when they exist.
 - `Unit`: unit coverage depth.
   - `Path` = test asserts HTTP method/path (often with header/body checks).
   - `Contract` = serde/request-shape/parser coverage only.
@@ -69,7 +69,7 @@ Legend:
 | `POST /messages` | `client.messages().create(...)` / `client.messages().stream(...)` | Yes | Path | Yes | Keep |
 | `POST /rerank` | `client.rerank().create(...)` | Yes | Path | No | P1 |
 | `POST /responses` | `client.responses().create(...)` / `client.responses().stream(...)` | Yes | Contract | Yes | Keep |
-| `POST /tts` | Not yet implemented. Tracked in `#182` | No | None | No | P1 |
+| `POST /tts` | `client.tts().create(...)` | Yes | Path | No | P1 |
 | `POST /videos` | `client.videos().create(...)` | Yes | Path | No | P2 |
 | `GET /videos/models` | `client.videos().list_models()` | Yes | Path | No | P2 |
 | `GET /videos/{jobId}` | `client.videos().get_generation(...)` | Yes | Path | No | P2 |
