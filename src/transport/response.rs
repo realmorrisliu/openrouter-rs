@@ -83,19 +83,17 @@ pub(crate) async fn parse_json_response<T: DeserializeOwned>(
     }
 }
 
-pub(crate) async fn handle_error(response: Response) -> Result<(), OpenRouterError> {
+pub(crate) async fn error_from_response(response: Response) -> OpenRouterError {
     let status = response.status();
     let request_id = response_request_id(&response);
     let text = match response.text().await {
         Ok(text) => text,
-        Err(error) => {
-            return Err(unreadable_error_response(
-                status,
-                request_id,
-                &error.to_string(),
-            ));
-        }
+        Err(error) => return unreadable_error_response(status, request_id, &error.to_string()),
     };
 
-    Err(parse_api_error(status, request_id, &text))
+    parse_api_error(status, request_id, &text)
+}
+
+pub(crate) async fn handle_error(response: Response) -> Result<(), OpenRouterError> {
+    Err(error_from_response(response).await)
 }

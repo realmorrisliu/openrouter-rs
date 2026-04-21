@@ -7,6 +7,7 @@ use std::{
     time::Duration,
 };
 
+use http::StatusCode;
 use openrouter_rs::api::tts::{self, TtsProviderOptions, TtsRequest, TtsResponseFormat};
 
 #[test]
@@ -257,6 +258,79 @@ async fn test_create_tts_falls_back_to_legacy_path_when_official_path_is_missing
         .expect("should capture fallback request");
     assert_eq!(first_request_line, "POST /api/v1/audio/speech HTTP/1.1");
     assert_eq!(second_request_line, "POST /api/v1/tts HTTP/1.1");
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_create_tts_does_not_fall_back_for_request_level_404() {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("listener should bind");
+    let addr = listener
+        .local_addr()
+        .expect("listener should have local addr");
+    let (tx, rx) = mpsc::channel::<String>();
+
+    let server = thread::spawn(move || {
+        let (mut stream, _) = listener.accept().expect("server should accept request");
+        let mut request_bytes = Vec::new();
+        let mut chunk = [0_u8; 1024];
+
+        loop {
+            let read = stream.read(&mut chunk).expect("server should read request");
+            if read == 0 {
+                break;
+            }
+            request_bytes.extend_from_slice(&chunk[..read]);
+            if request_bytes.windows(4).any(|window| window == b"\r\n\r\n") {
+                break;
+            }
+        }
+
+        let request_text = String::from_utf8_lossy(&request_bytes).to_string();
+        let request_line = request_text.lines().next().unwrap_or_default().to_string();
+        tx.send(request_line)
+            .expect("server should send captured request");
+
+        let body = r#"{"error":{"code":404,"message":"Model not found"}}"#;
+        let response = format!(
+            "HTTP/1.1 404 Not Found\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        );
+        stream
+            .write_all(response.as_bytes())
+            .expect("server should write error response");
+    });
+
+    let base_url = format!("http://{addr}/api/v1");
+    let request = TtsRequest::builder()
+        .model("elevenlabs/eleven-turbo-v2")
+        .input("Hello world")
+        .voice("alloy")
+        .response_format(TtsResponseFormat::Mp3)
+        .build()
+        .expect("tts request should build");
+
+    let error = tts::create_tts(&base_url, "api-key", &None, &None, &None, &request)
+        .await
+        .expect_err("tts request should surface the official error");
+
+    match error {
+        openrouter_rs::error::OpenRouterError::Api(api_error) => {
+            assert_eq!(api_error.status, StatusCode::NOT_FOUND);
+            assert_eq!(api_error.message, "Model not found");
+        }
+        other => panic!("expected api error, got {other:?}"),
+    }
+
+    let first_request_line = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture official request");
+    assert_eq!(first_request_line, "POST /api/v1/audio/speech HTTP/1.1");
+    assert!(
+        rx.recv_timeout(Duration::from_millis(250)).is_err(),
+        "should not issue a legacy fallback request for request-level errors"
+    );
 
     server.join().expect("server thread should finish");
 }
