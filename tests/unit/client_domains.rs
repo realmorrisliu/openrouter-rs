@@ -525,6 +525,10 @@ async fn test_management_domain_remaining_methods_require_configured_key() {
         Err(OpenRouterError::KeyNotConfigured)
     ));
     assert!(matches!(
+        client.management().get_generation_content("gen_123").await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
         client.management().get_activity(Some("2026-03-11")).await,
         Err(OpenRouterError::KeyNotConfigured)
     ));
@@ -739,7 +743,7 @@ async fn test_tts_domain_create_delegates_to_api_module() {
     let captured = rx
         .recv_timeout(Duration::from_secs(2))
         .expect("should capture request");
-    assert_eq!(captured.request_line, "POST /api/v1/tts HTTP/1.1");
+    assert_eq!(captured.request_line, "POST /api/v1/audio/speech HTTP/1.1");
 
     let body_json: serde_json::Value =
         serde_json::from_str(&captured.body_text).expect("body should be valid json");

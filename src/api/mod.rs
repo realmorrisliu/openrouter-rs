@@ -26,7 +26,7 @@
 //! - model discovery, providers, user model filters, model counts, and ZDR endpoints
 //! - embeddings
 //! - API-key and auth-code flows
-//! - credits, Coinbase charge creation, generation lookup, and activity
+//! - credits, Coinbase charge creation, generation lookup/content, and activity
 //! - guardrails and guardrail assignments
 //! - organization member listing
 //! - structured API error payloads

@@ -98,3 +98,34 @@ async fn test_get_generation_path_and_auth_header() {
 
     server.join().expect("server thread should finish");
 }
+
+#[tokio::test]
+async fn test_get_generation_content_path_and_auth_header() {
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":{"input":{"prompt":"What is the meaning of life?"},"output":{"completion":"42"}}}"#,
+    );
+
+    let response = generation::get_generation_content(&base_url, "api-key", "gen_123")
+        .await
+        .expect("get generation content should succeed");
+    assert_eq!(response.input["prompt"], "What is the meaning of life?");
+    assert_eq!(response.output["completion"], "42");
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/generation/content?id=gen_123 HTTP/1.1"
+    );
+
+    let request_lower = captured.request_text.to_ascii_lowercase();
+    assert!(
+        request_lower.contains("authorization: bearer api-key")
+            || request_lower.contains("authorization:bearer api-key"),
+        "authorization header should include API key, request:\n{}",
+        captured.request_text
+    );
+
+    server.join().expect("server thread should finish");
+}

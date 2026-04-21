@@ -1216,7 +1216,7 @@ impl OpenRouterClient {
     ///
     /// # Arguments
     ///
-    /// * `request` - The GenerationRequest built using GenerationRequest::builder().
+    /// * `id` - The generation identifier returned by OpenRouter.
     ///
     /// # Returns
     ///
@@ -1240,6 +1240,40 @@ impl OpenRouterClient {
         if let Some(api_key) = &self.api_key {
             generation::get_generation_with_client(self.http_client(), &self.base_url, api_key, id)
                 .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Returns the stored prompt/input and completion/output content for a specific generation.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The generation identifier returned by OpenRouter.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use openrouter_rs::OpenRouterClient;
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
+    /// let generation_content = client.get_generation_content("generation_id").await?;
+    /// println!("{:?}", generation_content.output);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn get_generation_content(
+        &self,
+        id: impl Into<String>,
+    ) -> Result<generation::GenerationContentData, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            generation::get_generation_content_with_client(
+                self.http_client(),
+                &self.base_url,
+                api_key,
+                id,
+            )
+            .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -1617,7 +1651,7 @@ pub struct TtsClient<'a> {
 }
 
 impl<'a> TtsClient<'a> {
-    /// Create speech audio bytes (`POST /tts`).
+    /// Create speech audio bytes (`POST /audio/speech`).
     pub async fn create(&self, request: &tts::TtsRequest) -> Result<Vec<u8>, OpenRouterError> {
         self.client.create_tts(request).await
     }
@@ -1832,6 +1866,14 @@ impl<'a> ManagementClient<'a> {
         id: impl Into<String>,
     ) -> Result<generation::GenerationData, OpenRouterError> {
         self.client.get_generation(id).await
+    }
+
+    /// Get stored generation content (`GET /generation/content?id=...`).
+    pub async fn get_generation_content(
+        &self,
+        id: impl Into<String>,
+    ) -> Result<generation::GenerationContentData, OpenRouterError> {
+        self.client.get_generation_content(id).await
     }
 
     /// Get endpoint usage activity (`GET /activity`).

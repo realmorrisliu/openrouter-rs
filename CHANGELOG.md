@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added typed SDK support for `GET /generation/content`, including `client.get_generation_content(...)` and `client.management().get_generation_content(...)`.
+
+### Changed
+- `client.tts().create(...)` now targets the official `POST /audio/speech` endpoint and falls back to legacy `POST /tts` when the newer route is unavailable.
+- Accepted the 2026-04-21 OpenAPI drift review, refreshed the tracked compatibility surfaces, and recorded workspace-management follow-up work in `#190`.
+
 ## [0.8.1] - 2026-04-21
 
 ### Added

@@ -140,7 +140,7 @@ async fn test_create_tts_path_body_headers_and_binary_response() {
     let (request_line, request_text, body_text) = rx
         .recv_timeout(Duration::from_secs(2))
         .expect("should capture request");
-    assert_eq!(request_line, "POST /api/v1/tts HTTP/1.1");
+    assert_eq!(request_line, "POST /api/v1/audio/speech HTTP/1.1");
 
     let body_json: serde_json::Value =
         serde_json::from_str(&body_text).expect("body should be valid json");
@@ -175,6 +175,88 @@ async fn test_create_tts_path_body_headers_and_binary_response() {
         "x-openrouter-categories header should be present, request:\n{}",
         request_text
     );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_create_tts_falls_back_to_legacy_path_when_official_path_is_missing() {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("listener should bind");
+    let addr = listener
+        .local_addr()
+        .expect("listener should have local addr");
+    let (tx, rx) = mpsc::channel::<String>();
+    let audio_bytes = b"ID3legacy-fallback".to_vec();
+
+    let server = thread::spawn(move || {
+        for attempt in 0..2 {
+            let (mut stream, _) = listener.accept().expect("server should accept request");
+            let mut request_bytes = Vec::new();
+            let mut chunk = [0_u8; 1024];
+
+            loop {
+                let read = stream.read(&mut chunk).expect("server should read request");
+                if read == 0 {
+                    break;
+                }
+                request_bytes.extend_from_slice(&chunk[..read]);
+                if request_bytes.windows(4).any(|window| window == b"\r\n\r\n") {
+                    break;
+                }
+            }
+
+            let request_text = String::from_utf8_lossy(&request_bytes).to_string();
+            let request_line = request_text.lines().next().unwrap_or_default().to_string();
+            tx.send(request_line.clone())
+                .expect("server should send captured request");
+
+            if attempt == 0 {
+                let body = r#"{"error":{"code":404,"message":"Not Found"}}"#;
+                let response = format!(
+                    "HTTP/1.1 404 Not Found\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                    body.len(),
+                    body
+                );
+                stream
+                    .write_all(response.as_bytes())
+                    .expect("server should write fallback trigger response");
+            } else {
+                let header = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: audio/mpeg\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                    audio_bytes.len()
+                );
+                stream
+                    .write_all(header.as_bytes())
+                    .expect("server should write response header");
+                stream
+                    .write_all(&audio_bytes)
+                    .expect("server should write binary response");
+            }
+        }
+    });
+
+    let base_url = format!("http://{addr}/api/v1");
+    let request = TtsRequest::builder()
+        .model("elevenlabs/eleven-turbo-v2")
+        .input("Hello world")
+        .voice("alloy")
+        .response_format(TtsResponseFormat::Mp3)
+        .build()
+        .expect("tts request should build");
+
+    let response = tts::create_tts(&base_url, "api-key", &None, &None, &None, &request)
+        .await
+        .expect("tts request should fall back and succeed");
+    assert_eq!(response, b"ID3legacy-fallback");
+
+    let first_request_line = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture official request");
+    let second_request_line = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture fallback request");
+    assert_eq!(first_request_line, "POST /api/v1/audio/speech HTTP/1.1");
+    assert_eq!(second_request_line, "POST /api/v1/tts HTTP/1.1");
 
     server.join().expect("server thread should finish");
 }

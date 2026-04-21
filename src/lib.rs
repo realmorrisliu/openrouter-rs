@@ -14,7 +14,7 @@
 //! - **🧩 Unified Streaming Events**: Shared stream event model across chat/responses/messages
 //! - **🧠 Reasoning Tokens**: Advanced support for chain-of-thought reasoning
 //! - **⚙️ Runtime Builder**: Explicit client setup through `OpenRouterClient::builder()`
-//! - **🎯 Full API Coverage**: Complete endpoint coverage in the current repository snapshot
+//! - **🎯 Tracked OpenAPI Coverage**: Accepted endpoint coverage is reviewed in-repo against upstream drift
 //!
 //! ## 🚀 Quick Start
 //!
@@ -156,6 +156,7 @@
 //! | Organization Members | ✅ | [`api::organization`] |
 //! | Credit Management | ✅ | [`api::credits`] |
 //! | Generation Data | ✅ | [`api::generation`] |
+//! | Generation Content | ✅ | [`api::generation`] |
 //! | Authentication | ✅ | [`api::auth`] |
 //! | Guardrails | ✅ | [`api::guardrails`] |
 //!
