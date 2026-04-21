@@ -5,7 +5,7 @@ use anyhow::{Result, anyhow, bail};
 use clap::{Parser, error::ErrorKind};
 use openrouter_rs::{
     OpenRouterClient,
-    api::{credits, discovery, guardrails, models},
+    api::{credits, discovery, guardrails, models, workspaces},
     types::{ModelCategory, PaginationOptions, SupportedParameters},
 };
 use serde::Serialize;
@@ -16,7 +16,8 @@ use crate::{
         GuardrailKeyAssignmentCommands, GuardrailMemberAssignmentCommands, GuardrailsCommands,
         KeysCommands, ModelCategoryArg, ModelsCommands, OrganizationCommands,
         OrganizationMemberCommands, OutputFormat, PaginationArgs, ProfileCommands,
-        ProvidersCommands, SupportedParameterArg, UsageCommands,
+        ProvidersCommands, SupportedParameterArg, UsageCommands, WorkspaceMemberCommands,
+        WorkspacesCommands,
     },
     config::{Environment, ResolvedProfile, resolve_profile},
 };
@@ -253,6 +254,16 @@ fn resolve_disabled_flag(disable: bool, enable: bool) -> Option<bool> {
     if disable {
         Some(true)
     } else if enable {
+        Some(false)
+    } else {
+        None
+    }
+}
+
+fn resolve_enabled_flag(enable: bool, disable: bool) -> Option<bool> {
+    if enable {
+        Some(true)
+    } else if disable {
         Some(false)
     } else {
         None
@@ -549,12 +560,22 @@ async fn run(cli: Cli) -> Result<()> {
                         None
                     };
                     let response = management
-                        .list_api_keys(pagination, include_disabled)
+                        .list_api_keys_in_workspace(
+                            pagination,
+                            include_disabled,
+                            args.workspace_id.as_deref(),
+                        )
                         .await?;
                     print_value(&response, cli.global.output)?;
                 }
                 KeysCommands::Create(args) => {
-                    let response = management.create_api_key(&args.name, args.limit).await?;
+                    let response = management
+                        .create_api_key_in_workspace(
+                            &args.name,
+                            args.limit,
+                            args.workspace_id.as_deref(),
+                        )
+                        .await?;
                     print_value(&response, cli.global.output)?;
                 }
                 KeysCommands::Get(args) => {
@@ -593,8 +614,10 @@ async fn run(cli: Cli) -> Result<()> {
 
             match command {
                 GuardrailsCommands::List(args) => {
-                    let pagination = pagination_from_args(&args);
-                    let response = management.list_guardrails(pagination).await?;
+                    let pagination = pagination_from_args(&args.pagination);
+                    let response = management
+                        .list_guardrails_in_workspace(pagination, args.workspace_id.as_deref())
+                        .await?;
                     print_value(&response, cli.global.output)?;
                 }
                 GuardrailsCommands::Create(args) => {
@@ -618,6 +641,9 @@ async fn run(cli: Cli) -> Result<()> {
                     }
                     if args.enforce_zdr {
                         builder.enforce_zdr(true);
+                    }
+                    if let Some(workspace_id) = args.workspace_id {
+                        builder.workspace_id(workspace_id);
                     }
 
                     let request = builder.build()?;
@@ -773,6 +799,164 @@ async fn run(cli: Cli) -> Result<()> {
                     OrganizationMemberCommands::List(args) => {
                         let pagination = pagination_from_args(&args);
                         let response = management.list_organization_members(pagination).await?;
+                        print_value(&response, cli.global.output)?;
+                    }
+                },
+            }
+        }
+        Commands::Workspaces { command } => {
+            let client = build_management_client(&resolved)?;
+            let management = client.management();
+
+            match command {
+                WorkspacesCommands::List(args) => {
+                    let pagination = pagination_from_args(&args);
+                    let response = management.list_workspaces(pagination).await?;
+                    print_value(&response, cli.global.output)?;
+                }
+                WorkspacesCommands::Create(args) => {
+                    let data_discount_logging = resolve_enabled_flag(
+                        args.enable_data_discount_logging,
+                        args.disable_data_discount_logging,
+                    );
+                    let observability_broadcast = resolve_enabled_flag(
+                        args.enable_observability_broadcast,
+                        args.disable_observability_broadcast,
+                    );
+                    let observability_io_logging = resolve_enabled_flag(
+                        args.enable_observability_io_logging,
+                        args.disable_observability_io_logging,
+                    );
+
+                    let mut builder = workspaces::CreateWorkspaceRequest::builder();
+                    builder.name(args.name);
+
+                    if let Some(slug) = args.slug {
+                        builder.slug(slug);
+                    }
+                    if let Some(description) = args.description {
+                        builder.description(description);
+                    }
+                    if let Some(default_text_model) = args.default_text_model {
+                        builder.default_text_model(default_text_model);
+                    }
+                    if let Some(default_image_model) = args.default_image_model {
+                        builder.default_image_model(default_image_model);
+                    }
+                    if let Some(default_provider_sort) = args.default_provider_sort {
+                        builder.default_provider_sort(default_provider_sort);
+                    }
+                    if let Some(enabled) = data_discount_logging {
+                        builder.is_data_discount_logging_enabled(enabled);
+                    }
+                    if let Some(enabled) = observability_broadcast {
+                        builder.is_observability_broadcast_enabled(enabled);
+                    }
+                    if let Some(enabled) = observability_io_logging {
+                        builder.is_observability_io_logging_enabled(enabled);
+                    }
+
+                    let request = builder.build()?;
+                    let response = management.create_workspace(&request).await?;
+                    print_value(&response, cli.global.output)?;
+                }
+                WorkspacesCommands::Get(args) => {
+                    let response = management.get_workspace(&args.id).await?;
+                    print_value(&response, cli.global.output)?;
+                }
+                WorkspacesCommands::Update(args) => {
+                    let data_discount_logging = resolve_enabled_flag(
+                        args.enable_data_discount_logging,
+                        args.disable_data_discount_logging,
+                    );
+                    let observability_broadcast = resolve_enabled_flag(
+                        args.enable_observability_broadcast,
+                        args.disable_observability_broadcast,
+                    );
+                    let observability_io_logging = resolve_enabled_flag(
+                        args.enable_observability_io_logging,
+                        args.disable_observability_io_logging,
+                    );
+
+                    if args.name.is_none()
+                        && args.slug.is_none()
+                        && args.description.is_none()
+                        && args.default_text_model.is_none()
+                        && args.default_image_model.is_none()
+                        && args.default_provider_sort.is_none()
+                        && data_discount_logging.is_none()
+                        && observability_broadcast.is_none()
+                        && observability_io_logging.is_none()
+                    {
+                        bail!("no update fields provided; pass at least one update argument");
+                    }
+
+                    let mut builder = workspaces::UpdateWorkspaceRequest::builder();
+                    if let Some(name) = args.name {
+                        builder.name(name);
+                    }
+                    if let Some(slug) = args.slug {
+                        builder.slug(slug);
+                    }
+                    if let Some(description) = args.description {
+                        builder.description(description);
+                    }
+                    if let Some(default_text_model) = args.default_text_model {
+                        builder.default_text_model(default_text_model);
+                    }
+                    if let Some(default_image_model) = args.default_image_model {
+                        builder.default_image_model(default_image_model);
+                    }
+                    if let Some(default_provider_sort) = args.default_provider_sort {
+                        builder.default_provider_sort(default_provider_sort);
+                    }
+                    if let Some(enabled) = data_discount_logging {
+                        builder.is_data_discount_logging_enabled(enabled);
+                    }
+                    if let Some(enabled) = observability_broadcast {
+                        builder.is_observability_broadcast_enabled(enabled);
+                    }
+                    if let Some(enabled) = observability_io_logging {
+                        builder.is_observability_io_logging_enabled(enabled);
+                    }
+
+                    let request = builder.build()?;
+                    let response = management.update_workspace(&args.id, &request).await?;
+                    print_value(&response, cli.global.output)?;
+                }
+                WorkspacesCommands::Delete(args) => {
+                    require_yes(args.yes, "delete workspace")?;
+                    let deleted = management.delete_workspace(&args.id).await?;
+                    print_value(
+                        &serde_json::json!({
+                            "id": args.id,
+                            "deleted": deleted,
+                        }),
+                        cli.global.output,
+                    )?;
+                }
+                WorkspacesCommands::Members { command } => match command {
+                    WorkspaceMemberCommands::Add(args) => {
+                        let workspace_id = args.workspace_id;
+                        let user_ids = args.user_ids;
+                        let request = workspaces::WorkspaceMembersRequest::builder()
+                            .user_ids(user_ids)
+                            .build()?;
+                        let response = management
+                            .add_workspace_members(&workspace_id, &request)
+                            .await?;
+                        print_value(&response, cli.global.output)?;
+                    }
+                    WorkspaceMemberCommands::Remove(args) => {
+                        require_yes(args.yes, "remove members from workspace")?;
+                        let workspace_id = args.request.workspace_id;
+                        let user_ids = args.request.user_ids;
+                        let request = workspaces::WorkspaceMembersRequest::builder()
+                            .user_ids(user_ids)
+                            .build()?;
+                        let response = management
+                            .remove_workspace_members(&workspace_id, &request)
+                            .await?;
                         print_value(&response, cli.global.output)?;
                     }
                 },

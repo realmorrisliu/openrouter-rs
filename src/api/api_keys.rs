@@ -17,6 +17,8 @@ pub struct ApiKey {
     pub updated_at: Option<String>,
     pub hash: Option<String>,
     pub key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workspace_id: Option<String>,
 }
 
 #[derive(Serialize, Debug)]
@@ -74,7 +76,10 @@ pub struct RateLimit {
 #[derive(Serialize)]
 struct CreateApiKeyRequest {
     name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     limit: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    workspace_id: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -90,6 +95,8 @@ struct ListApiKeysQuery {
     offset: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     include_disabled: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    workspace_id: Option<String>,
 }
 
 /// Get information on the API key associated with the current authentication session
@@ -151,12 +158,13 @@ pub async fn list_api_keys(
     include_disabled: Option<bool>,
 ) -> Result<Vec<ApiKey>, OpenRouterError> {
     let http_client = crate::transport::new_client()?;
-    list_api_keys_with_client(
+    list_api_keys_in_workspace_with_client(
         &http_client,
         base_url,
         management_key,
         pagination,
         include_disabled,
+        None,
     )
     .await
 }
@@ -168,16 +176,58 @@ pub(crate) async fn list_api_keys_with_client(
     pagination: Option<PaginationOptions>,
     include_disabled: Option<bool>,
 ) -> Result<Vec<ApiKey>, OpenRouterError> {
+    list_api_keys_in_workspace_with_client(
+        http_client,
+        base_url,
+        management_key,
+        pagination,
+        include_disabled,
+        None,
+    )
+    .await
+}
+
+pub async fn list_api_keys_in_workspace(
+    base_url: &str,
+    management_key: &str,
+    pagination: Option<PaginationOptions>,
+    include_disabled: Option<bool>,
+    workspace_id: Option<&str>,
+) -> Result<Vec<ApiKey>, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    list_api_keys_in_workspace_with_client(
+        &http_client,
+        base_url,
+        management_key,
+        pagination,
+        include_disabled,
+        workspace_id,
+    )
+    .await
+}
+
+pub(crate) async fn list_api_keys_in_workspace_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    management_key: &str,
+    pagination: Option<PaginationOptions>,
+    include_disabled: Option<bool>,
+    workspace_id: Option<&str>,
+) -> Result<Vec<ApiKey>, OpenRouterError> {
     let url = format!("{base_url}/keys");
     let query = ListApiKeysQuery {
         offset: pagination.and_then(|p| p.offset),
         include_disabled,
+        workspace_id: workspace_id.map(ToOwned::to_owned),
     };
     let req = transport_request::with_bearer_auth(
         transport_request::get(http_client, &url),
         management_key,
     );
-    let response = if query.offset.is_none() && query.include_disabled.is_none() {
+    let response = if query.offset.is_none()
+        && query.include_disabled.is_none()
+        && query.workspace_id.is_none()
+    {
         req.send().await?
     } else {
         req.query(&query).send().await?
@@ -212,7 +262,15 @@ pub async fn create_api_key(
     limit: Option<f64>,
 ) -> Result<ApiKey, OpenRouterError> {
     let http_client = crate::transport::new_client()?;
-    create_api_key_with_client(&http_client, base_url, management_key, name, limit).await
+    create_api_key_in_workspace_with_client(
+        &http_client,
+        base_url,
+        management_key,
+        name,
+        limit,
+        None,
+    )
+    .await
 }
 
 pub(crate) async fn create_api_key_with_client(
@@ -222,10 +280,49 @@ pub(crate) async fn create_api_key_with_client(
     name: &str,
     limit: Option<f64>,
 ) -> Result<ApiKey, OpenRouterError> {
+    create_api_key_in_workspace_with_client(
+        http_client,
+        base_url,
+        management_key,
+        name,
+        limit,
+        None,
+    )
+    .await
+}
+
+pub async fn create_api_key_in_workspace(
+    base_url: &str,
+    management_key: &str,
+    name: &str,
+    limit: Option<f64>,
+    workspace_id: Option<&str>,
+) -> Result<ApiKey, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    create_api_key_in_workspace_with_client(
+        &http_client,
+        base_url,
+        management_key,
+        name,
+        limit,
+        workspace_id,
+    )
+    .await
+}
+
+pub(crate) async fn create_api_key_in_workspace_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    management_key: &str,
+    name: &str,
+    limit: Option<f64>,
+    workspace_id: Option<&str>,
+) -> Result<ApiKey, OpenRouterError> {
     let url = format!("{base_url}/keys");
     let request = CreateApiKeyRequest {
         name: name.to_string(),
         limit,
+        workspace_id: workspace_id.map(ToOwned::to_owned),
     };
 
     let response = transport_request::with_bearer_auth(

@@ -159,6 +159,7 @@
 //! | Generation Content | ✅ | [`api::generation`] |
 //! | Authentication | ✅ | [`api::auth`] |
 //! | Guardrails | ✅ | [`api::guardrails`] |
+//! | Workspaces | ✅ | [`api::workspaces`] |
 //!
 //! ## 📖 Examples
 //!

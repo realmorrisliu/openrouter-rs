@@ -160,6 +160,38 @@ fn test_keys_list_happy_path() {
 }
 
 #[test]
+fn test_keys_list_with_workspace_filter_happy_path() {
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":[{"name":"ops","hash":"key_hash_1","disabled":false,"workspace_id":"ws_123"}]}"#,
+    );
+
+    let mut cmd = base_cmd(&base_url);
+    cmd.arg("keys")
+        .arg("list")
+        .arg("--workspace-id")
+        .arg("ws_123");
+    let output = cmd.assert().success().get_output().stdout.clone();
+    let parsed: Value = serde_json::from_slice(&output).expect("stdout should be json");
+
+    assert_eq!(
+        parsed
+            .pointer("/data/0/workspace_id")
+            .and_then(Value::as_str),
+        Some("ws_123")
+    );
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("request should be captured");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/keys?workspace_id=ws_123 HTTP/1.1"
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[test]
 fn test_guardrails_create_happy_path() {
     let (base_url, rx, server) = spawn_json_server(
         r#"{"data":{"id":"gr_1","name":"Prod","created_at":"2026-03-01T00:00:00.000Z"}}"#,
@@ -224,6 +256,38 @@ fn test_guardrails_create_happy_path() {
 }
 
 #[test]
+fn test_guardrails_list_with_workspace_filter_happy_path() {
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":[{"id":"gr_1","name":"Prod","workspace_id":"ws_123","created_at":"2026-03-01T00:00:00.000Z"}],"total_count":1}"#,
+    );
+
+    let mut cmd = base_cmd(&base_url);
+    cmd.arg("guardrails")
+        .arg("list")
+        .arg("--workspace-id")
+        .arg("ws_123");
+    let output = cmd.assert().success().get_output().stdout.clone();
+    let parsed: Value = serde_json::from_slice(&output).expect("stdout should be json");
+
+    assert_eq!(
+        parsed
+            .pointer("/data/data/0/workspace_id")
+            .and_then(Value::as_str),
+        Some("ws_123")
+    );
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("request should be captured");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/guardrails?workspace_id=ws_123 HTTP/1.1"
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[test]
 fn test_guardrail_key_assignment_assign_happy_path() {
     let (base_url, rx, server) = spawn_json_server(r#"{"assigned_count":2}"#);
 
@@ -258,6 +322,275 @@ fn test_guardrail_key_assignment_assign_happy_path() {
         body.get("key_hashes")
             .and_then(Value::as_array)
             .map(Vec::len),
+        Some(2)
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[test]
+fn test_workspaces_list_happy_path() {
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":[{"id":"ws_1","name":"Core","slug":"core","is_observability_io_logging_enabled":false,"is_observability_broadcast_enabled":true,"is_data_discount_logging_enabled":false,"created_at":"2026-03-01T00:00:00.000Z"}],"total_count":1}"#,
+    );
+
+    let mut cmd = base_cmd(&base_url);
+    cmd.arg("workspaces")
+        .arg("list")
+        .arg("--offset")
+        .arg("2")
+        .arg("--limit")
+        .arg("5");
+    let output = cmd.assert().success().get_output().stdout.clone();
+    let parsed: Value = serde_json::from_slice(&output).expect("stdout should be json");
+
+    assert_eq!(
+        parsed
+            .get("data")
+            .and_then(|value| value.get("total_count"))
+            .and_then(Value::as_f64),
+        Some(1.0)
+    );
+    assert_eq!(
+        parsed.pointer("/data/data/0/slug").and_then(Value::as_str),
+        Some("core")
+    );
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("request should be captured");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/workspaces?offset=2&limit=5 HTTP/1.1"
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[test]
+fn test_workspaces_create_happy_path() {
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":{"id":"ws_1","name":"Core","slug":"core","description":"Core team","default_text_model":"openai/gpt-4.1","is_observability_io_logging_enabled":true,"is_observability_broadcast_enabled":false,"is_data_discount_logging_enabled":true,"created_at":"2026-03-01T00:00:00.000Z"}}"#,
+    );
+
+    let mut cmd = base_cmd(&base_url);
+    cmd.arg("workspaces")
+        .arg("create")
+        .arg("--name")
+        .arg("Core")
+        .arg("--slug")
+        .arg("core")
+        .arg("--description")
+        .arg("Core team")
+        .arg("--default-text-model")
+        .arg("openai/gpt-4.1")
+        .arg("--enable-data-discount-logging")
+        .arg("--disable-observability-broadcast")
+        .arg("--enable-observability-io-logging");
+    let output = cmd.assert().success().get_output().stdout.clone();
+    let parsed: Value = serde_json::from_slice(&output).expect("stdout should be json");
+
+    assert_eq!(
+        parsed.pointer("/data/id").and_then(Value::as_str),
+        Some("ws_1")
+    );
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("request should be captured");
+    assert_eq!(captured.request_line, "POST /api/v1/workspaces HTTP/1.1");
+    let body: Value =
+        serde_json::from_str(&captured.body_text).expect("request body should be valid json");
+    assert_eq!(body.get("name").and_then(Value::as_str), Some("Core"));
+    assert_eq!(body.get("slug").and_then(Value::as_str), Some("core"));
+    assert_eq!(
+        body.get("description").and_then(Value::as_str),
+        Some("Core team")
+    );
+    assert_eq!(
+        body.get("default_text_model").and_then(Value::as_str),
+        Some("openai/gpt-4.1")
+    );
+    assert_eq!(
+        body.get("is_data_discount_logging_enabled")
+            .and_then(Value::as_bool),
+        Some(true)
+    );
+    assert_eq!(
+        body.get("is_observability_broadcast_enabled")
+            .and_then(Value::as_bool),
+        Some(false)
+    );
+    assert_eq!(
+        body.get("is_observability_io_logging_enabled")
+            .and_then(Value::as_bool),
+        Some(true)
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[test]
+fn test_workspaces_get_happy_path() {
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":{"id":"ws_1","name":"Core","slug":"core","is_observability_io_logging_enabled":false,"is_observability_broadcast_enabled":true,"is_data_discount_logging_enabled":false,"created_at":"2026-03-01T00:00:00.000Z"}}"#,
+    );
+
+    let mut cmd = base_cmd(&base_url);
+    cmd.arg("workspaces").arg("get").arg("ws_1");
+    let output = cmd.assert().success().get_output().stdout.clone();
+    let parsed: Value = serde_json::from_slice(&output).expect("stdout should be json");
+    assert_eq!(
+        parsed.pointer("/data/slug").and_then(Value::as_str),
+        Some("core")
+    );
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("request should be captured");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/workspaces/ws_1 HTTP/1.1"
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[test]
+fn test_workspaces_update_happy_path() {
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":{"id":"ws_1","name":"Core Updated","slug":"core","is_observability_io_logging_enabled":false,"is_observability_broadcast_enabled":true,"is_data_discount_logging_enabled":false,"created_at":"2026-03-01T00:00:00.000Z","updated_at":"2026-03-02T00:00:00.000Z"}}"#,
+    );
+
+    let mut cmd = base_cmd(&base_url);
+    cmd.arg("workspaces")
+        .arg("update")
+        .arg("ws_1")
+        .arg("--name")
+        .arg("Core Updated")
+        .arg("--disable-data-discount-logging");
+    let output = cmd.assert().success().get_output().stdout.clone();
+    let parsed: Value = serde_json::from_slice(&output).expect("stdout should be json");
+    assert_eq!(
+        parsed.pointer("/data/name").and_then(Value::as_str),
+        Some("Core Updated")
+    );
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("request should be captured");
+    assert_eq!(
+        captured.request_line,
+        "PATCH /api/v1/workspaces/ws_1 HTTP/1.1"
+    );
+    let body: Value =
+        serde_json::from_str(&captured.body_text).expect("request body should be valid json");
+    assert_eq!(
+        body.get("name").and_then(Value::as_str),
+        Some("Core Updated")
+    );
+    assert_eq!(
+        body.get("is_data_discount_logging_enabled")
+            .and_then(Value::as_bool),
+        Some(false)
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[test]
+fn test_workspaces_delete_happy_path() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"deleted":true}"#);
+
+    let mut cmd = base_cmd(&base_url);
+    cmd.arg("workspaces").arg("delete").arg("ws_1").arg("--yes");
+    let output = cmd.assert().success().get_output().stdout.clone();
+    let parsed: Value = serde_json::from_slice(&output).expect("stdout should be json");
+    assert_eq!(
+        parsed.pointer("/data/deleted").and_then(Value::as_bool),
+        Some(true)
+    );
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("request should be captured");
+    assert_eq!(
+        captured.request_line,
+        "DELETE /api/v1/workspaces/ws_1 HTTP/1.1"
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[test]
+fn test_workspace_members_add_happy_path() {
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"added_count":2,"data":[{"id":"wsm_1","workspace_id":"ws_1","user_id":"user_1","role":"member","created_at":"2026-03-01T00:00:00.000Z"},{"id":"wsm_2","workspace_id":"ws_1","user_id":"user_2","role":"member","created_at":"2026-03-01T00:00:00.000Z"}]}"#,
+    );
+
+    let mut cmd = base_cmd(&base_url);
+    cmd.arg("workspaces")
+        .arg("members")
+        .arg("add")
+        .arg("ws_1")
+        .arg("user_1")
+        .arg("user_2");
+    let output = cmd.assert().success().get_output().stdout.clone();
+    let parsed: Value = serde_json::from_slice(&output).expect("stdout should be json");
+    assert_eq!(
+        parsed.pointer("/data/added_count").and_then(Value::as_f64),
+        Some(2.0)
+    );
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("request should be captured");
+    assert_eq!(
+        captured.request_line,
+        "POST /api/v1/workspaces/ws_1/members/add HTTP/1.1"
+    );
+    let body: Value =
+        serde_json::from_str(&captured.body_text).expect("request body should be valid json");
+    assert_eq!(
+        body.get("user_ids").and_then(Value::as_array).map(Vec::len),
+        Some(2)
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[test]
+fn test_workspace_members_remove_happy_path() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"removed_count":2}"#);
+
+    let mut cmd = base_cmd(&base_url);
+    cmd.arg("workspaces")
+        .arg("members")
+        .arg("remove")
+        .arg("ws_1")
+        .arg("user_1")
+        .arg("user_2")
+        .arg("--yes");
+    let output = cmd.assert().success().get_output().stdout.clone();
+    let parsed: Value = serde_json::from_slice(&output).expect("stdout should be json");
+    assert_eq!(
+        parsed
+            .pointer("/data/removed_count")
+            .and_then(Value::as_f64),
+        Some(2.0)
+    );
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("request should be captured");
+    assert_eq!(
+        captured.request_line,
+        "POST /api/v1/workspaces/ws_1/members/remove HTTP/1.1"
+    );
+    let body: Value =
+        serde_json::from_str(&captured.body_text).expect("request body should be valid json");
+    assert_eq!(
+        body.get("user_ids").and_then(Value::as_array).map(Vec::len),
         Some(2)
     );
 
@@ -393,6 +726,13 @@ fn test_keys_delete_requires_yes() {
 }
 
 #[test]
+fn test_workspaces_delete_requires_yes() {
+    let mut cmd = base_cmd("http://127.0.0.1:9/api/v1");
+    cmd.arg("workspaces").arg("delete").arg("ws_1");
+    cmd.assert().failure().stderr(contains("without --yes"));
+}
+
+#[test]
 fn test_guardrail_key_assignment_unassign_requires_yes() {
     let mut cmd = base_cmd("http://127.0.0.1:9/api/v1");
     cmd.arg("guardrails")
@@ -401,5 +741,16 @@ fn test_guardrail_key_assignment_unassign_requires_yes() {
         .arg("unassign")
         .arg("gr_1")
         .arg("key_hash_1");
+    cmd.assert().failure().stderr(contains("without --yes"));
+}
+
+#[test]
+fn test_workspace_members_remove_requires_yes() {
+    let mut cmd = base_cmd("http://127.0.0.1:9/api/v1");
+    cmd.arg("workspaces")
+        .arg("members")
+        .arg("remove")
+        .arg("ws_1")
+        .arg("user_1");
     cmd.assert().failure().stderr(contains("without --yes"));
 }

@@ -12,7 +12,7 @@
 //! - `client.tts()` -> [`tts`]
 //! - `client.videos()` -> [`videos`]
 //! - `client.models()` -> [`models`], [`embeddings`], [`discovery`]
-//! - `client.management()` -> [`api_keys`], [`auth`], [`credits`], [`generation`], [`guardrails`], [`organization`]
+//! - `client.management()` -> [`api_keys`], [`auth`], [`credits`], [`generation`], [`guardrails`], [`organization`], [`workspaces`]
 //! - `client.legacy()` -> [`legacy`] (feature `legacy-completions`)
 //!
 //! Endpoint families currently implemented here:
@@ -29,6 +29,7 @@
 //! - credits, Coinbase charge creation, generation lookup/content, and activity
 //! - guardrails and guardrail assignments
 //! - organization member listing
+//! - workspace CRUD and membership management
 //! - structured API error payloads
 //!
 //! ## Quick Examples
@@ -128,6 +129,7 @@ pub mod rerank;
 pub mod responses;
 pub mod tts;
 pub mod videos;
+pub mod workspaces;
 
 #[cfg(feature = "legacy-completions")]
 pub mod legacy;

@@ -8,7 +8,7 @@ Nightly drift workflow: `.github/workflows/openapi-drift.yml`
 ## Coverage Summary
 
 - Official OpenAPI endpoints: `51` method+path entries.
-- SDK implementation coverage (`src/api` + domain client): `44 / 51` (`86.3%`).
+- SDK implementation coverage (`src/api` + domain client): `51 / 51` (`100.0%`).
 - Live integration coverage (`tests/integration`): `24 / 51` endpoints currently exercised.
   - Covered live now: `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `POST /rerank`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`, `GET /organization/members`
 
@@ -16,7 +16,7 @@ Drift review note:
 
 - Official text-to-speech routing is now `POST /audio/speech`. The SDK keeps the canonical `client.tts().create(...)` surface and retries legacy `POST /tts` only as a compatibility fallback.
 - Upstream added `GET /generation/content`, now exposed as `client.get_generation_content(...)` / `client.management().get_generation_content(...)`.
-- Upstream added official workspace-management endpoints and workspace-aware management fields. The SDK follow-up is tracked in `#190`.
+- Upstream added official workspace-management endpoints and workspace-aware management fields. The SDK and CLI now expose them; live management-key validation remains pending.
 
 Legend:
 
@@ -44,7 +44,7 @@ Legend:
 | `GET /endpoints/zdr` | `client.models().list_zdr_endpoints(...)` | Yes | Contract | Yes | Keep |
 | `GET /generation` | `client.get_generation(...)` / `client.management().get_generation(...)` | Yes | Path | No | P2 |
 | `GET /generation/content` | `client.get_generation_content(...)` / `client.management().get_generation_content(...)` | Yes | Path | No | P2 |
-| `GET /guardrails` | `client.management().list_guardrails(...)` | Yes | Path | Yes | Keep |
+| `GET /guardrails` | `client.management().list_guardrails(...)` / `client.management().list_guardrails_in_workspace(...)` | Yes | Path | Yes | Keep |
 | `POST /guardrails` | `client.management().create_guardrail(...)` | Yes | Contract | Yes | Keep |
 | `GET /guardrails/{id}` | `client.management().get_guardrail(...)` | Yes | Contract | Yes | Keep |
 | `PATCH /guardrails/{id}` | `client.management().update_guardrail(...)` | Yes | Contract | Yes | Keep |
@@ -58,8 +58,8 @@ Legend:
 | `GET /guardrails/assignments/keys` | `client.management().list_key_assignments(...)` | Yes | Path | No | P1 |
 | `GET /guardrails/assignments/members` | `client.management().list_member_assignments(...)` | Yes | Path | No | P1 |
 | `GET /key` | `client.get_current_api_key_info()` / `client.management().get_current_api_key_info()` | Yes | Contract | Yes | Keep |
-| `GET /keys` | `client.management().list_api_keys(...)` | Yes | Path | Yes | Keep |
-| `POST /keys` | `client.create_api_key(...)` / `client.management().create_api_key(...)` | Yes | Path | Yes | Keep |
+| `GET /keys` | `client.management().list_api_keys(...)` / `client.management().list_api_keys_in_workspace(...)` | Yes | Path | Yes | Keep |
+| `POST /keys` | `client.create_api_key(...)` / `client.create_api_key_in_workspace(...)` / `client.management().create_api_key(...)` / `client.management().create_api_key_in_workspace(...)` | Yes | Path | Yes | Keep |
 | `GET /keys/{hash}` | `client.get_api_key(...)` / `client.management().get_api_key(...)` | Yes | Path | Yes | Keep |
 | `PATCH /keys/{hash}` | `client.update_api_key(...)` / `client.management().update_api_key(...)` | Yes | Path | Yes | Keep |
 | `DELETE /keys/{hash}` | `client.delete_api_key(...)` / `client.management().delete_api_key(...)` | Yes | Path | Yes | Keep |
@@ -69,21 +69,21 @@ Legend:
 | `GET /models/user` | `client.list_models_for_user()` / `client.models().list_user_models()` | Yes | Path | Yes | Keep |
 | `GET /organization/members` | `client.management().list_organization_members(...)` | Yes | Path | Yes | Keep |
 | `GET /providers` | `client.list_providers()` / `client.models().list_providers()` | Yes | Contract | Yes | Keep |
-| `GET /workspaces` | Tracked in `#190` | No | None | No | P1 |
-| `GET /workspaces/{id}` | Tracked in `#190` | No | None | No | P1 |
+| `GET /workspaces` | `client.management().list_workspaces(...)` | Yes | Path | No | P1 |
+| `GET /workspaces/{id}` | `client.management().get_workspace(...)` | Yes | Path | No | P1 |
 | `POST /messages` | `client.messages().create(...)` / `client.messages().stream(...)` | Yes | Path | Yes | Keep |
 | `POST /rerank` | `client.rerank().create(...)` | Yes | Path | Yes | Keep |
 | `POST /responses` | `client.responses().create(...)` / `client.responses().stream(...)` | Yes | Contract | Yes | Keep |
 | `POST /audio/speech` | `client.tts().create(...)` | Yes | Path | No | P1 |
 | `POST /videos` | `client.videos().create(...)` | Yes | Path | No | P2 |
-| `POST /workspaces` | Tracked in `#190` | No | None | No | P1 |
-| `POST /workspaces/{id}/members/add` | Tracked in `#190` | No | None | No | P1 |
-| `POST /workspaces/{id}/members/remove` | Tracked in `#190` | No | None | No | P1 |
+| `POST /workspaces` | `client.management().create_workspace(...)` | Yes | Path | No | P1 |
+| `POST /workspaces/{id}/members/add` | `client.management().add_workspace_members(...)` | Yes | Path | No | P1 |
+| `POST /workspaces/{id}/members/remove` | `client.management().remove_workspace_members(...)` | Yes | Path | No | P1 |
 | `GET /videos/models` | `client.videos().list_models()` | Yes | Path | No | P2 |
 | `GET /videos/{jobId}` | `client.videos().get_generation(...)` | Yes | Path | No | P2 |
 | `GET /videos/{jobId}/content` | `client.videos().get_content(...)` | Yes | Path | No | P2 |
-| `PATCH /workspaces/{id}` | Tracked in `#190` | No | None | No | P1 |
-| `DELETE /workspaces/{id}` | Tracked in `#190` | No | None | No | P1 |
+| `PATCH /workspaces/{id}` | `client.management().update_workspace(...)` | Yes | Path | No | P1 |
+| `DELETE /workspaces/{id}` | `client.management().delete_workspace(...)` | Yes | Path | No | P1 |
 
 ## Supplemental (Legacy)
 
@@ -100,7 +100,7 @@ The endpoint below is intentionally kept as legacy compatibility and is not part
 2. P1: add management-key live smoke coverage for `/activity`.
 3. P2: keep `/credits`, `/credits/coinbase`, `/generation`, `/generation/content`, and `/auth/keys*` as controlled scenarios (manual or mocked contract-first) due cost/side effects.
 4. P1/P2: add low-cost live or smoke coverage for `/audio/speech` and `/videos*` once stable fixtures and cost controls are defined.
-5. P1: add typed workspace management support and then cover `/workspaces*` in unit and live management-key validation (`#190`).
+5. P1: add management-key live validation for `/workspaces*`, plus targeted workspace-scoped read/write coverage for `/keys` and `/guardrails`.
 
 ## Reproduce Snapshot
 

@@ -6,7 +6,7 @@ It currently focuses on four areas:
 
 - profile/config resolution
 - model and provider discovery
-- API-key, organization, and guardrail management
+- API-key, workspace, organization, and guardrail management
 - credits, billing, and usage activity
 
 The implementation lives in [`crates/openrouter-cli/src`](./src), and the crate currently publishes as `0.1.3`.
@@ -55,13 +55,15 @@ guardrails list|create|get|update|delete
 guardrails assignments keys list|assign|unassign
 guardrails assignments members list|assign|unassign
 organization members list
+workspaces list|create|get|update|delete
+workspaces members add|remove
 usage activity
 ```
 
 Auth expectations by command group:
 
 - `models`, `providers`, `credits show`, `credits charge`: API key
-- `keys`, `guardrails`, `organization`, `usage activity`: management key
+- `keys`, `guardrails`, `organization`, `workspaces`, `usage activity`: management key
 - `profile`, `config`: no API call required
 
 ## Config And Resolution Order
@@ -144,8 +146,14 @@ openrouter-cli --api-key "$OPENROUTER_API_KEY" providers list
 # List keys
 openrouter-cli --management-key "$OPENROUTER_MANAGEMENT_KEY" keys list --include-disabled
 
+# List keys in one workspace
+openrouter-cli --management-key "$OPENROUTER_MANAGEMENT_KEY" keys list --workspace-id ws_123
+
 # Create one
 openrouter-cli --management-key "$OPENROUTER_MANAGEMENT_KEY" keys create --name "ci-bot" --limit 100
+
+# Create one directly inside a workspace
+openrouter-cli --management-key "$OPENROUTER_MANAGEMENT_KEY" keys create --name "ci-bot" --limit 100 --workspace-id ws_123
 
 # Inspect one
 openrouter-cli --management-key "$OPENROUTER_MANAGEMENT_KEY" keys get sk-or-v1-hash
@@ -163,12 +171,16 @@ openrouter-cli --management-key "$OPENROUTER_MANAGEMENT_KEY" keys delete sk-or-v
 # List guardrails
 openrouter-cli --management-key "$OPENROUTER_MANAGEMENT_KEY" guardrails list --limit 20
 
+# List guardrails in one workspace
+openrouter-cli --management-key "$OPENROUTER_MANAGEMENT_KEY" guardrails list --workspace-id ws_123
+
 # Create one
 openrouter-cli \
   --management-key "$OPENROUTER_MANAGEMENT_KEY" \
   guardrails create \
   --name "ci-budget-cap" \
   --limit-usd 25 \
+  --workspace-id ws_123 \
   --enforce-zdr
 
 # Update and clear allowlists
@@ -215,6 +227,46 @@ Member assignment commands mirror the same shape under `guardrails assignments m
 openrouter-cli \
   --management-key "$OPENROUTER_MANAGEMENT_KEY" \
   organization members list --limit 25
+```
+
+### Workspaces
+
+```bash
+# List workspaces
+openrouter-cli \
+  --management-key "$OPENROUTER_MANAGEMENT_KEY" \
+  workspaces list --limit 25
+
+# Create a workspace
+openrouter-cli \
+  --management-key "$OPENROUTER_MANAGEMENT_KEY" \
+  workspaces create \
+  --name "platform" \
+  --slug "platform" \
+  --default-text-model openai/gpt-4.1 \
+  --enable-observability-broadcast
+
+# Update a workspace
+openrouter-cli \
+  --management-key "$OPENROUTER_MANAGEMENT_KEY" \
+  workspaces update ws_123 \
+  --description "Platform engineering" \
+  --disable-data-discount-logging
+
+# Add members to a workspace
+openrouter-cli \
+  --management-key "$OPENROUTER_MANAGEMENT_KEY" \
+  workspaces members add ws_123 user_1 user_2
+
+# Remove members from a workspace
+openrouter-cli \
+  --management-key "$OPENROUTER_MANAGEMENT_KEY" \
+  workspaces members remove ws_123 user_1 user_2 --yes
+
+# Delete a workspace
+openrouter-cli \
+  --management-key "$OPENROUTER_MANAGEMENT_KEY" \
+  workspaces delete ws_123 --yes
 ```
 
 ## Credits And Usage

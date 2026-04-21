@@ -8,7 +8,10 @@ use std::{
 
 use openrouter_rs::{
     OpenRouterClient,
-    api::{auth, chat, credits, embeddings, guardrails, messages, rerank, responses, tts, videos},
+    api::{
+        auth, chat, credits, embeddings, guardrails, messages, rerank, responses, tts, videos,
+        workspaces,
+    },
     error::OpenRouterError,
     types::{ModelCategory, PaginationOptions, Role, SupportedParameters},
 };
@@ -472,6 +475,18 @@ async fn test_management_domain_remaining_methods_require_configured_key() {
         .member_user_ids(vec!["user_1".to_string()])
         .build()
         .expect("bulk member request should build");
+    let create_workspace_request = workspaces::CreateWorkspaceRequest::builder()
+        .name("Production")
+        .build()
+        .expect("create workspace request should build");
+    let update_workspace_request = workspaces::UpdateWorkspaceRequest::builder()
+        .name("Updated")
+        .build()
+        .expect("update workspace request should build");
+    let workspace_members_request = workspaces::WorkspaceMembersRequest::builder()
+        .user_ids(vec!["user_1".to_string()])
+        .build()
+        .expect("workspace members request should build");
 
     assert!(matches!(
         client.management().get_current_api_key_info().await,
@@ -499,7 +514,21 @@ async fn test_management_domain_remaining_methods_require_configured_key() {
         Err(OpenRouterError::KeyNotConfigured)
     ));
     assert!(matches!(
+        client
+            .management()
+            .list_api_keys_in_workspace(None, Some(true), Some("ws_123"))
+            .await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
         client.management().get_api_key("hash").await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .management()
+            .create_api_key_in_workspace("ops", Some(1.0), Some("ws_123"))
+            .await,
         Err(OpenRouterError::KeyNotConfigured)
     ));
     assert!(matches!(
@@ -534,6 +563,13 @@ async fn test_management_domain_remaining_methods_require_configured_key() {
     ));
     assert!(matches!(
         client.management().list_guardrails(None).await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .management()
+            .list_guardrails_in_workspace(None, Some("ws_123"))
+            .await,
         Err(OpenRouterError::KeyNotConfigured)
     ));
     assert!(matches!(
@@ -610,6 +646,46 @@ async fn test_management_domain_remaining_methods_require_configured_key() {
     ));
     assert!(matches!(
         client.management().list_organization_members(None).await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client.management().list_workspaces(None).await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .management()
+            .create_workspace(&create_workspace_request)
+            .await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client.management().get_workspace("ws_123").await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .management()
+            .update_workspace("ws_123", &update_workspace_request)
+            .await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client.management().delete_workspace("ws_123").await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .management()
+            .add_workspace_members("ws_123", &workspace_members_request)
+            .await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .management()
+            .remove_workspace_members("ws_123", &workspace_members_request)
+            .await,
         Err(OpenRouterError::KeyNotConfigured)
     ));
 }
@@ -839,6 +915,42 @@ async fn test_management_domain_list_organization_members_without_pagination_del
         captured.request_line,
         "GET /api/v1/organization/members HTTP/1.1"
     );
+    assert!(
+        captured
+            .request_text
+            .to_ascii_lowercase()
+            .contains("authorization: bearer management-key")
+            || captured
+                .request_text
+                .to_ascii_lowercase()
+                .contains("authorization:bearer management-key"),
+        "authorization header should include management key, request:\n{}",
+        captured.request_text
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_management_domain_list_workspaces_without_pagination_delegates() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
+    let client = OpenRouterClient::builder()
+        .base_url(base_url)
+        .management_key("management-key")
+        .build()
+        .expect("client should build");
+
+    let response = client
+        .management()
+        .list_workspaces(None)
+        .await
+        .expect("list_workspaces should succeed");
+    assert_eq!(response.total_count, 0.0);
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(captured.request_line, "GET /api/v1/workspaces HTTP/1.1");
     assert!(
         captured
             .request_text
