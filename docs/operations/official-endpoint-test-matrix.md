@@ -1,6 +1,6 @@
 # Official Endpoint Test Matrix
 
-Snapshot date: 2026-04-20  
+Snapshot date: 2026-04-21  
 Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)  
 Tracked baseline: `specs/openrouter/openapi-baseline.json`  
 Nightly drift workflow: `.github/workflows/openapi-drift.yml`
@@ -9,8 +9,8 @@ Nightly drift workflow: `.github/workflows/openapi-drift.yml`
 
 - Official OpenAPI endpoints: `43` method+path entries.
 - SDK implementation coverage (`src/api` + domain client): `43 / 43` (`100%`).
-- Live integration coverage (`tests/integration`): `22 / 43` endpoints currently exercised.
-  - Covered live now: `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`
+- Live integration coverage (`tests/integration`): `24 / 43` endpoints currently exercised.
+  - Covered live now: `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `POST /rerank`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`, `GET /organization/members`
 
 Drift review note:
 
@@ -64,10 +64,10 @@ Legend:
 | `GET /models/{author}/{slug}/endpoints` | `client.list_model_endpoints(...)` / `client.models().list_endpoints(...)` | Yes | Path | Yes | Keep |
 | `GET /models/count` | `client.count_models()` / `client.models().get_model_count()` | Yes | Contract | Yes | Keep |
 | `GET /models/user` | `client.list_models_for_user()` / `client.models().list_user_models()` | Yes | Path | Yes | Keep |
-| `GET /organization/members` | `client.management().list_organization_members(...)` | Yes | Path | No | P2 |
+| `GET /organization/members` | `client.management().list_organization_members(...)` | Yes | Path | Yes | Keep |
 | `GET /providers` | `client.list_providers()` / `client.models().list_providers()` | Yes | Contract | Yes | Keep |
 | `POST /messages` | `client.messages().create(...)` / `client.messages().stream(...)` | Yes | Path | Yes | Keep |
-| `POST /rerank` | `client.rerank().create(...)` | Yes | Path | No | P1 |
+| `POST /rerank` | `client.rerank().create(...)` | Yes | Path | Yes | Keep |
 | `POST /responses` | `client.responses().create(...)` / `client.responses().stream(...)` | Yes | Contract | Yes | Keep |
 | `POST /tts` | `client.tts().create(...)` | Yes | Path | No | P1 |
 | `POST /videos` | `client.videos().create(...)` | Yes | Path | No | P2 |
@@ -88,7 +88,7 @@ The endpoint below is intentionally kept as legacy compatibility and is not part
 1. P1: add management-key live coverage for assignment endpoints (`/guardrails/*/assignments/*` and `/guardrails/assignments/*`).
 2. P1: add management-key live smoke coverage for `/activity`.
 3. P2: keep `/credits`, `/credits/coinbase`, `/generation`, `/auth/keys*` as controlled scenarios (manual or mocked contract-first) due cost/side effects.
-4. P1/P2: add low-cost live or smoke coverage for `/rerank`, `/tts`, `/videos*`, and `/organization/members` once stable fixtures and cost controls are defined.
+4. P1/P2: add low-cost live or smoke coverage for `/tts` and `/videos*` once stable fixtures and cost controls are defined.
 
 ## Reproduce Snapshot
 

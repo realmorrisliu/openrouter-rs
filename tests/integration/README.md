@@ -18,6 +18,7 @@ The live integration suite resolves models in this order:
 - `OPENROUTER_TEST_CHAT_MODEL`: override the primary chat model
 - `OPENROUTER_TEST_EMBEDDINGS_MODEL`: override the primary embeddings model
 - `OPENROUTER_TEST_MESSAGES_MODEL`: override the primary Messages API model
+- `OPENROUTER_TEST_RERANK_MODEL`: override the primary rerank model
 - `OPENROUTER_TEST_RESPONSES_MODEL`: override the primary Responses API model
 - `OPENROUTER_TEST_REASONING_MODEL`: override the primary reasoning model
 - `OPENROUTER_TEST_STABLE_MODELS`: comma-separated stable regression models
@@ -71,6 +72,10 @@ Management smoke is opt-in and performs cleanup-protected lifecycle checks for:
 
 - `keys`: create -> list/get -> update -> delete
 - `guardrails`: create -> list/get -> update -> delete
+
+When `OPENROUTER_MANAGEMENT_KEY` is configured, the integration suite also runs a read-only
+smoke check for `GET /organization/members` without requiring
+`OPENROUTER_RUN_MANAGEMENT_TESTS=1`.
 
 Example:
 

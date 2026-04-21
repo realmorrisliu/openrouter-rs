@@ -6,6 +6,7 @@ use std::{
 use openrouter_rs::{
     api::guardrails::{CreateGuardrailRequest, UpdateGuardrailRequest},
     error::OpenRouterError,
+    types::PaginationOptions,
 };
 
 use super::test_utils::{
@@ -232,4 +233,49 @@ async fn test_management_guardrails_smoke_lifecycle() -> Result<(), OpenRouterEr
             "management guardrail lifecycle failed ({primary}); cleanup also failed ({cleanup})"
         ))),
     }
+}
+
+#[tokio::test]
+#[allow(clippy::result_large_err)]
+async fn test_management_organization_members_read_smoke() -> Result<(), OpenRouterError> {
+    let Some(client) = create_management_test_client()? else {
+        println!(
+            "Skipping organization members smoke test; OPENROUTER_MANAGEMENT_KEY is not configured"
+        );
+        return Ok(());
+    };
+
+    let management = client.management();
+
+    rate_limit_delay().await;
+    let members = management
+        .list_organization_members(Some(PaginationOptions::with_offset_and_limit(0, 25)))
+        .await?;
+
+    smoke_assert(
+        members.total_count as usize >= members.data.len(),
+        "organization members total_count should be >= returned row count",
+    )?;
+
+    if let Some(member) = members.data.first() {
+        smoke_assert(
+            !member.id.trim().is_empty(),
+            "organization member id should not be empty",
+        )?;
+        smoke_assert(
+            !member.email.trim().is_empty(),
+            "organization member email should not be empty",
+        )?;
+        smoke_assert(
+            !member.role.trim().is_empty(),
+            "organization member role should not be empty",
+        )?;
+    }
+
+    println!(
+        "Organization members smoke passed (returned={}, total_count={})",
+        members.data.len(),
+        members.total_count
+    );
+    Ok(())
 }
