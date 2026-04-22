@@ -35,6 +35,7 @@ pub struct GenerationData {
     pub native_tokens_prompt: Option<u32>,
     pub native_tokens_completion: Option<u32>,
     pub native_tokens_reasoning: Option<u32>,
+    pub num_fetches: Option<u32>,
     pub num_media_prompt: Option<u32>,
     pub num_media_completion: Option<u32>,
     pub num_search_results: Option<u32>,

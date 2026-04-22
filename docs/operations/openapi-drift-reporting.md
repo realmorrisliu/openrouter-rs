@@ -9,7 +9,7 @@ The endpoint matrix is useful, but it is static until someone remembers to refre
 - it fetches the latest upstream `openapi.json`
 - it compares the latest upstream operations against the tracked baseline
 - it emits a human-readable report and a machine-readable JSON summary
-- it can open or refresh a follow-up GitHub issue when drift is detected
+- it can open or refresh a follow-up GitHub issue when actionable drift is detected
 
 This keeps `openrouter-rs` aligned with upstream changes without blocking releases on every spec delta.
 
@@ -39,6 +39,18 @@ It intentionally ignores docs-only fields:
 
 That keeps the report focused on compatibility-relevant API changes rather than upstream prose edits.
 
+After the raw OpenAPI comparison, the report also applies a small repo-aware classification pass.
+Today that pass recognizes the global request metadata headers already handled by the SDK transport
+layer (`X-OpenRouter-Title`, `HTTP-Referer`, and `X-OpenRouter-Categories`) so the report can
+separate:
+
+- raw upstream drift
+- changed operations that are already covered by the repo's request-metadata handling
+- changed operations that still need SDK/docs/test follow-up
+
+This keeps the nightly issue useful when upstream bulk-adds supported metadata headers across many
+operations without hiding the underlying OpenAPI drift.
+
 The initial tracked baseline is intentionally seeded from the accepted endpoint matrix rather
 than silently fast-forwarded to whatever the latest upstream spec happens to contain. Baseline
 refresh is an explicit review step, not an automatic side effect of detection.
@@ -57,6 +69,10 @@ This writes a report to:
 - `/tmp/openrouter-openapi-drift-report.json`
 - `/tmp/openrouter-openapi-latest.operations.json`
 
+The compare command also emits both `has_drift` and `has_actionable_drift` when GitHub Actions
+passes a `GITHUB_OUTPUT` file. The nightly workflow keeps uploading the full raw drift artifacts,
+but it only opens or refreshes the follow-up issue when `has_actionable_drift=true`.
+
 Refresh the tracked baseline after reviewing and accepting upstream changes:
 
 ```bash
@@ -70,7 +86,7 @@ That updates:
 
 ## Follow-Up Flow
 
-When the nightly workflow reports drift:
+When the nightly workflow reports actionable drift:
 
 1. Keep the generated issue open as the active compatibility-update record.
 2. Review the generated report and candidate operations snapshot artifact.

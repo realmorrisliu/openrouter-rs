@@ -54,7 +54,7 @@ jobs:
             /tmp/openapi-latest.operations.json
 
       - name: Open or refresh follow-up issue
-        if: github.event_name == 'schedule' && steps.compare.outputs.has_drift == 'true'
+        if: github.event_name == 'schedule' && steps.compare.outputs.has_actionable_drift == 'true'
         uses: actions/github-script@v7
         env:
           REPORT_PATH: /tmp/openapi-drift-report.md
@@ -73,7 +73,7 @@ jobs:
               : report;
             const body = [
               '## Summary',
-              'Detected upstream OpenAPI drift against the tracked baseline.',
+              'Detected actionable upstream OpenAPI drift against the tracked baseline.',
               '',
               '## Trigger',
               '- Source: nightly OpenAPI drift workflow',

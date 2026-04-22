@@ -37,7 +37,7 @@ Compatibility updates use different surfaces for different jobs:
 
 | Surface | Role | When to update |
 | --- | --- | --- |
-| GitHub issue using [`.github/ISSUE_TEMPLATE/upstream-compatibility-update.md`](../../.github/ISSUE_TEMPLATE/upstream-compatibility-update.md) | Active working record for one upstream change or one drift batch | When drift is detected, a non-spec upstream change is noticed, or follow-up work needs coordination |
+| GitHub issue using [`.github/ISSUE_TEMPLATE/upstream-compatibility-update.md`](../../.github/ISSUE_TEMPLATE/upstream-compatibility-update.md) | Active working record for one upstream change or one drift batch | When actionable drift is detected, a non-spec upstream change is noticed, or follow-up work needs coordination |
 | [`CHANGELOG.md`](../../CHANGELOG.md) | Durable user-facing summary of accepted compatibility-affecting repo changes | In the same PR that lands a user-visible SDK/docs/test/support change |
 | [`MIGRATION.md`](../../MIGRATION.md) | Durable upgrade guidance | When canonical usage, public API names, compatibility bridges, required config, or migration steps changed |
 | [`docs/operations/official-endpoint-test-matrix.md`](../operations/official-endpoint-test-matrix.md) | Current implementation and live-test status by operation | When the accepted upstream operation surface changed or support status changed |
@@ -53,7 +53,7 @@ The cadence is intentionally small and event-driven:
 
 | Cadence | Trigger | Expected output |
 | --- | --- | --- |
-| Nightly | Upstream OpenAPI drift check | Auto-opened or refreshed drift issue plus report artifact |
+| Nightly | Upstream OpenAPI drift check | Report artifact every run; auto-opened or refreshed issue only when repo-aware classification marks the drift as actionable |
 | As needed | Non-spec upstream change noticed by maintainers, tests, or users | Manual compatibility update issue using the reusable template |
 | Same PR as acceptance | Repo accepts the change and updates code/docs/tests/baseline | `CHANGELOG.md`, `MIGRATION.md`, endpoint matrix, or baseline refresh updated in the same PR as needed |
 | Next release cut | A version is published | Release notes summarize already-landed compatibility updates; release notes do not replace the earlier docs updates |
