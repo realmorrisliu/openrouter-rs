@@ -58,11 +58,13 @@ class OpenApiDriftReportTests(unittest.TestCase):
                     "in": "header",
                     "name": "X-OpenRouter-Title",
                     "schema": {"type": "string"},
+                    "x-speakeasy-name-override": "appTitle",
                 },
                 {
                     "in": "header",
                     "name": "X-OpenRouter-Categories",
                     "schema": {"type": "string"},
+                    "x-speakeasy-name-override": "appCategories",
                 },
             ]
         )
@@ -125,6 +127,48 @@ class OpenApiDriftReportTests(unittest.TestCase):
         self.assertEqual(report["repo_summary"]["metadata_only_already_supported"], 0)
         self.assertEqual(report["repo_summary"]["actionable_changed"], 1)
         self.assertEqual(report["changed"][0]["repo_impact"]["category"], "actionable")
+
+    def test_required_metadata_header_change_remains_actionable(self):
+        baseline = build_spec(
+            parameters=[
+                {
+                    "in": "header",
+                    "name": "X-OpenRouter-Title",
+                    "schema": {"type": "string"},
+                    "x-speakeasy-name-override": "appTitle",
+                }
+            ]
+        )
+        candidate = build_spec(
+            parameters=[
+                {
+                    "in": "header",
+                    "name": "X-OpenRouter-Title",
+                    "required": True,
+                    "schema": {"type": "string"},
+                    "x-speakeasy-name-override": "appTitle",
+                }
+            ]
+        )
+
+        report = openapi_drift.build_report(
+            baseline_spec=baseline,
+            candidate_spec=candidate,
+            baseline_label="baseline",
+            candidate_label="candidate",
+            source_url="https://example.com/openapi.json",
+            max_diff_lines=20,
+        )
+
+        self.assertTrue(report["has_drift"])
+        self.assertTrue(report["has_actionable_drift"])
+        self.assertEqual(report["repo_summary"]["metadata_only_already_supported"], 0)
+        self.assertEqual(report["repo_summary"]["actionable_changed"], 1)
+        self.assertEqual(report["changed"][0]["repo_impact"]["category"], "actionable")
+        self.assertEqual(
+            report["changed"][0]["repo_impact"]["supported_parameters"],
+            ["header X-OpenRouter-Title"],
+        )
 
 
 if __name__ == "__main__":

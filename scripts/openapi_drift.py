@@ -15,13 +15,38 @@ from typing import Any
 UPSTREAM_OPENAPI_URL = "https://openrouter.ai/openapi.json"
 HTTP_METHODS = ("get", "post", "put", "patch", "delete", "options", "head", "trace")
 DOC_ONLY_FIELDS = {"description", "example", "examples", "externalDocs", "summary", "title"}
-REPO_SUPPORTED_METADATA_PARAMETERS = frozenset(
+REPO_KNOWN_METADATA_PARAMETERS = frozenset(
     {
         ("header", "HTTP-Referer"),
         ("header", "X-OpenRouter-Categories"),
         ("header", "X-OpenRouter-Title"),
     }
 )
+REPO_SUPPORTED_METADATA_PARAMETER_SHAPES = {
+    ("header", "HTTP-Referer"): {
+        "in": "header",
+        "name": "HTTP-Referer",
+        "schema": {
+            "type": "string",
+        },
+    },
+    ("header", "X-OpenRouter-Categories"): {
+        "in": "header",
+        "name": "X-OpenRouter-Categories",
+        "schema": {
+            "type": "string",
+        },
+        "x-speakeasy-name-override": "appCategories",
+    },
+    ("header", "X-OpenRouter-Title"): {
+        "in": "header",
+        "name": "X-OpenRouter-Title",
+        "schema": {
+            "type": "string",
+        },
+        "x-speakeasy-name-override": "appTitle",
+    },
+}
 BASELINE_TOP_LEVEL_FIELDS = (
     "components",
     "info",
@@ -216,16 +241,28 @@ def normalize_parameter_order(parameters: Any) -> Any:
     return sorted(parameters, key=parameter_sort_key)
 
 
-def is_repo_supported_metadata_parameter(parameter: Any) -> bool:
+def repo_known_metadata_parameter_key(parameter: Any) -> tuple[str, str] | None:
     if not isinstance(parameter, dict):
-        return False
+        return None
 
     name = parameter.get("name")
     location = parameter.get("in")
-    return isinstance(name, str) and isinstance(location, str) and (
-        location,
-        name,
-    ) in REPO_SUPPORTED_METADATA_PARAMETERS
+    if not isinstance(name, str) or not isinstance(location, str):
+        return None
+
+    parameter_key = (location, name)
+    if parameter_key not in REPO_KNOWN_METADATA_PARAMETERS:
+        return None
+
+    return parameter_key
+
+
+def is_repo_supported_metadata_parameter(parameter: Any) -> bool:
+    parameter_key = repo_known_metadata_parameter_key(parameter)
+    if parameter_key is None:
+        return False
+
+    return parameter == REPO_SUPPORTED_METADATA_PARAMETER_SHAPES[parameter_key]
 
 
 def collect_repo_supported_metadata_parameters(operation: Any) -> list[str]:
@@ -239,9 +276,25 @@ def collect_repo_supported_metadata_parameters(operation: Any) -> list[str]:
     supported_parameters = {
         f"{parameter['in']} {parameter['name']}"
         for parameter in parameters
-        if is_repo_supported_metadata_parameter(parameter)
+        if repo_known_metadata_parameter_key(parameter) is not None
     }
     return sorted(supported_parameters)
+
+
+def collect_exact_repo_supported_metadata_parameters(operation: Any) -> list[str]:
+    if not isinstance(operation, dict):
+        return []
+
+    parameters = operation.get("parameters")
+    if not isinstance(parameters, list):
+        return []
+
+    exact_supported_parameters = {
+        f"{parameter['in']} {parameter['name']}"
+        for parameter in parameters
+        if is_repo_supported_metadata_parameter(parameter)
+    }
+    return sorted(exact_supported_parameters)
 
 
 def strip_repo_supported_metadata_parameters(operation: Any) -> Any:
@@ -279,6 +332,12 @@ def classify_repo_impact_for_changed_operation(
             *collect_repo_supported_metadata_parameters(candidate_normalized),
         }
     )
+    exact_supported_parameters = sorted(
+        {
+            *collect_exact_repo_supported_metadata_parameters(baseline_normalized),
+            *collect_exact_repo_supported_metadata_parameters(candidate_normalized),
+        }
+    )
 
     baseline_without_supported = strip_repo_supported_metadata_parameters(
         baseline_normalized
@@ -287,7 +346,10 @@ def classify_repo_impact_for_changed_operation(
         candidate_normalized
     )
 
-    if supported_parameters and baseline_without_supported == candidate_without_supported:
+    if (
+        exact_supported_parameters
+        and baseline_without_supported == candidate_without_supported
+    ):
         return {
             "category": "metadata_only_already_supported",
             "supported_parameters": supported_parameters,
