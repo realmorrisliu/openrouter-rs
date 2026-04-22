@@ -7,6 +7,7 @@ use std::{
 };
 
 use openrouter_rs::api::generation;
+use openrouter_rs::types::ApiResponse;
 
 struct CapturedRequest {
     request_line: String,
@@ -128,4 +129,28 @@ async fn test_get_generation_content_path_and_auth_header() {
     );
 
     server.join().expect("server thread should finish");
+}
+
+#[test]
+fn test_generation_response_deserializes_num_fetches() {
+    let raw = r#"{
+        "data": {
+            "id": "gen_123",
+            "total_cost": 0.1,
+            "created_at": "2026-04-22T00:00:00Z",
+            "model": "openai/gpt-4o-mini",
+            "origin": "chat",
+            "usage": 42.0,
+            "is_byok": false,
+            "native_tokens_reasoning": 8,
+            "num_fetches": 3
+        }
+    }"#;
+
+    let parsed: ApiResponse<generation::GenerationData> =
+        serde_json::from_str(raw).expect("generation response should deserialize");
+
+    assert_eq!(parsed.data.id, "gen_123");
+    assert_eq!(parsed.data.native_tokens_reasoning, Some(8));
+    assert_eq!(parsed.data.num_fetches, Some(3));
 }

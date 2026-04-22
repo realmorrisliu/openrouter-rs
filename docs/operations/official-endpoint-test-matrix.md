@@ -1,6 +1,6 @@
 # Official Endpoint Test Matrix
 
-Snapshot date: 2026-04-21  
+Snapshot date: 2026-04-22  
 Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)  
 Tracked baseline: `specs/openrouter/openapi-baseline.json`  
 Nightly drift workflow: `.github/workflows/openapi-drift.yml`
@@ -17,6 +17,8 @@ Drift review note:
 - Official text-to-speech routing is now `POST /audio/speech`. The SDK keeps the canonical `client.tts().create(...)` surface and retries legacy `POST /tts` only as a compatibility fallback.
 - Upstream added `GET /generation/content`, now exposed as `client.get_generation_content(...)` / `client.management().get_generation_content(...)`.
 - Upstream added official workspace-management endpoints and workspace-aware management fields. The SDK and CLI now expose them; live management-key validation remains pending.
+- Upstream now declares `X-OpenRouter-Title`, `HTTP-Referer`, and `X-OpenRouter-Categories` across the official request surface. The SDK already applies those request-metadata headers through the client builder.
+- Upstream added `num_fetches` to generation metadata responses. The typed `GenerationData` surface now deserializes it.
 
 Legend:
 

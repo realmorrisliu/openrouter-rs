@@ -15,6 +15,38 @@ from typing import Any
 UPSTREAM_OPENAPI_URL = "https://openrouter.ai/openapi.json"
 HTTP_METHODS = ("get", "post", "put", "patch", "delete", "options", "head", "trace")
 DOC_ONLY_FIELDS = {"description", "example", "examples", "externalDocs", "summary", "title"}
+REPO_KNOWN_METADATA_PARAMETERS = frozenset(
+    {
+        ("header", "HTTP-Referer"),
+        ("header", "X-OpenRouter-Categories"),
+        ("header", "X-OpenRouter-Title"),
+    }
+)
+REPO_SUPPORTED_METADATA_PARAMETER_SHAPES = {
+    ("header", "HTTP-Referer"): {
+        "in": "header",
+        "name": "HTTP-Referer",
+        "schema": {
+            "type": "string",
+        },
+    },
+    ("header", "X-OpenRouter-Categories"): {
+        "in": "header",
+        "name": "X-OpenRouter-Categories",
+        "schema": {
+            "type": "string",
+        },
+        "x-speakeasy-name-override": "appCategories",
+    },
+    ("header", "X-OpenRouter-Title"): {
+        "in": "header",
+        "name": "X-OpenRouter-Title",
+        "schema": {
+            "type": "string",
+        },
+        "x-speakeasy-name-override": "appTitle",
+    },
+}
 BASELINE_TOP_LEVEL_FIELDS = (
     "components",
     "info",
@@ -207,6 +239,126 @@ def normalize_parameter_order(parameters: Any) -> Any:
         return (1, "", "", canonical_json(parameter))
 
     return sorted(parameters, key=parameter_sort_key)
+
+
+def repo_known_metadata_parameter_key(parameter: Any) -> tuple[str, str] | None:
+    if not isinstance(parameter, dict):
+        return None
+
+    name = parameter.get("name")
+    location = parameter.get("in")
+    if not isinstance(name, str) or not isinstance(location, str):
+        return None
+
+    parameter_key = (location, name)
+    if parameter_key not in REPO_KNOWN_METADATA_PARAMETERS:
+        return None
+
+    return parameter_key
+
+
+def is_repo_supported_metadata_parameter(parameter: Any) -> bool:
+    parameter_key = repo_known_metadata_parameter_key(parameter)
+    if parameter_key is None:
+        return False
+
+    return parameter == REPO_SUPPORTED_METADATA_PARAMETER_SHAPES[parameter_key]
+
+
+def collect_repo_supported_metadata_parameters(operation: Any) -> list[str]:
+    if not isinstance(operation, dict):
+        return []
+
+    parameters = operation.get("parameters")
+    if not isinstance(parameters, list):
+        return []
+
+    supported_parameters = {
+        f"{parameter['in']} {parameter['name']}"
+        for parameter in parameters
+        if repo_known_metadata_parameter_key(parameter) is not None
+    }
+    return sorted(supported_parameters)
+
+
+def collect_exact_repo_supported_metadata_parameters(operation: Any) -> list[str]:
+    if not isinstance(operation, dict):
+        return []
+
+    parameters = operation.get("parameters")
+    if not isinstance(parameters, list):
+        return []
+
+    exact_supported_parameters = {
+        f"{parameter['in']} {parameter['name']}"
+        for parameter in parameters
+        if is_repo_supported_metadata_parameter(parameter)
+    }
+    return sorted(exact_supported_parameters)
+
+
+def strip_repo_supported_metadata_parameters(operation: Any) -> Any:
+    if not isinstance(operation, dict):
+        return operation
+
+    stripped_operation = dict(operation)
+    parameters = stripped_operation.get("parameters")
+    if not isinstance(parameters, list):
+        return stripped_operation
+
+    filtered_parameters = [
+        parameter
+        for parameter in parameters
+        if not is_repo_supported_metadata_parameter(parameter)
+    ]
+
+    if filtered_parameters:
+        stripped_operation["parameters"] = normalize_parameter_order(filtered_parameters)
+    else:
+        stripped_operation.pop("parameters", None)
+
+    return stripped_operation
+
+
+def classify_repo_impact_for_changed_operation(
+    baseline_operation: dict[str, Any],
+    candidate_operation: dict[str, Any],
+) -> dict[str, Any]:
+    baseline_normalized = baseline_operation["normalized"]
+    candidate_normalized = candidate_operation["normalized"]
+    supported_parameters = sorted(
+        {
+            *collect_repo_supported_metadata_parameters(baseline_normalized),
+            *collect_repo_supported_metadata_parameters(candidate_normalized),
+        }
+    )
+    exact_supported_parameters = sorted(
+        {
+            *collect_exact_repo_supported_metadata_parameters(baseline_normalized),
+            *collect_exact_repo_supported_metadata_parameters(candidate_normalized),
+        }
+    )
+
+    baseline_without_supported = strip_repo_supported_metadata_parameters(
+        baseline_normalized
+    )
+    candidate_without_supported = strip_repo_supported_metadata_parameters(
+        candidate_normalized
+    )
+
+    if (
+        exact_supported_parameters
+        and baseline_without_supported == candidate_without_supported
+    ):
+        return {
+            "category": "metadata_only_already_supported",
+            "supported_parameters": supported_parameters,
+        }
+
+    return {
+        "category": "actionable",
+        "supported_parameters": supported_parameters,
+    }
 
 
 def normalize_security_order(security: Any) -> Any:
@@ -442,6 +594,8 @@ def build_report(
     added = sorted(candidate_keys - baseline_keys)
     removed = sorted(baseline_keys - candidate_keys)
     changed = []
+    metadata_only_supported_count = 0
+    actionable_changed_count = 0
 
     for operation_key in sorted(baseline_keys & candidate_keys):
         baseline_operation = baseline_operations[operation_key]
@@ -449,11 +603,21 @@ def build_report(
         if baseline_operation["fingerprint"] == candidate_operation["fingerprint"]:
             continue
 
+        repo_impact = classify_repo_impact_for_changed_operation(
+            baseline_operation,
+            candidate_operation,
+        )
+        if repo_impact["category"] == "metadata_only_already_supported":
+            metadata_only_supported_count += 1
+        else:
+            actionable_changed_count += 1
+
         changed.append(
             {
                 "id": operation_key,
                 "baseline_fingerprint": baseline_operation["fingerprint"],
                 "candidate_fingerprint": candidate_operation["fingerprint"],
+                "repo_impact": repo_impact,
                 "diff_preview": diff_preview(
                     baseline_operation["normalized"],
                     candidate_operation["normalized"],
@@ -476,10 +640,17 @@ def build_report(
         "compared_at": utc_now_iso(),
         "source_url": source_url,
         "has_drift": bool(added or removed or changed),
+        "has_actionable_drift": bool(added or removed or actionable_changed_count),
         "summary": {
             "added": len(added),
             "removed": len(removed),
             "changed": len(changed),
+        },
+        "repo_summary": {
+            "metadata_only_already_supported": metadata_only_supported_count,
+            "actionable_added": len(added),
+            "actionable_removed": len(removed),
+            "actionable_changed": actionable_changed_count,
         },
         "added": [
             {
@@ -511,6 +682,17 @@ def markdown_list(title: str, items: list[str]) -> list[str]:
 
 
 def render_markdown_report(report: dict[str, Any]) -> str:
+    metadata_only_changes = [
+        entry
+        for entry in report["changed"]
+        if entry["repo_impact"]["category"] == "metadata_only_already_supported"
+    ]
+    actionable_changes = [
+        entry
+        for entry in report["changed"]
+        if entry["repo_impact"]["category"] == "actionable"
+    ]
+
     lines = [
         "# OpenRouter OpenAPI Drift Report",
         "",
@@ -546,20 +728,65 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             ]
         )
 
+    lines.extend(
+        [
+            "## Repo-Aware Classification",
+            "",
+            f"- Actionable added operations: `{report['repo_summary']['actionable_added']}`",
+            f"- Actionable removed operations: `{report['repo_summary']['actionable_removed']}`",
+            f"- Actionable changed operations: `{report['repo_summary']['actionable_changed']}`",
+            (
+                "- Changed operations already supported by repo metadata handling: "
+                f"`{report['repo_summary']['metadata_only_already_supported']}`"
+            ),
+            "",
+        ]
+    )
+
+    if report["has_drift"] and not report["has_actionable_drift"]:
+        lines.extend(
+            [
+                "No actionable repo drift detected after repo-aware classification.",
+                "The tracked baseline is stale, but the changed operations are already covered by",
+                "the repository's global request-metadata handling.",
+                "",
+            ]
+        )
+
     lines.extend(markdown_list("Added Operations", [entry["id"] for entry in report["added"]]))
     lines.extend(markdown_list("Removed Operations", [entry["id"] for entry in report["removed"]]))
 
-    lines.append("## Changed Operations")
+    lines.append("## Metadata-Only Changes Already Supported By Repo")
     lines.append("")
-    if not report["changed"]:
+    if not metadata_only_changes:
         lines.append("- None")
         lines.append("")
     else:
-        for entry in report["changed"]:
+        for entry in metadata_only_changes:
+            supported_parameters = ", ".join(
+                f"`{parameter}`"
+                for parameter in entry["repo_impact"]["supported_parameters"]
+            )
+            lines.append(f"- `{entry['id']}` ({supported_parameters})")
+        lines.append("")
+
+    lines.append("## Actionable Changed Operations")
+    lines.append("")
+    if not actionable_changes:
+        lines.append("- None")
+        lines.append("")
+    else:
+        for entry in actionable_changes:
             lines.append(
                 f"- `{entry['id']}` "
                 f"(`{entry['baseline_fingerprint']}` -> `{entry['candidate_fingerprint']}`)"
             )
+            if entry["repo_impact"]["supported_parameters"]:
+                supported_parameters = ", ".join(
+                    f"`{parameter}`"
+                    for parameter in entry["repo_impact"]["supported_parameters"]
+                )
+                lines.append(f"  Repo metadata already covers: {supported_parameters}")
             lines.append("")
             lines.append("```diff")
             lines.extend(entry["diff_preview"] or ["# normalized operation diff was empty"])
@@ -580,10 +807,21 @@ def render_markdown_report(report: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def write_github_output(path: Path, *, has_drift: bool, report_md: Path, report_json: Path) -> None:
+def write_github_output(
+    path: Path,
+    *,
+    has_drift: bool,
+    has_actionable_drift: bool,
+    report_md: Path,
+    report_json: Path,
+) -> None:
     ensure_parent(path)
     with path.open("a", encoding="utf-8") as handle:
         handle.write(f"has_drift={'true' if has_drift else 'false'}\n")
+        handle.write(
+            "has_actionable_drift="
+            f"{'true' if has_actionable_drift else 'false'}\n"
+        )
         handle.write(f"report_markdown={report_md}\n")
         handle.write(f"report_json={report_json}\n")
 
@@ -642,6 +880,7 @@ def command_compare(args: argparse.Namespace) -> int:
         write_github_output(
             args.github_output,
             has_drift=report["has_drift"],
+            has_actionable_drift=report["has_actionable_drift"],
             report_md=args.report_md,
             report_json=args.report_json,
         )
@@ -653,7 +892,10 @@ def command_compare(args: argparse.Namespace) -> int:
         f"Compared baseline `{args.baseline_label}` to candidate `{args.candidate_label}`: "
         f"added={report['summary']['added']}, "
         f"removed={report['summary']['removed']}, "
-        f"changed={report['summary']['changed']}"
+        f"changed={report['summary']['changed']}, "
+        f"actionable_changed={report['repo_summary']['actionable_changed']}, "
+        "metadata_only_already_supported="
+        f"{report['repo_summary']['metadata_only_already_supported']}"
     )
     print(f"- markdown report: {args.report_md}")
     print(f"- json report: {args.report_json}")
