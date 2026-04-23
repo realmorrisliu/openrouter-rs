@@ -348,7 +348,12 @@ def scalar_enum_values(value: Any) -> set[Any]:
     enum_values = value.get("enum") if isinstance(value, dict) else None
     if not isinstance(enum_values, list):
         return set()
-    return set(enum_values)
+
+    return {
+        item
+        for item in enum_values
+        if item is None or isinstance(item, (str, int, float, bool))
+    }
 
 
 def is_repo_supported_dynamic_provider_name_enum(value: Any) -> bool:
@@ -396,10 +401,18 @@ def is_repo_supported_provider_options_map(value: Any) -> bool:
     )
 
 
-def strip_repo_supported_schema_details(operation_key: str, value: Any) -> Any:
+def is_responses_response_payload_path(operation_key: str, path: tuple[Any, ...]) -> bool:
+    return operation_key == "POST /responses" and bool(path) and path[0] == "responses"
+
+
+def strip_repo_supported_schema_details(
+    operation_key: str,
+    value: Any,
+    path: tuple[Any, ...] = (),
+) -> Any:
     if isinstance(value, dict):
         stripped = {
-            key: strip_repo_supported_schema_details(operation_key, item)
+            key: strip_repo_supported_schema_details(operation_key, item, path + (key,))
             for key, item in value.items()
         }
 
@@ -414,7 +427,7 @@ def strip_repo_supported_schema_details(operation_key: str, value: Any) -> Any:
                 "<repo-supported-provider-options>": REPO_FLEXIBLE_PROVIDER_OPTION_VALUE_SCHEMA
             }
 
-        if operation_key == "POST /responses":
+        if is_responses_response_payload_path(operation_key, path):
             properties = stripped.get("properties")
             if isinstance(properties, dict):
                 for field_name in REPO_RESPONSES_FLEXIBLE_NULLABILITY_FIELDS:
@@ -426,8 +439,8 @@ def strip_repo_supported_schema_details(operation_key: str, value: Any) -> Any:
 
     if isinstance(value, list):
         return [
-            strip_repo_supported_schema_details(operation_key, item)
-            for item in value
+            strip_repo_supported_schema_details(operation_key, item, path + (index,))
+            for index, item in enumerate(value)
         ]
 
     return value
@@ -436,7 +449,7 @@ def strip_repo_supported_schema_details(operation_key: str, value: Any) -> Any:
 def collect_repo_supported_schema_rules(operation_key: str, value: Any) -> list[str]:
     rules: set[str] = set()
 
-    def collect(item: Any) -> None:
+    def collect(item: Any, path: tuple[Any, ...] = ()) -> None:
         if isinstance(item, dict):
             if is_repo_supported_dynamic_provider_name_enum(item):
                 rules.add("dynamic provider name enum")
@@ -444,7 +457,7 @@ def collect_repo_supported_schema_rules(operation_key: str, value: Any) -> list[
                 rules.add("dynamic output modality enum")
             if is_repo_supported_provider_options_map(item):
                 rules.add("provider-specific options map")
-            if operation_key == "POST /responses":
+            if is_responses_response_payload_path(operation_key, path):
                 properties = item.get("properties")
                 if isinstance(properties, dict):
                     for field_name in REPO_RESPONSES_FLEXIBLE_NULLABILITY_FIELDS:
@@ -452,13 +465,13 @@ def collect_repo_supported_schema_rules(operation_key: str, value: Any) -> list[
                         if isinstance(field_schema, dict) and field_schema.get("nullable") is True:
                             rules.add("Responses flexible nullable fields")
 
-            for child in item.values():
-                collect(child)
+            for key, child in item.items():
+                collect(child, path + (key,))
             return
 
         if isinstance(item, list):
-            for child in item:
-                collect(child)
+            for index, child in enumerate(item):
+                collect(child, path + (index,))
 
     collect(value)
     return sorted(rules)
