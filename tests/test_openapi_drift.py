@@ -11,9 +11,17 @@ openapi_drift = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(openapi_drift)
 
 
-def build_spec(*, parameters=None, response_properties=None):
+def build_spec(
+    *,
+    method="get",
+    path="/models",
+    operation_id="getModels",
+    parameters=None,
+    request_properties=None,
+    response_properties=None,
+):
     operation = {
-        "operationId": "getModels",
+        "operationId": operation_id,
         "responses": {
             "200": {
                 "description": "ok",
@@ -30,6 +38,17 @@ def build_spec(*, parameters=None, response_properties=None):
             }
         },
     }
+    if request_properties is not None:
+        operation["requestBody"] = {
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "type": "object",
+                        "properties": request_properties,
+                    }
+                }
+            }
+        }
     if parameters is not None:
         operation["parameters"] = parameters
 
@@ -37,8 +56,8 @@ def build_spec(*, parameters=None, response_properties=None):
         "openapi": "3.1.0",
         "info": {"title": "Test", "version": "1.0.0"},
         "paths": {
-            "/models": {
-                "get": operation,
+            path: {
+                method: operation,
             }
         },
     }
@@ -62,6 +81,11 @@ class OpenApiDriftReportTests(unittest.TestCase):
                 },
                 {
                     "in": "header",
+                    "name": "X-Title",
+                    "schema": {"type": "string"},
+                },
+                {
+                    "in": "header",
                     "name": "X-OpenRouter-Categories",
                     "schema": {"type": "string"},
                     "x-speakeasy-name-override": "appCategories",
@@ -81,11 +105,11 @@ class OpenApiDriftReportTests(unittest.TestCase):
         self.assertTrue(report["has_drift"])
         self.assertFalse(report["has_actionable_drift"])
         self.assertEqual(report["summary"]["changed"], 1)
-        self.assertEqual(report["repo_summary"]["metadata_only_already_supported"], 1)
+        self.assertEqual(report["repo_summary"]["already_supported_changed"], 1)
         self.assertEqual(report["repo_summary"]["actionable_changed"], 0)
         self.assertEqual(
             report["changed"][0]["repo_impact"]["category"],
-            "metadata_only_already_supported",
+            "already_supported",
         )
 
     def test_non_metadata_schema_change_remains_actionable(self):
@@ -124,7 +148,7 @@ class OpenApiDriftReportTests(unittest.TestCase):
         self.assertTrue(report["has_drift"])
         self.assertTrue(report["has_actionable_drift"])
         self.assertEqual(report["summary"]["changed"], 1)
-        self.assertEqual(report["repo_summary"]["metadata_only_already_supported"], 0)
+        self.assertEqual(report["repo_summary"]["already_supported_changed"], 0)
         self.assertEqual(report["repo_summary"]["actionable_changed"], 1)
         self.assertEqual(report["changed"][0]["repo_impact"]["category"], "actionable")
 
@@ -162,13 +186,279 @@ class OpenApiDriftReportTests(unittest.TestCase):
 
         self.assertTrue(report["has_drift"])
         self.assertTrue(report["has_actionable_drift"])
-        self.assertEqual(report["repo_summary"]["metadata_only_already_supported"], 0)
+        self.assertEqual(report["repo_summary"]["already_supported_changed"], 0)
         self.assertEqual(report["repo_summary"]["actionable_changed"], 1)
         self.assertEqual(report["changed"][0]["repo_impact"]["category"], "actionable")
         self.assertEqual(
             report["changed"][0]["repo_impact"]["supported_parameters"],
             ["header X-OpenRouter-Title"],
         )
+
+    def test_dynamic_provider_enum_drift_is_classified_as_already_supported(self):
+        baseline = build_spec(
+            response_properties={
+                "provider_name": {
+                    "enum": ["Anthropic", "Google", "OpenAI"],
+                    "type": "string",
+                    "x-speakeasy-unknown-values": "allow",
+                }
+            }
+        )
+        candidate = build_spec(
+            response_properties={
+                "provider_name": {
+                    "enum": ["Anthropic", "Google", "Nex AGI", "OpenAI"],
+                    "type": "string",
+                    "x-speakeasy-unknown-values": "allow",
+                }
+            }
+        )
+
+        report = openapi_drift.build_report(
+            baseline_spec=baseline,
+            candidate_spec=candidate,
+            baseline_label="baseline",
+            candidate_label="candidate",
+            source_url="https://example.com/openapi.json",
+            max_diff_lines=20,
+        )
+
+        self.assertTrue(report["has_drift"])
+        self.assertFalse(report["has_actionable_drift"])
+        self.assertEqual(report["repo_summary"]["already_supported_changed"], 1)
+        self.assertEqual(report["repo_summary"]["actionable_changed"], 0)
+        self.assertEqual(report["changed"][0]["repo_impact"]["category"], "already_supported")
+        self.assertEqual(
+            report["changed"][0]["repo_impact"]["schema_rules"],
+            ["dynamic provider name enum"],
+        )
+
+    def test_dynamic_enum_with_object_members_does_not_crash(self):
+        baseline = build_spec(
+            response_properties={
+                "provider_name": {
+                    "enum": ["Anthropic", "Google", "OpenAI", {"custom": True}],
+                    "type": "string",
+                    "x-speakeasy-unknown-values": "allow",
+                }
+            }
+        )
+        candidate = build_spec(
+            response_properties={
+                "provider_name": {
+                    "enum": ["Anthropic", "Google", "Nex AGI", "OpenAI", {"custom": True}],
+                    "type": "string",
+                    "x-speakeasy-unknown-values": "allow",
+                }
+            }
+        )
+
+        report = openapi_drift.build_report(
+            baseline_spec=baseline,
+            candidate_spec=candidate,
+            baseline_label="baseline",
+            candidate_label="candidate",
+            source_url="https://example.com/openapi.json",
+            max_diff_lines=20,
+        )
+
+        self.assertTrue(report["has_drift"])
+        self.assertFalse(report["has_actionable_drift"])
+        self.assertEqual(report["repo_summary"]["already_supported_changed"], 1)
+        self.assertEqual(report["repo_summary"]["actionable_changed"], 0)
+        self.assertEqual(report["changed"][0]["repo_impact"]["category"], "already_supported")
+
+    def test_dynamic_modality_enum_drift_is_classified_as_already_supported(self):
+        baseline = build_spec(
+            response_properties={
+                "output_modalities": {
+                    "items": {
+                        "enum": ["audio", "image", "text", "tts", "video"],
+                        "type": "string",
+                        "x-speakeasy-unknown-values": "allow",
+                    },
+                    "type": "array",
+                }
+            }
+        )
+        candidate = build_spec(
+            response_properties={
+                "output_modalities": {
+                    "items": {
+                        "enum": ["audio", "image", "speech", "text", "video"],
+                        "type": "string",
+                        "x-speakeasy-unknown-values": "allow",
+                    },
+                    "type": "array",
+                }
+            }
+        )
+
+        report = openapi_drift.build_report(
+            baseline_spec=baseline,
+            candidate_spec=candidate,
+            baseline_label="baseline",
+            candidate_label="candidate",
+            source_url="https://example.com/openapi.json",
+            max_diff_lines=20,
+        )
+
+        self.assertTrue(report["has_drift"])
+        self.assertFalse(report["has_actionable_drift"])
+        self.assertEqual(report["repo_summary"]["already_supported_changed"], 1)
+        self.assertEqual(report["repo_summary"]["actionable_changed"], 0)
+        self.assertEqual(report["changed"][0]["repo_impact"]["category"], "already_supported")
+        self.assertEqual(
+            report["changed"][0]["repo_impact"]["schema_rules"],
+            ["dynamic output modality enum"],
+        )
+
+    def test_provider_options_map_drift_is_classified_as_already_supported(self):
+        provider_option = {
+            "additionalProperties": {"nullable": True},
+            "type": "object",
+        }
+        baseline = build_spec(
+            response_properties={
+                "provider": {
+                    "properties": {
+                        "anthropic": provider_option,
+                        "google-vertex": provider_option,
+                        "openai": provider_option,
+                    },
+                    "type": "object",
+                }
+            }
+        )
+        candidate = build_spec(
+            response_properties={
+                "provider": {
+                    "properties": {
+                        "anthropic": provider_option,
+                        "google-vertex": provider_option,
+                        "nex-agi": provider_option,
+                        "openai": provider_option,
+                    },
+                    "type": "object",
+                }
+            }
+        )
+
+        report = openapi_drift.build_report(
+            baseline_spec=baseline,
+            candidate_spec=candidate,
+            baseline_label="baseline",
+            candidate_label="candidate",
+            source_url="https://example.com/openapi.json",
+            max_diff_lines=20,
+        )
+
+        self.assertTrue(report["has_drift"])
+        self.assertFalse(report["has_actionable_drift"])
+        self.assertEqual(report["repo_summary"]["already_supported_changed"], 1)
+        self.assertEqual(report["repo_summary"]["actionable_changed"], 0)
+        self.assertEqual(report["changed"][0]["repo_impact"]["category"], "already_supported")
+        self.assertEqual(
+            report["changed"][0]["repo_impact"]["schema_rules"],
+            ["provider-specific options map"],
+        )
+
+    def test_responses_nullable_drift_is_classified_as_already_supported(self):
+        baseline = build_spec(
+            method="post",
+            path="/responses",
+            operation_id="createResponses",
+            response_properties={
+                "top_logprobs": {"nullable": True, "type": "integer"},
+            },
+        )
+        candidate = build_spec(
+            method="post",
+            path="/responses",
+            operation_id="createResponses",
+            response_properties={
+                "top_logprobs": {"type": "integer"},
+            },
+        )
+
+        report = openapi_drift.build_report(
+            baseline_spec=baseline,
+            candidate_spec=candidate,
+            baseline_label="baseline",
+            candidate_label="candidate",
+            source_url="https://example.com/openapi.json",
+            max_diff_lines=20,
+        )
+
+        self.assertTrue(report["has_drift"])
+        self.assertFalse(report["has_actionable_drift"])
+        self.assertEqual(report["repo_summary"]["already_supported_changed"], 1)
+        self.assertEqual(report["repo_summary"]["actionable_changed"], 0)
+        self.assertEqual(report["changed"][0]["repo_impact"]["category"], "already_supported")
+        self.assertEqual(
+            report["changed"][0]["repo_impact"]["schema_rules"],
+            ["Responses flexible nullable fields"],
+        )
+
+    def test_non_responses_nullable_drift_remains_actionable(self):
+        baseline = build_spec(
+            response_properties={
+                "top_logprobs": {"nullable": True, "type": "integer"},
+            },
+        )
+        candidate = build_spec(
+            response_properties={
+                "top_logprobs": {"type": "integer"},
+            },
+        )
+
+        report = openapi_drift.build_report(
+            baseline_spec=baseline,
+            candidate_spec=candidate,
+            baseline_label="baseline",
+            candidate_label="candidate",
+            source_url="https://example.com/openapi.json",
+            max_diff_lines=20,
+        )
+
+        self.assertTrue(report["has_drift"])
+        self.assertTrue(report["has_actionable_drift"])
+        self.assertEqual(report["repo_summary"]["already_supported_changed"], 0)
+        self.assertEqual(report["repo_summary"]["actionable_changed"], 1)
+        self.assertEqual(report["changed"][0]["repo_impact"]["category"], "actionable")
+
+    def test_responses_request_nullable_drift_remains_actionable(self):
+        baseline = build_spec(
+            method="post",
+            path="/responses",
+            operation_id="createResponses",
+            request_properties={
+                "top_logprobs": {"nullable": True, "type": "integer"},
+            },
+        )
+        candidate = build_spec(
+            method="post",
+            path="/responses",
+            operation_id="createResponses",
+            request_properties={
+                "top_logprobs": {"type": "integer"},
+            },
+        )
+
+        report = openapi_drift.build_report(
+            baseline_spec=baseline,
+            candidate_spec=candidate,
+            baseline_label="baseline",
+            candidate_label="candidate",
+            source_url="https://example.com/openapi.json",
+            max_diff_lines=20,
+        )
+
+        self.assertTrue(report["has_drift"])
+        self.assertTrue(report["has_actionable_drift"])
+        self.assertEqual(report["repo_summary"]["already_supported_changed"], 0)
+        self.assertEqual(report["repo_summary"]["actionable_changed"], 1)
+        self.assertEqual(report["changed"][0]["repo_impact"]["category"], "actionable")
 
 
 if __name__ == "__main__":

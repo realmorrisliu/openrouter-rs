@@ -18,7 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `client.tts().create(...)` now targets the official `POST /audio/speech` endpoint and falls back to legacy `POST /tts` only for route-unavailable signals, including generic plain-text `404/405` status pages, so request-level `404/405` errors on the official endpoint are still preserved.
 - Accepted the 2026-04-21 OpenAPI drift review, refreshed the tracked compatibility surfaces, and restored the repository snapshot to `51 / 51` official OpenAPI endpoint coverage.
 - Accepted the 2026-04-22 OpenAPI drift review, refreshed the tracked baseline, and kept the repository snapshot at `51 / 51` official OpenAPI endpoint coverage.
-- Nightly OpenAPI drift reports now keep the raw upstream diff but separately classify metadata-only changes already covered by the SDK's global request-metadata handling, reducing false-positive follow-up noise.
+- Accepted the 2026-04-23 OpenAPI drift review, refreshed the tracked baseline, and kept the repository snapshot at `51 / 51` official OpenAPI endpoint coverage.
+- Nightly OpenAPI drift reports now keep the raw upstream diff but separately classify changes already covered by the SDK's global request-metadata handling, dynamic `String` taxonomy fields, provider options maps, and Responses `Option`/`Value` parsing, reducing false-positive follow-up noise.
 
 ## [0.8.1] - 2026-04-21
 

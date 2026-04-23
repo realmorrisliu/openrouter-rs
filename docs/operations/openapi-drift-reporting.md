@@ -40,16 +40,22 @@ It intentionally ignores docs-only fields:
 That keeps the report focused on compatibility-relevant API changes rather than upstream prose edits.
 
 After the raw OpenAPI comparison, the report also applies a small repo-aware classification pass.
-Today that pass recognizes the global request metadata headers already handled by the SDK transport
-layer (`X-OpenRouter-Title`, `HTTP-Referer`, and `X-OpenRouter-Categories`) so the report can
-separate:
+Today that pass recognizes changes already handled by the SDK transport and flexible schema
+surfaces:
+
+- global request metadata headers (`X-OpenRouter-Title`, `X-Title`, `HTTP-Referer`, and `X-OpenRouter-Categories`)
+- dynamic provider-name and output-modality enums surfaced as `String` values by the SDK
+- provider-specific passthrough options surfaced as `HashMap<String, Value>`
+- Responses result nullable annotations covered by `Option`/`Value` response parsing
+
+This lets the report separate:
 
 - raw upstream drift
-- changed operations that are already covered by the repo's request-metadata handling
+- changed operations that are already covered by the repo's existing handling
 - changed operations that still need SDK/docs/test follow-up
 
-This keeps the nightly issue useful when upstream bulk-adds supported metadata headers across many
-operations without hiding the underlying OpenAPI drift.
+This keeps the nightly issue useful when upstream bulk-edits supported metadata or dynamic taxonomy
+schemas across many operations without hiding the underlying OpenAPI drift artifacts.
 
 The initial tracked baseline is intentionally seeded from the accepted endpoint matrix rather
 than silently fast-forwarded to whatever the latest upstream spec happens to contain. Baseline

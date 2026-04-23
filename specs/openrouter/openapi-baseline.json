@@ -1,23 +1,13 @@
 {
   "components": {
     "parameters": {
-      "AppCategories": {
-        "description": "Comma-separated list of app categories (e.g. \"cli-agent,cloud-agent\"). Used for marketplace rankings.\n",
-        "in": "header",
-        "name": "X-OpenRouter-Categories",
-        "schema": {
-          "type": "string"
-        },
-        "x-speakeasy-name-override": "appCategories"
-      },
       "AppDisplayName": {
         "description": "The app display name allows you to customize how your app appears in OpenRouter's dashboard.\n",
         "in": "header",
-        "name": "X-OpenRouter-Title",
+        "name": "X-Title",
         "schema": {
           "type": "string"
-        },
-        "x-speakeasy-name-override": "appTitle"
+        }
       },
       "AppIdentifier": {
         "description": "The app identifier should be your app's URL and is used as the primary identifier for rankings.\nThis is used to track API usage per application.\n",
@@ -3937,8 +3927,7 @@
             "type": "integer"
           },
           "error": {
-            "$ref": "#/components/schemas/ResponsesErrorField",
-            "nullable": true
+            "$ref": "#/components/schemas/ResponsesErrorField"
           },
           "frequency_penalty": {
             "format": "double",
@@ -3949,12 +3938,10 @@
             "type": "string"
           },
           "incomplete_details": {
-            "$ref": "#/components/schemas/IncompleteDetails",
-            "nullable": true
+            "$ref": "#/components/schemas/IncompleteDetails"
           },
           "instructions": {
-            "$ref": "#/components/schemas/BaseInputs",
-            "nullable": true
+            "$ref": "#/components/schemas/BaseInputs"
           },
           "max_output_tokens": {
             "nullable": true,
@@ -4035,8 +4022,7 @@
             "type": "string"
           },
           "reasoning": {
-            "$ref": "#/components/schemas/BaseReasoningConfig",
-            "nullable": true
+            "$ref": "#/components/schemas/BaseReasoningConfig"
           },
           "safety_identifier": {
             "nullable": true,
@@ -4057,8 +4043,7 @@
             "type": "number"
           },
           "text": {
-            "$ref": "#/components/schemas/TextConfig",
-            "nullable": true
+            "$ref": "#/components/schemas/TextConfig"
           },
           "tool_choice": {
             "$ref": "#/components/schemas/OpenAIResponsesToolChoice"
@@ -4147,7 +4132,6 @@
             "type": "array"
           },
           "top_logprobs": {
-            "nullable": true,
             "type": "integer"
           },
           "top_p": {
@@ -4156,8 +4140,7 @@
             "type": "number"
           },
           "truncation": {
-            "$ref": "#/components/schemas/Truncation",
-            "nullable": true
+            "$ref": "#/components/schemas/Truncation"
           },
           "usage": {
             "$ref": "#/components/schemas/OpenAIResponsesUsage"
@@ -12365,6 +12348,7 @@
                   "Morph",
                   "NCompass",
                   "Nebius",
+                  "Nex AGI",
                   "NextBit",
                   "Novita",
                   "Nvidia",
@@ -15123,7 +15107,7 @@
           "audio",
           "video",
           "rerank",
-          "tts"
+          "speech"
         ],
         "example": "text",
         "type": "string",
@@ -15900,6 +15884,7 @@
           "Morph",
           "NCompass",
           "Nebius",
+          "Nex AGI",
           "NextBit",
           "Novita",
           "Nvidia",
@@ -16281,6 +16266,7 @@
               "Morph",
               "NCompass",
               "Nebius",
+              "Nex AGI",
               "NextBit",
               "Novita",
               "Nvidia",
@@ -17847,7 +17833,7 @@
         "type": "object"
       },
       "SearchQualityLevel": {
-        "description": "How much context to retrieve per result. Defaults to medium (15000 chars). Only applies when using the Exa engine; ignored with native provider search.",
+        "description": "How much context to retrieve per result. Defaults to medium (15000 chars). Applies to Exa and Parallel engines; ignored with native provider search and Firecrawl.",
         "enum": [
           "low",
           "medium",
@@ -18385,6 +18371,12 @@
                     "type": "object"
                   },
                   "nebius": {
+                    "additionalProperties": {
+                      "nullable": true
+                    },
+                    "type": "object"
+                  },
+                  "nex-agi": {
                     "additionalProperties": {
                       "nullable": true
                     },
@@ -20275,6 +20267,12 @@
                     },
                     "type": "object"
                   },
+                  "nex-agi": {
+                    "additionalProperties": {
+                      "nullable": true
+                    },
+                    "type": "object"
+                  },
                   "nextbit": {
                     "additionalProperties": {
                       "nullable": true
@@ -21637,31 +21635,9 @@
         "tags": [
           "Analytics"
         ]
-      },
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ]
+      }
     },
     "/audio/speech": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ],
       "post": {
         "description": "Synthesizes audio from the input text",
         "operationId": "createAudioSpeech",
@@ -21865,17 +21841,6 @@
       }
     },
     "/auth/keys": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ],
       "post": {
         "description": "Exchange an authorization code from the PKCE flow for a user-controlled API key",
         "operationId": "exchangeAuthCodeForAPIKey",
@@ -22018,17 +21983,6 @@
       }
     },
     "/auth/keys/code": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ],
       "post": {
         "description": "Create an authorization code for the PKCE flow to generate a user-controlled API key",
         "operationId": "createAuthKeysCode",
@@ -22258,17 +22212,6 @@
       }
     },
     "/chat/completions": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ],
       "post": {
         "description": "Sends a request for a model response for the given chat conversation. Supports both streaming and non-streaming modes.",
         "operationId": "sendChatCompletionRequest",
@@ -22691,31 +22634,9 @@
           "Credits"
         ],
         "x-speakeasy-name-override": "getCredits"
-      },
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ]
+      }
     },
     "/credits/coinbase": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ],
       "post": {
         "deprecated": true,
         "description": "Deprecated. The Coinbase APIs used by this endpoint have been deprecated, so Coinbase Commerce charges have been removed. Use the web credits purchase flow instead.",
@@ -22752,17 +22673,6 @@
       }
     },
     "/embeddings": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ],
       "post": {
         "description": "Submits an embedding request to the embeddings router",
         "operationId": "createEmbeddings",
@@ -23364,18 +23274,7 @@
           "Embeddings"
         ],
         "x-speakeasy-name-override": "listModels"
-      },
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ]
+      }
     },
     "/endpoints/zdr": {
       "get": {
@@ -23510,18 +23409,7 @@
           "Endpoints"
         ],
         "x-speakeasy-name-override": "listZdrEndpoints"
-      },
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ]
+      }
     },
     "/generation": {
       "get": {
@@ -23726,18 +23614,7 @@
         "tags": [
           "Generations"
         ]
-      },
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ]
+      }
     },
     "/generation/content": {
       "get": {
@@ -23916,18 +23793,7 @@
         "tags": [
           "Generations"
         ]
-      },
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ]
+      }
     },
     "/guardrails": {
       "get": {
@@ -24065,17 +23931,6 @@
           "type": "offsetLimit"
         }
       },
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ],
       "post": {
         "description": "Create a new guardrail for the authenticated user. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "createGuardrail",
@@ -24321,18 +24176,7 @@
           },
           "type": "offsetLimit"
         }
-      },
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ]
+      }
     },
     "/guardrails/assignments/members": {
       "get": {
@@ -24446,18 +24290,7 @@
           },
           "type": "offsetLimit"
         }
-      },
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ]
+      }
     },
     "/guardrails/{id}": {
       "delete": {
@@ -24650,17 +24483,6 @@
         ],
         "x-speakeasy-name-override": "get"
       },
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ],
       "patch": {
         "description": "Update an existing guardrail. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "updateGuardrail",
@@ -24938,17 +24760,6 @@
           "type": "offsetLimit"
         }
       },
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ],
       "post": {
         "description": "Assign multiple API keys to a specific guardrail. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "bulkAssignKeysToGuardrail",
@@ -25068,17 +24879,6 @@
       }
     },
     "/guardrails/{id}/assignments/keys/remove": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ],
       "post": {
         "description": "Unassign multiple API keys from a specific guardrail. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "bulkUnassignKeysFromGuardrail",
@@ -25338,17 +25138,6 @@
           "type": "offsetLimit"
         }
       },
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ],
       "post": {
         "description": "Assign multiple organization members to a specific guardrail. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "bulkAssignMembersToGuardrail",
@@ -25469,17 +25258,6 @@
       }
     },
     "/guardrails/{id}/assignments/members/remove": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ],
       "post": {
         "description": "Unassign multiple organization members from a specific guardrail. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "bulkUnassignMembersFromGuardrail",
@@ -25901,18 +25679,7 @@
           "API Keys"
         ],
         "x-speakeasy-name-override": "getCurrentKeyMetadata"
-      },
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ]
+      }
     },
     "/keys": {
       "get": {
@@ -26258,17 +26025,6 @@
         ],
         "x-speakeasy-name-override": "list"
       },
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ],
       "post": {
         "description": "Create a new API key for the authenticated user. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "createKeys",
@@ -27129,17 +26885,6 @@
         ],
         "x-speakeasy-name-override": "get"
       },
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ],
       "patch": {
         "description": "Update an existing API key. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "updateKeys",
@@ -27545,17 +27290,6 @@
       }
     },
     "/messages": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ],
       "post": {
         "description": "Creates a message using the Anthropic Messages API format. Supports text, images, PDFs, tools, and extended thinking.",
         "operationId": "createMessages",
@@ -27930,18 +27664,7 @@
           "Models"
         ],
         "x-speakeasy-name-override": "list"
-      },
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ]
+      }
     },
     "/models/count": {
       "get": {
@@ -28013,18 +27736,7 @@
           "Models"
         ],
         "x-speakeasy-name-override": "count"
-      },
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ]
+      }
     },
     "/models/user": {
       "get": {
@@ -28146,18 +27858,7 @@
           "Models"
         ],
         "x-speakeasy-name-override": "listForUser"
-      },
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ]
+      }
     },
     "/models/{author}/{slug}/endpoints": {
       "get": {
@@ -28323,18 +28024,7 @@
           "Endpoints"
         ],
         "x-speakeasy-name-override": "list"
-      },
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ]
+      }
     },
     "/organization/members": {
       "get": {
@@ -28522,18 +28212,7 @@
           },
           "type": "offsetLimit"
         }
-      },
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ]
+      }
     },
     "/providers": {
       "get": {
@@ -29184,31 +28863,9 @@
           "Providers"
         ],
         "x-speakeasy-name-override": "list"
-      },
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ]
+      }
     },
     "/rerank": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ],
       "post": {
         "description": "Submits a rerank request to the rerank router",
         "operationId": "createRerank",
@@ -29585,17 +29242,6 @@
       }
     },
     "/responses": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ],
       "post": {
         "description": "Creates a streaming or non-streaming response using OpenResponses API format",
         "operationId": "createResponses",
@@ -29886,17 +29532,6 @@
       }
     },
     "/videos": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ],
       "post": {
         "description": "Submits a video generation request and returns a polling URL to check status",
         "operationId": "createVideos",
@@ -30122,18 +29757,7 @@
         "tags": [
           "Video Generation"
         ]
-      },
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ]
+      }
     },
     "/videos/{jobId}": {
       "get": {
@@ -30228,18 +29852,7 @@
           "Video Generation"
         ],
         "x-speakeasy-name-override": "getGeneration"
-      },
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ]
+      }
     },
     "/videos/{jobId}/content": {
       "get": {
@@ -30368,18 +29981,7 @@
           "Video Generation"
         ],
         "x-speakeasy-name-override": "getVideoContent"
-      },
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ]
+      }
     },
     "/workspaces": {
       "get": {
@@ -30501,17 +30103,6 @@
           "type": "offsetLimit"
         }
       },
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ],
       "post": {
         "description": "Create a new workspace for the authenticated user. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "createWorkspace",
@@ -30852,17 +30443,6 @@
         ],
         "x-speakeasy-name-override": "get"
       },
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ],
       "patch": {
         "description": "Update an existing workspace by ID or slug. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "updateWorkspace",
@@ -31011,17 +30591,6 @@
       }
     },
     "/workspaces/{id}/members/add": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ],
       "post": {
         "description": "Add multiple organization members to a workspace. Members are assigned the same role they hold in the organization. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "bulkAddWorkspaceMembers",
@@ -31167,17 +30736,6 @@
       }
     },
     "/workspaces/{id}/members/remove": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AppIdentifier"
-        },
-        {
-          "$ref": "#/components/parameters/AppDisplayName"
-        },
-        {
-          "$ref": "#/components/parameters/AppCategories"
-        }
-      ],
       "post": {
         "description": "Remove multiple members from a workspace. Members with active API keys in the workspace cannot be removed. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "bulkRemoveWorkspaceMembers",
