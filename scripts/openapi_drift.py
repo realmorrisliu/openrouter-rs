@@ -18,6 +18,7 @@ DOC_ONLY_FIELDS = {"description", "example", "examples", "externalDocs", "summar
 REPO_KNOWN_METADATA_PARAMETERS = frozenset(
     {
         ("header", "HTTP-Referer"),
+        ("header", "X-Title"),
         ("header", "X-OpenRouter-Categories"),
         ("header", "X-OpenRouter-Title"),
     }
@@ -38,6 +39,13 @@ REPO_SUPPORTED_METADATA_PARAMETER_SHAPES = {
         },
         "x-speakeasy-name-override": "appCategories",
     },
+    ("header", "X-Title"): {
+        "in": "header",
+        "name": "X-Title",
+        "schema": {
+            "type": "string",
+        },
+    },
     ("header", "X-OpenRouter-Title"): {
         "in": "header",
         "name": "X-OpenRouter-Title",
@@ -47,6 +55,22 @@ REPO_SUPPORTED_METADATA_PARAMETER_SHAPES = {
         "x-speakeasy-name-override": "appTitle",
     },
 }
+REPO_DYNAMIC_PROVIDER_NAME_MARKERS = frozenset({"Anthropic", "Google", "OpenAI"})
+REPO_DYNAMIC_OUTPUT_MODALITY_MARKERS = frozenset({"image", "text", "video"})
+REPO_FLEXIBLE_PROVIDER_OPTION_MARKERS = frozenset({"anthropic", "google-vertex", "openai"})
+REPO_FLEXIBLE_PROVIDER_OPTION_VALUE_SCHEMA = {
+    "additionalProperties": {
+        "nullable": True,
+    },
+    "type": "object",
+}
+REPO_RESPONSES_FLEXIBLE_NULLABILITY_FIELDS = frozenset(
+    {
+        "instructions",
+        "text",
+        "top_logprobs",
+    }
+)
 BASELINE_TOP_LEVEL_FIELDS = (
     "components",
     "info",
@@ -320,7 +344,128 @@ def strip_repo_supported_metadata_parameters(operation: Any) -> Any:
     return stripped_operation
 
 
+def scalar_enum_values(value: Any) -> set[Any]:
+    enum_values = value.get("enum") if isinstance(value, dict) else None
+    if not isinstance(enum_values, list):
+        return set()
+    return set(enum_values)
+
+
+def is_repo_supported_dynamic_provider_name_enum(value: Any) -> bool:
+    if not isinstance(value, dict):
+        return False
+
+    enum_values = scalar_enum_values(value)
+    string_values = {item for item in enum_values if isinstance(item, str)}
+    return (
+        value.get("type") == "string"
+        and value.get("x-speakeasy-unknown-values") == "allow"
+        and REPO_DYNAMIC_PROVIDER_NAME_MARKERS.issubset(string_values)
+    )
+
+
+def is_repo_supported_dynamic_output_modality_enum(value: Any) -> bool:
+    if not isinstance(value, dict):
+        return False
+
+    enum_values = scalar_enum_values(value)
+    string_values = {item for item in enum_values if isinstance(item, str)}
+    return (
+        value.get("type") == "string"
+        and value.get("x-speakeasy-unknown-values") == "allow"
+        and REPO_DYNAMIC_OUTPUT_MODALITY_MARKERS.issubset(string_values)
+    )
+
+
+def is_repo_supported_provider_options_map(value: Any) -> bool:
+    if not isinstance(value, dict):
+        return False
+
+    properties = value.get("properties")
+    if not isinstance(properties, dict):
+        return False
+
+    property_names = set(properties)
+    return (
+        value.get("type") == "object"
+        and REPO_FLEXIBLE_PROVIDER_OPTION_MARKERS.issubset(property_names)
+        and all(
+            property_schema == REPO_FLEXIBLE_PROVIDER_OPTION_VALUE_SCHEMA
+            for property_schema in properties.values()
+        )
+    )
+
+
+def strip_repo_supported_schema_details(operation_key: str, value: Any) -> Any:
+    if isinstance(value, dict):
+        stripped = {
+            key: strip_repo_supported_schema_details(operation_key, item)
+            for key, item in value.items()
+        }
+
+        if (
+            is_repo_supported_dynamic_provider_name_enum(stripped)
+            or is_repo_supported_dynamic_output_modality_enum(stripped)
+        ):
+            stripped["enum"] = ["<repo-supported-dynamic-enum>"]
+
+        if is_repo_supported_provider_options_map(stripped):
+            stripped["properties"] = {
+                "<repo-supported-provider-options>": REPO_FLEXIBLE_PROVIDER_OPTION_VALUE_SCHEMA
+            }
+
+        if operation_key == "POST /responses":
+            properties = stripped.get("properties")
+            if isinstance(properties, dict):
+                for field_name in REPO_RESPONSES_FLEXIBLE_NULLABILITY_FIELDS:
+                    field_schema = properties.get(field_name)
+                    if isinstance(field_schema, dict):
+                        field_schema.pop("nullable", None)
+
+        return stripped
+
+    if isinstance(value, list):
+        return [
+            strip_repo_supported_schema_details(operation_key, item)
+            for item in value
+        ]
+
+    return value
+
+
+def collect_repo_supported_schema_rules(operation_key: str, value: Any) -> list[str]:
+    rules: set[str] = set()
+
+    def collect(item: Any) -> None:
+        if isinstance(item, dict):
+            if is_repo_supported_dynamic_provider_name_enum(item):
+                rules.add("dynamic provider name enum")
+            if is_repo_supported_dynamic_output_modality_enum(item):
+                rules.add("dynamic output modality enum")
+            if is_repo_supported_provider_options_map(item):
+                rules.add("provider-specific options map")
+            if operation_key == "POST /responses":
+                properties = item.get("properties")
+                if isinstance(properties, dict):
+                    for field_name in REPO_RESPONSES_FLEXIBLE_NULLABILITY_FIELDS:
+                        field_schema = properties.get(field_name)
+                        if isinstance(field_schema, dict) and field_schema.get("nullable") is True:
+                            rules.add("Responses flexible nullable fields")
+
+            for child in item.values():
+                collect(child)
+            return
+
+        if isinstance(item, list):
+            for child in item:
+                collect(child)
+
+    collect(value)
+    return sorted(rules)
+
+
 def classify_repo_impact_for_changed_operation(
+    operation_key: str,
     baseline_operation: dict[str, Any],
     candidate_operation: dict[str, Any],
 ) -> dict[str, Any]:
@@ -345,18 +490,35 @@ def classify_repo_impact_for_changed_operation(
     candidate_without_supported = strip_repo_supported_metadata_parameters(
         candidate_normalized
     )
+    schema_rules = sorted(
+        {
+            *collect_repo_supported_schema_rules(operation_key, baseline_without_supported),
+            *collect_repo_supported_schema_rules(operation_key, candidate_without_supported),
+        }
+    )
+
+    baseline_without_supported = strip_repo_supported_schema_details(
+        operation_key,
+        baseline_without_supported,
+    )
+    candidate_without_supported = strip_repo_supported_schema_details(
+        operation_key,
+        candidate_without_supported,
+    )
 
     if (
-        exact_supported_parameters
+        (exact_supported_parameters or schema_rules)
         and baseline_without_supported == candidate_without_supported
     ):
         return {
-            "category": "metadata_only_already_supported",
+            "category": "already_supported",
+            "schema_rules": schema_rules,
             "supported_parameters": supported_parameters,
         }
 
     return {
         "category": "actionable",
+        "schema_rules": schema_rules,
         "supported_parameters": supported_parameters,
     }
 
@@ -594,7 +756,7 @@ def build_report(
     added = sorted(candidate_keys - baseline_keys)
     removed = sorted(baseline_keys - candidate_keys)
     changed = []
-    metadata_only_supported_count = 0
+    already_supported_count = 0
     actionable_changed_count = 0
 
     for operation_key in sorted(baseline_keys & candidate_keys):
@@ -604,11 +766,12 @@ def build_report(
             continue
 
         repo_impact = classify_repo_impact_for_changed_operation(
+            operation_key,
             baseline_operation,
             candidate_operation,
         )
-        if repo_impact["category"] == "metadata_only_already_supported":
-            metadata_only_supported_count += 1
+        if repo_impact["category"] == "already_supported":
+            already_supported_count += 1
         else:
             actionable_changed_count += 1
 
@@ -647,7 +810,7 @@ def build_report(
             "changed": len(changed),
         },
         "repo_summary": {
-            "metadata_only_already_supported": metadata_only_supported_count,
+            "already_supported_changed": already_supported_count,
             "actionable_added": len(added),
             "actionable_removed": len(removed),
             "actionable_changed": actionable_changed_count,
@@ -682,10 +845,10 @@ def markdown_list(title: str, items: list[str]) -> list[str]:
 
 
 def render_markdown_report(report: dict[str, Any]) -> str:
-    metadata_only_changes = [
+    already_supported_changes = [
         entry
         for entry in report["changed"]
-        if entry["repo_impact"]["category"] == "metadata_only_already_supported"
+        if entry["repo_impact"]["category"] == "already_supported"
     ]
     actionable_changes = [
         entry
@@ -736,8 +899,8 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             f"- Actionable removed operations: `{report['repo_summary']['actionable_removed']}`",
             f"- Actionable changed operations: `{report['repo_summary']['actionable_changed']}`",
             (
-                "- Changed operations already supported by repo metadata handling: "
-                f"`{report['repo_summary']['metadata_only_already_supported']}`"
+                "- Changed operations already supported by repo handling: "
+                f"`{report['repo_summary']['already_supported_changed']}`"
             ),
             "",
         ]
@@ -748,7 +911,7 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             [
                 "No actionable repo drift detected after repo-aware classification.",
                 "The tracked baseline is stale, but the changed operations are already covered by",
-                "the repository's global request-metadata handling.",
+                "the repository's global request-metadata or flexible schema handling.",
                 "",
             ]
         )
@@ -756,18 +919,26 @@ def render_markdown_report(report: dict[str, Any]) -> str:
     lines.extend(markdown_list("Added Operations", [entry["id"] for entry in report["added"]]))
     lines.extend(markdown_list("Removed Operations", [entry["id"] for entry in report["removed"]]))
 
-    lines.append("## Metadata-Only Changes Already Supported By Repo")
+    lines.append("## Changes Already Supported By Repo")
     lines.append("")
-    if not metadata_only_changes:
+    if not already_supported_changes:
         lines.append("- None")
         lines.append("")
     else:
-        for entry in metadata_only_changes:
-            supported_parameters = ", ".join(
-                f"`{parameter}`"
-                for parameter in entry["repo_impact"]["supported_parameters"]
-            )
-            lines.append(f"- `{entry['id']}` ({supported_parameters})")
+        for entry in already_supported_changes:
+            support_notes = []
+            if entry["repo_impact"]["supported_parameters"]:
+                support_notes.extend(
+                    f"`{parameter}`"
+                    for parameter in entry["repo_impact"]["supported_parameters"]
+                )
+            if entry["repo_impact"].get("schema_rules"):
+                support_notes.extend(
+                    f"`{rule}`"
+                    for rule in entry["repo_impact"]["schema_rules"]
+                )
+            support_note = ", ".join(support_notes)
+            lines.append(f"- `{entry['id']}` ({support_note})")
         lines.append("")
 
     lines.append("## Actionable Changed Operations")
@@ -781,12 +952,19 @@ def render_markdown_report(report: dict[str, Any]) -> str:
                 f"- `{entry['id']}` "
                 f"(`{entry['baseline_fingerprint']}` -> `{entry['candidate_fingerprint']}`)"
             )
+            support_notes = []
             if entry["repo_impact"]["supported_parameters"]:
-                supported_parameters = ", ".join(
+                support_notes.extend(
                     f"`{parameter}`"
                     for parameter in entry["repo_impact"]["supported_parameters"]
                 )
-                lines.append(f"  Repo metadata already covers: {supported_parameters}")
+            if entry["repo_impact"].get("schema_rules"):
+                support_notes.extend(
+                    f"`{rule}`"
+                    for rule in entry["repo_impact"]["schema_rules"]
+                )
+            if support_notes:
+                lines.append(f"  Repo already covers: {', '.join(support_notes)}")
             lines.append("")
             lines.append("```diff")
             lines.extend(entry["diff_preview"] or ["# normalized operation diff was empty"])
@@ -894,8 +1072,8 @@ def command_compare(args: argparse.Namespace) -> int:
         f"removed={report['summary']['removed']}, "
         f"changed={report['summary']['changed']}, "
         f"actionable_changed={report['repo_summary']['actionable_changed']}, "
-        "metadata_only_already_supported="
-        f"{report['repo_summary']['metadata_only_already_supported']}"
+        "already_supported_changed="
+        f"{report['repo_summary']['already_supported_changed']}"
     )
     print(f"- markdown report: {args.report_md}")
     print(f"- json report: {args.report_json}")
