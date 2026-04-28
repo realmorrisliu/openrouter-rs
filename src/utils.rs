@@ -1,4 +1,5 @@
 use futures_util::{Stream, StreamExt, stream, stream::BoxStream};
+use serde::{Serialize, Serializer};
 
 use crate::error::OpenRouterError;
 
@@ -34,6 +35,21 @@ macro_rules! strip_option_map_setter {
             self
         }
     };
+}
+
+pub(crate) fn serialize_optional_empty_vec_as_null<T, S>(
+    value: &Option<Vec<T>>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    T: Serialize,
+    S: Serializer,
+{
+    match value {
+        Some(items) if items.is_empty() => serializer.serialize_none(),
+        Some(items) => items.serialize(serializer),
+        None => serializer.serialize_none(),
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

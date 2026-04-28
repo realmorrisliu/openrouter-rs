@@ -143,7 +143,7 @@ fn test_update_workspace_request_serialization() {
         .name("Updated")
         .slug("updated")
         .is_data_discount_logging_enabled(false)
-        .io_logging_api_key_ids(Vec::<u64>::new())
+        .io_logging_api_key_ids(vec![101, 202])
         .io_logging_sampling_rate(1.0)
         .build()
         .expect("update workspace request should build");
@@ -152,9 +152,32 @@ fn test_update_workspace_request_serialization() {
     assert_eq!(value["name"], "Updated");
     assert_eq!(value["slug"], "updated");
     assert_eq!(value["is_data_discount_logging_enabled"], false);
-    assert_eq!(value["io_logging_api_key_ids"], serde_json::json!([]));
+    assert_eq!(
+        value["io_logging_api_key_ids"],
+        serde_json::json!([101, 202])
+    );
     assert_eq!(value["io_logging_sampling_rate"], 1.0);
     assert!(value.get("description").is_none());
+}
+
+#[test]
+fn test_update_workspace_request_can_clear_io_logging_api_key_filters() {
+    let omitted = UpdateWorkspaceRequest::builder()
+        .name("Updated")
+        .build()
+        .expect("update workspace request should build");
+    let omitted_value = serde_json::to_value(&omitted).expect("request should serialize");
+    assert!(omitted_value.get("io_logging_api_key_ids").is_none());
+
+    let cleared = UpdateWorkspaceRequest::builder()
+        .clear_io_logging_api_key_ids()
+        .build()
+        .expect("update workspace request should build");
+    let cleared_value = serde_json::to_value(&cleared).expect("request should serialize");
+    assert_eq!(
+        cleared_value.get("io_logging_api_key_ids"),
+        Some(&serde_json::Value::Null)
+    );
 }
 
 #[test]

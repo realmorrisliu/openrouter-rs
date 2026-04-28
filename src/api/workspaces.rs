@@ -114,7 +114,10 @@ pub struct UpdateWorkspaceRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub default_provider_sort: Option<String>,
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "crate::utils::serialize_optional_empty_vec_as_null"
+    )]
     pub io_logging_api_key_ids: Option<Vec<u64>>,
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -133,6 +136,13 @@ pub struct UpdateWorkspaceRequest {
 impl UpdateWorkspaceRequest {
     pub fn builder() -> UpdateWorkspaceRequestBuilder {
         UpdateWorkspaceRequestBuilder::default()
+    }
+}
+
+impl UpdateWorkspaceRequestBuilder {
+    pub fn clear_io_logging_api_key_ids(&mut self) -> &mut Self {
+        self.io_logging_api_key_ids = Some(Some(Vec::new()));
+        self
     }
 }
 

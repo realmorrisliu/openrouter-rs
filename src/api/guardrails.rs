@@ -98,10 +98,16 @@ pub struct UpdateGuardrailRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     reset_interval: Option<String>,
     #[builder(setter(custom), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "crate::utils::serialize_optional_empty_vec_as_null"
+    )]
     allowed_providers: Option<Vec<String>>,
     #[builder(setter(custom), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "crate::utils::serialize_optional_empty_vec_as_null"
+    )]
     allowed_models: Option<Vec<String>>,
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -111,6 +117,16 @@ pub struct UpdateGuardrailRequest {
 impl UpdateGuardrailRequestBuilder {
     strip_option_vec_setter!(allowed_providers, String);
     strip_option_vec_setter!(allowed_models, String);
+
+    pub fn clear_allowed_providers(&mut self) -> &mut Self {
+        self.allowed_providers = Some(Some(Vec::new()));
+        self
+    }
+
+    pub fn clear_allowed_models(&mut self) -> &mut Self {
+        self.allowed_models = Some(Some(Vec::new()));
+        self
+    }
 }
 
 impl UpdateGuardrailRequest {

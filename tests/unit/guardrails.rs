@@ -149,6 +149,22 @@ fn test_update_guardrail_request_serialization() {
 }
 
 #[test]
+fn test_update_guardrail_request_can_clear_nullable_allowlists() {
+    let request = UpdateGuardrailRequest::builder()
+        .clear_allowed_providers()
+        .clear_allowed_models()
+        .build()
+        .expect("update guardrail request should build");
+
+    let value = serde_json::to_value(&request).expect("request should serialize");
+    assert_eq!(
+        value.get("allowed_providers"),
+        Some(&serde_json::Value::Null)
+    );
+    assert_eq!(value.get("allowed_models"), Some(&serde_json::Value::Null));
+}
+
+#[test]
 fn test_guardrail_response_deserialization() {
     let raw = r#"{
         "data": {
