@@ -1650,6 +1650,26 @@ impl OpenRouterClient {
         }
     }
 
+    /// Update a workspace and clear I/O logging API key filters (`PATCH /workspaces/{id}`).
+    pub async fn update_workspace_with_cleared_io_logging_api_key_ids(
+        &self,
+        id: &str,
+        request: &workspaces::UpdateWorkspaceRequest,
+    ) -> Result<workspaces::Workspace, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            workspaces::update_workspace_with_cleared_io_logging_api_key_ids_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                id,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
     /// Delete a workspace (`DELETE /workspaces/{id}`).
     pub async fn delete_workspace(&self, id: &str) -> Result<bool, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
@@ -2259,6 +2279,17 @@ impl<'a> ManagementClient<'a> {
         request: &workspaces::UpdateWorkspaceRequest,
     ) -> Result<workspaces::Workspace, OpenRouterError> {
         self.client.update_workspace(id, request).await
+    }
+
+    /// Update a workspace and clear I/O logging API key filters (`PATCH /workspaces/{id}`).
+    pub async fn update_workspace_with_cleared_io_logging_api_key_ids(
+        &self,
+        id: &str,
+        request: &workspaces::UpdateWorkspaceRequest,
+    ) -> Result<workspaces::Workspace, OpenRouterError> {
+        self.client
+            .update_workspace_with_cleared_io_logging_api_key_ids(id, request)
+            .await
     }
 
     /// Delete a workspace (`DELETE /workspaces/{id}`).

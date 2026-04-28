@@ -161,7 +161,28 @@ fn test_update_workspace_request_serialization() {
 }
 
 #[test]
-fn test_update_workspace_request_can_clear_io_logging_api_key_filters() {
+fn test_update_workspace_request_struct_literal_still_supported() {
+    let request = UpdateWorkspaceRequest {
+        name: Some("Updated".to_string()),
+        slug: None,
+        description: None,
+        default_text_model: None,
+        default_image_model: None,
+        default_provider_sort: None,
+        io_logging_api_key_ids: Some(Vec::new()),
+        io_logging_sampling_rate: None,
+        is_data_discount_logging_enabled: None,
+        is_observability_broadcast_enabled: None,
+        is_observability_io_logging_enabled: None,
+    };
+
+    let value = serde_json::to_value(&request).expect("request should serialize");
+    assert_eq!(value["name"], "Updated");
+    assert_eq!(value["io_logging_api_key_ids"], serde_json::json!([]));
+}
+
+#[test]
+fn test_update_workspace_request_clear_wrapper_serialization() {
     let omitted = UpdateWorkspaceRequest::builder()
         .name("Updated")
         .build()
@@ -169,11 +190,8 @@ fn test_update_workspace_request_can_clear_io_logging_api_key_filters() {
     let omitted_value = serde_json::to_value(&omitted).expect("request should serialize");
     assert!(omitted_value.get("io_logging_api_key_ids").is_none());
 
-    let cleared = UpdateWorkspaceRequest::builder()
-        .clear_io_logging_api_key_ids()
-        .build()
-        .expect("update workspace request should build");
-    let cleared_value = serde_json::to_value(&cleared).expect("request should serialize");
+    let cleared_value = serde_json::to_value(omitted.with_cleared_io_logging_api_key_ids())
+        .expect("request should serialize");
     assert_eq!(
         cleared_value.get("io_logging_api_key_ids"),
         Some(&serde_json::Value::Null)
@@ -189,27 +207,20 @@ fn test_update_workspace_request_can_clear_io_logging_api_key_filters() {
         Some(&serde_json::json!([]))
     );
 
-    let value_after_clear = UpdateWorkspaceRequest::builder()
-        .clear_io_logging_api_key_ids()
+    let valued_filter = UpdateWorkspaceRequest::builder()
+        .name("Updated")
         .io_logging_api_key_ids(vec![101])
         .build()
         .expect("update workspace request should build");
     let value_after_clear_json =
-        serde_json::to_value(&value_after_clear).expect("request should serialize");
+        serde_json::to_value(valued_filter.with_cleared_io_logging_api_key_ids())
+            .expect("request should serialize");
+    assert_eq!(
+        value_after_clear_json.get("name"),
+        Some(&serde_json::json!("Updated"))
+    );
     assert_eq!(
         value_after_clear_json.get("io_logging_api_key_ids"),
-        Some(&serde_json::json!([101]))
-    );
-
-    let clear_after_value = UpdateWorkspaceRequest::builder()
-        .io_logging_api_key_ids(vec![101])
-        .clear_io_logging_api_key_ids()
-        .build()
-        .expect("update workspace request should build");
-    let clear_after_value_json =
-        serde_json::to_value(&clear_after_value).expect("request should serialize");
-    assert_eq!(
-        clear_after_value_json.get("io_logging_api_key_ids"),
         Some(&serde_json::Value::Null)
     );
 }
@@ -402,6 +413,45 @@ async fn test_update_workspace_encodes_id_and_sends_body() {
     let body: serde_json::Value =
         serde_json::from_str(&captured.body_text).expect("body should be valid json");
     assert_eq!(body["name"], "Updated");
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_update_workspace_can_clear_io_logging_api_key_filters() {
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":{"id":"ws_123","name":"Updated","slug":"updated","description":null,"default_text_model":null,"default_image_model":null,"default_provider_sort":null,"io_logging_api_key_ids":null,"io_logging_sampling_rate":1.0,"is_observability_io_logging_enabled":false,"is_observability_broadcast_enabled":false,"is_data_discount_logging_enabled":true,"created_at":"2025-01-01T00:00:00.000Z","updated_at":"2025-01-02T00:00:00.000Z","created_by":"user_123"}}"#,
+    );
+    let request = UpdateWorkspaceRequest::builder()
+        .name("Updated")
+        .io_logging_api_key_ids(vec![101])
+        .build()
+        .expect("request should build");
+
+    let response = workspaces::update_workspace_with_cleared_io_logging_api_key_ids(
+        &base_url,
+        "mgmt-key",
+        "team/prod 1",
+        &request,
+    )
+    .await
+    .expect("update workspace should succeed");
+    assert_eq!(response.name, "Updated");
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "PATCH /api/v1/workspaces/team%2Fprod%201 HTTP/1.1"
+    );
+    let body: serde_json::Value =
+        serde_json::from_str(&captured.body_text).expect("body should be valid json");
+    assert_eq!(body["name"], "Updated");
+    assert_eq!(
+        body.get("io_logging_api_key_ids"),
+        Some(&serde_json::Value::Null)
+    );
 
     server.join().expect("server thread should finish");
 }

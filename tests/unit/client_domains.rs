@@ -671,6 +671,16 @@ async fn test_management_domain_remaining_methods_require_configured_key() {
         Err(OpenRouterError::KeyNotConfigured)
     ));
     assert!(matches!(
+        client
+            .management()
+            .update_workspace_with_cleared_io_logging_api_key_ids(
+                "ws_123",
+                &update_workspace_request
+            )
+            .await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
         client.management().delete_workspace("ws_123").await,
         Err(OpenRouterError::KeyNotConfigured)
     ));
