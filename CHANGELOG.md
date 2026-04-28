@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-04-28
+
 ### Added
 - Added typed SDK support for `GET /generation/content`, including `client.get_generation_content(...)` and `client.management().get_generation_content(...)`.
 - Added typed `num_fetches` support on `GET /generation` metadata responses via `GenerationData`.

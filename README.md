@@ -37,7 +37,7 @@ The current repo snapshot implements `51 / 51` official OpenAPI method/path entr
 
 ```toml
 [dependencies]
-openrouter-rs = "0.8.1"
+openrouter-rs = "0.9.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -45,7 +45,7 @@ Legacy text completions are opt-in:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.8.1", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.9.0", features = ["legacy-completions"] }
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -302,7 +302,13 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 ## 📈 Release History
 
-### Version 0.8.1 *(Latest)*
+### Version 0.9.0 *(Latest)*
+
+- Added the canonical `audio().speech()` SDK surface for official `/audio/speech`, with deprecated `tts()` compatibility aliases.
+- Expanded workspace, workspace-scoped keys/guardrails, workspace I/O logging, generation content/metadata, and video callback coverage while keeping the endpoint snapshot at `51 / 51`.
+- Marked high-churn public types as builder-first/future-proof and documented the `0.8.x -> 0.9.0` migration path.
+
+### Version 0.8.1
 
 - Added typed `POST /tts` support with the canonical `tts()` client surface and a runnable example.
 - Added live smoke coverage for `POST /rerank` and `GET /organization/members`, and restored the repo snapshot to `43 / 43` accepted OpenAPI endpoints.
