@@ -18,6 +18,7 @@ struct ListWorkspacesQuery {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct Workspace {
     pub id: String,
     pub name: String,
@@ -44,6 +45,7 @@ pub struct Workspace {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct WorkspaceListResponse {
     pub data: Vec<Workspace>,
     pub total_count: f64,
@@ -51,6 +53,7 @@ pub struct WorkspaceListResponse {
 
 #[derive(Serialize, Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
 pub struct CreateWorkspaceRequest {
     #[builder(setter(into))]
     pub name: String,
@@ -94,6 +97,7 @@ impl CreateWorkspaceRequest {
 
 #[derive(Serialize, Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
 pub struct UpdateWorkspaceRequest {
     #[builder(setter(into, strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -194,6 +198,7 @@ struct DeleteWorkspaceResponse {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct WorkspaceMember {
     pub id: String,
     pub workspace_id: String,
@@ -204,6 +209,7 @@ pub struct WorkspaceMember {
 
 #[derive(Serialize, Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
 pub struct WorkspaceMembersRequest {
     pub user_ids: Vec<String>,
 }
@@ -215,12 +221,14 @@ impl WorkspaceMembersRequest {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct WorkspaceMembersAddResponse {
     pub added_count: f64,
     pub data: Vec<WorkspaceMember>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct WorkspaceMembersRemoveResponse {
     pub removed_count: f64,
 }

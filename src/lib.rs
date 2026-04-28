@@ -1,7 +1,7 @@
 //! # OpenRouter Rust SDK
 //!
 //! `openrouter-rs` is a type-safe, async Rust SDK for the [OpenRouter API](https://openrouter.ai/),
-//! providing typed access to chat, responses, messages, rerank, text-to-speech, video generation,
+//! providing typed access to chat, responses, messages, rerank, audio speech, video generation,
 //! discovery, embeddings, and management endpoints.
 //!
 //! ## ✨ Key Features
@@ -9,7 +9,7 @@
 //! - **🔒 Type Safety**: Leverages Rust's type system for compile-time error prevention
 //! - **⚡ Async/Await**: Built on `tokio` for high-performance async operations  
 //! - **🏗️ Builder Pattern**: Ergonomic client and request construction
-//! - **🧭 Domain Clients**: Grouped API access via `chat()`, `responses()`, `messages()`, `rerank()`, `tts()`, `videos()`, `models()`, `management()`
+//! - **🧭 Domain Clients**: Grouped API access via `chat()`, `responses()`, `messages()`, `rerank()`, `audio().speech()`, `videos()`, `models()`, `management()`
 //! - **📡 Streaming Support**: Real-time response streaming with `futures`
 //! - **🧩 Unified Streaming Events**: Shared stream event model across chat/responses/messages
 //! - **🧠 Reasoning Tokens**: Advanced support for chain-of-thought reasoning
@@ -21,7 +21,7 @@
 //! Add to your `Cargo.toml`:
 //! ```toml
 //! [dependencies]
-//! openrouter-rs = "0.8.1"
+//! openrouter-rs = "0.9.0"
 //! tokio = { version = "1", features = ["full"] }
 //! ```
 //!
@@ -145,7 +145,7 @@
 //! | Domain-Oriented Client API | ✅ | [`client::OpenRouterClient`] |
 //! | Chat Completions | ✅ | [`api::chat`] |
 //! | Rerank | ✅ | [`api::rerank`] |
-//! | Text-to-Speech | ✅ | [`api::tts`] |
+//! | Audio Speech | ✅ | [`api::audio`] |
 //! | Video Generation | ✅ | [`api::videos`] |
 //! | Legacy Text Completions (`legacy-completions`) | ✅ | `api::legacy::completion` |
 //! | Model Information | ✅ | [`api::models`] |

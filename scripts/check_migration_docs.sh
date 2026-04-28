@@ -27,7 +27,15 @@ if [[ ! -f "$README_PATH" ]]; then
   exit 1
 fi
 
-# README must keep the migration-entry section and core rename mappings.
+# README must keep the current migration-entry section and core rename mappings.
+require_pattern "### 🔁 0.9 Audio Speech Migration" "$README_PATH"
+require_pattern "client.tts().create(...)" "$README_PATH"
+require_pattern "client.audio().speech().create(...)" "$README_PATH"
+require_pattern "api::tts::TtsRequest" "$README_PATH"
+require_pattern "api::audio::SpeechRequest" "$README_PATH"
+
+# README must also keep historical migration-entry mappings while those
+# historical sections remain part of the public upgrade docs.
 require_pattern "### 🔁 0.6 Naming/Pagination Migration" "$README_PATH"
 require_pattern "models().count()" "$README_PATH"
 require_pattern "models().get_model_count()" "$README_PATH"
@@ -36,9 +44,15 @@ require_pattern "models().list_user_models()" "$README_PATH"
 require_pattern "management().exchange_code_for_api_key(...)" "$README_PATH"
 require_pattern "management().create_api_key_from_auth_code(...)" "$README_PATH"
 
-# If MIGRATION.md exists (OR-25 and later), validate key structure and snippets.
+# If MIGRATION.md exists (OR-25 and later), validate current and historical key structure.
 if [[ -f "$MIGRATION_PATH" ]]; then
-  require_pattern "# Migration Guide: 0.5.x -> 0.6.0" "$MIGRATION_PATH"
+  require_pattern "# Migration Guide" "$MIGRATION_PATH"
+  require_pattern "## Latest: 0.8.x -> 0.9.0" "$MIGRATION_PATH"
+  require_pattern "## Previous: 0.7.x -> 0.8.0" "$MIGRATION_PATH"
+  require_pattern "## Historical: 0.5.x -> 0.6.0" "$MIGRATION_PATH"
+  require_pattern "client.audio().speech().create" "$MIGRATION_PATH"
+  require_pattern "api::audio::{SpeechRequest, SpeechResponseFormat}" "$MIGRATION_PATH"
+  require_pattern "UpdateWorkspaceRequest::builder()" "$MIGRATION_PATH"
   require_pattern "## Breaking-Change Mapping" "$MIGRATION_PATH"
   require_pattern "## Top 10 Before/After Recipes" "$MIGRATION_PATH"
   require_pattern "OpenRouterClientBuilder::management_key" "$MIGRATION_PATH"

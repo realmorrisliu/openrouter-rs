@@ -9,7 +9,7 @@
 //! - `client.responses()` -> [`responses`]
 //! - `client.messages()` -> [`messages`]
 //! - `client.rerank()` -> [`rerank`]
-//! - `client.tts()` -> [`tts`]
+//! - `client.audio().speech()` -> [`audio`]
 //! - `client.videos()` -> [`videos`]
 //! - `client.models()` -> [`models`], [`embeddings`], [`discovery`]
 //! - `client.management()` -> [`api_keys`], [`auth`], [`credits`], [`generation`], [`guardrails`], [`organization`], [`workspaces`]
@@ -21,7 +21,7 @@
 //! - Responses API
 //! - Anthropic-compatible Messages API
 //! - rerank
-//! - text-to-speech
+//! - audio speech generation
 //! - video generation and polling
 //! - model discovery, providers, user model filters, model counts, and ZDR endpoints
 //! - embeddings
@@ -114,6 +114,7 @@
 //! ```
 
 pub mod api_keys;
+pub mod audio;
 pub mod auth;
 pub mod chat;
 pub mod credits;
@@ -127,6 +128,7 @@ pub mod models;
 pub mod organization;
 pub mod rerank;
 pub mod responses;
+#[deprecated(note = "use api::audio for the canonical /audio/speech surface")]
 pub mod tts;
 pub mod videos;
 pub mod workspaces;

@@ -443,6 +443,42 @@ fn test_workspaces_create_happy_path() {
 }
 
 #[test]
+fn test_workspaces_create_sends_io_logging_filters() {
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":{"id":"ws_1","name":"Core","slug":"core","io_logging_api_key_ids":[101,202],"io_logging_sampling_rate":0.25,"is_observability_io_logging_enabled":true,"is_observability_broadcast_enabled":false,"is_data_discount_logging_enabled":true,"created_at":"2026-03-01T00:00:00.000Z"}}"#,
+    );
+
+    let mut cmd = base_cmd(&base_url);
+    cmd.arg("workspaces")
+        .arg("create")
+        .arg("--name")
+        .arg("Core")
+        .arg("--io-logging-api-key-id")
+        .arg("101")
+        .arg("--io-logging-api-key-id")
+        .arg("202")
+        .arg("--io-logging-sampling-rate")
+        .arg("0.25");
+    cmd.assert().success();
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("request should be captured");
+    let body: Value =
+        serde_json::from_str(&captured.body_text).expect("request body should be valid json");
+    assert_eq!(
+        body.get("io_logging_api_key_ids"),
+        Some(&serde_json::json!([101, 202]))
+    );
+    assert_eq!(
+        body.get("io_logging_sampling_rate").and_then(Value::as_f64),
+        Some(0.25)
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[test]
 fn test_workspaces_get_happy_path() {
     let (base_url, rx, server) = spawn_json_server(
         r#"{"data":{"id":"ws_1","name":"Core","slug":"core","io_logging_api_key_ids":null,"io_logging_sampling_rate":1.0,"is_observability_io_logging_enabled":false,"is_observability_broadcast_enabled":true,"is_data_discount_logging_enabled":false,"created_at":"2026-03-01T00:00:00.000Z"}}"#,
@@ -518,6 +554,29 @@ fn test_workspaces_update_happy_path() {
             .and_then(Value::as_bool),
         Some(false)
     );
+
+    server.join().expect("server thread should finish");
+}
+
+#[test]
+fn test_workspaces_update_can_clear_io_logging_filters() {
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":{"id":"ws_1","name":"Core","slug":"core","io_logging_api_key_ids":null,"io_logging_sampling_rate":1.0,"is_observability_io_logging_enabled":false,"is_observability_broadcast_enabled":true,"is_data_discount_logging_enabled":false,"created_at":"2026-03-01T00:00:00.000Z","updated_at":"2026-03-02T00:00:00.000Z"}}"#,
+    );
+
+    let mut cmd = base_cmd(&base_url);
+    cmd.arg("workspaces")
+        .arg("update")
+        .arg("ws_1")
+        .arg("--clear-io-logging-api-key-ids");
+    cmd.assert().success();
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("request should be captured");
+    let body: Value =
+        serde_json::from_str(&captured.body_text).expect("request body should be valid json");
+    assert_eq!(body.get("io_logging_api_key_ids"), Some(&Value::Null));
 
     server.join().expect("server thread should finish");
 }

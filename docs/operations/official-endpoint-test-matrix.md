@@ -14,7 +14,7 @@ Nightly drift workflow: `.github/workflows/openapi-drift.yml`
 
 Drift review note:
 
-- Official text-to-speech routing is now `POST /audio/speech`. The SDK keeps the canonical `client.tts().create(...)` surface and retries legacy `POST /tts` only as a compatibility fallback.
+- Official audio speech routing is now `POST /audio/speech`. The SDK keeps the canonical `client.audio().speech().create(...)` surface and retries legacy `POST /tts` only as a compatibility fallback.
 - Upstream added `GET /generation/content`, now exposed as `client.get_generation_content(...)` / `client.management().get_generation_content(...)`.
 - Upstream added official workspace-management endpoints and workspace-aware management fields. The SDK and CLI now expose them; live management-key validation remains pending.
 - Upstream now exposes request metadata through generator globals (`HTTP-Referer`, `X-Title`) instead of repeating path-level metadata parameters. The SDK already applies `HTTP-Referer`, `X-Title`, `X-OpenRouter-Title`, and optional `X-OpenRouter-Categories` through the client builder.
@@ -26,7 +26,7 @@ Drift review note:
 Legend:
 
 - `SDK`: endpoint implemented in `openrouter-rs`.
-- Canonical surface note: the `0.7.x` docs and examples prefer domain clients (`chat()`, `responses()`, `messages()`, `rerank()`, `tts()`, `videos()`, `models()`, `management()`). Some rows still mention retained flat `OpenRouterClient::*` wrappers when they exist.
+- Canonical surface note: docs and examples prefer domain clients (`chat()`, `responses()`, `messages()`, `rerank()`, `audio().speech()`, `videos()`, `models()`, `management()`). Some rows still mention retained flat `OpenRouterClient::*` wrappers when they exist.
 - `Unit`: unit coverage depth.
   - `Path` = test asserts HTTP method/path (often with header/body checks).
   - `Contract` = serde/request-shape/parser coverage only.
@@ -79,7 +79,7 @@ Legend:
 | `POST /messages` | `client.messages().create(...)` / `client.messages().stream(...)` | Yes | Path | Yes | Keep |
 | `POST /rerank` | `client.rerank().create(...)` | Yes | Path | Yes | Keep |
 | `POST /responses` | `client.responses().create(...)` / `client.responses().stream(...)` | Yes | Contract | Yes | Keep |
-| `POST /audio/speech` | `client.tts().create(...)` | Yes | Path | No | P1 |
+| `POST /audio/speech` | `client.audio().speech().create(...)` | Yes | Path | No | P1 |
 | `POST /videos` | `client.videos().create(...)` | Yes | Path | No | P2 |
 | `POST /workspaces` | `client.management().create_workspace(...)` | Yes | Path | No | P1 |
 | `POST /workspaces/{id}/members/add` | `client.management().add_workspace_members(...)` | Yes | Path | No | P1 |
@@ -97,7 +97,7 @@ The endpoint below is intentionally kept as legacy compatibility and is not part
 | Endpoint | SDK surface | Notes |
 | --- | --- | --- |
 | `POST /completions` | `client.legacy().completions().create(...)` (feature `legacy-completions`) | Migration-only surface toward `chat`/`responses` |
-| `POST /tts` | `client.tts().create(...)` | Compatibility fallback while upstream rolls out `POST /audio/speech` everywhere |
+| `POST /tts` | `client.audio().speech().create(...)` | Compatibility fallback while upstream rolls out `POST /audio/speech` everywhere |
 
 ## Incremental Test Plan
 

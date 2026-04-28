@@ -8,10 +8,10 @@ use std::{
 };
 
 use http::StatusCode;
-use openrouter_rs::api::tts::{self, TtsProviderOptions, TtsRequest, TtsResponseFormat};
+use openrouter_rs::api::audio::{self, SpeechProviderOptions, SpeechRequest, SpeechResponseFormat};
 
 #[test]
-fn test_tts_request_serialization() {
+fn test_speech_request_serialization() {
     let mut provider_options = HashMap::new();
     provider_options.insert(
         "openai".to_string(),
@@ -20,19 +20,19 @@ fn test_tts_request_serialization() {
         }),
     );
 
-    let request = TtsRequest::builder()
+    let request = SpeechRequest::builder()
         .model("elevenlabs/eleven-turbo-v2")
         .input("Hello world")
         .voice("alloy")
-        .response_format(TtsResponseFormat::Mp3)
+        .response_format(SpeechResponseFormat::Mp3)
         .speed(1.1)
-        .provider(TtsProviderOptions {
+        .provider(SpeechProviderOptions {
             options: Some(provider_options),
         })
         .build()
-        .expect("tts request should build");
+        .expect("speech request should build");
 
-    let value = serde_json::to_value(&request).expect("tts request should serialize");
+    let value = serde_json::to_value(&request).expect("speech request should serialize");
     assert_eq!(value["model"], "elevenlabs/eleven-turbo-v2");
     assert_eq!(value["input"], "Hello world");
     assert_eq!(value["voice"], "alloy");
@@ -45,7 +45,7 @@ fn test_tts_request_serialization() {
 }
 
 #[tokio::test]
-async fn test_create_tts_path_body_headers_and_binary_response() {
+async fn test_create_speech_path_body_headers_and_binary_response() {
     let listener = TcpListener::bind("127.0.0.1:0").expect("listener should bind");
     let addr = listener
         .local_addr()
@@ -117,16 +117,16 @@ async fn test_create_tts_path_body_headers_and_binary_response() {
     });
 
     let base_url = format!("http://{addr}/api/v1");
-    let request = TtsRequest::builder()
+    let request = SpeechRequest::builder()
         .model("elevenlabs/eleven-turbo-v2")
         .input("Hello world")
         .voice("alloy")
-        .response_format(TtsResponseFormat::Mp3)
+        .response_format(SpeechResponseFormat::Mp3)
         .speed(1.0)
         .build()
-        .expect("tts request should build");
+        .expect("speech request should build");
 
-    let response = tts::create_tts(
+    let response = audio::create_speech(
         &base_url,
         "api-key",
         &Some("openrouter-rs".to_string()),
@@ -135,7 +135,7 @@ async fn test_create_tts_path_body_headers_and_binary_response() {
         &request,
     )
     .await
-    .expect("tts request should succeed");
+    .expect("speech request should succeed");
     assert_eq!(response, b"ID3fake-audio-data");
 
     let (request_line, request_text, body_text) = rx
@@ -181,7 +181,7 @@ async fn test_create_tts_path_body_headers_and_binary_response() {
 }
 
 #[tokio::test]
-async fn test_create_tts_falls_back_to_legacy_path_when_official_path_is_missing() {
+async fn test_create_speech_falls_back_to_legacy_path_when_official_path_is_missing() {
     let listener = TcpListener::bind("127.0.0.1:0").expect("listener should bind");
     let addr = listener
         .local_addr()
@@ -237,17 +237,17 @@ async fn test_create_tts_falls_back_to_legacy_path_when_official_path_is_missing
     });
 
     let base_url = format!("http://{addr}/api/v1");
-    let request = TtsRequest::builder()
+    let request = SpeechRequest::builder()
         .model("elevenlabs/eleven-turbo-v2")
         .input("Hello world")
         .voice("alloy")
-        .response_format(TtsResponseFormat::Mp3)
+        .response_format(SpeechResponseFormat::Mp3)
         .build()
-        .expect("tts request should build");
+        .expect("speech request should build");
 
-    let response = tts::create_tts(&base_url, "api-key", &None, &None, &None, &request)
+    let response = audio::create_speech(&base_url, "api-key", &None, &None, &None, &request)
         .await
-        .expect("tts request should fall back and succeed");
+        .expect("speech request should fall back and succeed");
     assert_eq!(response, b"ID3legacy-fallback");
 
     let first_request_line = rx
@@ -263,7 +263,7 @@ async fn test_create_tts_falls_back_to_legacy_path_when_official_path_is_missing
 }
 
 #[tokio::test]
-async fn test_create_tts_does_not_fall_back_for_request_level_404() {
+async fn test_create_speech_does_not_fall_back_for_request_level_404() {
     let listener = TcpListener::bind("127.0.0.1:0").expect("listener should bind");
     let addr = listener
         .local_addr()
@@ -303,17 +303,17 @@ async fn test_create_tts_does_not_fall_back_for_request_level_404() {
     });
 
     let base_url = format!("http://{addr}/api/v1");
-    let request = TtsRequest::builder()
+    let request = SpeechRequest::builder()
         .model("elevenlabs/eleven-turbo-v2")
         .input("Hello world")
         .voice("alloy")
-        .response_format(TtsResponseFormat::Mp3)
+        .response_format(SpeechResponseFormat::Mp3)
         .build()
-        .expect("tts request should build");
+        .expect("speech request should build");
 
-    let error = tts::create_tts(&base_url, "api-key", &None, &None, &None, &request)
+    let error = audio::create_speech(&base_url, "api-key", &None, &None, &None, &request)
         .await
-        .expect_err("tts request should surface the official error");
+        .expect_err("speech request should surface the official error");
 
     match error {
         openrouter_rs::error::OpenRouterError::Api(api_error) => {
@@ -336,7 +336,7 @@ async fn test_create_tts_does_not_fall_back_for_request_level_404() {
 }
 
 #[tokio::test]
-async fn test_create_tts_does_not_fall_back_for_plain_text_request_level_404() {
+async fn test_create_speech_does_not_fall_back_for_plain_text_request_level_404() {
     let listener = TcpListener::bind("127.0.0.1:0").expect("listener should bind");
     let addr = listener
         .local_addr()
@@ -376,17 +376,17 @@ async fn test_create_tts_does_not_fall_back_for_plain_text_request_level_404() {
     });
 
     let base_url = format!("http://{addr}/api/v1");
-    let request = TtsRequest::builder()
+    let request = SpeechRequest::builder()
         .model("elevenlabs/eleven-turbo-v2")
         .input("Hello world")
         .voice("alloy")
-        .response_format(TtsResponseFormat::Mp3)
+        .response_format(SpeechResponseFormat::Mp3)
         .build()
-        .expect("tts request should build");
+        .expect("speech request should build");
 
-    let error = tts::create_tts(&base_url, "api-key", &None, &None, &None, &request)
+    let error = audio::create_speech(&base_url, "api-key", &None, &None, &None, &request)
         .await
-        .expect_err("tts request should surface the official error");
+        .expect_err("speech request should surface the official error");
 
     match error {
         openrouter_rs::error::OpenRouterError::Api(api_error) => {
@@ -409,7 +409,7 @@ async fn test_create_tts_does_not_fall_back_for_plain_text_request_level_404() {
 }
 
 #[tokio::test]
-async fn test_create_tts_falls_back_for_plain_text_404_page_not_found() {
+async fn test_create_speech_falls_back_for_plain_text_404_page_not_found() {
     let listener = TcpListener::bind("127.0.0.1:0").expect("listener should bind");
     let addr = listener
         .local_addr()
@@ -465,17 +465,17 @@ async fn test_create_tts_falls_back_for_plain_text_404_page_not_found() {
     });
 
     let base_url = format!("http://{addr}/api/v1");
-    let request = TtsRequest::builder()
+    let request = SpeechRequest::builder()
         .model("elevenlabs/eleven-turbo-v2")
         .input("Hello world")
         .voice("alloy")
-        .response_format(TtsResponseFormat::Mp3)
+        .response_format(SpeechResponseFormat::Mp3)
         .build()
-        .expect("tts request should build");
+        .expect("speech request should build");
 
-    let response = tts::create_tts(&base_url, "api-key", &None, &None, &None, &request)
+    let response = audio::create_speech(&base_url, "api-key", &None, &None, &None, &request)
         .await
-        .expect("tts request should fall back and succeed");
+        .expect("speech request should fall back and succeed");
     assert_eq!(response, b"ID3plain-text-fallback");
 
     let first_request_line = rx

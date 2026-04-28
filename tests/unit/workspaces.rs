@@ -161,20 +161,12 @@ fn test_update_workspace_request_serialization() {
 }
 
 #[test]
-fn test_update_workspace_request_struct_literal_still_supported() {
-    let request = UpdateWorkspaceRequest {
-        name: Some("Updated".to_string()),
-        slug: None,
-        description: None,
-        default_text_model: None,
-        default_image_model: None,
-        default_provider_sort: None,
-        io_logging_api_key_ids: Some(Vec::new()),
-        io_logging_sampling_rate: None,
-        is_data_discount_logging_enabled: None,
-        is_observability_broadcast_enabled: None,
-        is_observability_io_logging_enabled: None,
-    };
+fn test_update_workspace_request_builder_supports_empty_io_logging_filter() {
+    let request = UpdateWorkspaceRequest::builder()
+        .name("Updated")
+        .io_logging_api_key_ids(Vec::<u64>::new())
+        .build()
+        .expect("update workspace request should build");
 
     let value = serde_json::to_value(&request).expect("request should serialize");
     assert_eq!(value["name"], "Updated");

@@ -8,6 +8,7 @@ use crate::{
 };
 
 #[derive(Serialize, Deserialize, Debug)]
+#[non_exhaustive]
 pub struct ApiKey {
     pub name: Option<String>,
     pub label: Option<String>,
@@ -22,6 +23,7 @@ pub struct ApiKey {
 }
 
 #[derive(Serialize, Debug)]
+#[non_exhaustive]
 pub struct ApiKeyDetails {
     pub label: String,
     pub usage: f64,
@@ -68,6 +70,7 @@ impl<'de> Deserialize<'de> for ApiKeyDetails {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[non_exhaustive]
 pub struct RateLimit {
     pub requests: f64,
     pub interval: String,

@@ -4,6 +4,7 @@ fn dummy_test() {
 }
 
 pub mod api_keys;
+pub mod audio;
 pub mod auth;
 pub mod chat_api;
 pub mod chat_request;
@@ -29,7 +30,6 @@ pub mod response_format;
 pub mod responses;
 pub mod stream;
 pub mod tool_builder;
-pub mod tts;
 pub mod unified_stream;
 pub mod videos;
 pub mod workspaces;

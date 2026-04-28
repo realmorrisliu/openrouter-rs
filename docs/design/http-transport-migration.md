@@ -30,7 +30,7 @@ The key issue is not that every layer is dead. The issue is that the public SDK 
 
 - Remove the default dependency chain on runtime `libcurl` / `curl`
 - Move the SDK onto a Tokio-native and actively maintained client stack
-- Keep the canonical public API domain-oriented: `chat()`, `responses()`, `messages()`, `rerank()`, `tts()`, `videos()`, `models()`, `management()`, and `legacy()`
+- Keep the canonical public API domain-oriented: `chat()`, `responses()`, `messages()`, `rerank()`, `audio().speech()`, `videos()`, `models()`, `management()`, and `legacy()`
 - Preserve current behavior for JSON requests, auth headers, query encoding, and SSE streaming
 - Reduce coupling between public error types and a specific HTTP client implementation
 - Make the migration reviewable in a small number of focused PRs instead of one rewrite

@@ -11,6 +11,7 @@ use crate::{
 };
 
 #[derive(Serialize, Deserialize, Debug)]
+#[non_exhaustive]
 pub struct GenerationData {
     pub id: String,
     pub total_cost: f64,
@@ -44,6 +45,7 @@ pub struct GenerationData {
 
 /// Stored prompt/input and completion/output content returned by `GET /generation/content`.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct GenerationContentData {
     #[serde(default)]
     pub input: HashMap<String, Value>,
