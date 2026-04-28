@@ -62,6 +62,7 @@ pub struct VideoProviderOptions {
 /// Request payload for `POST /videos`.
 #[derive(Serialize, Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
 pub struct VideoGenerationRequest {
     #[builder(setter(into))]
     pub prompt: String,
@@ -107,6 +108,7 @@ impl VideoGenerationRequest {
 
 /// Usage payload returned by video generation status responses.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct VideoGenerationUsage {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cost: Option<f64>,
@@ -116,6 +118,7 @@ pub struct VideoGenerationUsage {
 
 /// Response payload returned by `POST /videos` and `GET /videos/{jobId}`.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct VideoGenerationResponse {
     pub id: String,
     pub polling_url: String,
@@ -132,6 +135,7 @@ pub struct VideoGenerationResponse {
 
 /// Video model metadata returned by `GET /videos/models`.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct VideoModel {
     pub id: String,
     pub canonical_slug: String,

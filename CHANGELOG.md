@@ -16,9 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added typed SDK support for `GET /workspaces`, `POST /workspaces`, `GET /workspaces/{id}`, `PATCH /workspaces/{id}`, `DELETE /workspaces/{id}`, `POST /workspaces/{id}/members/add`, and `POST /workspaces/{id}/members/remove`, including canonical `client.management()` methods and a runnable `examples/list_workspaces.rs`.
 - Added workspace-aware API-key and guardrail support, including `workspace_id` fields on typed models plus `create_api_key_in_workspace(...)`, `list_api_keys_in_workspace(...)`, and `list_guardrails_in_workspace(...)`.
 - Added `openrouter-cli workspaces ...` commands, plus `--workspace-id` support for `openrouter-cli keys list|create` and `openrouter-cli guardrails list|create`.
+- Added `openrouter-cli workspaces create|update --io-logging-api-key-id`, `--io-logging-sampling-rate`, and `workspaces update --clear-io-logging-api-key-ids` so CLI workspace I/O logging controls match the SDK request surface.
+- Added the canonical SDK audio speech surface: `api::audio::{SpeechRequest, SpeechResponseFormat, SpeechProviderOptions}`, `api::audio::create_speech(...)`, and `client.audio().speech().create(...)`.
 
 ### Changed
-- `client.tts().create(...)` now targets the official `POST /audio/speech` endpoint and falls back to legacy `POST /tts` only for route-unavailable signals, including generic plain-text `404/405` status pages, so request-level `404/405` errors on the official endpoint are still preserved.
+- Breaking: `client.tts().create(...)`, `api::tts::TtsRequest`, `api::tts::TtsResponseFormat`, and `api::tts::create_tts(...)` are now deprecated compatibility aliases; new code should use the canonical `client.audio().speech().create(...)` and `api::audio` names.
+- Breaking: newly added and high-churn public request/response types for audio speech, workspace management, workspace-aware keys, generation metadata/content, and video generation are marked `#[non_exhaustive]` where appropriate; use builders for request construction instead of public struct literals.
+- The canonical audio speech path targets official `POST /audio/speech` and falls back to legacy `POST /tts` only for route-unavailable signals, including generic plain-text `404/405` status pages, so request-level `404/405` errors on the official endpoint are still preserved.
 - Accepted the 2026-04-21 OpenAPI drift review, refreshed the tracked compatibility surfaces, and restored the repository snapshot to `51 / 51` official OpenAPI endpoint coverage.
 - Accepted the 2026-04-22 OpenAPI drift review, refreshed the tracked baseline, and kept the repository snapshot at `51 / 51` official OpenAPI endpoint coverage.
 - Accepted the 2026-04-23 OpenAPI drift review, refreshed the tracked baseline, and kept the repository snapshot at `51 / 51` official OpenAPI endpoint coverage.

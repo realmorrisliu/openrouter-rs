@@ -846,6 +846,12 @@ async fn run(cli: Cli) -> Result<()> {
                     if let Some(default_provider_sort) = args.default_provider_sort {
                         builder.default_provider_sort(default_provider_sort);
                     }
+                    if !args.io_logging_api_key_ids.is_empty() {
+                        builder.io_logging_api_key_ids(args.io_logging_api_key_ids);
+                    }
+                    if let Some(io_logging_sampling_rate) = args.io_logging_sampling_rate {
+                        builder.io_logging_sampling_rate(io_logging_sampling_rate);
+                    }
                     if let Some(enabled) = data_discount_logging {
                         builder.is_data_discount_logging_enabled(enabled);
                     }
@@ -884,6 +890,9 @@ async fn run(cli: Cli) -> Result<()> {
                         && args.default_text_model.is_none()
                         && args.default_image_model.is_none()
                         && args.default_provider_sort.is_none()
+                        && args.io_logging_api_key_ids.is_empty()
+                        && !args.clear_io_logging_api_key_ids
+                        && args.io_logging_sampling_rate.is_none()
                         && data_discount_logging.is_none()
                         && observability_broadcast.is_none()
                         && observability_io_logging.is_none()
@@ -910,6 +919,12 @@ async fn run(cli: Cli) -> Result<()> {
                     if let Some(default_provider_sort) = args.default_provider_sort {
                         builder.default_provider_sort(default_provider_sort);
                     }
+                    if !args.io_logging_api_key_ids.is_empty() {
+                        builder.io_logging_api_key_ids(args.io_logging_api_key_ids);
+                    }
+                    if let Some(io_logging_sampling_rate) = args.io_logging_sampling_rate {
+                        builder.io_logging_sampling_rate(io_logging_sampling_rate);
+                    }
                     if let Some(enabled) = data_discount_logging {
                         builder.is_data_discount_logging_enabled(enabled);
                     }
@@ -921,7 +936,15 @@ async fn run(cli: Cli) -> Result<()> {
                     }
 
                     let request = builder.build()?;
-                    let response = management.update_workspace(&args.id, &request).await?;
+                    let response = if args.clear_io_logging_api_key_ids {
+                        management
+                            .update_workspace_with_cleared_io_logging_api_key_ids(
+                                &args.id, &request,
+                            )
+                            .await?
+                    } else {
+                        management.update_workspace(&args.id, &request).await?
+                    };
                     print_value(&response, cli.global.output)?;
                 }
                 WorkspacesCommands::Delete(args) => {

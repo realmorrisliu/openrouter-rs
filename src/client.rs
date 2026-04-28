@@ -5,8 +5,8 @@ use futures_util::stream::BoxStream;
 use crate::api::legacy::completion;
 use crate::{
     api::{
-        api_keys, auth, chat, credits, discovery, embeddings, generation, guardrails, messages,
-        models, organization, rerank, responses, tts, videos, workspaces,
+        api_keys, audio, auth, chat, credits, discovery, embeddings, generation, guardrails,
+        messages, models, organization, rerank, responses, videos, workspaces,
     },
     error::OpenRouterError,
     strip_option_vec_setter,
@@ -135,9 +135,15 @@ impl OpenRouterClient {
         RerankClient { client: self }
     }
 
+    /// Domain client for audio operations.
+    pub fn audio(&self) -> AudioClient<'_> {
+        AudioClient { client: self }
+    }
+
     /// Domain client for text-to-speech operations.
-    pub fn tts(&self) -> TtsClient<'_> {
-        TtsClient { client: self }
+    #[deprecated(note = "use client.audio().speech()")]
+    pub fn tts(&self) -> SpeechClient<'_> {
+        self.audio().speech()
     }
 
     /// Domain client for video generation operations.
@@ -1107,10 +1113,13 @@ impl OpenRouterClient {
         }
     }
 
-    /// Submit a text-to-speech request and return raw audio bytes.
-    pub async fn create_tts(&self, request: &tts::TtsRequest) -> Result<Vec<u8>, OpenRouterError> {
+    /// Submit a speech request and return raw audio bytes.
+    pub async fn create_speech(
+        &self,
+        request: &audio::SpeechRequest,
+    ) -> Result<Vec<u8>, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
-            tts::create_tts_with_client(
+            audio::create_speech_with_client(
                 self.http_client(),
                 &self.base_url,
                 api_key,
@@ -1123,6 +1132,15 @@ impl OpenRouterClient {
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
+    }
+
+    /// Submit a text-to-speech request and return raw audio bytes.
+    #[deprecated(note = "use create_speech")]
+    pub async fn create_tts(
+        &self,
+        request: &audio::SpeechRequest,
+    ) -> Result<Vec<u8>, OpenRouterError> {
+        self.create_speech(request).await
     }
 
     /// Submit a video generation request.
@@ -1853,18 +1871,36 @@ impl<'a> RerankClient<'a> {
     }
 }
 
-/// Domain client for text-to-speech endpoints.
+/// Domain client for audio endpoints.
 #[derive(Debug, Clone, Copy)]
-pub struct TtsClient<'a> {
+pub struct AudioClient<'a> {
     client: &'a OpenRouterClient,
 }
 
-impl<'a> TtsClient<'a> {
-    /// Create speech audio bytes (`POST /audio/speech`).
-    pub async fn create(&self, request: &tts::TtsRequest) -> Result<Vec<u8>, OpenRouterError> {
-        self.client.create_tts(request).await
+impl<'a> AudioClient<'a> {
+    /// Domain client for speech generation operations.
+    pub fn speech(&self) -> SpeechClient<'a> {
+        SpeechClient {
+            client: self.client,
+        }
     }
 }
+
+/// Domain client for audio speech endpoints.
+#[derive(Debug, Clone, Copy)]
+pub struct SpeechClient<'a> {
+    client: &'a OpenRouterClient,
+}
+
+impl<'a> SpeechClient<'a> {
+    /// Create speech audio bytes (`POST /audio/speech`).
+    pub async fn create(&self, request: &audio::SpeechRequest) -> Result<Vec<u8>, OpenRouterError> {
+        self.client.create_speech(request).await
+    }
+}
+
+#[deprecated(note = "use SpeechClient")]
+pub type TtsClient<'a> = SpeechClient<'a>;
 
 /// Domain client for video generation endpoints.
 #[derive(Debug, Clone, Copy)]

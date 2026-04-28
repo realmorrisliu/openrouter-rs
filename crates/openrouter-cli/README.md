@@ -244,6 +244,8 @@ openrouter-cli \
   --name "platform" \
   --slug "platform" \
   --default-text-model openai/gpt-4.1 \
+  --io-logging-api-key-id 101 \
+  --io-logging-sampling-rate 0.25 \
   --enable-observability-broadcast
 
 # Update a workspace
@@ -251,6 +253,7 @@ openrouter-cli \
   --management-key "$OPENROUTER_MANAGEMENT_KEY" \
   workspaces update ws_123 \
   --description "Platform engineering" \
+  --clear-io-logging-api-key-ids \
   --disable-data-discount-logging
 
 # Add members to a workspace

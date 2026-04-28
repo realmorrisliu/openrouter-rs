@@ -9,7 +9,7 @@ use std::{
 use openrouter_rs::{
     OpenRouterClient,
     api::{
-        auth, chat, credits, embeddings, guardrails, messages, rerank, responses, tts, videos,
+        audio, auth, chat, credits, embeddings, guardrails, messages, rerank, responses, videos,
         workspaces,
     },
     error::OpenRouterError,
@@ -373,18 +373,18 @@ async fn test_rerank_domain_requires_api_key() {
 }
 
 #[tokio::test]
-async fn test_tts_domain_requires_api_key() {
+async fn test_audio_speech_domain_requires_api_key() {
     let client = OpenRouterClient::builder()
         .build()
         .expect("client should build");
-    let request = tts::TtsRequest::builder()
+    let request = audio::SpeechRequest::builder()
         .model("elevenlabs/eleven-turbo-v2")
         .input("hello")
         .voice("alloy")
         .build()
-        .expect("tts request should build");
+        .expect("speech request should build");
 
-    let result = client.tts().create(&request).await;
+    let result = client.audio().speech().create(&request).await;
     assert!(matches!(result, Err(OpenRouterError::KeyNotConfigured)));
 }
 
@@ -804,26 +804,27 @@ async fn test_rerank_domain_create_delegates_to_api_module() {
 }
 
 #[tokio::test]
-async fn test_tts_domain_create_delegates_to_api_module() {
+async fn test_audio_speech_domain_create_delegates_to_api_module() {
     let (base_url, rx, server) = spawn_binary_server(b"ID3tts-audio", "audio/mpeg");
     let client = OpenRouterClient::builder()
         .base_url(base_url)
         .api_key("api-key")
         .build()
         .expect("client should build");
-    let request = tts::TtsRequest::builder()
+    let request = audio::SpeechRequest::builder()
         .model("elevenlabs/eleven-turbo-v2")
         .input("Hello world")
         .voice("alloy")
-        .response_format(tts::TtsResponseFormat::Mp3)
+        .response_format(audio::SpeechResponseFormat::Mp3)
         .build()
-        .expect("tts request should build");
+        .expect("speech request should build");
 
     let response = client
-        .tts()
+        .audio()
+        .speech()
         .create(&request)
         .await
-        .expect("tts should succeed");
+        .expect("speech should succeed");
     assert_eq!(response, b"ID3tts-audio");
 
     let captured = rx

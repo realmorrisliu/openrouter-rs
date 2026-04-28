@@ -546,6 +546,14 @@ pub struct WorkspacesCreateArgs {
     #[arg(long)]
     pub default_provider_sort: Option<String>,
 
+    /// Restrict observability IO logging to a key ID. Repeat to allow multiple keys.
+    #[arg(long = "io-logging-api-key-id", value_name = "KEY_ID")]
+    pub io_logging_api_key_ids: Vec<u64>,
+
+    /// Set observability IO logging sampling rate.
+    #[arg(long)]
+    pub io_logging_sampling_rate: Option<f64>,
+
     /// Set data discount logging enabled.
     #[arg(
         long = "enable-data-discount-logging",
@@ -617,6 +625,25 @@ pub struct WorkspacesUpdateArgs {
     /// Optional new default provider sort.
     #[arg(long)]
     pub default_provider_sort: Option<String>,
+
+    /// Restrict observability IO logging to a key ID. Repeat to allow multiple keys.
+    #[arg(
+        long = "io-logging-api-key-id",
+        value_name = "KEY_ID",
+        conflicts_with = "clear_io_logging_api_key_ids"
+    )]
+    pub io_logging_api_key_ids: Vec<u64>,
+
+    /// Clear observability IO logging key restrictions.
+    #[arg(
+        long = "clear-io-logging-api-key-ids",
+        conflicts_with = "io_logging_api_key_ids"
+    )]
+    pub clear_io_logging_api_key_ids: bool,
+
+    /// Set observability IO logging sampling rate.
+    #[arg(long)]
+    pub io_logging_sampling_rate: Option<f64>,
 
     /// Set data discount logging enabled.
     #[arg(

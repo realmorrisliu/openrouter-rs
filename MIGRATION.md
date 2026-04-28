@@ -1,11 +1,119 @@
-# Migration Guide: 0.5.x -> 0.6.0
+# Migration Guide
 
-This document keeps the historical `0.5.x -> 0.6.0` migration guide intact because the repo still smoke-tests that older domain/naming transition.
+This document keeps historical migration guides intact because the repo still smoke-tests older domain/naming transitions.
 
-> Latest breaking release: `0.7.x -> 0.8.0`.
-> `0.8.0` completes the HTTP transport migration to `reqwest + rustls` and removes the remaining `surf`-shaped public helpers from the SDK surface.
+> Latest breaking release target: `0.8.x -> 0.9.0`.
+> `0.9.0` makes `/audio/speech` the canonical SDK naming surface and future-proofs high-churn request/response structs.
 
-## Latest: 0.7.x -> 0.8.0
+## Latest: 0.8.x -> 0.9.0
+
+If you use the new workspace, generation metadata, video generation, or audio speech surfaces, prefer request builders and the canonical domain clients. Compatibility aliases remain for the old `tts` names, but new code should use `audio`.
+
+### Quick Checklist For 0.9.0
+
+- Replace `client.tts().create(...)` with `client.audio().speech().create(...)`.
+- Replace `api::tts::TtsRequest` with `api::audio::SpeechRequest`.
+- Replace `api::tts::TtsResponseFormat` with `api::audio::SpeechResponseFormat`.
+- Replace direct struct literals for newly added/high-churn request types with their builders, especially workspace and video-generation requests.
+- For CLI workspace I/O logging controls, use `workspaces create|update --io-logging-api-key-id`, `--io-logging-sampling-rate`, and `workspaces update --clear-io-logging-api-key-ids`.
+
+### Breaking-Change Mapping For 0.9.0
+
+| Area | Old Usage (`0.8.x`) | New Usage (`0.9.0`) |
+| --- | --- | --- |
+| Audio speech domain | `client.tts().create(&request)` | `client.audio().speech().create(&request)` |
+| Audio speech imports | `api::tts::{TtsRequest, TtsResponseFormat}` | `api::audio::{SpeechRequest, SpeechResponseFormat}` |
+| Audio speech flat helper | `api::tts::create_tts(...)` | `api::audio::create_speech(...)` |
+| High-churn request construction | `UpdateWorkspaceRequest { ... }` | `UpdateWorkspaceRequest::builder().name(...).build()?` |
+| Workspace CLI key filters | Not exposed | `workspaces create|update --io-logging-api-key-id 101` |
+| Workspace CLI sampling rate | Not exposed | `workspaces create|update --io-logging-sampling-rate 0.25` |
+| Workspace CLI clear key filters | SDK-only wrapper | `workspaces update ws_123 --clear-io-logging-api-key-ids` |
+
+### Example: audio speech rename
+
+Before:
+
+```rust
+use openrouter_rs::{
+    api::tts::{TtsRequest, TtsResponseFormat},
+    OpenRouterClient,
+};
+
+# async fn example() -> Result<(), Box<dyn std::error::Error>> {
+let client = OpenRouterClient::builder().api_key("sk-or-v1-...").build()?;
+let request = TtsRequest::builder()
+    .model("elevenlabs/eleven-turbo-v2")
+    .input("Hello")
+    .voice("alloy")
+    .response_format(TtsResponseFormat::Mp3)
+    .build()?;
+let audio = client.tts().create(&request).await?;
+# let _ = audio;
+# Ok(())
+# }
+```
+
+After:
+
+```rust
+use openrouter_rs::{
+    api::audio::{SpeechRequest, SpeechResponseFormat},
+    OpenRouterClient,
+};
+
+# async fn example() -> Result<(), Box<dyn std::error::Error>> {
+let client = OpenRouterClient::builder().api_key("sk-or-v1-...").build()?;
+let request = SpeechRequest::builder()
+    .model("elevenlabs/eleven-turbo-v2")
+    .input("Hello")
+    .voice("alloy")
+    .response_format(SpeechResponseFormat::Mp3)
+    .build()?;
+let audio = client.audio().speech().create(&request).await?;
+# let _ = audio;
+# Ok(())
+# }
+```
+
+### Example: builder-first workspace updates
+
+Before:
+
+```rust
+use openrouter_rs::api::workspaces::UpdateWorkspaceRequest;
+
+let request = UpdateWorkspaceRequest {
+    name: Some("Platform".to_string()),
+    slug: None,
+    description: None,
+    default_text_model: None,
+    default_image_model: None,
+    default_provider_sort: None,
+    io_logging_api_key_ids: Some(vec![101]),
+    io_logging_sampling_rate: Some(0.25),
+    is_data_discount_logging_enabled: None,
+    is_observability_broadcast_enabled: None,
+    is_observability_io_logging_enabled: None,
+};
+```
+
+After:
+
+```rust
+use openrouter_rs::api::workspaces::UpdateWorkspaceRequest;
+
+# fn example() -> Result<(), Box<dyn std::error::Error>> {
+let request = UpdateWorkspaceRequest::builder()
+    .name("Platform")
+    .io_logging_api_key_ids(vec![101])
+    .io_logging_sampling_rate(0.25)
+    .build()?;
+# let _ = request;
+# Ok(())
+# }
+```
+
+## Previous: 0.7.x -> 0.8.0
 
 If you already use the canonical domain clients (`chat()`, `responses()`, `messages()`, `models()`, `management()`, and opt-in `legacy()`), this upgrade is usually just a version bump plus a recompile. The breaking changes mainly affect callers that coupled themselves to the old transport-facing error and utility surface.
 

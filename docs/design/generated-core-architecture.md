@@ -21,7 +21,7 @@ If the project wants to stay aligned with a spec-driven SDK direction, it needs 
 
 ## Goals
 
-- Keep the canonical public API domain-oriented: `chat()`, `responses()`, `messages()`, `rerank()`, `tts()`, `videos()`, `models()`, `management()`, and `legacy()`
+- Keep the canonical public API domain-oriented: `chat()`, `responses()`, `messages()`, `rerank()`, `audio().speech()`, `videos()`, `models()`, `management()`, and `legacy()`
 - Introduce a generated low-level layer that can follow the upstream OpenAPI more mechanically
 - Separate drift detection inputs from generation inputs so review workflows stay useful
 - Preserve streaming, typed tools, builder ergonomics, and unified abstractions as handwritten Rust-first surfaces
