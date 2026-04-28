@@ -331,7 +331,7 @@ fn test_guardrail_key_assignment_assign_happy_path() {
 #[test]
 fn test_workspaces_list_happy_path() {
     let (base_url, rx, server) = spawn_json_server(
-        r#"{"data":[{"id":"ws_1","name":"Core","slug":"core","is_observability_io_logging_enabled":false,"is_observability_broadcast_enabled":true,"is_data_discount_logging_enabled":false,"created_at":"2026-03-01T00:00:00.000Z"}],"total_count":1}"#,
+        r#"{"data":[{"id":"ws_1","name":"Core","slug":"core","io_logging_api_key_ids":null,"io_logging_sampling_rate":1.0,"is_observability_io_logging_enabled":false,"is_observability_broadcast_enabled":true,"is_data_discount_logging_enabled":false,"created_at":"2026-03-01T00:00:00.000Z"}],"total_count":1}"#,
     );
 
     let mut cmd = base_cmd(&base_url);
@@ -355,6 +355,12 @@ fn test_workspaces_list_happy_path() {
         parsed.pointer("/data/data/0/slug").and_then(Value::as_str),
         Some("core")
     );
+    assert_eq!(
+        parsed
+            .pointer("/data/data/0/io_logging_sampling_rate")
+            .and_then(Value::as_f64),
+        Some(1.0)
+    );
 
     let captured = rx
         .recv_timeout(Duration::from_secs(2))
@@ -370,7 +376,7 @@ fn test_workspaces_list_happy_path() {
 #[test]
 fn test_workspaces_create_happy_path() {
     let (base_url, rx, server) = spawn_json_server(
-        r#"{"data":{"id":"ws_1","name":"Core","slug":"core","description":"Core team","default_text_model":"openai/gpt-4.1","is_observability_io_logging_enabled":true,"is_observability_broadcast_enabled":false,"is_data_discount_logging_enabled":true,"created_at":"2026-03-01T00:00:00.000Z"}}"#,
+        r#"{"data":{"id":"ws_1","name":"Core","slug":"core","description":"Core team","default_text_model":"openai/gpt-4.1","io_logging_api_key_ids":[123],"io_logging_sampling_rate":0.5,"is_observability_io_logging_enabled":true,"is_observability_broadcast_enabled":false,"is_data_discount_logging_enabled":true,"created_at":"2026-03-01T00:00:00.000Z"}}"#,
     );
 
     let mut cmd = base_cmd(&base_url);
@@ -393,6 +399,12 @@ fn test_workspaces_create_happy_path() {
     assert_eq!(
         parsed.pointer("/data/id").and_then(Value::as_str),
         Some("ws_1")
+    );
+    assert_eq!(
+        parsed
+            .pointer("/data/io_logging_api_key_ids/0")
+            .and_then(Value::as_u64),
+        Some(123)
     );
 
     let captured = rx
@@ -433,7 +445,7 @@ fn test_workspaces_create_happy_path() {
 #[test]
 fn test_workspaces_get_happy_path() {
     let (base_url, rx, server) = spawn_json_server(
-        r#"{"data":{"id":"ws_1","name":"Core","slug":"core","is_observability_io_logging_enabled":false,"is_observability_broadcast_enabled":true,"is_data_discount_logging_enabled":false,"created_at":"2026-03-01T00:00:00.000Z"}}"#,
+        r#"{"data":{"id":"ws_1","name":"Core","slug":"core","io_logging_api_key_ids":null,"io_logging_sampling_rate":1.0,"is_observability_io_logging_enabled":false,"is_observability_broadcast_enabled":true,"is_data_discount_logging_enabled":false,"created_at":"2026-03-01T00:00:00.000Z"}}"#,
     );
 
     let mut cmd = base_cmd(&base_url);
@@ -443,6 +455,12 @@ fn test_workspaces_get_happy_path() {
     assert_eq!(
         parsed.pointer("/data/slug").and_then(Value::as_str),
         Some("core")
+    );
+    assert_eq!(
+        parsed
+            .pointer("/data/io_logging_sampling_rate")
+            .and_then(Value::as_f64),
+        Some(1.0)
     );
 
     let captured = rx
@@ -459,7 +477,7 @@ fn test_workspaces_get_happy_path() {
 #[test]
 fn test_workspaces_update_happy_path() {
     let (base_url, rx, server) = spawn_json_server(
-        r#"{"data":{"id":"ws_1","name":"Core Updated","slug":"core","is_observability_io_logging_enabled":false,"is_observability_broadcast_enabled":true,"is_data_discount_logging_enabled":false,"created_at":"2026-03-01T00:00:00.000Z","updated_at":"2026-03-02T00:00:00.000Z"}}"#,
+        r#"{"data":{"id":"ws_1","name":"Core Updated","slug":"core","io_logging_api_key_ids":null,"io_logging_sampling_rate":1.0,"is_observability_io_logging_enabled":false,"is_observability_broadcast_enabled":true,"is_data_discount_logging_enabled":false,"created_at":"2026-03-01T00:00:00.000Z","updated_at":"2026-03-02T00:00:00.000Z"}}"#,
     );
 
     let mut cmd = base_cmd(&base_url);
@@ -474,6 +492,12 @@ fn test_workspaces_update_happy_path() {
     assert_eq!(
         parsed.pointer("/data/name").and_then(Value::as_str),
         Some("Core Updated")
+    );
+    assert_eq!(
+        parsed
+            .pointer("/data/io_logging_sampling_rate")
+            .and_then(Value::as_f64),
+        Some(1.0)
     );
 
     let captured = rx
