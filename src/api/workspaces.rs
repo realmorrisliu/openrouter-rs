@@ -1,6 +1,6 @@
 use derive_builder::Builder;
 use reqwest::Client as HttpClient;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer, ser::SerializeMap};
 use urlencoding::encode;
 
 use crate::{
@@ -130,9 +130,61 @@ pub struct UpdateWorkspaceRequest {
     pub is_observability_io_logging_enabled: Option<bool>,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct UpdateWorkspaceRequestWithClearedIoLoggingApiKeyIds<'a> {
+    request: &'a UpdateWorkspaceRequest,
+}
+
+impl Serialize for UpdateWorkspaceRequestWithClearedIoLoggingApiKeyIds<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut map = serializer.serialize_map(None)?;
+        if let Some(value) = &self.request.name {
+            map.serialize_entry("name", value)?;
+        }
+        if let Some(value) = &self.request.slug {
+            map.serialize_entry("slug", value)?;
+        }
+        if let Some(value) = &self.request.description {
+            map.serialize_entry("description", value)?;
+        }
+        if let Some(value) = &self.request.default_text_model {
+            map.serialize_entry("default_text_model", value)?;
+        }
+        if let Some(value) = &self.request.default_image_model {
+            map.serialize_entry("default_image_model", value)?;
+        }
+        if let Some(value) = &self.request.default_provider_sort {
+            map.serialize_entry("default_provider_sort", value)?;
+        }
+        map.serialize_entry("io_logging_api_key_ids", &Option::<Vec<u64>>::None)?;
+        if let Some(value) = &self.request.io_logging_sampling_rate {
+            map.serialize_entry("io_logging_sampling_rate", value)?;
+        }
+        if let Some(value) = &self.request.is_data_discount_logging_enabled {
+            map.serialize_entry("is_data_discount_logging_enabled", value)?;
+        }
+        if let Some(value) = &self.request.is_observability_broadcast_enabled {
+            map.serialize_entry("is_observability_broadcast_enabled", value)?;
+        }
+        if let Some(value) = &self.request.is_observability_io_logging_enabled {
+            map.serialize_entry("is_observability_io_logging_enabled", value)?;
+        }
+        map.end()
+    }
+}
+
 impl UpdateWorkspaceRequest {
     pub fn builder() -> UpdateWorkspaceRequestBuilder {
         UpdateWorkspaceRequestBuilder::default()
+    }
+
+    pub fn with_cleared_io_logging_api_key_ids(
+        &self,
+    ) -> UpdateWorkspaceRequestWithClearedIoLoggingApiKeyIds<'_> {
+        UpdateWorkspaceRequestWithClearedIoLoggingApiKeyIds { request: self }
     }
 }
 
@@ -288,12 +340,50 @@ pub async fn update_workspace(
     update_workspace_with_client(&http_client, base_url, management_key, id, request).await
 }
 
+pub async fn update_workspace_with_cleared_io_logging_api_key_ids(
+    base_url: &str,
+    management_key: &str,
+    id: &str,
+    request: &UpdateWorkspaceRequest,
+) -> Result<Workspace, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    update_workspace_with_cleared_io_logging_api_key_ids_with_client(
+        &http_client,
+        base_url,
+        management_key,
+        id,
+        request,
+    )
+    .await
+}
+
 pub(crate) async fn update_workspace_with_client(
     http_client: &HttpClient,
     base_url: &str,
     management_key: &str,
     id: &str,
     request: &UpdateWorkspaceRequest,
+) -> Result<Workspace, OpenRouterError> {
+    update_workspace_payload_with_client(http_client, base_url, management_key, id, request).await
+}
+
+pub(crate) async fn update_workspace_with_cleared_io_logging_api_key_ids_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    management_key: &str,
+    id: &str,
+    request: &UpdateWorkspaceRequest,
+) -> Result<Workspace, OpenRouterError> {
+    let request = request.with_cleared_io_logging_api_key_ids();
+    update_workspace_payload_with_client(http_client, base_url, management_key, id, &request).await
+}
+
+async fn update_workspace_payload_with_client<T: Serialize + ?Sized>(
+    http_client: &HttpClient,
+    base_url: &str,
+    management_key: &str,
+    id: &str,
+    request: &T,
 ) -> Result<Workspace, OpenRouterError> {
     let url = format!("{base_url}/workspaces/{}", encode(id));
     let response = transport_request::with_bearer_auth(

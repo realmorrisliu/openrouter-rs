@@ -726,18 +726,8 @@ fn test_guardrails_update_can_clear_allowlists() {
     );
     let body: Value =
         serde_json::from_str(&captured.body_text).expect("request body should be valid json");
-    assert_eq!(
-        body.get("allowed_providers")
-            .and_then(Value::as_array)
-            .map(Vec::len),
-        Some(0)
-    );
-    assert_eq!(
-        body.get("allowed_models")
-            .and_then(Value::as_array)
-            .map(Vec::len),
-        Some(0)
-    );
+    assert_eq!(body.get("allowed_providers"), Some(&Value::Null));
+    assert_eq!(body.get("allowed_models"), Some(&Value::Null));
 
     server.join().expect("server thread should finish");
 }

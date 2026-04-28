@@ -685,12 +685,12 @@ async fn run(cli: Cli) -> Result<()> {
                         builder.reset_interval(reset_interval);
                     }
                     if args.clear_allowed_providers {
-                        builder.allowed_providers(Vec::<String>::new());
+                        builder.clear_allowed_providers();
                     } else if !args.allowed_providers.is_empty() {
                         builder.allowed_providers(args.allowed_providers);
                     }
                     if args.clear_allowed_models {
-                        builder.allowed_models(Vec::<String>::new());
+                        builder.clear_allowed_models();
                     } else if !args.allowed_models.is_empty() {
                         builder.allowed_models(args.allowed_models);
                     }

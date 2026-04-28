@@ -428,6 +428,16 @@ def is_response_schema_property_path(path: tuple[Any, ...], property_name: str) 
     )
 
 
+def schema_has_type(value: Any, schema_type: str) -> bool:
+    if not isinstance(value, dict):
+        return False
+
+    value_type = value.get("type")
+    return value_type == schema_type or (
+        isinstance(value_type, list) and schema_type in value_type
+    )
+
+
 def is_repo_supported_flexible_plugin_payload_path(
     operation_key: str,
     path: tuple[Any, ...],
@@ -459,22 +469,62 @@ def is_repo_supported_responses_output_payload_path(
     return operation_key == "POST /responses" and is_response_schema_property_path(path, "output")
 
 
+def is_repo_supported_flexible_plugin_payload(
+    operation_key: str,
+    path: tuple[Any, ...],
+    value: Any,
+) -> bool:
+    return is_repo_supported_flexible_plugin_payload_path(
+        operation_key, path
+    ) and schema_has_type(value, "array")
+
+
+def is_repo_supported_messages_tool_payload(
+    operation_key: str,
+    path: tuple[Any, ...],
+    value: Any,
+) -> bool:
+    return is_repo_supported_messages_tool_payload_path(
+        operation_key, path
+    ) and schema_has_type(value, "array")
+
+
+def is_repo_supported_responses_tool_payload(
+    operation_key: str,
+    path: tuple[Any, ...],
+    value: Any,
+) -> bool:
+    return is_repo_supported_responses_tool_payload_path(
+        operation_key, path
+    ) and schema_has_type(value, "array")
+
+
+def is_repo_supported_responses_output_payload(
+    operation_key: str,
+    path: tuple[Any, ...],
+    value: Any,
+) -> bool:
+    return is_repo_supported_responses_output_payload_path(
+        operation_key, path
+    ) and schema_has_type(value, "array")
+
+
 def strip_repo_supported_schema_details(
     operation_key: str,
     value: Any,
     path: tuple[Any, ...] = (),
 ) -> Any:
     if isinstance(value, dict):
-        if is_repo_supported_flexible_plugin_payload_path(operation_key, path):
+        if is_repo_supported_flexible_plugin_payload(operation_key, path, value):
             return {"<repo-supported-flexible-plugin-payload>": True}
 
-        if is_repo_supported_messages_tool_payload_path(operation_key, path):
+        if is_repo_supported_messages_tool_payload(operation_key, path, value):
             return {"<repo-supported-messages-tool-payload>": True}
 
-        if is_repo_supported_responses_tool_payload_path(operation_key, path):
+        if is_repo_supported_responses_tool_payload(operation_key, path, value):
             return {"<repo-supported-responses-tool-payload>": True}
 
-        if is_repo_supported_responses_output_payload_path(operation_key, path):
+        if is_repo_supported_responses_output_payload(operation_key, path, value):
             return {"<repo-supported-responses-output-payload>": True}
 
         stripped = {
@@ -523,13 +573,13 @@ def collect_repo_supported_schema_rules(operation_key: str, value: Any) -> list[
                 rules.add("dynamic output modality enum")
             if is_repo_supported_provider_options_map(item):
                 rules.add("provider-specific options map")
-            if is_repo_supported_flexible_plugin_payload_path(operation_key, path):
+            if is_repo_supported_flexible_plugin_payload(operation_key, path, item):
                 rules.add("flexible plugin payload")
-            if is_repo_supported_messages_tool_payload_path(operation_key, path):
+            if is_repo_supported_messages_tool_payload(operation_key, path, item):
                 rules.add("Messages flexible tool payload")
-            if is_repo_supported_responses_tool_payload_path(operation_key, path):
+            if is_repo_supported_responses_tool_payload(operation_key, path, item):
                 rules.add("Responses flexible tool payload")
-            if is_repo_supported_responses_output_payload_path(operation_key, path):
+            if is_repo_supported_responses_output_payload(operation_key, path, item):
                 rules.add("Responses flexible output payload")
             if is_responses_response_payload_path(operation_key, path):
                 properties = item.get("properties")
