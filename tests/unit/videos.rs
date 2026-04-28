@@ -30,6 +30,7 @@ fn test_video_generation_request_serialization() {
         .aspect_ratio("16:9")
         .duration(8)
         .resolution("720p")
+        .callback_url("https://example.com/webhooks/video")
         .generate_audio(true)
         .frame_images(vec![VideoFrameImage::new(
             "https://example.com/first.png",
@@ -48,6 +49,7 @@ fn test_video_generation_request_serialization() {
     assert_eq!(value["model"], "google/veo-3.1");
     assert_eq!(value["prompt"], "A serene mountain landscape at sunset");
     assert_eq!(value["aspect_ratio"], "16:9");
+    assert_eq!(value["callback_url"], "https://example.com/webhooks/video");
     assert_eq!(value["frame_images"][0]["frame_type"], "first_frame");
     assert_eq!(
         value["input_references"][0]["image_url"]["url"],

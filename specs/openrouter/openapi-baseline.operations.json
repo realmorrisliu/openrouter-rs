@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-04-23T04:35:16+00:00",
+  "captured_at": "2026-04-28T06:34:58+00:00",
   "info": {
     "contact": {
       "email": "support@openrouter.ai",
@@ -84,7 +84,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "2b64539bdea63842",
+      "fingerprint": "9c99e9bec1b7a449",
       "id": "GET /endpoints/zdr",
       "method": "GET",
       "operation_id": "listEndpointsZdr",
@@ -95,7 +95,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "47828cc6e721062e",
+      "fingerprint": "ba099f80d16f9c0c",
       "id": "GET /generation",
       "method": "GET",
       "operation_id": "getGeneration",
@@ -249,7 +249,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "06aa57cbae9f7f82",
+      "fingerprint": "15e473cb11f97766",
       "id": "GET /models/{author}/{slug}/endpoints",
       "method": "GET",
       "operation_id": "listEndpoints",
@@ -315,7 +315,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "884dec04861b659d",
+      "fingerprint": "b0afcba279847c18",
       "id": "GET /workspaces",
       "method": "GET",
       "operation_id": "listWorkspaces",
@@ -326,7 +326,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "5e33269f90dfab34",
+      "fingerprint": "44a48065dd2d673d",
       "id": "GET /workspaces/{id}",
       "method": "GET",
       "operation_id": "getWorkspace",
@@ -359,7 +359,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "ac1cb8e84c7edadf",
+      "fingerprint": "65f48e9d0833fc3a",
       "id": "PATCH /workspaces/{id}",
       "method": "PATCH",
       "operation_id": "updateWorkspace",
@@ -370,7 +370,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "3accdcf44d289173",
+      "fingerprint": "ba5f39f18353bf5f",
       "id": "POST /audio/speech",
       "method": "POST",
       "operation_id": "createAudioSpeech",
@@ -403,7 +403,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "0e7bdf1d47712c06",
+      "fingerprint": "4974cef56be35025",
       "id": "POST /chat/completions",
       "method": "POST",
       "operation_id": "sendChatCompletionRequest",
@@ -425,7 +425,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "e91b05a24b6c789c",
+      "fingerprint": "3abf52828889b69d",
       "id": "POST /embeddings",
       "method": "POST",
       "operation_id": "createEmbeddings",
@@ -502,7 +502,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "22fcb0e38708b304",
+      "fingerprint": "1faacb2f462abb75",
       "id": "POST /messages",
       "method": "POST",
       "operation_id": "createMessages",
@@ -513,7 +513,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "081bd95b8cb9101b",
+      "fingerprint": "dbf5cfac17d684c4",
       "id": "POST /rerank",
       "method": "POST",
       "operation_id": "createRerank",
@@ -524,7 +524,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "a1f95f0feef3f81b",
+      "fingerprint": "4c2837ade6b8b03b",
       "id": "POST /responses",
       "method": "POST",
       "operation_id": "createResponses",
@@ -535,7 +535,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b0c72b4a38bf99da",
+      "fingerprint": "3002492824810c79",
       "id": "POST /videos",
       "method": "POST",
       "operation_id": "createVideos",
@@ -546,7 +546,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "4206e4a1e2d22238",
+      "fingerprint": "5862d59faefd93a2",
       "id": "POST /workspaces",
       "method": "POST",
       "operation_id": "createWorkspace",

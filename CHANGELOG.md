@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added typed SDK support for `GET /generation/content`, including `client.get_generation_content(...)` and `client.management().get_generation_content(...)`.
 - Added typed `num_fetches` support on `GET /generation` metadata responses via `GenerationData`.
+- Added typed `response_cache_source_id` support on `GET /generation` metadata responses.
+- Added workspace I/O logging fields on typed workspace responses and create/update requests: `io_logging_api_key_ids` and `io_logging_sampling_rate`.
+- Added `callback_url` support on `VideoGenerationRequest` for video completion webhooks.
 - Added typed SDK support for `GET /workspaces`, `POST /workspaces`, `GET /workspaces/{id}`, `PATCH /workspaces/{id}`, `DELETE /workspaces/{id}`, `POST /workspaces/{id}/members/add`, and `POST /workspaces/{id}/members/remove`, including canonical `client.management()` methods and a runnable `examples/list_workspaces.rs`.
 - Added workspace-aware API-key and guardrail support, including `workspace_id` fields on typed models plus `create_api_key_in_workspace(...)`, `list_api_keys_in_workspace(...)`, and `list_guardrails_in_workspace(...)`.
 - Added `openrouter-cli workspaces ...` commands, plus `--workspace-id` support for `openrouter-cli keys list|create` and `openrouter-cli guardrails list|create`.
@@ -19,7 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Accepted the 2026-04-21 OpenAPI drift review, refreshed the tracked compatibility surfaces, and restored the repository snapshot to `51 / 51` official OpenAPI endpoint coverage.
 - Accepted the 2026-04-22 OpenAPI drift review, refreshed the tracked baseline, and kept the repository snapshot at `51 / 51` official OpenAPI endpoint coverage.
 - Accepted the 2026-04-23 OpenAPI drift review, refreshed the tracked baseline, and kept the repository snapshot at `51 / 51` official OpenAPI endpoint coverage.
+- Accepted the 2026-04-28 OpenAPI drift review, refreshed the tracked baseline, and kept the repository snapshot at `51 / 51` official OpenAPI endpoint coverage.
 - Nightly OpenAPI drift reports now keep the raw upstream diff but separately classify changes already covered by the SDK's global request-metadata handling, dynamic `String` taxonomy fields, provider options maps, and Responses `Option`/`Value` parsing, reducing false-positive follow-up noise.
+- OpenAPI drift classification now also recognizes flexible plugin payloads, Anthropic Messages hosted-tool option payloads, and Responses tool/output `Value` payloads.
 
 ## [0.8.1] - 2026-04-21
 

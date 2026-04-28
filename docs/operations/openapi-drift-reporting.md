@@ -46,6 +46,9 @@ surfaces:
 - global request metadata headers (`X-OpenRouter-Title`, `X-Title`, `HTTP-Referer`, and `X-OpenRouter-Categories`)
 - dynamic provider-name and output-modality enums surfaced as `String` values by the SDK
 - provider-specific passthrough options surfaced as `HashMap<String, Value>`
+- flexible plugin payloads surfaced as `Plugin` configuration maps
+- Anthropic Messages hosted-tool options surfaced through `AnthropicTool::extra`
+- Responses tool and output payloads surfaced as `Value`
 - Responses result nullable annotations covered by `Option`/`Value` response parsing
 
 This lets the report separate:

@@ -39,6 +39,7 @@ pub struct GenerationData {
     pub num_media_prompt: Option<u32>,
     pub num_media_completion: Option<u32>,
     pub num_search_results: Option<u32>,
+    pub response_cache_source_id: Option<String>,
 }
 
 /// Stored prompt/input and completion/output content returned by `GET /generation/content`.

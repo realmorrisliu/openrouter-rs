@@ -143,7 +143,8 @@ fn test_generation_response_deserializes_num_fetches() {
             "usage": 42.0,
             "is_byok": false,
             "native_tokens_reasoning": 8,
-            "num_fetches": 3
+            "num_fetches": 3,
+            "response_cache_source_id": "gen_original"
         }
     }"#;
 
@@ -153,4 +154,8 @@ fn test_generation_response_deserializes_num_fetches() {
     assert_eq!(parsed.data.id, "gen_123");
     assert_eq!(parsed.data.native_tokens_reasoning, Some(8));
     assert_eq!(parsed.data.num_fetches, Some(3));
+    assert_eq!(
+        parsed.data.response_cache_source_id.as_deref(),
+        Some("gen_original")
+    );
 }
