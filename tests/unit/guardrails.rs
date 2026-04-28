@@ -165,6 +165,55 @@ fn test_update_guardrail_request_can_clear_nullable_allowlists() {
 }
 
 #[test]
+fn test_update_guardrail_request_preserves_empty_nullable_allowlists() {
+    let request = UpdateGuardrailRequest::builder()
+        .allowed_providers(Vec::<String>::new())
+        .allowed_models(Vec::<String>::new())
+        .build()
+        .expect("update guardrail request should build");
+
+    let value = serde_json::to_value(&request).expect("request should serialize");
+    assert_eq!(value.get("allowed_providers"), Some(&serde_json::json!([])));
+    assert_eq!(value.get("allowed_models"), Some(&serde_json::json!([])));
+
+    let value_after_clear = UpdateGuardrailRequest::builder()
+        .clear_allowed_providers()
+        .clear_allowed_models()
+        .allowed_providers(["openai"])
+        .allowed_models(["openai/gpt-4.1"])
+        .build()
+        .expect("update guardrail request should build");
+    let value_after_clear_json =
+        serde_json::to_value(&value_after_clear).expect("request should serialize");
+    assert_eq!(
+        value_after_clear_json.get("allowed_providers"),
+        Some(&serde_json::json!(["openai"]))
+    );
+    assert_eq!(
+        value_after_clear_json.get("allowed_models"),
+        Some(&serde_json::json!(["openai/gpt-4.1"]))
+    );
+
+    let clear_after_value = UpdateGuardrailRequest::builder()
+        .allowed_providers(["openai"])
+        .allowed_models(["openai/gpt-4.1"])
+        .clear_allowed_providers()
+        .clear_allowed_models()
+        .build()
+        .expect("update guardrail request should build");
+    let clear_after_value_json =
+        serde_json::to_value(&clear_after_value).expect("request should serialize");
+    assert_eq!(
+        clear_after_value_json.get("allowed_providers"),
+        Some(&serde_json::Value::Null)
+    );
+    assert_eq!(
+        clear_after_value_json.get("allowed_models"),
+        Some(&serde_json::Value::Null)
+    );
+}
+
+#[test]
 fn test_guardrail_response_deserialization() {
     let raw = r#"{
         "data": {

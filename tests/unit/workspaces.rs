@@ -178,6 +178,40 @@ fn test_update_workspace_request_can_clear_io_logging_api_key_filters() {
         cleared_value.get("io_logging_api_key_ids"),
         Some(&serde_json::Value::Null)
     );
+
+    let empty_filter = UpdateWorkspaceRequest::builder()
+        .io_logging_api_key_ids(Vec::<u64>::new())
+        .build()
+        .expect("update workspace request should build");
+    let empty_filter_value = serde_json::to_value(&empty_filter).expect("request should serialize");
+    assert_eq!(
+        empty_filter_value.get("io_logging_api_key_ids"),
+        Some(&serde_json::json!([]))
+    );
+
+    let value_after_clear = UpdateWorkspaceRequest::builder()
+        .clear_io_logging_api_key_ids()
+        .io_logging_api_key_ids(vec![101])
+        .build()
+        .expect("update workspace request should build");
+    let value_after_clear_json =
+        serde_json::to_value(&value_after_clear).expect("request should serialize");
+    assert_eq!(
+        value_after_clear_json.get("io_logging_api_key_ids"),
+        Some(&serde_json::json!([101]))
+    );
+
+    let clear_after_value = UpdateWorkspaceRequest::builder()
+        .io_logging_api_key_ids(vec![101])
+        .clear_io_logging_api_key_ids()
+        .build()
+        .expect("update workspace request should build");
+    let clear_after_value_json =
+        serde_json::to_value(&clear_after_value).expect("request should serialize");
+    assert_eq!(
+        clear_after_value_json.get("io_logging_api_key_ids"),
+        Some(&serde_json::Value::Null)
+    );
 }
 
 #[test]

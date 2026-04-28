@@ -1,6 +1,6 @@
 use derive_builder::Builder;
 use reqwest::Client as HttpClient;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer, ser::SerializeMap};
 use urlencoding::encode;
 
 use crate::{
@@ -92,45 +92,79 @@ impl CreateWorkspaceRequest {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Builder)]
+#[derive(Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 pub struct UpdateWorkspaceRequest {
     #[builder(setter(into, strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     #[builder(setter(into, strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub slug: Option<String>,
     #[builder(setter(into, strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     #[builder(setter(into, strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub default_text_model: Option<String>,
     #[builder(setter(into, strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub default_image_model: Option<String>,
     #[builder(setter(into, strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub default_provider_sort: Option<String>,
-    #[builder(setter(strip_option), default)]
-    #[serde(
-        skip_serializing_if = "Option::is_none",
-        serialize_with = "crate::utils::serialize_optional_empty_vec_as_null"
-    )]
+    #[builder(setter(custom), default)]
     pub io_logging_api_key_ids: Option<Vec<u64>>,
+    #[serde(skip)]
+    #[builder(setter(custom), default)]
+    clear_io_logging_api_key_ids: bool,
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub io_logging_sampling_rate: Option<f64>,
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub is_data_discount_logging_enabled: Option<bool>,
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub is_observability_broadcast_enabled: Option<bool>,
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub is_observability_io_logging_enabled: Option<bool>,
+}
+
+impl Serialize for UpdateWorkspaceRequest {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut map = serializer.serialize_map(None)?;
+        if let Some(value) = &self.name {
+            map.serialize_entry("name", value)?;
+        }
+        if let Some(value) = &self.slug {
+            map.serialize_entry("slug", value)?;
+        }
+        if let Some(value) = &self.description {
+            map.serialize_entry("description", value)?;
+        }
+        if let Some(value) = &self.default_text_model {
+            map.serialize_entry("default_text_model", value)?;
+        }
+        if let Some(value) = &self.default_image_model {
+            map.serialize_entry("default_image_model", value)?;
+        }
+        if let Some(value) = &self.default_provider_sort {
+            map.serialize_entry("default_provider_sort", value)?;
+        }
+        if self.clear_io_logging_api_key_ids {
+            map.serialize_entry("io_logging_api_key_ids", &Option::<Vec<u64>>::None)?;
+        } else if let Some(value) = &self.io_logging_api_key_ids {
+            map.serialize_entry("io_logging_api_key_ids", value)?;
+        }
+        if let Some(value) = &self.io_logging_sampling_rate {
+            map.serialize_entry("io_logging_sampling_rate", value)?;
+        }
+        if let Some(value) = &self.is_data_discount_logging_enabled {
+            map.serialize_entry("is_data_discount_logging_enabled", value)?;
+        }
+        if let Some(value) = &self.is_observability_broadcast_enabled {
+            map.serialize_entry("is_observability_broadcast_enabled", value)?;
+        }
+        if let Some(value) = &self.is_observability_io_logging_enabled {
+            map.serialize_entry("is_observability_io_logging_enabled", value)?;
+        }
+        map.end()
+    }
 }
 
 impl UpdateWorkspaceRequest {
@@ -140,8 +174,18 @@ impl UpdateWorkspaceRequest {
 }
 
 impl UpdateWorkspaceRequestBuilder {
+    pub fn io_logging_api_key_ids<T>(&mut self, items: T) -> &mut Self
+    where
+        T: IntoIterator<Item = u64>,
+    {
+        self.io_logging_api_key_ids = Some(Some(items.into_iter().collect()));
+        self.clear_io_logging_api_key_ids = Some(false);
+        self
+    }
+
     pub fn clear_io_logging_api_key_ids(&mut self) -> &mut Self {
-        self.io_logging_api_key_ids = Some(Some(Vec::new()));
+        self.io_logging_api_key_ids = Some(None);
+        self.clear_io_logging_api_key_ids = Some(true);
         self
     }
 }

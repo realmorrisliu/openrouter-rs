@@ -1,6 +1,6 @@
 use derive_builder::Builder;
 use reqwest::Client as HttpClient;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer, ser::SerializeMap};
 use urlencoding::encode;
 
 use crate::{
@@ -82,49 +82,96 @@ impl CreateGuardrailRequest {
 }
 
 /// Request payload for updating a guardrail (`PATCH /guardrails/{id}`).
-#[derive(Serialize, Deserialize, Debug, Clone, Builder)]
+#[derive(Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 pub struct UpdateGuardrailRequest {
     #[builder(setter(into, strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     name: Option<String>,
     #[builder(setter(into, strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     description: Option<String>,
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     limit_usd: Option<f64>,
     #[builder(setter(into, strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     reset_interval: Option<String>,
     #[builder(setter(custom), default)]
-    #[serde(
-        skip_serializing_if = "Option::is_none",
-        serialize_with = "crate::utils::serialize_optional_empty_vec_as_null"
-    )]
     allowed_providers: Option<Vec<String>>,
+    #[serde(skip)]
     #[builder(setter(custom), default)]
-    #[serde(
-        skip_serializing_if = "Option::is_none",
-        serialize_with = "crate::utils::serialize_optional_empty_vec_as_null"
-    )]
+    clear_allowed_providers: bool,
+    #[builder(setter(custom), default)]
     allowed_models: Option<Vec<String>>,
+    #[serde(skip)]
+    #[builder(setter(custom), default)]
+    clear_allowed_models: bool,
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     enforce_zdr: Option<bool>,
 }
 
+impl Serialize for UpdateGuardrailRequest {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut map = serializer.serialize_map(None)?;
+        if let Some(value) = &self.name {
+            map.serialize_entry("name", value)?;
+        }
+        if let Some(value) = &self.description {
+            map.serialize_entry("description", value)?;
+        }
+        if let Some(value) = &self.limit_usd {
+            map.serialize_entry("limit_usd", value)?;
+        }
+        if let Some(value) = &self.reset_interval {
+            map.serialize_entry("reset_interval", value)?;
+        }
+        if self.clear_allowed_providers {
+            map.serialize_entry("allowed_providers", &Option::<Vec<String>>::None)?;
+        } else if let Some(value) = &self.allowed_providers {
+            map.serialize_entry("allowed_providers", value)?;
+        }
+        if self.clear_allowed_models {
+            map.serialize_entry("allowed_models", &Option::<Vec<String>>::None)?;
+        } else if let Some(value) = &self.allowed_models {
+            map.serialize_entry("allowed_models", value)?;
+        }
+        if let Some(value) = &self.enforce_zdr {
+            map.serialize_entry("enforce_zdr", value)?;
+        }
+        map.end()
+    }
+}
+
 impl UpdateGuardrailRequestBuilder {
-    strip_option_vec_setter!(allowed_providers, String);
-    strip_option_vec_setter!(allowed_models, String);
+    pub fn allowed_providers<T, S>(&mut self, items: T) -> &mut Self
+    where
+        T: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.allowed_providers = Some(Some(items.into_iter().map(Into::into).collect()));
+        self.clear_allowed_providers = Some(false);
+        self
+    }
+
+    pub fn allowed_models<T, S>(&mut self, items: T) -> &mut Self
+    where
+        T: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.allowed_models = Some(Some(items.into_iter().map(Into::into).collect()));
+        self.clear_allowed_models = Some(false);
+        self
+    }
 
     pub fn clear_allowed_providers(&mut self) -> &mut Self {
-        self.allowed_providers = Some(Some(Vec::new()));
+        self.allowed_providers = Some(None);
+        self.clear_allowed_providers = Some(true);
         self
     }
 
     pub fn clear_allowed_models(&mut self) -> &mut Self {
-        self.allowed_models = Some(Some(Vec::new()));
+        self.allowed_models = Some(None);
+        self.clear_allowed_models = Some(true);
         self
     }
 }
