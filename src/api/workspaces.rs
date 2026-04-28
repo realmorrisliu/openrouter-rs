@@ -30,6 +30,9 @@ pub struct Workspace {
     pub default_image_model: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub default_provider_sort: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub io_logging_api_key_ids: Option<Vec<u64>>,
+    pub io_logging_sampling_rate: f64,
     pub is_observability_io_logging_enabled: bool,
     pub is_observability_broadcast_enabled: bool,
     pub is_data_discount_logging_enabled: bool,
@@ -68,6 +71,12 @@ pub struct CreateWorkspaceRequest {
     pub default_provider_sort: Option<String>,
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub io_logging_api_key_ids: Option<Vec<u64>>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub io_logging_sampling_rate: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub is_data_discount_logging_enabled: Option<bool>,
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -104,6 +113,12 @@ pub struct UpdateWorkspaceRequest {
     #[builder(setter(into, strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub default_provider_sort: Option<String>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub io_logging_api_key_ids: Option<Vec<u64>>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub io_logging_sampling_rate: Option<f64>,
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub is_data_discount_logging_enabled: Option<bool>,

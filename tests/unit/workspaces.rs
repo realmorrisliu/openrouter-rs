@@ -115,6 +115,8 @@ fn test_create_workspace_request_serialization() {
         .is_data_discount_logging_enabled(true)
         .is_observability_broadcast_enabled(false)
         .is_observability_io_logging_enabled(false)
+        .io_logging_api_key_ids(vec![101, 202])
+        .io_logging_sampling_rate(0.25)
         .build()
         .expect("create workspace request should build");
 
@@ -128,6 +130,11 @@ fn test_create_workspace_request_serialization() {
     assert_eq!(value["is_data_discount_logging_enabled"], true);
     assert_eq!(value["is_observability_broadcast_enabled"], false);
     assert_eq!(value["is_observability_io_logging_enabled"], false);
+    assert_eq!(
+        value["io_logging_api_key_ids"],
+        serde_json::json!([101, 202])
+    );
+    assert_eq!(value["io_logging_sampling_rate"], 0.25);
 }
 
 #[test]
@@ -136,6 +143,8 @@ fn test_update_workspace_request_serialization() {
         .name("Updated")
         .slug("updated")
         .is_data_discount_logging_enabled(false)
+        .io_logging_api_key_ids(Vec::<u64>::new())
+        .io_logging_sampling_rate(1.0)
         .build()
         .expect("update workspace request should build");
 
@@ -143,6 +152,8 @@ fn test_update_workspace_request_serialization() {
     assert_eq!(value["name"], "Updated");
     assert_eq!(value["slug"], "updated");
     assert_eq!(value["is_data_discount_logging_enabled"], false);
+    assert_eq!(value["io_logging_api_key_ids"], serde_json::json!([]));
+    assert_eq!(value["io_logging_sampling_rate"], 1.0);
     assert!(value.get("description").is_none());
 }
 
@@ -157,6 +168,8 @@ fn test_workspace_response_deserialization() {
             "default_text_model": "openai/gpt-4o",
             "default_image_model": "openai/dall-e-3",
             "default_provider_sort": "price",
+            "io_logging_api_key_ids": [101, 202],
+            "io_logging_sampling_rate": 0.5,
             "is_observability_io_logging_enabled": false,
             "is_observability_broadcast_enabled": false,
             "is_data_discount_logging_enabled": true,
@@ -171,6 +184,8 @@ fn test_workspace_response_deserialization() {
     assert_eq!(parsed.data.id, "ws_123");
     assert_eq!(parsed.data.slug, "production");
     assert_eq!(parsed.data.created_by.as_deref(), Some("user_123"));
+    assert_eq!(parsed.data.io_logging_api_key_ids, Some(vec![101, 202]));
+    assert_eq!(parsed.data.io_logging_sampling_rate, 0.5);
 }
 
 #[test]
@@ -184,6 +199,8 @@ fn test_workspace_list_and_member_response_deserialization() {
             "default_text_model": "openai/gpt-4o",
             "default_image_model": "openai/dall-e-3",
             "default_provider_sort": "price",
+            "io_logging_api_key_ids": null,
+            "io_logging_sampling_rate": 1.0,
             "is_observability_io_logging_enabled": false,
             "is_observability_broadcast_enabled": false,
             "is_data_discount_logging_enabled": true,
@@ -215,6 +232,8 @@ fn test_workspace_list_and_member_response_deserialization() {
         serde_json::from_str(remove_raw).expect("workspace member remove should deserialize");
 
     assert_eq!(list.total_count, 1.0);
+    assert_eq!(list.data[0].io_logging_api_key_ids, None);
+    assert_eq!(list.data[0].io_logging_sampling_rate, 1.0);
     assert_eq!(add.added_count, 1.0);
     assert_eq!(add.data[0].workspace_id, "ws_123");
     assert_eq!(remove.removed_count, 2.0);
@@ -254,7 +273,7 @@ async fn test_list_workspaces_path_pagination_and_auth_header() {
 #[tokio::test]
 async fn test_create_workspace_posts_body_and_auth_header() {
     let (base_url, rx, server) = spawn_json_server(
-        r#"{"data":{"id":"ws_123","name":"Production","slug":"production","description":"Production","default_text_model":"openai/gpt-4o","default_image_model":"openai/dall-e-3","default_provider_sort":"price","is_observability_io_logging_enabled":false,"is_observability_broadcast_enabled":false,"is_data_discount_logging_enabled":true,"created_at":"2025-01-01T00:00:00.000Z","updated_at":null,"created_by":"user_123"}}"#,
+        r#"{"data":{"id":"ws_123","name":"Production","slug":"production","description":"Production","default_text_model":"openai/gpt-4o","default_image_model":"openai/dall-e-3","default_provider_sort":"price","io_logging_api_key_ids":null,"io_logging_sampling_rate":1.0,"is_observability_io_logging_enabled":false,"is_observability_broadcast_enabled":false,"is_data_discount_logging_enabled":true,"created_at":"2025-01-01T00:00:00.000Z","updated_at":null,"created_by":"user_123"}}"#,
     );
     let request = CreateWorkspaceRequest::builder()
         .name("Production")
@@ -282,7 +301,7 @@ async fn test_create_workspace_posts_body_and_auth_header() {
 #[tokio::test]
 async fn test_get_workspace_encodes_id_path() {
     let (base_url, rx, server) = spawn_json_server(
-        r#"{"data":{"id":"ws_123","name":"Production","slug":"production","description":null,"default_text_model":null,"default_image_model":null,"default_provider_sort":null,"is_observability_io_logging_enabled":false,"is_observability_broadcast_enabled":false,"is_data_discount_logging_enabled":true,"created_at":"2025-01-01T00:00:00.000Z","updated_at":null,"created_by":"user_123"}}"#,
+        r#"{"data":{"id":"ws_123","name":"Production","slug":"production","description":null,"default_text_model":null,"default_image_model":null,"default_provider_sort":null,"io_logging_api_key_ids":null,"io_logging_sampling_rate":1.0,"is_observability_io_logging_enabled":false,"is_observability_broadcast_enabled":false,"is_data_discount_logging_enabled":true,"created_at":"2025-01-01T00:00:00.000Z","updated_at":null,"created_by":"user_123"}}"#,
     );
 
     let response = workspaces::get_workspace(&base_url, "mgmt-key", "team/prod 1")
@@ -304,7 +323,7 @@ async fn test_get_workspace_encodes_id_path() {
 #[tokio::test]
 async fn test_update_workspace_encodes_id_and_sends_body() {
     let (base_url, rx, server) = spawn_json_server(
-        r#"{"data":{"id":"ws_123","name":"Updated","slug":"updated","description":null,"default_text_model":null,"default_image_model":null,"default_provider_sort":null,"is_observability_io_logging_enabled":false,"is_observability_broadcast_enabled":false,"is_data_discount_logging_enabled":true,"created_at":"2025-01-01T00:00:00.000Z","updated_at":"2025-01-02T00:00:00.000Z","created_by":"user_123"}}"#,
+        r#"{"data":{"id":"ws_123","name":"Updated","slug":"updated","description":null,"default_text_model":null,"default_image_model":null,"default_provider_sort":null,"io_logging_api_key_ids":null,"io_logging_sampling_rate":1.0,"is_observability_io_logging_enabled":false,"is_observability_broadcast_enabled":false,"is_data_discount_logging_enabled":true,"created_at":"2025-01-01T00:00:00.000Z","updated_at":"2025-01-02T00:00:00.000Z","created_by":"user_123"}}"#,
     );
     let request = UpdateWorkspaceRequest::builder()
         .name("Updated")

@@ -71,6 +71,13 @@ REPO_RESPONSES_FLEXIBLE_NULLABILITY_FIELDS = frozenset(
         "top_logprobs",
     }
 )
+REPO_FLEXIBLE_PLUGIN_OPERATION_KEYS = frozenset(
+    {
+        "POST /chat/completions",
+        "POST /messages",
+        "POST /responses",
+    }
+)
 BASELINE_TOP_LEVEL_FIELDS = (
     "components",
     "info",
@@ -405,12 +412,71 @@ def is_responses_response_payload_path(operation_key: str, path: tuple[Any, ...]
     return operation_key == "POST /responses" and bool(path) and path[0] == "responses"
 
 
+def is_request_schema_property_path(path: tuple[Any, ...], property_name: str) -> bool:
+    return (
+        "requestBody" in path
+        and len(path) >= 2
+        and path[-2:] == ("properties", property_name)
+    )
+
+
+def is_response_schema_property_path(path: tuple[Any, ...], property_name: str) -> bool:
+    return (
+        "responses" in path
+        and len(path) >= 2
+        and path[-2:] == ("properties", property_name)
+    )
+
+
+def is_repo_supported_flexible_plugin_payload_path(
+    operation_key: str,
+    path: tuple[Any, ...],
+) -> bool:
+    return (
+        operation_key in REPO_FLEXIBLE_PLUGIN_OPERATION_KEYS
+        and is_request_schema_property_path(path, "plugins")
+    )
+
+
+def is_repo_supported_messages_tool_payload_path(
+    operation_key: str,
+    path: tuple[Any, ...],
+) -> bool:
+    return operation_key == "POST /messages" and is_request_schema_property_path(path, "tools")
+
+
+def is_repo_supported_responses_tool_payload_path(
+    operation_key: str,
+    path: tuple[Any, ...],
+) -> bool:
+    return operation_key == "POST /responses" and is_request_schema_property_path(path, "tools")
+
+
+def is_repo_supported_responses_output_payload_path(
+    operation_key: str,
+    path: tuple[Any, ...],
+) -> bool:
+    return operation_key == "POST /responses" and is_response_schema_property_path(path, "output")
+
+
 def strip_repo_supported_schema_details(
     operation_key: str,
     value: Any,
     path: tuple[Any, ...] = (),
 ) -> Any:
     if isinstance(value, dict):
+        if is_repo_supported_flexible_plugin_payload_path(operation_key, path):
+            return {"<repo-supported-flexible-plugin-payload>": True}
+
+        if is_repo_supported_messages_tool_payload_path(operation_key, path):
+            return {"<repo-supported-messages-tool-payload>": True}
+
+        if is_repo_supported_responses_tool_payload_path(operation_key, path):
+            return {"<repo-supported-responses-tool-payload>": True}
+
+        if is_repo_supported_responses_output_payload_path(operation_key, path):
+            return {"<repo-supported-responses-output-payload>": True}
+
         stripped = {
             key: strip_repo_supported_schema_details(operation_key, item, path + (key,))
             for key, item in value.items()
@@ -457,6 +523,14 @@ def collect_repo_supported_schema_rules(operation_key: str, value: Any) -> list[
                 rules.add("dynamic output modality enum")
             if is_repo_supported_provider_options_map(item):
                 rules.add("provider-specific options map")
+            if is_repo_supported_flexible_plugin_payload_path(operation_key, path):
+                rules.add("flexible plugin payload")
+            if is_repo_supported_messages_tool_payload_path(operation_key, path):
+                rules.add("Messages flexible tool payload")
+            if is_repo_supported_responses_tool_payload_path(operation_key, path):
+                rules.add("Responses flexible tool payload")
+            if is_repo_supported_responses_output_payload_path(operation_key, path):
+                rules.add("Responses flexible output payload")
             if is_responses_response_payload_path(operation_key, path):
                 properties = item.get("properties")
                 if isinstance(properties, dict):
