@@ -27,6 +27,7 @@
 - `tests/unit/` contains fast serde/config/domain tests.
 - `tests/integration/` contains live API tests plus shared helpers in `test_utils.rs`.
 - `examples/` contains runnable usage samples. Prefer the domain-oriented examples when updating docs.
+- `openspec/` contains OpenSpec-managed proposals, spec deltas, designs, and task lists for planned requirements.
 
 ## Build, Test, And Development Commands
 
@@ -54,6 +55,7 @@ Direct cargo entrypoints:
 - `OPENROUTER_API_KEY=... cargo test --test integration -- --nocapture`
 - `cargo run --example domain_chat_completion`
 - `cargo run -p openrouter-cli -- --help`
+- `openspec validate <change-name>`
 
 ## Coding Style And Naming Conventions
 
