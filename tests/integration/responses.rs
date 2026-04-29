@@ -245,20 +245,14 @@ async fn test_stream_response_unified_done_semantics() -> Result<(), OpenRouterE
                     saw_done = true;
                     break;
                 }
-                UnifiedStreamEvent::ContentDelta(delta) => {
-                    if !delta.trim().is_empty() {
-                        saw_payload_event = true;
-                    }
+                UnifiedStreamEvent::ContentDelta(delta)
+                | UnifiedStreamEvent::ReasoningDelta(delta)
+                    if !delta.trim().is_empty() =>
+                {
+                    saw_payload_event = true;
                 }
-                UnifiedStreamEvent::ReasoningDelta(delta) => {
-                    if !delta.trim().is_empty() {
-                        saw_payload_event = true;
-                    }
-                }
-                UnifiedStreamEvent::ReasoningDetailsDelta(details) => {
-                    if !details.is_empty() {
-                        saw_payload_event = true;
-                    }
+                UnifiedStreamEvent::ReasoningDetailsDelta(details) if !details.is_empty() => {
+                    saw_payload_event = true;
                 }
                 UnifiedStreamEvent::ToolDelta(_) => {
                     saw_payload_event = true;
