@@ -77,6 +77,7 @@ Direct cargo entrypoints:
 
 - Follow the existing commit style: `feat:`, `fix:`, `docs:`, `chore:`.
 - Keep PRs focused and include rationale plus behavior changes.
+- Do not close pull requests automatically unless the user explicitly asks for that action.
 - When API surface changes, update `README.md`, relevant example(s), and `CHANGELOG.md` in the same change.
 - Before opening a PR, run `just quality`.
 - If you touched CLI behavior, migration docs, or CI-aligned release/test surfaces, also run `just quality-ci`.
