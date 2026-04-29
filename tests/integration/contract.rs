@@ -77,20 +77,14 @@ async fn assert_stream_completes(
                     saw_done = true;
                     break;
                 }
-                UnifiedStreamEvent::ContentDelta(delta) => {
-                    if !delta.trim().is_empty() {
-                        saw_payload = true;
-                    }
+                UnifiedStreamEvent::ContentDelta(delta)
+                | UnifiedStreamEvent::ReasoningDelta(delta)
+                    if !delta.trim().is_empty() =>
+                {
+                    saw_payload = true;
                 }
-                UnifiedStreamEvent::ReasoningDelta(delta) => {
-                    if !delta.trim().is_empty() {
-                        saw_payload = true;
-                    }
-                }
-                UnifiedStreamEvent::ReasoningDetailsDelta(details) => {
-                    if !details.is_empty() {
-                        saw_payload = true;
-                    }
+                UnifiedStreamEvent::ReasoningDetailsDelta(details) if !details.is_empty() => {
+                    saw_payload = true;
                 }
                 UnifiedStreamEvent::ToolDelta(_) | UnifiedStreamEvent::Raw { .. } => {
                     saw_payload = true;
