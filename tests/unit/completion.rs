@@ -239,6 +239,47 @@ fn test_gemini_tool_call_response() {
     assert!(result.is_ok(), "Failed: {:?}", result.err());
 }
 
+#[test]
+fn test_usage_deserializes_openrouter_cost_fields() {
+    let json = r#"{
+        "id": "gen-usage-cost",
+        "choices": [{
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+                "role": "assistant",
+                "content": "Hello"
+            }
+        }],
+        "created": 1700000000,
+        "model": "openai/gpt-4o-mini",
+        "object": "chat.completion",
+        "usage": {
+            "prompt_tokens": 100,
+            "completion_tokens": 10,
+            "total_tokens": 110,
+            "cost": 0.00025,
+            "cost_details": {
+                "upstream_inference_prompt_cost": 0.0001,
+                "upstream_inference_completions_cost": 0.00015,
+                "upstream_inference_cost": null
+            },
+            "is_byok": false
+        }
+    }"#;
+
+    let response: CompletionsResponse =
+        serde_json::from_str(json).expect("response should deserialize");
+    let usage = response.usage.expect("usage should be present");
+    let cost_details = usage.cost_details.expect("cost details should be present");
+
+    assert_eq!(usage.cost, Some(0.00025));
+    assert_eq!(usage.is_byok, Some(false));
+    assert_eq!(cost_details.upstream_inference_prompt_cost, 0.0001);
+    assert_eq!(cost_details.upstream_inference_completions_cost, 0.00015);
+    assert_eq!(cost_details.upstream_inference_cost, None);
+}
+
 /// Test deserialization of multimodal assistant content parts
 #[test]
 fn test_response_with_multimodal_content_parts() {

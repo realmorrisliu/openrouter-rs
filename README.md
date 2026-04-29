@@ -30,6 +30,7 @@ The current repo snapshot implements `51 / 51` official OpenAPI method/path entr
 - Tokio-native `reqwest + rustls` transport with no `surf` / `curl` dependency chain
 - Streaming support for chat, responses, and messages, including a unified stream abstraction
 - Typed tools, manual JSON-schema tools, and multimodal chat content
+- Typed chat usage metadata for token counts, OpenRouter cost, provider cost breakdowns, and BYOK status
 - Discovery, rerank, audio speech, video generation, embeddings, API-key management, workspace management, organization members, guardrails, activity, credits, and generation metadata/content coverage
 - A companion CLI for profile resolution, discovery, management, and billing/usage workflows
 

@@ -6409,6 +6409,13 @@
           "completion_tokens_details": {
             "reasoning_tokens": 5
           },
+          "cost": 0.0012,
+          "cost_details": {
+            "upstream_inference_completions_cost": 0.0004,
+            "upstream_inference_cost": null,
+            "upstream_inference_prompt_cost": 0.0008
+          },
+          "is_byok": false,
           "prompt_tokens": 10,
           "prompt_tokens_details": {
             "cached_tokens": 2
@@ -6446,6 +6453,19 @@
               }
             },
             "type": "object"
+          },
+          "cost": {
+            "description": "Cost of the completion",
+            "format": "double",
+            "nullable": true,
+            "type": "number"
+          },
+          "cost_details": {
+            "$ref": "#/components/schemas/CostDetails"
+          },
+          "is_byok": {
+            "description": "Whether a request was made using a Bring Your Own Key configuration",
+            "type": "boolean"
           },
           "prompt_tokens": {
             "description": "Number of tokens in the prompt",
@@ -7076,6 +7096,35 @@
         },
         "required": [
           "id"
+        ],
+        "type": "object"
+      },
+      "CostDetails": {
+        "description": "Breakdown of upstream inference costs",
+        "example": {
+          "upstream_inference_completions_cost": 0.0004,
+          "upstream_inference_cost": null,
+          "upstream_inference_prompt_cost": 0.0008
+        },
+        "nullable": true,
+        "properties": {
+          "upstream_inference_completions_cost": {
+            "format": "double",
+            "type": "number"
+          },
+          "upstream_inference_cost": {
+            "format": "double",
+            "nullable": true,
+            "type": "number"
+          },
+          "upstream_inference_prompt_cost": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "upstream_inference_prompt_cost",
+          "upstream_inference_completions_cost"
         ],
         "type": "object"
       },
@@ -8569,6 +8618,7 @@
                   "embeddings",
                   "rerank",
                   "tts",
+                  "stt",
                   "video",
                   null
                 ],
@@ -12211,27 +12261,7 @@
                         "type": "number"
                       },
                       "cost_details": {
-                        "nullable": true,
-                        "properties": {
-                          "upstream_inference_completions_cost": {
-                            "format": "double",
-                            "type": "number"
-                          },
-                          "upstream_inference_cost": {
-                            "format": "double",
-                            "nullable": true,
-                            "type": "number"
-                          },
-                          "upstream_inference_prompt_cost": {
-                            "format": "double",
-                            "type": "number"
-                          }
-                        },
-                        "required": [
-                          "upstream_inference_prompt_cost",
-                          "upstream_inference_completions_cost"
-                        ],
-                        "type": "object"
+                        "$ref": "#/components/schemas/CostDetails"
                       },
                       "is_byok": {
                         "type": "boolean"
@@ -15176,7 +15206,8 @@
           "audio",
           "video",
           "rerank",
-          "speech"
+          "speech",
+          "transcription"
         ],
         "example": "text",
         "type": "string",

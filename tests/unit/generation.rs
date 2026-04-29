@@ -159,3 +159,24 @@ fn test_generation_response_deserializes_num_fetches() {
         Some("gen_original")
     );
 }
+
+#[test]
+fn test_generation_response_accepts_stt_origin() {
+    let raw = r#"{
+        "data": {
+            "id": "gen_stt",
+            "total_cost": 0.02,
+            "created_at": "2026-04-29T00:00:00Z",
+            "model": "openai/whisper-1",
+            "origin": "stt",
+            "usage": 12.0,
+            "is_byok": false
+        }
+    }"#;
+
+    let parsed: ApiResponse<generation::GenerationData> =
+        serde_json::from_str(raw).expect("generation response should deserialize");
+
+    assert_eq!(parsed.data.id, "gen_stt");
+    assert_eq!(parsed.data.origin, "stt");
+}
