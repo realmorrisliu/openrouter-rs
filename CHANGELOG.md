@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added typed OpenRouter chat-completion usage cost fields via `ResponseUsage::cost`, `ResponseUsage::cost_details`, `ResponseUsage::is_byok`, and `ResponseCostDetails`.
+
+### Changed
+- Accepted the 2026-04-29 OpenAPI drift review, including `stt` generation origins and chat usage cost metadata, and kept the repository snapshot at `51 / 51` official OpenAPI endpoint coverage.
+
 ## [0.9.0] - 2026-04-28
 
 ### Added

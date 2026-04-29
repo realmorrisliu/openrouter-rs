@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-04-28T06:34:58+00:00",
+  "captured_at": "2026-04-29T07:05:54+00:00",
   "info": {
     "contact": {
       "email": "support@openrouter.ai",
@@ -73,7 +73,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f9245e7ad764aaf0",
+      "fingerprint": "dd243a0e87c9d573",
       "id": "GET /embeddings/models",
       "method": "GET",
       "operation_id": "listEmbeddingsModels",
@@ -95,7 +95,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "ba099f80d16f9c0c",
+      "fingerprint": "d6afb8ddc3f2def3",
       "id": "GET /generation",
       "method": "GET",
       "operation_id": "getGeneration",
@@ -216,7 +216,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "6c89b5d549bc33a9",
+      "fingerprint": "05c136e1dd21a680",
       "id": "GET /models",
       "method": "GET",
       "operation_id": "getModels",
@@ -238,7 +238,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "4c77c4b4c9a82e2a",
+      "fingerprint": "0fe1c297d2f1f250",
       "id": "GET /models/user",
       "method": "GET",
       "operation_id": "listModelsUser",
@@ -249,7 +249,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "15e473cb11f97766",
+      "fingerprint": "6545cb7dfeff2040",
       "id": "GET /models/{author}/{slug}/endpoints",
       "method": "GET",
       "operation_id": "listEndpoints",
@@ -403,7 +403,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "4974cef56be35025",
+      "fingerprint": "4aae24f2458bd5da",
       "id": "POST /chat/completions",
       "method": "POST",
       "operation_id": "sendChatCompletionRequest",

@@ -41,6 +41,17 @@ impl ReasoningDetail {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ResponseCostDetails {
+    /// Upstream provider cost attributed to completion tokens.
+    pub upstream_inference_completions_cost: f64,
+    /// Upstream provider cost attributed to prompt tokens.
+    pub upstream_inference_prompt_cost: f64,
+    /// Total upstream inference cost when provided separately by OpenRouter.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub upstream_inference_cost: Option<f64>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ResponseUsage {
     /// Including images and tools if any
     pub prompt_tokens: u32,
@@ -48,6 +59,15 @@ pub struct ResponseUsage {
     pub completion_tokens: u32,
     /// Sum of the above two fields
     pub total_tokens: u32,
+    /// Total OpenRouter request cost when returned by the API.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cost: Option<f64>,
+    /// Provider-level cost breakdown when returned by the API.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cost_details: Option<ResponseCostDetails>,
+    /// Whether the request was billed through BYOK provider credentials.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_byok: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

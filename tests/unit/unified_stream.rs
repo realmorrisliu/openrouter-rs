@@ -104,6 +104,9 @@ async fn test_unified_chat_stream_mixed_sequence() {
                 prompt_tokens: 5,
                 completion_tokens: 7,
                 total_tokens: 12,
+                cost: None,
+                cost_details: None,
+                is_byok: None,
             }),
         )),
     ];

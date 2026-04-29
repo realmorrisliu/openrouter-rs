@@ -373,6 +373,9 @@ async fn test_tool_aware_stream_single_tool_call() {
                 prompt_tokens: 100,
                 completion_tokens: 20,
                 total_tokens: 120,
+                cost: None,
+                cost_details: None,
+                is_byok: None,
             }),
         )),
     ];

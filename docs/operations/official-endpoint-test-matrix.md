@@ -1,6 +1,6 @@
 # Official Endpoint Test Matrix
 
-Snapshot date: 2026-04-28
+Snapshot date: 2026-04-29
 Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)  
 Tracked baseline: `specs/openrouter/openapi-baseline.json`  
 Nightly drift workflow: `.github/workflows/openapi-drift.yml`
@@ -22,6 +22,7 @@ Drift review note:
 - Upstream refreshed dynamic taxonomy details (`OutputModality` now uses `speech` instead of `tts`, provider lists now include `Nex AGI`, and Responses result nullable annotations were narrowed). The SDK already carries those surfaces through flexible `String`, `Value`, `HashMap`, and `Option` fields, so no public API migration is required.
 - Upstream added `response_cache_source_id` to generation metadata, workspace I/O logging key filters and sampling rate fields, and `callback_url` for video generation requests. The SDK now exposes those typed fields, and the 2026-04-28 baseline refresh keeps the accepted endpoint snapshot at `51 / 51`.
 - Upstream refreshed web-search, provider, and Responses output schemas. Existing OpenRouter plugin passthrough, Anthropic hosted-tool extras, provider option maps, and Responses `Value` payloads carry those schema details without a public API migration.
+- Upstream added `stt` as a generation origin and chat-completion usage cost metadata. `GenerationData::origin` remains a flexible `String`, and `ResponseUsage` now exposes typed `cost`, `cost_details`, and `is_byok` fields. The 2026-04-29 baseline refresh keeps the accepted endpoint snapshot at `51 / 51`.
 
 Legend:
 
