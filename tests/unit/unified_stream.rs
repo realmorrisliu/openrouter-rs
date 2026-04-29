@@ -1,20 +1,9 @@
-use std::collections::HashMap;
-
 use futures_util::{StreamExt, stream};
 use openrouter_rs::{
-    api::{
-        messages::{
-            AnthropicContentPart, AnthropicMessagesResponse, AnthropicMessagesSseEvent,
-            AnthropicMessagesStreamEvent, AnthropicMessagesUsage,
-        },
-        responses::ResponsesStreamEvent,
-    },
+    api::{messages::AnthropicMessagesSseEvent, responses::ResponsesStreamEvent},
     error::OpenRouterError,
     types::{
-        completion::{
-            Choice, CompletionsResponse, Delta, FinishReason, ObjectType, PartialFunctionCall,
-            PartialToolCall, ResponseUsage, StreamingChoice,
-        },
+        completion::{CompletionsResponse, FinishReason, PartialToolCall, ResponseUsage},
         stream::{
             UnifiedStreamEvent, UnifiedStreamSource, adapt_chat_stream, adapt_messages_stream,
             adapt_responses_stream,
@@ -32,45 +21,50 @@ fn chat_chunk(
     finish_reason: Option<FinishReason>,
     usage: Option<ResponseUsage>,
 ) -> CompletionsResponse {
-    CompletionsResponse {
-        id: id.to_string(),
-        choices: vec![Choice::Streaming(StreamingChoice {
-            finish_reason,
-            native_finish_reason: None,
-            delta: Delta {
-                content: content.map(ToOwned::to_owned),
-                role: None,
-                tool_calls: partial_tool.map(|p| vec![p]),
-                reasoning: reasoning.map(ToOwned::to_owned),
-                reasoning_details: None,
-                audio: None,
-                refusal: None,
+    serde_json::from_value(json!({
+        "id": id,
+        "choices": [{
+            "finish_reason": finish_reason,
+            "native_finish_reason": null,
+            "delta": {
+                "content": content,
+                "role": null,
+                "tool_calls": partial_tool.map(|p| vec![p]),
+                "reasoning": reasoning,
+                "reasoning_details": null,
+                "audio": null,
+                "refusal": null
             },
-            error: None,
-            index: Some(0),
-            logprobs: None,
-        })],
-        created: 1_700_000_000,
-        model: model.to_string(),
-        object_type: ObjectType::ChatCompletionChunk,
-        provider: None,
-        system_fingerprint: None,
-        usage,
-    }
+            "error": null,
+            "index": 0,
+            "logprobs": null
+        }],
+        "created": 1_700_000_000_u64,
+        "model": model,
+        "object": "chat.completion.chunk",
+        "provider": null,
+        "system_fingerprint": null,
+        "usage": usage
+    }))
+    .expect("chat chunk should deserialize")
 }
 
 fn responses_event(event_type: &str, data: serde_json::Value) -> ResponsesStreamEvent {
-    let mut map = HashMap::new();
+    let mut map = serde_json::Map::new();
+    map.insert("type".to_string(), json!(event_type));
+    map.insert("sequence_number".to_string(), serde_json::Value::Null);
     if let Some(obj) = data.as_object() {
         for (k, v) in obj {
             map.insert(k.clone(), v.clone());
         }
     }
-    ResponsesStreamEvent {
-        event_type: event_type.to_string(),
-        sequence_number: None,
-        data: map,
-    }
+    serde_json::from_value(serde_json::Value::Object(map))
+        .expect("responses event should deserialize")
+}
+
+fn messages_event(event: &str, data: serde_json::Value) -> AnthropicMessagesSseEvent {
+    serde_json::from_value(json!({ "event": event, "data": data }))
+        .expect("messages event should deserialize")
 }
 
 #[tokio::test]
@@ -81,15 +75,18 @@ async fn test_unified_chat_stream_mixed_sequence() {
             "test-model",
             Some("Hello "),
             Some("thinking"),
-            Some(PartialToolCall {
-                id: Some("call_1".to_string()),
-                type_: Some("function".to_string()),
-                function: Some(PartialFunctionCall {
-                    name: Some("get_weather".to_string()),
-                    arguments: Some("{\"location\":\"SF\"}".to_string()),
-                }),
-                index: Some(0),
-            }),
+            Some(
+                serde_json::from_value(json!({
+                    "id": "call_1",
+                    "type": "function",
+                    "function": {
+                        "name": "get_weather",
+                        "arguments": "{\"location\":\"SF\"}"
+                    },
+                    "index": 0
+                }))
+                .expect("partial tool call should deserialize"),
+            ),
             None,
             None,
         )),
@@ -100,14 +97,7 @@ async fn test_unified_chat_stream_mixed_sequence() {
             None,
             None,
             Some(FinishReason::Stop),
-            Some(ResponseUsage {
-                prompt_tokens: 5,
-                completion_tokens: 7,
-                total_tokens: 12,
-                cost: None,
-                cost_details: None,
-                is_byok: None,
-            }),
+            Some(ResponseUsage::new(5, 7, 12)),
         )),
     ];
 
@@ -281,59 +271,58 @@ async fn test_unified_responses_stream_non_terminal_completed_suffix_stays_open(
 #[tokio::test]
 async fn test_unified_messages_stream_mixed_sequence() {
     let events = vec![
-        Ok(AnthropicMessagesSseEvent {
-            event: "message_start".to_string(),
-            data: AnthropicMessagesStreamEvent::MessageStart {
-                message: Box::new(AnthropicMessagesResponse {
-                    id: Some("msg_1".to_string()),
-                    object_type: Some("message".to_string()),
-                    role: Some("assistant".to_string()),
-                    content: Vec::new(),
-                    model: Some("anthropic/claude-sonnet-4".to_string()),
-                    stop_reason: None,
-                    stop_sequence: None,
-                    usage: Some(AnthropicMessagesUsage {
-                        input_tokens: Some(5),
-                        output_tokens: Some(0),
-                        cache_creation_input_tokens: None,
-                        cache_read_input_tokens: None,
-                        service_tier: None,
-                        extra: HashMap::new(),
-                    }),
-                    extra: HashMap::new(),
-                }),
-            },
-        }),
-        Ok(AnthropicMessagesSseEvent {
-            event: "content_block_delta".to_string(),
-            data: AnthropicMessagesStreamEvent::ContentBlockDelta {
-                index: 0,
-                delta: json!({ "type": "text_delta", "text": "Hello" }),
-            },
-        }),
-        Ok(AnthropicMessagesSseEvent {
-            event: "content_block_delta".to_string(),
-            data: AnthropicMessagesStreamEvent::ContentBlockDelta {
-                index: 0,
-                delta: json!({ "type": "thinking_delta", "thinking": "plan" }),
-            },
-        }),
-        Ok(AnthropicMessagesSseEvent {
-            event: "content_block_start".to_string(),
-            data: AnthropicMessagesStreamEvent::ContentBlockStart {
-                index: 1,
-                content_block: Box::new(AnthropicContentPart::ToolUse {
-                    id: "toolu_1".to_string(),
-                    name: "get_weather".to_string(),
-                    input: Some(json!({ "city": "SF" })),
-                    cache_control: None,
-                }),
-            },
-        }),
-        Ok(AnthropicMessagesSseEvent {
-            event: "message_stop".to_string(),
-            data: AnthropicMessagesStreamEvent::MessageStop,
-        }),
+        Ok(messages_event(
+            "message_start",
+            json!({
+                "type": "message_start",
+                "message": {
+                    "id": "msg_1",
+                    "type": "message",
+                    "role": "assistant",
+                    "content": [],
+                    "model": "anthropic/claude-sonnet-4",
+                    "stop_reason": null,
+                    "stop_sequence": null,
+                    "usage": {
+                        "input_tokens": 5,
+                        "output_tokens": 0
+                    }
+                }
+            }),
+        )),
+        Ok(messages_event(
+            "content_block_delta",
+            json!({
+                "type": "content_block_delta",
+                "index": 0,
+                "delta": { "type": "text_delta", "text": "Hello" }
+            }),
+        )),
+        Ok(messages_event(
+            "content_block_delta",
+            json!({
+                "type": "content_block_delta",
+                "index": 0,
+                "delta": { "type": "thinking_delta", "thinking": "plan" }
+            }),
+        )),
+        Ok(messages_event(
+            "content_block_start",
+            json!({
+                "type": "content_block_start",
+                "index": 1,
+                "content_block": {
+                    "type": "tool_use",
+                    "id": "toolu_1",
+                    "name": "get_weather",
+                    "input": { "city": "SF" }
+                }
+            }),
+        )),
+        Ok(messages_event(
+            "message_stop",
+            json!({ "type": "message_stop" }),
+        )),
     ];
 
     let mut stream = adapt_messages_stream(stream::iter(events).boxed());
@@ -369,20 +358,21 @@ async fn test_unified_messages_stream_error_then_done() {
 #[tokio::test]
 async fn test_unified_messages_tool_delta_preserves_content_block_index() {
     let events = vec![
-        Ok(AnthropicMessagesSseEvent {
-            event: "content_block_delta".to_string(),
-            data: AnthropicMessagesStreamEvent::ContentBlockDelta {
-                index: 2,
-                delta: json!({
+        Ok(messages_event(
+            "content_block_delta",
+            json!({
+                "type": "content_block_delta",
+                "index": 2,
+                "delta": {
                     "type": "input_json_delta",
                     "partial_json": "{\"city\":\"S"
-                }),
-            },
-        }),
-        Ok(AnthropicMessagesSseEvent {
-            event: "message_stop".to_string(),
-            data: AnthropicMessagesStreamEvent::MessageStop,
-        }),
+                }
+            }),
+        )),
+        Ok(messages_event(
+            "message_stop",
+            json!({ "type": "message_stop" }),
+        )),
     ];
 
     let mut stream = adapt_messages_stream(stream::iter(events).boxed());
@@ -424,22 +414,23 @@ async fn test_unified_messages_tool_delta_preserves_content_block_index() {
 #[tokio::test]
 async fn test_unified_messages_tool_start_preserves_content_block_index() {
     let events = vec![
-        Ok(AnthropicMessagesSseEvent {
-            event: "content_block_start".to_string(),
-            data: AnthropicMessagesStreamEvent::ContentBlockStart {
-                index: 3,
-                content_block: Box::new(AnthropicContentPart::ToolUse {
-                    id: "toolu_2".to_string(),
-                    name: "get_weather".to_string(),
-                    input: Some(json!({ "city": "SF" })),
-                    cache_control: None,
-                }),
-            },
-        }),
-        Ok(AnthropicMessagesSseEvent {
-            event: "message_stop".to_string(),
-            data: AnthropicMessagesStreamEvent::MessageStop,
-        }),
+        Ok(messages_event(
+            "content_block_start",
+            json!({
+                "type": "content_block_start",
+                "index": 3,
+                "content_block": {
+                    "type": "tool_use",
+                    "id": "toolu_2",
+                    "name": "get_weather",
+                    "input": { "city": "SF" }
+                }
+            }),
+        )),
+        Ok(messages_event(
+            "message_stop",
+            json!({ "type": "message_stop" }),
+        )),
     ];
 
     let mut stream = adapt_messages_stream(stream::iter(events).boxed());

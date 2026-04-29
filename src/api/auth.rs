@@ -9,6 +9,7 @@ use crate::{
 };
 
 #[derive(Serialize, Deserialize, Debug)]
+#[non_exhaustive]
 pub struct AuthRequest {
     code: String,
     code_verifier: Option<String>,
@@ -16,6 +17,7 @@ pub struct AuthRequest {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 #[serde(rename_all = "lowercase")]
 pub enum CodeChallengeMethod {
     #[serde(rename = "S256")]
@@ -24,12 +26,14 @@ pub enum CodeChallengeMethod {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[non_exhaustive]
 pub struct AuthResponse {
     pub key: String,
     pub user_id: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 #[serde(rename_all = "lowercase")]
 pub enum UsageLimitType {
     Daily,
@@ -40,6 +44,7 @@ pub enum UsageLimitType {
 /// Request payload for `POST /auth/keys/code`.
 #[derive(Serialize, Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
 pub struct CreateAuthCodeRequest {
     #[builder(setter(into))]
     callback_url: String,
@@ -77,6 +82,7 @@ impl CreateAuthCodeRequest {
 
 /// Response payload for `POST /auth/keys/code`.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct AuthCodeData {
     pub id: String,
     pub app_id: f64,

@@ -12,6 +12,7 @@ use crate::{
 
 /// Number-like value used by OpenRouter pricing fields.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[non_exhaustive]
 #[serde(untagged)]
 pub enum BigNumber {
     String(String),
@@ -20,6 +21,7 @@ pub enum BigNumber {
 
 /// Public provider metadata returned by `GET /providers`.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct Provider {
     pub name: String,
     pub slug: String,
@@ -34,6 +36,7 @@ pub struct Provider {
 
 /// Model pricing payload returned by model discovery endpoints.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct PublicPricing {
     pub prompt: BigNumber,
     pub completion: BigNumber,
@@ -65,6 +68,7 @@ pub struct PublicPricing {
 
 /// Model architecture data in model discovery responses.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct ModelArchitecture {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tokenizer: Option<String>,
@@ -80,6 +84,7 @@ pub struct ModelArchitecture {
 
 /// Top provider metadata in model discovery responses.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct TopProviderInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub context_length: Option<f64>,
@@ -90,6 +95,7 @@ pub struct TopProviderInfo {
 
 /// Per-request token limits for a model.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct PerRequestLimits {
     pub prompt_tokens: f64,
     pub completion_tokens: f64,
@@ -97,6 +103,7 @@ pub struct PerRequestLimits {
 
 /// Model payload returned by `GET /models/user`.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct UserModel {
     pub id: String,
     pub canonical_slug: String,
@@ -125,12 +132,14 @@ pub struct UserModel {
 
 /// Count payload returned by `GET /models/count`.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct ModelsCountData {
     pub count: u64,
 }
 
 /// Percentile statistics payload used by endpoint throughput/latency.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct PercentileStats {
     pub p50: f64,
     pub p75: f64,
@@ -140,6 +149,7 @@ pub struct PercentileStats {
 
 /// Public endpoint payload returned by `GET /endpoints/zdr`.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct PublicEndpoint {
     pub name: String,
     pub model_id: String,
@@ -171,6 +181,7 @@ pub struct PublicEndpoint {
 
 /// Activity item payload returned by `GET /activity`.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct ActivityItem {
     pub date: String,
     pub model: String,

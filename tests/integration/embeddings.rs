@@ -104,6 +104,7 @@ async fn test_create_embedding_live() -> Result<(), OpenRouterError> {
                     response.data.iter().any(|item| match &item.embedding {
                         EmbeddingVector::Float(values) => !values.is_empty(),
                         EmbeddingVector::Base64(value) => !value.trim().is_empty(),
+                        _ => false,
                     }),
                     "at least one embedding item should contain non-empty vector payload"
                 );

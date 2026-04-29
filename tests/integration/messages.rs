@@ -129,6 +129,7 @@ async fn test_stream_messages_unified_done_semantics() -> Result<(), OpenRouterE
                     );
                     saw_payload_event = true;
                 }
+                _ => {}
             }
         }
 

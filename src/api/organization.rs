@@ -9,6 +9,7 @@ use crate::{
 
 /// One organization member returned by `GET /organization/members`.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct OrganizationMember {
     pub id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -21,6 +22,7 @@ pub struct OrganizationMember {
 
 /// Paginated organization member list.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct OrganizationMembersResponse {
     pub data: Vec<OrganizationMember>,
     pub total_count: u64,

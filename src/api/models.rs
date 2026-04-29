@@ -9,6 +9,7 @@ use crate::{
 };
 
 #[derive(Serialize, Deserialize, Debug)]
+#[non_exhaustive]
 pub struct Model {
     pub id: String,
     pub name: String,
@@ -22,6 +23,7 @@ pub struct Model {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[non_exhaustive]
 pub struct Architecture {
     pub modality: String,
     pub tokenizer: String,
@@ -29,6 +31,7 @@ pub struct Architecture {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[non_exhaustive]
 pub struct TopProvider {
     pub context_length: Option<f64>,
     pub max_completion_tokens: Option<f64>,
@@ -36,6 +39,7 @@ pub struct TopProvider {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[non_exhaustive]
 pub struct Pricing {
     pub prompt: String,
     pub completion: String,
@@ -48,6 +52,7 @@ pub struct Pricing {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[non_exhaustive]
 pub struct Endpoint {
     pub name: String,
     pub context_length: f64,
@@ -61,6 +66,7 @@ pub struct Endpoint {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[non_exhaustive]
 pub struct EndpointPricing {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub request: Option<String>,
@@ -71,6 +77,7 @@ pub struct EndpointPricing {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[non_exhaustive]
 pub struct EndpointData {
     pub id: String,
     pub name: String,
@@ -81,6 +88,7 @@ pub struct EndpointData {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[non_exhaustive]
 pub struct EndpointArchitecture {
     pub tokenizer: Option<String>,
     pub instruct_type: Option<String>,

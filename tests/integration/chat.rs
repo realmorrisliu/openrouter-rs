@@ -65,6 +65,7 @@ fn get_first_content(response: &CompletionsResponse) -> &str {
         Choice::NonStreaming(c) => c.message.content.as_deref().unwrap_or_default(),
         Choice::Streaming(c) => c.delta.content.as_deref().unwrap_or_default(),
         Choice::NonChat(c) => c.text.as_str(),
+        _ => "",
     }
 }
 

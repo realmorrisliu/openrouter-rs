@@ -62,13 +62,11 @@ fn test_anthropic_messages_request_serialization() {
         .route("fallback")
         .user("user-123")
         .session_id("session-abc")
-        .trace(TraceOptions {
-            trace_id: Some("trace-1".to_string()),
-            trace_name: None,
-            span_name: Some("messages.unit".to_string()),
-            generation_name: None,
-            parent_span_id: None,
-            extra: Default::default(),
+        .trace({
+            let mut trace = TraceOptions::default();
+            trace.trace_id = Some("trace-1".to_string());
+            trace.span_name = Some("messages.unit".to_string());
+            trace
         })
         .models(vec!["anthropic/claude-sonnet-4".to_string()])
         .output_config(AnthropicOutputConfig::with_effort(

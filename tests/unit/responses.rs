@@ -145,13 +145,11 @@ fn test_responses_request_serialization() {
         .truncation("auto")
         .user("user-123")
         .session_id("session-abc")
-        .trace(TraceOptions {
-            trace_id: Some("trace-1".to_string()),
-            trace_name: None,
-            span_name: Some("responses.unit".to_string()),
-            generation_name: None,
-            parent_span_id: None,
-            extra: Default::default(),
+        .trace({
+            let mut trace = TraceOptions::default();
+            trace.trace_id = Some("trace-1".to_string());
+            trace.span_name = Some("responses.unit".to_string());
+            trace
         })
         .plugins(vec![Plugin::new("web").option("max_results", 3)])
         .build()

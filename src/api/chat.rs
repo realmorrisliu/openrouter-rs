@@ -20,6 +20,7 @@ use crate::{
 
 /// Image URL with optional detail level for vision models.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct ImageUrl {
     /// URL of the image (can be a web URL or base64 data URI)
     pub url: String,
@@ -46,6 +47,7 @@ impl ImageUrl {
 
 /// Audio input payload for multimodal requests.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct InputAudio {
     /// Base64-encoded audio data.
     pub data: String,
@@ -64,6 +66,7 @@ impl InputAudio {
 
 /// Video URL payload for multimodal requests.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct VideoUrl {
     /// URL of the input video.
     pub url: String,
@@ -77,6 +80,7 @@ impl VideoUrl {
 
 /// File payload for multimodal requests.
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[non_exhaustive]
 pub struct FileInput {
     /// File content as URL or data URL.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -114,6 +118,7 @@ impl FileInput {
 
 /// Cache control type for prompt caching breakpoints.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 #[serde(rename_all = "lowercase")]
 pub enum CacheControlType {
     Ephemeral,
@@ -121,6 +126,7 @@ pub enum CacheControlType {
 
 /// Cache control settings for text content parts.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct CacheControl {
     #[serde(rename = "type")]
     pub kind: CacheControlType,
@@ -148,6 +154,7 @@ impl CacheControl {
 
 /// A content part in a multi-modal message.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ContentPart {
     /// Text content
@@ -251,6 +258,7 @@ impl ContentPart {
 
 /// Message content - either a simple string or multi-part content.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 #[serde(untagged)]
 pub enum Content {
     /// Simple text content
@@ -278,6 +286,7 @@ impl From<Vec<ContentPart>> for Content {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct Message {
     pub role: Role,
     pub content: Content,
@@ -368,6 +377,7 @@ impl Message {
 
 /// Output modality for chat responses.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 #[serde(rename_all = "lowercase")]
 pub enum Modality {
     Text,
@@ -377,6 +387,7 @@ pub enum Modality {
 
 /// Streaming debug options.
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[non_exhaustive]
 pub struct DebugOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub echo_upstream_body: Option<bool>,
@@ -384,6 +395,7 @@ pub struct DebugOptions {
 
 /// Streaming configuration options.
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[non_exhaustive]
 pub struct StreamOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub include_usage: Option<bool>,
@@ -391,6 +403,7 @@ pub struct StreamOptions {
 
 /// Trace metadata used for observability.
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[non_exhaustive]
 pub struct TraceOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub trace_id: Option<String>,
@@ -408,6 +421,7 @@ pub struct TraceOptions {
 
 /// Plugin configuration payload.
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[non_exhaustive]
 pub struct Plugin {
     pub id: String,
     #[serde(flatten)]
@@ -430,6 +444,7 @@ impl Plugin {
 
 /// Stop sequence configuration.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 #[serde(untagged)]
 pub enum StopSequence {
     Single(String),
@@ -456,6 +471,7 @@ impl From<Vec<String>> for StopSequence {
 
 #[derive(Serialize, Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
 pub struct ChatCompletionRequest {
     #[builder(setter(into))]
     model: String,

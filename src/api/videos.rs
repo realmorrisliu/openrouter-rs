@@ -12,12 +12,20 @@ use crate::{
 
 /// One image URL payload used in video generation requests.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct VideoImageUrl {
     pub url: String,
 }
 
+impl VideoImageUrl {
+    pub fn new(url: impl Into<String>) -> Self {
+        Self { url: url.into() }
+    }
+}
+
 /// Reference image used to guide video generation.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct VideoInputReference {
     #[serde(rename = "type")]
     pub content_type: String,
@@ -28,13 +36,14 @@ impl VideoInputReference {
     pub fn new(url: impl Into<String>) -> Self {
         Self {
             content_type: "image_url".to_string(),
-            image_url: VideoImageUrl { url: url.into() },
+            image_url: VideoImageUrl::new(url),
         }
     }
 }
 
 /// Frame image used as the first or last frame of a generated video.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct VideoFrameImage {
     #[serde(rename = "type")]
     pub content_type: String,
@@ -46,7 +55,7 @@ impl VideoFrameImage {
     pub fn new(url: impl Into<String>, frame_type: impl Into<String>) -> Self {
         Self {
             content_type: "image_url".to_string(),
-            image_url: VideoImageUrl { url: url.into() },
+            image_url: VideoImageUrl::new(url),
             frame_type: frame_type.into(),
         }
     }
@@ -54,9 +63,18 @@ impl VideoFrameImage {
 
 /// Provider-specific passthrough options for video generation.
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[non_exhaustive]
 pub struct VideoProviderOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub options: Option<HashMap<String, serde_json::Value>>,
+}
+
+impl VideoProviderOptions {
+    pub fn new(options: HashMap<String, serde_json::Value>) -> Self {
+        Self {
+            options: Some(options),
+        }
+    }
 }
 
 /// Request payload for `POST /videos`.

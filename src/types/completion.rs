@@ -4,6 +4,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct ReasoningDetail {
     /// The type of reasoning block (e.g., "reasoning.text", "reasoning.encrypted")
     #[serde(rename = "type")]
@@ -41,6 +42,7 @@ impl ReasoningDetail {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct ResponseCostDetails {
     /// Upstream provider cost attributed to completion tokens.
     pub upstream_inference_completions_cost: f64,
@@ -51,7 +53,26 @@ pub struct ResponseCostDetails {
     pub upstream_inference_cost: Option<f64>,
 }
 
+/// Token and billing usage reported for chat completion responses.
+///
+/// Response payloads are intentionally constructed by deserialization rather than
+/// by public struct literals, so new upstream usage fields can be typed without
+/// forcing caller source changes.
+///
+/// ```compile_fail
+/// use openrouter_rs::types::completion::ResponseUsage;
+///
+/// let usage = ResponseUsage {
+///     prompt_tokens: 1,
+///     completion_tokens: 2,
+///     total_tokens: 3,
+///     cost: None,
+///     cost_details: None,
+///     is_byok: None,
+/// };
+/// ```
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct ResponseUsage {
     /// Including images and tools if any
     pub prompt_tokens: u32,
@@ -70,13 +91,37 @@ pub struct ResponseUsage {
     pub is_byok: Option<bool>,
 }
 
+impl ResponseUsage {
+    pub fn new(prompt_tokens: u32, completion_tokens: u32, total_tokens: u32) -> Self {
+        Self {
+            prompt_tokens,
+            completion_tokens,
+            total_tokens,
+            cost: None,
+            cost_details: None,
+            is_byok: None,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct FunctionCall {
     pub name: String,
     pub arguments: String,
 }
 
+impl FunctionCall {
+    pub fn new(name: impl Into<String>, arguments: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            arguments: arguments.into(),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct ToolCall {
     pub id: String,
     #[serde(rename = "type")]
@@ -86,12 +131,33 @@ pub struct ToolCall {
     pub index: Option<u32>,
 }
 
+impl ToolCall {
+    pub fn new(
+        id: impl Into<String>,
+        name: impl Into<String>,
+        arguments: impl Into<String>,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            type_: "function".to_string(),
+            function: FunctionCall::new(name, arguments),
+            index: None,
+        }
+    }
+
+    pub fn with_index(mut self, index: u32) -> Self {
+        self.index = Some(index);
+        self
+    }
+}
+
 /// Partial function call data as received in streaming deltas.
 ///
 /// Unlike [`FunctionCall`], all fields are optional because streaming chunks
 /// may only contain fragments of the function call (e.g., just an arguments
 /// fragment without the function name).
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[non_exhaustive]
 pub struct PartialFunctionCall {
     #[serde(default)]
     pub name: Option<String>,
@@ -110,6 +176,7 @@ pub struct PartialFunctionCall {
 /// automatically accumulate these partial chunks into complete [`ToolCall`]
 /// objects.
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[non_exhaustive]
 pub struct PartialToolCall {
     #[serde(default)]
     pub id: Option<String>,
@@ -127,7 +194,7 @@ impl ToolCall {
     /// # Examples
     ///
     /// ```rust
-    /// use openrouter_rs::types::{ToolCall, completion::FunctionCall};
+    /// use openrouter_rs::types::ToolCall;
     /// use openrouter_rs::types::typed_tool::TypedTool;
     /// use serde::{Deserialize, Serialize};
     /// use schemars::JsonSchema;
@@ -142,15 +209,7 @@ impl ToolCall {
     ///     fn description() -> &'static str { "Get weather" }
     /// }
     ///
-    /// let tool_call = ToolCall {
-    ///     id: "call_123".to_string(),
-    ///     type_: "function".to_string(),
-    ///     function: FunctionCall {
-    ///         name: "get_weather".to_string(),
-    ///         arguments: r#"{"location":"Paris"}"#.to_string(),
-    ///     },
-    ///     index: None,
-    /// };
+    /// let tool_call = ToolCall::new("call_123", "get_weather", r#"{"location":"Paris"}"#);
     ///
     /// let params: WeatherParams = tool_call.parse_params()?;
     /// # Ok::<(), openrouter_rs::error::OpenRouterError>(())
@@ -168,7 +227,7 @@ impl ToolCall {
     /// # Examples
     ///
     /// ```rust
-    /// # use openrouter_rs::types::{ToolCall, completion::FunctionCall};
+    /// # use openrouter_rs::types::ToolCall;
     /// # use openrouter_rs::types::typed_tool::TypedTool;
     /// # use serde::{Deserialize, Serialize};
     /// # use schemars::JsonSchema;
@@ -178,15 +237,7 @@ impl ToolCall {
     /// #     fn name() -> &'static str { "get_weather" }
     /// #     fn description() -> &'static str { "Get weather" }
     /// # }
-    /// # let tool_call = ToolCall {
-    /// #     id: "call_123".to_string(),
-    /// #     type_: "function".to_string(),
-    /// #     function: FunctionCall {
-    /// #         name: "get_weather".to_string(),
-    /// #         arguments: r#"{"location":"Paris"}"#.to_string(),
-    /// #     },
-    /// #     index: None,
-    /// # };
+    /// # let tool_call = ToolCall::new("call_123", "get_weather", r#"{"location":"Paris"}"#);
     /// if tool_call.is_tool::<WeatherParams>() {
     ///     let params = tool_call.parse_params::<WeatherParams>()?;
     ///     // Handle weather tool
@@ -205,16 +256,8 @@ impl ToolCall {
     /// # Examples
     ///
     /// ```rust
-    /// # use openrouter_rs::types::{ToolCall, completion::FunctionCall};
-    /// # let tool_call = ToolCall {
-    /// #     id: "call_123".to_string(),
-    /// #     type_: "function".to_string(),
-    /// #     function: FunctionCall {
-    /// #         name: "get_weather".to_string(),
-    /// #         arguments: "{}".to_string(),
-    /// #     },
-    /// #     index: None,
-    /// # };
+    /// # use openrouter_rs::types::ToolCall;
+    /// # let tool_call = ToolCall::new("call_123", "get_weather", "{}");
     /// match tool_call.name() {
     ///     "get_weather" => { /* handle weather */ }
     ///     "calculator" => { /* handle calculator */ }
@@ -230,16 +273,8 @@ impl ToolCall {
     /// # Examples
     ///
     /// ```rust
-    /// # use openrouter_rs::types::{ToolCall, completion::FunctionCall};
-    /// # let tool_call = ToolCall {
-    /// #     id: "call_123".to_string(),
-    /// #     type_: "function".to_string(),
-    /// #     function: FunctionCall {
-    /// #         name: "get_weather".to_string(),
-    /// #         arguments: r#"{"location":"Paris"}"#.to_string(),
-    /// #     },
-    /// #     index: None,
-    /// # };
+    /// # use openrouter_rs::types::ToolCall;
+    /// # let tool_call = ToolCall::new("call_123", "get_weather", r#"{"location":"Paris"}"#);
     /// println!("Raw arguments: {}", tool_call.arguments_json());
     /// ```
     pub fn arguments_json(&self) -> &str {
@@ -251,16 +286,8 @@ impl ToolCall {
     /// # Examples
     ///
     /// ```rust
-    /// # use openrouter_rs::types::{ToolCall, completion::FunctionCall};
-    /// # let tool_call = ToolCall {
-    /// #     id: "call_123".to_string(),
-    /// #     type_: "function".to_string(),
-    /// #     function: FunctionCall {
-    /// #         name: "get_weather".to_string(),
-    /// #         arguments: "{}".to_string(),
-    /// #     },
-    /// #     index: None,
-    /// # };
+    /// # use openrouter_rs::types::ToolCall;
+    /// # let tool_call = ToolCall::new("call_123", "get_weather", "{}");
     /// println!("Tool call ID: {}", tool_call.id());
     /// ```
     pub fn id(&self) -> &str {
@@ -272,16 +299,8 @@ impl ToolCall {
     /// # Examples
     ///
     /// ```rust
-    /// # use openrouter_rs::types::{ToolCall, completion::FunctionCall};
-    /// # let tool_call = ToolCall {
-    /// #     id: "call_123".to_string(),
-    /// #     type_: "function".to_string(),
-    /// #     function: FunctionCall {
-    /// #         name: "get_weather".to_string(),
-    /// #         arguments: "{}".to_string(),
-    /// #     },
-    /// #     index: None,
-    /// # };
+    /// # use openrouter_rs::types::ToolCall;
+    /// # let tool_call = ToolCall::new("call_123", "get_weather", "{}");
     /// assert_eq!(tool_call.tool_type(), "function");
     /// ```
     pub fn tool_type(&self) -> &str {
@@ -290,6 +309,7 @@ impl ToolCall {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct ErrorResponse {
     pub code: i32,
     pub message: String,
@@ -339,6 +359,7 @@ where
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 #[serde(untagged)]
 pub enum Choice {
     NonChat(NonChatChoice),
@@ -451,6 +472,7 @@ impl Choice {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 #[serde(rename_all = "snake_case")]
 pub enum FinishReason {
     ToolCalls,
@@ -461,6 +483,7 @@ pub enum FinishReason {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct NonChatChoice {
     pub finish_reason: Option<FinishReason>,
     pub text: String,
@@ -470,6 +493,7 @@ pub struct NonChatChoice {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct NonStreamingChoice {
     pub finish_reason: Option<FinishReason>,
     pub native_finish_reason: Option<String>,
@@ -480,6 +504,7 @@ pub struct NonStreamingChoice {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct StreamingChoice {
     pub finish_reason: Option<FinishReason>,
     pub native_finish_reason: Option<String>,
@@ -490,6 +515,7 @@ pub struct StreamingChoice {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct Message {
     #[serde(default, deserialize_with = "deserialize_optional_text_content")]
     pub content: Option<String>,
@@ -511,6 +537,7 @@ pub struct Message {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct Delta {
     #[serde(default, deserialize_with = "deserialize_optional_text_content")]
     pub content: Option<String>,
@@ -531,6 +558,7 @@ pub struct Delta {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub enum ObjectType {
     #[serde(rename = "chat.completion")]
     ChatCompletion,
@@ -539,6 +567,7 @@ pub enum ObjectType {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct CompletionsResponse {
     pub id: String,
     pub choices: Vec<Choice>,

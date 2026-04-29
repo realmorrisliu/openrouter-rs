@@ -13,6 +13,9 @@ use openrouter_rs::{
 
 #[test]
 fn test_rerank_request_serialization() {
+    let mut provider = ProviderPreferences::default();
+    provider.allow_fallbacks = Some(true);
+
     let request = RerankRequest::builder()
         .model("cohere/rerank-v3.5")
         .query("What is the capital of France?")
@@ -21,10 +24,7 @@ fn test_rerank_request_serialization() {
             "Berlin is the capital of Germany.".to_string(),
         ])
         .top_n(1)
-        .provider(ProviderPreferences {
-            allow_fallbacks: Some(true),
-            ..ProviderPreferences::default()
-        })
+        .provider(provider)
         .build()
         .expect("rerank request should build");
 

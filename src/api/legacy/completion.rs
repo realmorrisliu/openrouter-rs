@@ -15,6 +15,7 @@ use crate::{
 
 #[derive(Serialize, Deserialize, Debug, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
 pub struct CompletionRequest {
     #[builder(setter(into))]
     model: String,

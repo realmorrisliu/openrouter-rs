@@ -12,6 +12,7 @@ use crate::{
 
 #[derive(Serialize, Deserialize, Debug, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
 pub struct CoinbaseChargeRequest {
     amount: f64,
     #[builder(setter(into))]
@@ -35,6 +36,7 @@ impl CoinbaseChargeRequest {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[non_exhaustive]
 pub struct CoinbaseChargeData {
     pub addresses: HashMap<String, String>,
     pub calldata: HashMap<String, String>,
@@ -44,6 +46,7 @@ pub struct CoinbaseChargeData {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[non_exhaustive]
 pub struct CreditsData {
     pub total_credits: f64,
     pub total_usage: f64,

@@ -32,18 +32,10 @@ fn test_embedding_request_text_input_serialize() {
 
 #[test]
 fn test_embedding_request_multimodal_input_serialize() {
-    let input = EmbeddingInput::MultimodalArray(vec![EmbeddingMultimodalInput {
-        content: vec![
-            EmbeddingContentPart::Text {
-                text: "caption this".to_string(),
-            },
-            EmbeddingContentPart::ImageUrl {
-                image_url: openrouter_rs::api::embeddings::EmbeddingImageUrl {
-                    url: "https://example.com/image.jpg".to_string(),
-                },
-            },
-        ],
-    }]);
+    let input = EmbeddingInput::MultimodalArray(vec![EmbeddingMultimodalInput::new(vec![
+        EmbeddingContentPart::text("caption this"),
+        EmbeddingContentPart::image_url("https://example.com/image.jpg"),
+    ])]);
 
     let request = EmbeddingRequest::new("openai/text-embedding-3-large", input);
     let value = serde_json::to_value(&request).expect("embedding request should serialize");
@@ -77,6 +69,7 @@ fn test_embedding_response_float_deserialization() {
     match &response.data[0].embedding {
         EmbeddingVector::Float(values) => assert_eq!(values.len(), 3),
         EmbeddingVector::Base64(_) => panic!("expected float vector"),
+        _ => panic!("unexpected embedding vector variant"),
     }
 }
 
@@ -129,6 +122,7 @@ fn test_embedding_response_base64_deserialization() {
     match &response.data[0].embedding {
         EmbeddingVector::Base64(value) => assert_eq!(value, "AAAAAA=="),
         EmbeddingVector::Float(_) => panic!("expected base64 vector"),
+        _ => panic!("unexpected embedding vector variant"),
     }
 }
 

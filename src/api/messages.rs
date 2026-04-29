@@ -19,6 +19,7 @@ use crate::{
 
 /// Role for Anthropic-compatible messages.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 #[serde(rename_all = "lowercase")]
 pub enum AnthropicRole {
     User,
@@ -27,6 +28,7 @@ pub enum AnthropicRole {
 
 /// Text block for `system` prompts.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct AnthropicSystemTextBlock {
     #[serde(rename = "type")]
     pub block_type: AnthropicSystemTextBlockType,
@@ -53,6 +55,7 @@ impl AnthropicSystemTextBlock {
 
 /// Block type for Anthropic system text blocks.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 #[serde(rename_all = "snake_case")]
 pub enum AnthropicSystemTextBlockType {
     Text,
@@ -60,6 +63,7 @@ pub enum AnthropicSystemTextBlockType {
 
 /// System prompt format for Anthropic messages.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 #[serde(untagged)]
 pub enum AnthropicSystemPrompt {
     Text(String),
@@ -68,6 +72,7 @@ pub enum AnthropicSystemPrompt {
 
 /// Message content for Anthropic messages.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 #[serde(untagged)]
 pub enum AnthropicMessageContent {
     Text(String),
@@ -94,6 +99,7 @@ impl From<Vec<AnthropicContentPart>> for AnthropicMessageContent {
 
 /// Multi-modal content part for Anthropic-compatible messages.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum AnthropicContentPart {
     Text {
@@ -239,6 +245,7 @@ impl AnthropicContentPart {
 
 /// A user/assistant message in Anthropic format.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct AnthropicMessage {
     pub role: AnthropicRole,
     pub content: AnthropicMessageContent,
@@ -270,6 +277,7 @@ impl AnthropicMessage {
 
 /// Anthropic metadata payload.
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[non_exhaustive]
 pub struct AnthropicMessagesMetadata {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user_id: Option<String>,
@@ -288,6 +296,7 @@ impl AnthropicMessagesMetadata {
 
 /// Tool definition for Anthropic-compatible messages.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct AnthropicTool {
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -337,6 +346,7 @@ impl AnthropicTool {
 
 /// Tool choice policy for Anthropic-compatible messages.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum AnthropicToolChoice {
     Auto {
@@ -382,6 +392,7 @@ impl AnthropicToolChoice {
 
 /// Thinking control for Anthropic-compatible messages.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum AnthropicThinking {
     Enabled { budget_tokens: u32 },
@@ -405,6 +416,7 @@ impl AnthropicThinking {
 
 /// Output effort level for Anthropic output configuration.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 #[serde(rename_all = "lowercase")]
 pub enum AnthropicOutputEffort {
     Low,
@@ -415,6 +427,7 @@ pub enum AnthropicOutputEffort {
 
 /// Output config for Anthropic messages.
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[non_exhaustive]
 pub struct AnthropicOutputConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub effort: Option<AnthropicOutputEffort>,
@@ -431,6 +444,7 @@ impl AnthropicOutputConfig {
 /// Request body for `POST /messages`.
 #[derive(Serialize, Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
 pub struct AnthropicMessagesRequest {
     #[builder(setter(into))]
     model: String,
@@ -577,6 +591,7 @@ impl AnthropicMessagesRequest {
 
 /// Usage object in Anthropic messages response.
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[non_exhaustive]
 pub struct AnthropicMessagesUsage {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub input_tokens: Option<u64>,
@@ -594,6 +609,7 @@ pub struct AnthropicMessagesUsage {
 
 /// Non-streaming response payload returned by `POST /messages`.
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[non_exhaustive]
 pub struct AnthropicMessagesResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
@@ -617,6 +633,7 @@ pub struct AnthropicMessagesResponse {
 
 /// Streaming data event payload for `POST /messages` when `stream=true`.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum AnthropicMessagesStreamEvent {
     MessageStart {
@@ -661,6 +678,7 @@ impl AnthropicMessagesStreamEvent {
 
 /// Streaming SSE envelope returned by `POST /messages`.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct AnthropicMessagesSseEvent {
     pub event: String,
     pub data: AnthropicMessagesStreamEvent,

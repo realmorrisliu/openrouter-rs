@@ -74,6 +74,7 @@ use crate::{
 /// Tool calls are accumulated internally and emitted as complete objects
 /// only once in the final [`StreamEvent::Done`] event.
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum StreamEvent {
     /// A fragment of text content from the assistant's response.
     ContentDelta(String),
@@ -337,6 +338,7 @@ impl Stream for ToolAwareStream {
 
 /// Source stream family for a [`UnifiedStreamEvent`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum UnifiedStreamSource {
     Chat,
     Responses,
@@ -345,6 +347,7 @@ pub enum UnifiedStreamSource {
 
 /// Unified stream event model across chat/responses/messages APIs.
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum UnifiedStreamEvent {
     /// Text content delta from the model.
     ContentDelta(String),
