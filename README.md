@@ -214,8 +214,18 @@ For copy-paste shell/CI recipes, see [`docs/operations/cli-automation-workflows.
 - Canonical docs and examples prefer the domain clients over older flat helpers
 - Accepted endpoint coverage is tracked against the current OpenAPI snapshot, and the current baseline is fully implemented at the SDK surface (`51 / 51`)
 - Live integration coverage and gaps are published in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md)
-- Migration guidance for the `0.8.x -> 0.9.0` audio speech/future-proofing release, the `0.7.x -> 0.8.0` transport/error-surface release, and the archived `0.5.x -> 0.6.x` naming guide lives in [`MIGRATION.md`](MIGRATION.md)
+- Migration guidance for the planned `0.9.x -> 0.10.0` public-model future-proofing release, the `0.8.x -> 0.9.0` audio speech release, the `0.7.x -> 0.8.0` transport/error-surface release, and the archived `0.5.x -> 0.6.x` naming guide lives in [`MIGRATION.md`](MIGRATION.md)
 - Legacy `POST /completions` support remains available behind the `legacy-completions` feature
+
+### 🔁 0.10 Public Model Migration
+
+Full migration guide: [`MIGRATION.md`](MIGRATION.md)
+
+- High-churn public SDK request, response, metadata, usage, pricing, discovery, streaming, and upstream taxonomy types are `#[non_exhaustive]`
+- Replace affected struct literals with builders, constructors, helpers, or serde deserialization
+- Add wildcard arms when matching affected public enums outside the crate
+- Use constructors such as `ResponseUsage::new(...)`, `ToolCall::new(...)`, `FunctionCall::new(...)`, and `JsonSchemaConfig::new(...)` for small helper/test fixtures
+- This source-level break is held for `0.10.0`
 
 ### 🔁 0.9 Audio Speech Migration
 

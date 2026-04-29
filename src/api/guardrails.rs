@@ -12,6 +12,7 @@ use crate::{
 
 /// Guardrail model.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct Guardrail {
     pub id: String,
     pub name: String,
@@ -36,6 +37,7 @@ pub struct Guardrail {
 
 /// Paginated guardrails list response.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct GuardrailListResponse {
     pub data: Vec<Guardrail>,
     pub total_count: f64,
@@ -44,6 +46,7 @@ pub struct GuardrailListResponse {
 /// Request payload for creating a guardrail (`POST /guardrails`).
 #[derive(Serialize, Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
 pub struct CreateGuardrailRequest {
     #[builder(setter(into))]
     name: String,
@@ -84,6 +87,7 @@ impl CreateGuardrailRequest {
 /// Request payload for updating a guardrail (`PATCH /guardrails/{id}`).
 #[derive(Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
 pub struct UpdateGuardrailRequest {
     #[builder(setter(into, strip_option), default)]
     name: Option<String>,
@@ -189,6 +193,7 @@ struct DeleteGuardrailResponse {
 
 /// Key assignment model.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct GuardrailKeyAssignment {
     pub id: String,
     pub key_hash: String,
@@ -201,6 +206,7 @@ pub struct GuardrailKeyAssignment {
 
 /// Member assignment model.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct GuardrailMemberAssignment {
     pub id: String,
     pub user_id: String,
@@ -212,6 +218,7 @@ pub struct GuardrailMemberAssignment {
 
 /// Paginated key assignment list response.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct GuardrailKeyAssignmentsResponse {
     pub data: Vec<GuardrailKeyAssignment>,
     pub total_count: f64,
@@ -219,6 +226,7 @@ pub struct GuardrailKeyAssignmentsResponse {
 
 /// Paginated member assignment list response.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct GuardrailMemberAssignmentsResponse {
     pub data: Vec<GuardrailMemberAssignment>,
     pub total_count: f64,
@@ -227,6 +235,7 @@ pub struct GuardrailMemberAssignmentsResponse {
 /// Request payload for key bulk assignment endpoints.
 #[derive(Serialize, Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
 pub struct BulkKeyAssignmentRequest {
     key_hashes: Vec<String>,
 }
@@ -240,6 +249,7 @@ impl BulkKeyAssignmentRequest {
 /// Request payload for member bulk assignment endpoints.
 #[derive(Serialize, Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
 pub struct BulkMemberAssignmentRequest {
     member_user_ids: Vec<String>,
 }
@@ -252,12 +262,14 @@ impl BulkMemberAssignmentRequest {
 
 /// Response payload for assignment endpoints.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct AssignedCountResponse {
     pub assigned_count: f64,
 }
 
 /// Response payload for unassignment endpoints.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct UnassignedCountResponse {
     pub unassigned_count: f64,
 }

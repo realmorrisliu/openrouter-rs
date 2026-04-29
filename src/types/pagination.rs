@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 /// Common pagination input used by paginated OpenRouter endpoints.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct PaginationOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub offset: Option<u32>,

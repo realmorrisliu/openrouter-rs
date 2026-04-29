@@ -78,6 +78,7 @@ use crate::error::OpenRouterError;
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct Tool {
     /// Type of tool (always "function" for now)
     #[serde(rename = "type")]
@@ -156,6 +157,7 @@ impl ToolBuilder {
 /// description, and parameter schema.
 #[derive(Serialize, Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
 pub struct FunctionDefinition {
     /// Name of the function
     #[builder(setter(into))]
@@ -260,6 +262,7 @@ impl FunctionDefinitionBuilder {
 /// let specific = ToolChoice::force_tool("get_weather");
 /// ```
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 #[serde(untagged)]
 pub enum ToolChoice {
     /// Simple string choices: "none", "auto", "required"
@@ -297,6 +300,7 @@ impl ToolChoice {
 
 /// Specific tool choice for forcing a particular tool
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct SpecificToolChoice {
     #[serde(rename = "type")]
     pub tool_type: String,
@@ -305,6 +309,7 @@ pub struct SpecificToolChoice {
 
 /// Function specification for specific tool choice
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct SpecificToolFunction {
     pub name: String,
 }

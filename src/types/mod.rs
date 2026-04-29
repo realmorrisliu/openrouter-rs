@@ -81,12 +81,10 @@
 //! ```rust
 //! use openrouter_rs::types::{DataCollectionPolicy, ProviderPreferences};
 //!
-//! let prefs = ProviderPreferences {
-//!     allow_fallbacks: Some(true),
-//!     require_parameters: Some(true),
-//!     data_collection: Some(DataCollectionPolicy::Deny),
-//!     ..Default::default()
-//! };
+//! let mut prefs = ProviderPreferences::default();
+//! prefs.allow_fallbacks = Some(true);
+//! prefs.require_parameters = Some(true);
+//! prefs.data_collection = Some(DataCollectionPolicy::Deny);
 //! ```
 //!
 //! ## 📊 Model Categories
@@ -158,6 +156,7 @@ pub use {
 };
 
 #[derive(Serialize, Deserialize, Debug)]
+#[non_exhaustive]
 pub struct ApiResponse<T> {
     pub data: T,
 }
@@ -178,6 +177,7 @@ pub struct ApiResponse<T> {
 /// let assistant_msg = Message::new(Role::Assistant, "Hello! How can I help?");
 /// ```
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[non_exhaustive]
 #[serde(rename_all = "lowercase")]
 pub enum Role {
     /// System instructions that guide the AI's behavior
@@ -225,6 +225,7 @@ impl Display for Role {
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 #[serde(rename_all = "lowercase")]
 pub enum Effort {
     /// Extra high reasoning depth and thoroughness
@@ -255,6 +256,7 @@ impl Display for Effort {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct ReasoningConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub effort: Option<Effort>,
@@ -327,6 +329,7 @@ impl ReasoningConfig {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 #[serde(rename_all = "lowercase")]
 pub enum ModelCategory {
     Roleplay,
@@ -383,6 +386,7 @@ impl ModelCategory {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 #[serde(rename_all = "snake_case")]
 pub enum SupportedParameters {
     Tools,

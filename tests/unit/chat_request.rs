@@ -162,16 +162,12 @@ fn test_multimodal_content_part_deserialization() {
 
 #[test]
 fn test_chat_request_extended_control_fields_serialize() {
-    let trace = TraceOptions {
-        trace_id: Some("trace-1".to_string()),
-        span_name: Some("sdk.chat".to_string()),
-        generation_name: None,
-        trace_name: None,
-        parent_span_id: None,
-        extra: [("team".to_string(), json!("rust-sdk"))]
-            .into_iter()
-            .collect(),
-    };
+    let mut trace = TraceOptions::default();
+    trace.trace_id = Some("trace-1".to_string());
+    trace.span_name = Some("sdk.chat".to_string());
+    trace.extra = [("team".to_string(), json!("rust-sdk"))]
+        .into_iter()
+        .collect();
 
     let request = ChatCompletionRequest::builder()
         .model("openai/gpt-5")
@@ -224,6 +220,11 @@ fn test_chat_request_extended_generation_fields_serialize() {
 
 #[test]
 fn test_chat_request_plugins_and_stream_options_serialize() {
+    let mut stream_options = StreamOptions::default();
+    stream_options.include_usage = Some(true);
+    let mut debug = DebugOptions::default();
+    debug.echo_upstream_body = Some(true);
+
     let request = ChatCompletionRequest::builder()
         .model("openai/gpt-5")
         .messages(vec![Message::new(Role::User, "search the web")])
@@ -232,12 +233,8 @@ fn test_chat_request_plugins_and_stream_options_serialize() {
                 .option("max_results", 3)
                 .option("search_prompt", "latest rust release"),
         ])
-        .stream_options(StreamOptions {
-            include_usage: Some(true),
-        })
-        .debug(DebugOptions {
-            echo_upstream_body: Some(true),
-        })
+        .stream_options(stream_options)
+        .debug(debug)
         .build()
         .expect("request should build");
 

@@ -23,9 +23,18 @@ pub enum SpeechResponseFormat {
 
 /// Provider-specific passthrough options for speech requests.
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[non_exhaustive]
 pub struct SpeechProviderOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub options: Option<HashMap<String, serde_json::Value>>,
+}
+
+impl SpeechProviderOptions {
+    pub fn new(options: HashMap<String, serde_json::Value>) -> Self {
+        Self {
+            options: Some(options),
+        }
+    }
 }
 
 /// Request payload for `POST /audio/speech`.

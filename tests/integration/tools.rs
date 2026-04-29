@@ -1,8 +1,7 @@
 use openrouter_rs::{
     api::chat::{ChatCompletionRequest, Message},
     types::{
-        Role, Tool, ToolChoice,
-        completion::{FunctionCall, ToolCall},
+        Role, Tool, ToolCall, ToolChoice,
         typed_tool::{TypedTool, TypedToolParams},
     },
 };
@@ -120,17 +119,9 @@ async fn test_tool_message_creation() {
 #[tokio::test]
 async fn test_assistant_message_with_tool_calls() {
     use openrouter_rs::Content;
-    use openrouter_rs::types::{FunctionCall, ToolCall};
+    use openrouter_rs::types::ToolCall;
 
-    let tool_call = ToolCall {
-        id: "call_123".to_string(),
-        type_: "function".to_string(),
-        function: FunctionCall {
-            name: "test_function".to_string(),
-            arguments: r#"{"param": "value"}"#.to_string(),
-        },
-        index: None,
-    };
+    let tool_call = ToolCall::new("call_123", "test_function", r#"{"param": "value"}"#);
 
     let assistant_msg =
         Message::assistant_with_tool_calls("I'll help you with that", vec![tool_call]);
@@ -291,15 +282,7 @@ impl TypedTool for TestToolParams {
 
 /// Create a test ToolCall for testing
 fn create_test_tool_call(tool_name: &str, arguments: &str) -> ToolCall {
-    ToolCall {
-        id: format!("call_{}", tool_name),
-        type_: "function".to_string(),
-        function: FunctionCall {
-            name: tool_name.to_string(),
-            arguments: arguments.to_string(),
-        },
-        index: None,
-    }
+    ToolCall::new(format!("call_{tool_name}"), tool_name, arguments)
 }
 
 #[tokio::test]

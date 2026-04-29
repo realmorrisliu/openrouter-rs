@@ -266,6 +266,7 @@ async fn test_stream_response_unified_done_semantics() -> Result<(), OpenRouterE
                 UnifiedStreamEvent::Raw { .. } => {
                     saw_payload_event = true;
                 }
+                _ => {}
             }
         }
 

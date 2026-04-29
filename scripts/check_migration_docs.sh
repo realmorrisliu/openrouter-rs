@@ -27,7 +27,11 @@ if [[ ! -f "$README_PATH" ]]; then
   exit 1
 fi
 
-# README must keep the current migration-entry section and core rename mappings.
+# README must keep the current migration-entry section plus recent breaking mappings.
+require_pattern "### 🔁 0.10 Public Model Migration" "$README_PATH"
+require_pattern "ResponseUsage::new(...)" "$README_PATH"
+require_pattern "ToolCall::new(...)" "$README_PATH"
+require_pattern "Add wildcard arms when matching affected public enums" "$README_PATH"
 require_pattern "### 🔁 0.9 Audio Speech Migration" "$README_PATH"
 require_pattern "client.tts().create(...)" "$README_PATH"
 require_pattern "client.audio().speech().create(...)" "$README_PATH"
@@ -47,9 +51,13 @@ require_pattern "management().create_api_key_from_auth_code(...)" "$README_PATH"
 # If MIGRATION.md exists (OR-25 and later), validate current and historical key structure.
 if [[ -f "$MIGRATION_PATH" ]]; then
   require_pattern "# Migration Guide" "$MIGRATION_PATH"
-  require_pattern "## Latest: 0.8.x -> 0.9.0" "$MIGRATION_PATH"
-  require_pattern "## Previous: 0.7.x -> 0.8.0" "$MIGRATION_PATH"
+  require_pattern "## Latest: 0.9.x -> 0.10.0" "$MIGRATION_PATH"
+  require_pattern "## Previous: 0.8.x -> 0.9.0" "$MIGRATION_PATH"
+  require_pattern "## Earlier: 0.7.x -> 0.8.0" "$MIGRATION_PATH"
   require_pattern "## Historical: 0.5.x -> 0.6.0" "$MIGRATION_PATH"
+  require_pattern "ResponseUsage::new(prompt_tokens, completion_tokens, total_tokens)" "$MIGRATION_PATH"
+  require_pattern "ToolCall::new(id, name, arguments).with_index(index)" "$MIGRATION_PATH"
+  require_pattern "Add a wildcard arm" "$MIGRATION_PATH"
   require_pattern "client.audio().speech().create" "$MIGRATION_PATH"
   require_pattern "api::audio::{SpeechRequest, SpeechResponseFormat}" "$MIGRATION_PATH"
   require_pattern "UpdateWorkspaceRequest::builder()" "$MIGRATION_PATH"

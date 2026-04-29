@@ -1,10 +1,10 @@
 use futures_util::{StreamExt, stream};
 use openrouter_rs::error::OpenRouterError;
 use openrouter_rs::types::completion::{
-    Choice, CompletionsResponse, Delta, ObjectType, PartialFunctionCall, PartialToolCall,
-    ResponseUsage, StreamingChoice,
+    CompletionsResponse, PartialFunctionCall, PartialToolCall, ResponseUsage,
 };
 use openrouter_rs::types::stream::{StreamEvent, ToolAwareStream};
+use serde_json::json;
 
 // =============================================
 // PartialToolCall deserialization tests
@@ -163,31 +163,32 @@ fn test_streaming_chunk_arguments_fragment() {
 
 /// Helper: create a CompletionsResponse with a streaming content delta.
 fn content_chunk(id: &str, model: &str, content: &str) -> CompletionsResponse {
-    CompletionsResponse {
-        id: id.to_string(),
-        choices: vec![Choice::Streaming(StreamingChoice {
-            finish_reason: None,
-            native_finish_reason: None,
-            delta: Delta {
-                content: Some(content.to_string()),
-                role: None,
-                tool_calls: None,
-                reasoning: None,
-                reasoning_details: None,
-                audio: None,
-                refusal: None,
+    serde_json::from_value(json!({
+        "id": id,
+        "choices": [{
+            "finish_reason": null,
+            "native_finish_reason": null,
+            "delta": {
+                "content": content,
+                "role": null,
+                "tool_calls": null,
+                "reasoning": null,
+                "reasoning_details": null,
+                "audio": null,
+                "refusal": null
             },
-            error: None,
-            index: Some(0),
-            logprobs: None,
-        })],
-        created: 1700000000,
-        model: model.to_string(),
-        object_type: ObjectType::ChatCompletionChunk,
-        provider: None,
-        system_fingerprint: None,
-        usage: None,
-    }
+            "error": null,
+            "index": 0,
+            "logprobs": null
+        }],
+        "created": 1700000000_u64,
+        "model": model,
+        "object": "chat.completion.chunk",
+        "provider": null,
+        "system_fingerprint": null,
+        "usage": null
+    }))
+    .expect("content chunk should deserialize")
 }
 
 /// Helper: create a CompletionsResponse with a partial tool call delta.
@@ -201,44 +202,45 @@ fn tool_call_chunk(
     func_args: Option<&str>,
 ) -> CompletionsResponse {
     let function = if func_name.is_some() || func_args.is_some() {
-        Some(PartialFunctionCall {
-            name: func_name.map(|s| s.to_string()),
-            arguments: func_args.map(|s| s.to_string()),
+        json!({
+            "name": func_name,
+            "arguments": func_args
         })
     } else {
-        None
+        serde_json::Value::Null
     };
 
-    CompletionsResponse {
-        id: id.to_string(),
-        choices: vec![Choice::Streaming(StreamingChoice {
-            finish_reason: None,
-            native_finish_reason: None,
-            delta: Delta {
-                content: None,
-                role: None,
-                tool_calls: Some(vec![PartialToolCall {
-                    id: tool_id.map(|s| s.to_string()),
-                    type_: tool_type.map(|s| s.to_string()),
-                    function,
-                    index: Some(tool_call_index),
-                }]),
-                reasoning: None,
-                reasoning_details: None,
-                audio: None,
-                refusal: None,
+    serde_json::from_value(json!({
+        "id": id,
+        "choices": [{
+            "finish_reason": null,
+            "native_finish_reason": null,
+            "delta": {
+                "content": null,
+                "role": null,
+                "tool_calls": [{
+                    "id": tool_id,
+                    "type": tool_type,
+                    "function": function,
+                    "index": tool_call_index
+                }],
+                "reasoning": null,
+                "reasoning_details": null,
+                "audio": null,
+                "refusal": null
             },
-            error: None,
-            index: Some(0),
-            logprobs: None,
-        })],
-        created: 1700000000,
-        model: model.to_string(),
-        object_type: ObjectType::ChatCompletionChunk,
-        provider: None,
-        system_fingerprint: None,
-        usage: None,
-    }
+            "error": null,
+            "index": 0,
+            "logprobs": null
+        }],
+        "created": 1700000000_u64,
+        "model": model,
+        "object": "chat.completion.chunk",
+        "provider": null,
+        "system_fingerprint": null,
+        "usage": null
+    }))
+    .expect("tool call chunk should deserialize")
 }
 
 /// Helper: create a final chunk with finish_reason and usage.
@@ -256,31 +258,32 @@ fn done_chunk(
         _ => None,
     };
 
-    CompletionsResponse {
-        id: id.to_string(),
-        choices: vec![Choice::Streaming(StreamingChoice {
-            finish_reason: reason,
-            native_finish_reason: Some(finish_reason.to_string()),
-            delta: Delta {
-                content: None,
-                role: None,
-                tool_calls: None,
-                reasoning: None,
-                reasoning_details: None,
-                audio: None,
-                refusal: None,
+    serde_json::from_value(json!({
+        "id": id,
+        "choices": [{
+            "finish_reason": reason,
+            "native_finish_reason": finish_reason,
+            "delta": {
+                "content": null,
+                "role": null,
+                "tool_calls": null,
+                "reasoning": null,
+                "reasoning_details": null,
+                "audio": null,
+                "refusal": null
             },
-            error: None,
-            index: Some(0),
-            logprobs: None,
-        })],
-        created: 1700000000,
-        model: model.to_string(),
-        object_type: ObjectType::ChatCompletionChunk,
-        provider: None,
-        system_fingerprint: None,
-        usage,
-    }
+            "error": null,
+            "index": 0,
+            "logprobs": null
+        }],
+        "created": 1700000000_u64,
+        "model": model,
+        "object": "chat.completion.chunk",
+        "provider": null,
+        "system_fingerprint": null,
+        "usage": usage
+    }))
+    .expect("done chunk should deserialize")
 }
 
 #[tokio::test]
@@ -369,14 +372,7 @@ async fn test_tool_aware_stream_single_tool_call() {
             "gen-1",
             "gpt-4",
             "tool_calls",
-            Some(ResponseUsage {
-                prompt_tokens: 100,
-                completion_tokens: 20,
-                total_tokens: 120,
-                cost: None,
-                cost_details: None,
-                is_byok: None,
-            }),
+            Some(ResponseUsage::new(100, 20, 120)),
         )),
     ];
 
@@ -609,31 +605,32 @@ async fn test_tool_aware_stream_empty_stream() {
 
 #[tokio::test]
 async fn test_tool_aware_stream_reasoning_deltas() {
-    let reasoning_chunk = CompletionsResponse {
-        id: "gen-1".to_string(),
-        choices: vec![Choice::Streaming(StreamingChoice {
-            finish_reason: None,
-            native_finish_reason: None,
-            delta: Delta {
-                content: None,
-                role: None,
-                tool_calls: None,
-                reasoning: Some("Let me think...".to_string()),
-                reasoning_details: None,
-                audio: None,
-                refusal: None,
+    let reasoning_chunk: CompletionsResponse = serde_json::from_value(json!({
+        "id": "gen-1",
+        "choices": [{
+            "finish_reason": null,
+            "native_finish_reason": null,
+            "delta": {
+                "content": null,
+                "role": null,
+                "tool_calls": null,
+                "reasoning": "Let me think...",
+                "reasoning_details": null,
+                "audio": null,
+                "refusal": null
             },
-            error: None,
-            index: Some(0),
-            logprobs: None,
-        })],
-        created: 1700000000,
-        model: "test-model".to_string(),
-        object_type: ObjectType::ChatCompletionChunk,
-        provider: None,
-        system_fingerprint: None,
-        usage: None,
-    };
+            "error": null,
+            "index": 0,
+            "logprobs": null
+        }],
+        "created": 1700000000_u64,
+        "model": "test-model",
+        "object": "chat.completion.chunk",
+        "provider": null,
+        "system_fingerprint": null,
+        "usage": null
+    }))
+    .expect("reasoning chunk should deserialize");
 
     let chunks: Vec<Result<CompletionsResponse, OpenRouterError>> = vec![
         Ok(reasoning_chunk),

@@ -95,6 +95,7 @@ async fn assert_stream_completes(
                 UnifiedStreamEvent::ToolDelta(_) | UnifiedStreamEvent::Raw { .. } => {
                     saw_payload = true;
                 }
+                _ => {}
             }
         }
 
@@ -380,6 +381,7 @@ async fn test_read_only_contract_embeddings_surface() -> Result<(), OpenRouterEr
                     response.data.iter().any(|item| match &item.embedding {
                         EmbeddingVector::Float(values) => !values.is_empty(),
                         EmbeddingVector::Base64(value) => !value.trim().is_empty(),
+                        _ => false,
                     }),
                     "embedding response should include at least one non-empty vector"
                 );

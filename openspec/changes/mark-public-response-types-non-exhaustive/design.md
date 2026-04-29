@@ -57,8 +57,12 @@ PR #205 showed the risk: adding typed optional fields to `ResponseUsage` is sema
 4. Include the migration note in the 0.10.0 release notes.
 5. If the change proves too broad during implementation, split into response/data types first and request/configuration types second, but keep both under the 0.10.0 release boundary.
 
+## Implementation Audit Outcome
+
+- `Tool`, `FunctionDefinition`, and related tool-choice structs follow the upstream-schema rule because their serialized shape mirrors chat-completions tool payloads and can gain fields over time. Construction remains ergonomic through `Tool::function(...)`, `ToolBuilder`, `ToolChoice` helpers, and `create_tool(...)`.
+- SDK-normalized streaming event enums are marked `#[non_exhaustive]` because adding normalized event categories should not source-break callers that match stream events.
+- The public type inventory is recorded in `inventory.md` for review, while stable SDK-owned helpers with private fields remain exhaustive there with explicit rationale.
+
 ## Open Questions
 
-- Should `Tool`, `FunctionDefinition`, and related SDK-owned typed-tool helpers remain exhaustive for caller ergonomics, or should they follow the same future-proofing rule as upstream schema mirrors?
-- Should streaming event enums be marked non-exhaustive even when they are SDK-normalized abstractions rather than raw upstream taxonomies?
-- Should this change also add a lightweight public type inventory document under `docs/design/` or keep the inventory in the PR description?
+- None after implementation audit.

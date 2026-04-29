@@ -11,6 +11,7 @@ use crate::{
 
 /// Supported embedding encoding formats.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 #[serde(rename_all = "lowercase")]
 pub enum EmbeddingEncodingFormat {
     Float,
@@ -19,26 +20,54 @@ pub enum EmbeddingEncodingFormat {
 
 /// Image URL content for multimodal embedding input.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct EmbeddingImageUrl {
     pub url: String,
 }
 
+impl EmbeddingImageUrl {
+    pub fn new(url: impl Into<String>) -> Self {
+        Self { url: url.into() }
+    }
+}
+
 /// One multimodal content part for embedding input.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum EmbeddingContentPart {
     Text { text: String },
     ImageUrl { image_url: EmbeddingImageUrl },
 }
 
+impl EmbeddingContentPart {
+    pub fn text(text: impl Into<String>) -> Self {
+        Self::Text { text: text.into() }
+    }
+
+    pub fn image_url(url: impl Into<String>) -> Self {
+        Self::ImageUrl {
+            image_url: EmbeddingImageUrl::new(url),
+        }
+    }
+}
+
 /// One multimodal embedding input item.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct EmbeddingMultimodalInput {
     pub content: Vec<EmbeddingContentPart>,
 }
 
+impl EmbeddingMultimodalInput {
+    pub fn new(content: Vec<EmbeddingContentPart>) -> Self {
+        Self { content }
+    }
+}
+
 /// Embedding request input variants.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 #[serde(untagged)]
 pub enum EmbeddingInput {
     Text(String),
@@ -87,6 +116,7 @@ impl From<Vec<EmbeddingMultimodalInput>> for EmbeddingInput {
 /// Request body for `POST /embeddings`.
 #[derive(Serialize, Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
 pub struct EmbeddingRequest {
     #[builder(setter(into))]
     pub input: EmbeddingInput,
@@ -131,6 +161,7 @@ impl EmbeddingRequest {
 
 /// One embedding vector payload.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 #[serde(untagged)]
 pub enum EmbeddingVector {
     Float(Vec<f64>),
@@ -139,6 +170,7 @@ pub enum EmbeddingVector {
 
 /// One embedding item.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct EmbeddingData {
     pub object: String,
     pub embedding: EmbeddingVector,
@@ -148,6 +180,7 @@ pub struct EmbeddingData {
 
 /// Token breakdown details for embedding requests.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct EmbeddingPromptTokensDetails {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub audio_tokens: Option<u32>,
@@ -161,6 +194,7 @@ pub struct EmbeddingPromptTokensDetails {
 
 /// Token/cost usage for embedding request.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct EmbeddingUsage {
     pub prompt_tokens: u32,
     pub total_tokens: u32,
@@ -172,6 +206,7 @@ pub struct EmbeddingUsage {
 
 /// Response body for `POST /embeddings`.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct EmbeddingResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,

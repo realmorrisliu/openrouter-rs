@@ -3,6 +3,7 @@ use serde_json::Value;
 
 /// Configuration for structured output responses
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[non_exhaustive]
 #[serde(rename_all = "snake_case")]
 pub enum ResponseFormatType {
     /// Standard text response (default)
@@ -19,6 +20,7 @@ pub enum ResponseFormatType {
 
 /// JSON Schema configuration for structured outputs
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct JsonSchemaConfig {
     /// Name for the schema (used for reference)
     pub name: String,
@@ -29,8 +31,19 @@ pub struct JsonSchemaConfig {
     pub schema: Value,
 }
 
+impl JsonSchemaConfig {
+    pub fn new(name: impl Into<String>, strict: bool, schema: Value) -> Self {
+        Self {
+            name: name.into(),
+            strict,
+            schema,
+        }
+    }
+}
+
 /// Response format configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[non_exhaustive]
 #[serde(rename_all = "snake_case", untagged)]
 pub enum ResponseFormat {
     /// Legacy shorthand format type specification (e.g. "text")
@@ -73,11 +86,7 @@ impl ResponseFormat {
     pub fn json_schema(name: impl Into<String>, strict: bool, schema: Value) -> Self {
         ResponseFormat::JsonSchema {
             type_: ResponseFormatType::JsonSchema,
-            json_schema: JsonSchemaConfig {
-                name: name.into(),
-                strict,
-                schema,
-            },
+            json_schema: JsonSchemaConfig::new(name, strict, schema),
         }
     }
 

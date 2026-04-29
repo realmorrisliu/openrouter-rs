@@ -5,27 +5,25 @@ use openrouter_rs::types::{
 
 #[test]
 fn test_provider_preferences_new_fields_scalar_serialize() {
-    let prefs = ProviderPreferences {
-        allow_fallbacks: Some(true),
-        require_parameters: Some(true),
-        data_collection: Some(DataCollectionPolicy::Deny),
-        zdr: Some(true),
-        enforce_distillable_text: Some(true),
-        order: Some(vec!["openai".to_string(), "anthropic".to_string()]),
-        only: Some(vec!["openai".to_string()]),
-        ignore: Some(vec!["some-provider".to_string()]),
-        quantizations: Some(vec![Quantization::Fp16]),
-        sort: Some(ProviderSortBy::Price),
-        max_price: Some(MaxPrice {
-            prompt: Some(PriceLimit::Number(1.25)),
-            completion: Some(PriceLimit::String("2.5".to_string())),
-            image: None,
-            audio: None,
-            request: Some(PriceLimit::Number(0.01)),
-        }),
-        preferred_min_throughput: Some(PerformancePreference::Value(120.0)),
-        preferred_max_latency: Some(PerformancePreference::Value(3.5)),
-    };
+    let mut max_price = MaxPrice::default();
+    max_price.prompt = Some(PriceLimit::Number(1.25));
+    max_price.completion = Some(PriceLimit::String("2.5".to_string()));
+    max_price.request = Some(PriceLimit::Number(0.01));
+
+    let mut prefs = ProviderPreferences::default();
+    prefs.allow_fallbacks = Some(true);
+    prefs.require_parameters = Some(true);
+    prefs.data_collection = Some(DataCollectionPolicy::Deny);
+    prefs.zdr = Some(true);
+    prefs.enforce_distillable_text = Some(true);
+    prefs.order = Some(vec!["openai".to_string(), "anthropic".to_string()]);
+    prefs.only = Some(vec!["openai".to_string()]);
+    prefs.ignore = Some(vec!["some-provider".to_string()]);
+    prefs.quantizations = Some(vec![Quantization::Fp16]);
+    prefs.sort = Some(ProviderSortBy::Price);
+    prefs.max_price = Some(max_price);
+    prefs.preferred_min_throughput = Some(PerformancePreference::Value(120.0));
+    prefs.preferred_max_latency = Some(PerformancePreference::Value(3.5));
 
     let json = serde_json::to_value(&prefs).expect("provider prefs should serialize");
 
@@ -44,21 +42,17 @@ fn test_provider_preferences_new_fields_scalar_serialize() {
 
 #[test]
 fn test_provider_preferences_percentile_preferences_serialize() {
-    let prefs = ProviderPreferences {
-        preferred_min_throughput: Some(PerformancePreference::Percentiles(PercentileCutoffs {
-            p50: Some(100.0),
-            p75: None,
-            p90: Some(50.0),
-            p99: None,
-        })),
-        preferred_max_latency: Some(PerformancePreference::Percentiles(PercentileCutoffs {
-            p50: Some(2.5),
-            p75: Some(3.0),
-            p90: None,
-            p99: None,
-        })),
-        ..Default::default()
-    };
+    let mut throughput = PercentileCutoffs::default();
+    throughput.p50 = Some(100.0);
+    throughput.p90 = Some(50.0);
+
+    let mut latency = PercentileCutoffs::default();
+    latency.p50 = Some(2.5);
+    latency.p75 = Some(3.0);
+
+    let mut prefs = ProviderPreferences::default();
+    prefs.preferred_min_throughput = Some(PerformancePreference::Percentiles(throughput));
+    prefs.preferred_max_latency = Some(PerformancePreference::Percentiles(latency));
 
     let json = serde_json::to_value(&prefs).expect("provider prefs should serialize");
 

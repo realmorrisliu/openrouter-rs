@@ -2,10 +2,89 @@
 
 This document keeps historical migration guides intact because the repo still smoke-tests older domain/naming transitions.
 
-> Latest breaking release target: `0.8.x -> 0.9.0`.
-> `0.9.0` makes `/audio/speech` the canonical SDK naming surface and future-proofs high-churn request/response structs.
+> Latest breaking release target: `0.9.x -> 0.10.0`.
+> `0.10.0` makes high-churn public SDK model types non-exhaustive so additive upstream OpenRouter fields and taxonomy values do not keep causing accidental source breaks.
 
-## Latest: 0.8.x -> 0.9.0
+## Latest: 0.9.x -> 0.10.0
+
+This release intentionally future-proofs public SDK model types that mirror upstream request, response, metadata, usage, pricing, discovery, streaming, and taxonomy shapes. The runtime JSON behavior is unchanged, but Rust source that constructed affected public structs with literals or matched affected public enums exhaustively may need small edits.
+
+### Quick Checklist For 0.10.0
+
+- Replace direct struct literals for affected SDK model types with builders, constructors, helpers, or serde deserialization.
+- Add a wildcard arm (`_ => ...`) when matching affected public enums such as stream events, choices, provider taxonomies, finish reasons, and embedding vector variants outside the crate.
+- Prefer request builders for caller-built request types: `ChatCompletionRequest::builder()`, `ResponsesRequest::builder()`, `AnthropicMessagesRequest::builder()`, `EmbeddingRequest::builder()`, and similar endpoint builders.
+- Use new constructors where direct literals were mainly test/helper code, including `ResponseUsage::new(...)`, `ToolCall::new(...)`, `FunctionCall::new(...)`, `JsonSchemaConfig::new(...)`, `EmbeddingContentPart::text(...)`, `EmbeddingContentPart::image_url(...)`, and provider-options `new(...)` helpers.
+- Keep this migration with the `0.10.0` release boundary; it is broader than the 2026-04-29 `ResponseUsage` cost-field drift.
+
+### Breaking-Change Mapping For 0.10.0
+
+| Area | Old Usage (`0.9.x`) | New Usage (`0.10.0`) |
+| --- | --- | --- |
+| Response usage test data | `ResponseUsage { prompt_tokens, completion_tokens, total_tokens, ... }` | `ResponseUsage::new(prompt_tokens, completion_tokens, total_tokens)` |
+| Tool-call test data | `ToolCall { id, type_, function, index }` | `ToolCall::new(id, name, arguments).with_index(index)` |
+| Request construction | `EmbeddingRequest { model, input, ... }` | `EmbeddingRequest::builder().model(model).input(input).build()?` |
+| Provider preferences | `ProviderPreferences { sort, order, ... }` | `let mut prefs = ProviderPreferences::default(); prefs.sort = Some(...);` |
+| Public enum matching | `match event { StreamEvent::Done { .. } => ..., StreamEvent::Error(e) => ... }` | Add `_ => {}` or another fallback arm |
+| Response fixtures | Public response struct literals | Deserialize JSON fixtures with `serde_json::from_value(...)` or use documented constructors |
+
+### Example: response fixture construction
+
+Before:
+
+```rust
+use openrouter_rs::types::completion::ResponseUsage;
+
+let usage = ResponseUsage {
+    prompt_tokens: 5,
+    completion_tokens: 7,
+    total_tokens: 12,
+    cost: None,
+    cost_details: None,
+    is_byok: None,
+};
+```
+
+After:
+
+```rust
+use openrouter_rs::types::completion::ResponseUsage;
+
+let usage = ResponseUsage::new(5, 7, 12);
+```
+
+### Example: non-exhaustive enum matching
+
+Before:
+
+```rust
+use openrouter_rs::types::stream::StreamEvent;
+
+fn handle(event: StreamEvent) {
+    match event {
+        StreamEvent::ContentDelta(text) => print!("{text}"),
+        StreamEvent::Done { .. } => println!("done"),
+        StreamEvent::Error(error) => eprintln!("{error}"),
+    }
+}
+```
+
+After:
+
+```rust
+use openrouter_rs::types::stream::StreamEvent;
+
+fn handle(event: StreamEvent) {
+    match event {
+        StreamEvent::ContentDelta(text) => print!("{text}"),
+        StreamEvent::Done { .. } => println!("done"),
+        StreamEvent::Error(error) => eprintln!("{error}"),
+        _ => {}
+    }
+}
+```
+
+## Previous: 0.8.x -> 0.9.0
 
 If you use the new workspace, generation metadata, video generation, or audio speech surfaces, prefer request builders and the canonical domain clients. Compatibility aliases remain for the old `tts` names, but new code should use `audio`.
 
@@ -113,7 +192,7 @@ let request = UpdateWorkspaceRequest::builder()
 # }
 ```
 
-## Previous: 0.7.x -> 0.8.0
+## Earlier: 0.7.x -> 0.8.0
 
 If you already use the canonical domain clients (`chat()`, `responses()`, `messages()`, `models()`, `management()`, and opt-in `legacy()`), this upgrade is usually just a version bump plus a recompile. The breaking changes mainly affect callers that coupled themselves to the old transport-facing error and utility surface.
 

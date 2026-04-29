@@ -26,9 +26,7 @@ fn test_speech_request_serialization() {
         .voice("alloy")
         .response_format(SpeechResponseFormat::Mp3)
         .speed(1.1)
-        .provider(SpeechProviderOptions {
-            options: Some(provider_options),
-        })
+        .provider(SpeechProviderOptions::new(provider_options))
         .build()
         .expect("speech request should build");
 

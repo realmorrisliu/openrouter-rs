@@ -39,9 +39,7 @@ fn test_video_generation_request_serialization() {
         .input_references(vec![VideoInputReference::new(
             "https://example.com/reference.png",
         )])
-        .provider(VideoProviderOptions {
-            options: Some(provider_options),
-        })
+        .provider(VideoProviderOptions::new(provider_options))
         .build()
         .expect("video generation request should build");
 

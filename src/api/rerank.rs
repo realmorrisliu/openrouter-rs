@@ -11,6 +11,7 @@ use crate::{
 /// Request payload for `POST /rerank`.
 #[derive(Serialize, Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
 pub struct RerankRequest {
     #[builder(setter(into))]
     pub model: String,
@@ -33,12 +34,14 @@ impl RerankRequest {
 
 /// The original document returned in a rerank result.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct RerankDocument {
     pub text: String,
 }
 
 /// One scored rerank result.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct RerankResult {
     pub index: u64,
     pub relevance_score: f64,
@@ -47,6 +50,7 @@ pub struct RerankResult {
 
 /// Usage statistics returned by rerank providers.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct RerankUsage {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cost: Option<f64>,
@@ -58,6 +62,7 @@ pub struct RerankUsage {
 
 /// Response payload for `POST /rerank`.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct RerankResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,

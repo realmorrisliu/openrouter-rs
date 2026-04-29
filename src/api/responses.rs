@@ -20,6 +20,7 @@ use crate::{
 /// Request body for the OpenRouter Responses API (`POST /responses`).
 #[derive(Serialize, Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
 pub struct ResponsesRequest {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -198,6 +199,7 @@ impl ResponsesRequest {
 
 /// Non-streaming response payload returned by `POST /responses`.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct ResponsesResponse {
     pub id: Option<String>,
     #[serde(rename = "object")]
@@ -215,6 +217,7 @@ pub struct ResponsesResponse {
 
 /// Streaming event payload returned by `POST /responses` when `stream=true`.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 pub struct ResponsesStreamEvent {
     #[serde(rename = "type")]
     pub event_type: String,

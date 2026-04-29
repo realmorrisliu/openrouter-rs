@@ -153,6 +153,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             StreamEvent::Error(e) => {
                 eprintln!("\nStream error: {}", e);
             }
+            _ => {}
         }
     }
 

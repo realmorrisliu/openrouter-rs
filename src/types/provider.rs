@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 /// Sorting strategy for provider selection when no order is specified
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 #[serde(rename_all = "lowercase")]
 pub enum ProviderSortBy {
     /// Sort by price (cheapest first)
@@ -14,6 +15,7 @@ pub enum ProviderSortBy {
 
 /// Data collection policy preference
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 #[serde(rename_all = "lowercase")]
 pub enum DataCollectionPolicy {
     /// Allow providers which may collect user data (default)
@@ -24,6 +26,7 @@ pub enum DataCollectionPolicy {
 
 /// Model quantization levels
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 #[serde(rename_all = "lowercase")]
 pub enum Quantization {
     Int4,
@@ -39,6 +42,7 @@ pub enum Quantization {
 
 /// Numeric threshold value or percentile cutoffs.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 #[serde(untagged)]
 pub enum PerformancePreference {
     Value(f64),
@@ -47,6 +51,7 @@ pub enum PerformancePreference {
 
 /// Percentile-based throughput/latency cutoffs.
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[non_exhaustive]
 #[serde(default, deny_unknown_fields)]
 pub struct PercentileCutoffs {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -61,6 +66,7 @@ pub struct PercentileCutoffs {
 
 /// Price limit represented as either number or string.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
 #[serde(untagged)]
 pub enum PriceLimit {
     Number(f64),
@@ -87,6 +93,7 @@ impl From<&str> for PriceLimit {
 
 /// Maximum price constraints for provider routing.
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[non_exhaustive]
 #[serde(default, deny_unknown_fields)]
 pub struct MaxPrice {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -113,6 +120,7 @@ pub struct MaxPrice {
 /// - Quantization preferences
 /// - Routing optimization strategies
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[non_exhaustive]
 #[serde(default, deny_unknown_fields)]
 pub struct ProviderPreferences {
     /// Whether to allow backup providers to serve requests
