@@ -2,7 +2,7 @@ name: OpenAPI Drift
 
 on:
   schedule:
-    - cron: "17 3 * * *"
+    - cron: "17 3 * * 1"
   workflow_dispatch:
 
 concurrency:
@@ -76,7 +76,7 @@ jobs:
               'Detected actionable upstream OpenAPI drift against the tracked baseline.',
               '',
               '## Trigger',
-              '- Source: nightly OpenAPI drift workflow',
+              '- Source: weekly OpenAPI drift workflow',
               `- Workflow run: ${runUrl}`,
               '',
               '## Expected Repo Follow-Up',

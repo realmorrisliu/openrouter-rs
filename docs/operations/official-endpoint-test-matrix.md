@@ -1,15 +1,15 @@
 # Official Endpoint Test Matrix
 
-Snapshot date: 2026-04-29
+Snapshot date: 2026-05-03
 Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)  
 Tracked baseline: `specs/openrouter/openapi-baseline.json`  
-Nightly drift workflow: `.github/workflows/openapi-drift.yml`
+Weekly drift workflow: `.github/workflows/openapi-drift.yml`
 
 ## Coverage Summary
 
-- Official OpenAPI endpoints: `51` method+path entries.
-- SDK implementation coverage (`src/api` + domain client): `51 / 51` (`100.0%`).
-- Live integration coverage (`tests/integration`): `24 / 51` endpoints currently exercised.
+- Official OpenAPI endpoints: `52` method+path entries.
+- SDK implementation coverage (`src/api` + domain client): `52 / 52` (`100.0%`).
+- Live integration coverage (`tests/integration`): `24 / 52` endpoints currently exercised.
   - Covered live now: `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `POST /rerank`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`, `GET /organization/members`
 
 Drift review note:
@@ -23,11 +23,12 @@ Drift review note:
 - Upstream added `response_cache_source_id` to generation metadata, workspace I/O logging key filters and sampling rate fields, and `callback_url` for video generation requests. The SDK now exposes those typed fields, and the 2026-04-28 baseline refresh keeps the accepted endpoint snapshot at `51 / 51`.
 - Upstream refreshed web-search, provider, and Responses output schemas. Existing OpenRouter plugin passthrough, Anthropic hosted-tool extras, provider option maps, and Responses `Value` payloads carry those schema details without a public API migration.
 - Upstream added `stt` as a generation origin and chat-completion usage cost metadata. `GenerationData::origin` remains a flexible `String`, and `ResponseUsage` now exposes typed `cost`, `cost_details`, and `is_byok` fields. The 2026-04-29 baseline refresh keeps the accepted endpoint snapshot at `51 / 51`.
+- Upstream added `POST /audio/transcriptions`. The SDK now exposes a typed transcription surface, and the 2026-05-03 baseline refresh keeps the accepted endpoint snapshot at `52 / 52`.
 
 Legend:
 
 - `SDK`: endpoint implemented in `openrouter-rs`.
-- Canonical surface note: docs and examples prefer domain clients (`chat()`, `responses()`, `messages()`, `rerank()`, `audio().speech()`, `videos()`, `models()`, `management()`). Some rows still mention retained flat `OpenRouterClient::*` wrappers when they exist.
+- Canonical surface note: docs and examples prefer domain clients (`chat()`, `responses()`, `messages()`, `rerank()`, `audio().speech()`, `audio().transcriptions()`, `videos()`, `models()`, `management()`). Some rows still mention retained flat `OpenRouterClient::*` wrappers when they exist.
 - `Unit`: unit coverage depth.
   - `Path` = test asserts HTTP method/path (often with header/body checks).
   - `Contract` = serde/request-shape/parser coverage only.
@@ -81,6 +82,7 @@ Legend:
 | `POST /rerank` | `client.rerank().create(...)` | Yes | Path | Yes | Keep |
 | `POST /responses` | `client.responses().create(...)` / `client.responses().stream(...)` | Yes | Contract | Yes | Keep |
 | `POST /audio/speech` | `client.audio().speech().create(...)` | Yes | Path | No | P1 |
+| `POST /audio/transcriptions` | `client.audio().transcriptions().create(...)` | Yes | Path | No | P1 |
 | `POST /videos` | `client.videos().create(...)` | Yes | Path | No | P2 |
 | `POST /workspaces` | `client.management().create_workspace(...)` | Yes | Path | No | P1 |
 | `POST /workspaces/{id}/members/add` | `client.management().add_workspace_members(...)` | Yes | Path | No | P1 |
@@ -105,7 +107,7 @@ The endpoint below is intentionally kept as legacy compatibility and is not part
 1. P1: add management-key live coverage for assignment endpoints (`/guardrails/*/assignments/*` and `/guardrails/assignments/*`).
 2. P1: add management-key live smoke coverage for `/activity`.
 3. P2: keep `/credits`, `/credits/coinbase`, `/generation`, `/generation/content`, and `/auth/keys*` as controlled scenarios (manual or mocked contract-first) due cost/side effects.
-4. P1/P2: add low-cost live or smoke coverage for `/audio/speech` and `/videos*` once stable fixtures and cost controls are defined.
+4. P1/P2: add low-cost live or smoke coverage for `/audio/speech`, `/audio/transcriptions`, and `/videos*` once stable fixtures and cost controls are defined.
 5. P1: add management-key live validation for `/workspaces*`, plus targeted workspace-scoped read/write coverage for `/keys` and `/guardrails`.
 
 ## Reproduce Snapshot

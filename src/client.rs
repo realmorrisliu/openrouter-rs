@@ -1134,6 +1134,27 @@ impl OpenRouterClient {
         }
     }
 
+    /// Submit an audio transcription request.
+    pub async fn create_transcription(
+        &self,
+        request: &audio::TranscriptionRequest,
+    ) -> Result<audio::TranscriptionResponse, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            audio::create_transcription_with_client(
+                self.http_client(),
+                &self.base_url,
+                api_key,
+                &self.x_title,
+                &self.http_referer,
+                &self.app_categories,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
     /// Submit a text-to-speech request and return raw audio bytes.
     #[deprecated(note = "use create_speech")]
     pub async fn create_tts(
@@ -1884,6 +1905,13 @@ impl<'a> AudioClient<'a> {
             client: self.client,
         }
     }
+
+    /// Domain client for audio transcription operations.
+    pub fn transcriptions(&self) -> TranscriptionsClient<'a> {
+        TranscriptionsClient {
+            client: self.client,
+        }
+    }
 }
 
 /// Domain client for audio speech endpoints.
@@ -1901,6 +1929,22 @@ impl<'a> SpeechClient<'a> {
 
 #[deprecated(note = "use SpeechClient")]
 pub type TtsClient<'a> = SpeechClient<'a>;
+
+/// Domain client for audio transcription endpoints.
+#[derive(Debug, Clone, Copy)]
+pub struct TranscriptionsClient<'a> {
+    client: &'a OpenRouterClient,
+}
+
+impl<'a> TranscriptionsClient<'a> {
+    /// Create an audio transcription (`POST /audio/transcriptions`).
+    pub async fn create(
+        &self,
+        request: &audio::TranscriptionRequest,
+    ) -> Result<audio::TranscriptionResponse, OpenRouterError> {
+        self.client.create_transcription(request).await
+    }
+}
 
 /// Domain client for video generation endpoints.
 #[derive(Debug, Clone, Copy)]

@@ -1,6 +1,6 @@
 # OpenAPI Drift Reporting
 
-`openrouter-rs` tracks a checked-in OpenRouter OpenAPI baseline and compares it against the latest upstream spec on a nightly schedule.
+`openrouter-rs` tracks a checked-in OpenRouter OpenAPI baseline and compares it against the latest upstream spec on a weekly schedule.
 
 ## Why This Exists
 
@@ -17,7 +17,7 @@ This keeps `openrouter-rs` aligned with upstream changes without blocking releas
 
 - Tracked baseline snapshot: `specs/openrouter/openapi-baseline.json`
 - Normalized operation snapshot: `specs/openrouter/openapi-baseline.operations.json`
-- Nightly workflow: `.github/workflows/openapi-drift.yml`
+- Weekly workflow: `.github/workflows/openapi-drift.yml`
 
 The comparison is operation-level (`METHOD /path`). It first resolves local `#/components/...`
 references, including referenced Path Item objects, then folds in effective defaults before hashing:
@@ -57,7 +57,7 @@ This lets the report separate:
 - changed operations that are already covered by the repo's existing handling
 - changed operations that still need SDK/docs/test follow-up
 
-This keeps the nightly issue useful when upstream bulk-edits supported metadata or dynamic taxonomy
+This keeps the weekly issue useful when upstream bulk-edits supported metadata or dynamic taxonomy
 schemas across many operations without hiding the underlying OpenAPI drift artifacts.
 
 The initial tracked baseline is intentionally seeded from the accepted endpoint matrix rather
@@ -79,7 +79,7 @@ This writes a report to:
 - `/tmp/openrouter-openapi-latest.operations.json`
 
 The compare command also emits both `has_drift` and `has_actionable_drift` when GitHub Actions
-passes a `GITHUB_OUTPUT` file. The nightly workflow keeps uploading the full raw drift artifacts,
+passes a `GITHUB_OUTPUT` file. The weekly workflow keeps uploading the full raw drift artifacts,
 but it only opens or refreshes the follow-up issue when `has_actionable_drift=true`.
 
 Refresh the tracked baseline after reviewing and accepting upstream changes:
@@ -95,7 +95,7 @@ That updates:
 
 ## Follow-Up Flow
 
-When the nightly workflow reports actionable drift:
+When the weekly workflow reports actionable drift:
 
 1. Keep the generated issue open as the active compatibility-update record.
 2. Review the generated report and candidate operations snapshot artifact.

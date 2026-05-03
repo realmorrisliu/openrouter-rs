@@ -9,7 +9,7 @@
 //! - `client.responses()` -> [`responses`]
 //! - `client.messages()` -> [`messages`]
 //! - `client.rerank()` -> [`rerank`]
-//! - `client.audio().speech()` -> [`audio`]
+//! - `client.audio().speech()` / `client.audio().transcriptions()` -> [`audio`]
 //! - `client.videos()` -> [`videos`]
 //! - `client.models()` -> [`models`], [`embeddings`], [`discovery`]
 //! - `client.management()` -> [`api_keys`], [`auth`], [`credits`], [`generation`], [`guardrails`], [`organization`], [`workspaces`]
@@ -21,7 +21,7 @@
 //! - Responses API
 //! - Anthropic-compatible Messages API
 //! - rerank
-//! - audio speech generation
+//! - audio speech generation and transcription
 //! - video generation and polling
 //! - model discovery, providers, user model filters, model counts, and ZDR endpoints
 //! - embeddings

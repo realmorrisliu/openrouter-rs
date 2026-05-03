@@ -8,12 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added typed SDK support for `POST /audio/transcriptions`, including `api::audio::{TranscriptionRequest, TranscriptionInputAudio, TranscriptionResponse}` and the canonical `client.audio().transcriptions().create(...)` surface.
 - Added typed OpenRouter chat-completion usage cost fields via `ResponseUsage::cost`, `ResponseUsage::cost_details`, `ResponseUsage::is_byok`, and `ResponseCostDetails`.
 - Added ergonomic constructors for non-exhaustive helper types such as `ResponseUsage::new`, `ToolCall::new`, `FunctionCall::new`, `JsonSchemaConfig::new`, embedding multimodal parts, and provider-options wrappers.
 
 ### Changed
 - Breaking (0.10.0 target): Marked high-churn public SDK request, response, metadata, usage, pricing, discovery, streaming, and upstream taxonomy types as `#[non_exhaustive]`; construct affected request/configuration types through builders, constructors, or helpers, and include wildcard arms when matching affected public enums outside the crate.
 - Accepted the 2026-04-29 OpenAPI drift review, including `stt` generation origins and chat usage cost metadata, and kept the repository snapshot at `51 / 51` official OpenAPI endpoint coverage.
+- Accepted the 2026-05-03 OpenAPI drift review, including audio transcription support, and restored the repository snapshot to `52 / 52` official OpenAPI endpoint coverage.
+- Changed the scheduled OpenAPI drift workflow from daily to weekly while keeping manual `workflow_dispatch` runs available.
 
 ## [0.9.0] - 2026-04-28
 

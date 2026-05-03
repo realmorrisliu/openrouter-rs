@@ -10,6 +10,7 @@ use crate::{
 };
 
 const OFFICIAL_SPEECH_PATH: &str = "/audio/speech";
+const TRANSCRIPTIONS_PATH: &str = "/audio/transcriptions";
 const LEGACY_TTS_PATH: &str = "/tts";
 
 /// Supported audio output formats for `POST /audio/speech`.
@@ -63,6 +64,96 @@ impl SpeechRequest {
     pub fn builder() -> SpeechRequestBuilder {
         SpeechRequestBuilder::default()
     }
+}
+
+/// Base64-encoded audio input for `POST /audio/transcriptions`.
+#[non_exhaustive]
+#[derive(Serialize, Deserialize, Debug, Clone, Builder)]
+#[builder(build_fn(error = "OpenRouterError"))]
+pub struct TranscriptionInputAudio {
+    #[builder(setter(into))]
+    pub data: String,
+    #[builder(setter(into))]
+    pub format: String,
+}
+
+impl TranscriptionInputAudio {
+    pub fn builder() -> TranscriptionInputAudioBuilder {
+        TranscriptionInputAudioBuilder::default()
+    }
+
+    pub fn new(data: impl Into<String>, format: impl Into<String>) -> Self {
+        Self {
+            data: data.into(),
+            format: format.into(),
+        }
+    }
+}
+
+/// Provider-specific passthrough options for transcription requests.
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[non_exhaustive]
+pub struct TranscriptionProviderOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub options: Option<HashMap<String, serde_json::Value>>,
+}
+
+impl TranscriptionProviderOptions {
+    pub fn new(options: HashMap<String, serde_json::Value>) -> Self {
+        Self {
+            options: Some(options),
+        }
+    }
+}
+
+/// Request payload for `POST /audio/transcriptions`.
+#[non_exhaustive]
+#[derive(Serialize, Deserialize, Debug, Clone, Builder)]
+#[builder(build_fn(error = "OpenRouterError"))]
+pub struct TranscriptionRequest {
+    #[builder(setter(into))]
+    pub model: String,
+    pub input_audio: TranscriptionInputAudio,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub provider: Option<TranscriptionProviderOptions>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub temperature: Option<f64>,
+}
+
+impl TranscriptionRequest {
+    pub fn builder() -> TranscriptionRequestBuilder {
+        TranscriptionRequestBuilder::default()
+    }
+}
+
+/// Response payload from `POST /audio/transcriptions`.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct TranscriptionResponse {
+    pub text: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub usage: Option<TranscriptionUsage>,
+}
+
+/// Usage metadata for audio transcription requests.
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[non_exhaustive]
+pub struct TranscriptionUsage {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cost: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub input_tokens: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub output_tokens: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub seconds: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_tokens: Option<u64>,
 }
 
 /// Submit a speech request and return raw audio bytes.
@@ -134,6 +225,57 @@ pub(crate) async fn create_speech_with_client(
     }
 
     Err(official_error)
+}
+
+/// Submit an audio transcription request.
+pub async fn create_transcription(
+    base_url: &str,
+    api_key: &str,
+    x_title: &Option<String>,
+    http_referer: &Option<String>,
+    app_categories: &Option<Vec<String>>,
+    request: &TranscriptionRequest,
+) -> Result<TranscriptionResponse, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    create_transcription_with_client(
+        &http_client,
+        base_url,
+        api_key,
+        x_title,
+        http_referer,
+        app_categories,
+        request,
+    )
+    .await
+}
+
+pub(crate) async fn create_transcription_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    x_title: &Option<String>,
+    http_referer: &Option<String>,
+    app_categories: &Option<Vec<String>>,
+    request: &TranscriptionRequest,
+) -> Result<TranscriptionResponse, OpenRouterError> {
+    let url = format!("{base_url}{TRANSCRIPTIONS_PATH}");
+    let response = transport_request::with_client_request_headers(
+        transport_request::post(http_client, &url),
+        api_key,
+        x_title,
+        http_referer,
+        app_categories,
+    )?
+    .json(request)
+    .send()
+    .await?;
+
+    if response.status().is_success() {
+        transport_response::parse_json_response(response, "audio transcription").await
+    } else {
+        transport_response::handle_error(response).await?;
+        unreachable!()
+    }
 }
 
 async fn send_speech_request(

@@ -32,7 +32,7 @@ If you are not sure where to start, use the groups below.
 ## Operations And Validation
 
 - [`operations/official-endpoint-test-matrix.md`](operations/official-endpoint-test-matrix.md) for accepted endpoint coverage and live-test status
-- [`operations/openapi-drift-reporting.md`](operations/openapi-drift-reporting.md) for the nightly upstream-spec drift workflow
+- [`operations/openapi-drift-reporting.md`](operations/openapi-drift-reporting.md) for the weekly upstream-spec drift workflow
 - [`specs/openrouter/README.md`](../specs/openrouter/README.md) for baseline, source snapshot, overlays, and generator config organization
 - [`tests/integration/README.md`](../tests/integration/README.md) for integration-test pools and environment switches
 - [`operations/cli-automation-workflows.md`](operations/cli-automation-workflows.md) for copy-paste CLI shell and CI recipes

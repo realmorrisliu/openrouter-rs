@@ -10,7 +10,7 @@ The repository already has a useful OpenAPI drift loop:
 
 - tracked baseline snapshots under `specs/openrouter/`
 - endpoint coverage review via `docs/operations/official-endpoint-test-matrix.md`
-- nightly drift reporting in `docs/operations/openapi-drift-reporting.md`
+- weekly drift reporting in `docs/operations/openapi-drift-reporting.md`
 
 That is enough to detect upstream change, but not enough to define how spec data should eventually drive implementation.
 
@@ -21,7 +21,7 @@ If the project wants to stay aligned with a spec-driven SDK direction, it needs 
 
 ## Goals
 
-- Keep the canonical public API domain-oriented: `chat()`, `responses()`, `messages()`, `rerank()`, `audio().speech()`, `videos()`, `models()`, `management()`, and `legacy()`
+- Keep the canonical public API domain-oriented: `chat()`, `responses()`, `messages()`, `rerank()`, `audio().speech()`, `audio().transcriptions()`, `videos()`, `models()`, `management()`, and `legacy()`
 - Introduce a generated low-level layer that can follow the upstream OpenAPI more mechanically
 - Separate drift detection inputs from generation inputs so review workflows stay useful
 - Preserve streaming, typed tools, builder ergonomics, and unified abstractions as handwritten Rust-first surfaces
@@ -48,7 +48,7 @@ Today the repository has three important realities:
 2. The tracked OpenAPI baseline is review-oriented, not generation-oriented.
 
    - `specs/openrouter/openapi-baseline.json` is intentionally seeded from the currently accepted endpoint matrix
-   - that baseline is useful for nightly drift and coverage review
+   - that baseline is useful for weekly drift and coverage review
    - it is not a good long-term source of truth for generation because it can intentionally lag full upstream coverage
 
 3. The hardest SDK behavior is not plain request serialization.
@@ -93,7 +93,7 @@ specs/openrouter/
 
 Meaning:
 
-- `openapi-baseline.json` and `openapi-baseline.operations.json` stay drift-focused and continue to back nightly detection
+- `openapi-baseline.json` and `openapi-baseline.operations.json` stay drift-focused and continue to back weekly detection
 - `source/openapi.json` becomes the accepted full upstream snapshot used for generation work
 - `overlays/*.yaml` carries repo-reviewed adjustments needed for generation, naming, or schema quirks
 - `generator/config.yaml` describes generator inputs, output paths, and reproducibility settings
