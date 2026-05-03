@@ -5,7 +5,7 @@ This document defines how `openrouter-rs` records upstream OpenRouter compatibil
 It complements:
 
 - [`docs/policies/maintenance-policy.md`](maintenance-policy.md) for release, MSRV, and breaking-change rules
-- [`docs/operations/openapi-drift-reporting.md`](../operations/openapi-drift-reporting.md) for nightly spec-drift detection
+- [`docs/operations/openapi-drift-reporting.md`](../operations/openapi-drift-reporting.md) for weekly spec-drift detection
 - [`CHANGELOG.md`](../../CHANGELOG.md) and [`MIGRATION.md`](../../MIGRATION.md) for durable user-facing notes
 
 The goal is to keep upstream-alignment reporting predictable without creating a heavy editorial workflow.
@@ -41,7 +41,7 @@ Compatibility updates use different surfaces for different jobs:
 | [`CHANGELOG.md`](../../CHANGELOG.md) | Durable user-facing summary of accepted compatibility-affecting repo changes | In the same PR that lands a user-visible SDK/docs/test/support change |
 | [`MIGRATION.md`](../../MIGRATION.md) | Durable upgrade guidance | When canonical usage, public API names, compatibility bridges, required config, or migration steps changed |
 | [`docs/operations/official-endpoint-test-matrix.md`](../operations/official-endpoint-test-matrix.md) | Current implementation and live-test status by operation | When the accepted upstream operation surface changed or support status changed |
-| [`docs/operations/openapi-drift-reporting.md`](../operations/openapi-drift-reporting.md) | Detection workflow and baseline refresh rules | When the nightly detection/reporting mechanics change |
+| [`docs/operations/openapi-drift-reporting.md`](../operations/openapi-drift-reporting.md) | Detection workflow and baseline refresh rules | When the weekly detection/reporting mechanics change |
 
 This repository does not maintain a separate compatibility newsletter or a second standalone changelog.
 
@@ -53,7 +53,7 @@ The cadence is intentionally small and event-driven:
 
 | Cadence | Trigger | Expected output |
 | --- | --- | --- |
-| Nightly | Upstream OpenAPI drift check | Report artifact every run; auto-opened or refreshed issue only when repo-aware classification marks the drift as actionable |
+| Weekly | Upstream OpenAPI drift check | Report artifact every run; auto-opened or refreshed issue only when repo-aware classification marks the drift as actionable |
 | As needed | Non-spec upstream change noticed by maintainers, tests, or users | Manual compatibility update issue using the reusable template |
 | Same PR as acceptance | Repo accepts the change and updates code/docs/tests/baseline | `CHANGELOG.md`, `MIGRATION.md`, endpoint matrix, or baseline refresh updated in the same PR as needed |
 | Next release cut | A version is published | Release notes summarize already-landed compatibility updates; release notes do not replace the earlier docs updates |
@@ -79,7 +79,7 @@ When no migration path is required, do not force `MIGRATION.md` churn. The thres
 
 ## Reusable Template
 
-Use [`.github/ISSUE_TEMPLATE/upstream-compatibility-update.md`](../../.github/ISSUE_TEMPLATE/upstream-compatibility-update.md) for manual reports and for follow-up issues derived from the nightly drift workflow.
+Use [`.github/ISSUE_TEMPLATE/upstream-compatibility-update.md`](../../.github/ISSUE_TEMPLATE/upstream-compatibility-update.md) for manual reports and for follow-up issues derived from the weekly drift workflow.
 
 The template deliberately asks for:
 
@@ -89,4 +89,4 @@ The template deliberately asks for:
 - the user impact
 - linked implementation work
 
-That keeps compatibility updates consistent whether they originate from the nightly drift bot, a live contract failure, or a maintainer noticing an upstream change in docs/releases.
+That keeps compatibility updates consistent whether they originate from the weekly drift bot, a live contract failure, or a maintainer noticing an upstream change in docs/releases.

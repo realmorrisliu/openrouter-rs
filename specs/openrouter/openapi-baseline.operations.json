@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-04-29T07:05:54+00:00",
+  "captured_at": "2026-05-03T15:20:20+00:00",
   "info": {
     "contact": {
       "email": "support@openrouter.ai",
@@ -14,7 +14,7 @@
     "title": "OpenRouter API",
     "version": "1.0.0"
   },
-  "operation_count": 51,
+  "operation_count": 52,
   "operations": [
     {
       "deprecated": false,
@@ -381,6 +381,17 @@
     },
     {
       "deprecated": false,
+      "fingerprint": "3e769b982b15ba24",
+      "id": "POST /audio/transcriptions",
+      "method": "POST",
+      "operation_id": "createAudioTranscriptions",
+      "path": "/audio/transcriptions",
+      "tags": [
+        "STT"
+      ]
+    },
+    {
+      "deprecated": false,
       "fingerprint": "350024ac1009cddb",
       "id": "POST /auth/keys",
       "method": "POST",
@@ -524,7 +535,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "4c2837ade6b8b03b",
+      "fingerprint": "e380a2d857603c15",
       "id": "POST /responses",
       "method": "POST",
       "operation_id": "createResponses",
@@ -535,7 +546,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "3002492824810c79",
+      "fingerprint": "f40410acf2aa121e",
       "id": "POST /videos",
       "method": "POST",
       "operation_id": "createVideos",

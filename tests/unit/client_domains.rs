@@ -389,6 +389,21 @@ async fn test_audio_speech_domain_requires_api_key() {
 }
 
 #[tokio::test]
+async fn test_audio_transcriptions_domain_requires_api_key() {
+    let client = OpenRouterClient::builder()
+        .build()
+        .expect("client should build");
+    let request = audio::TranscriptionRequest::builder()
+        .model("openai/whisper-large-v3")
+        .input_audio(audio::TranscriptionInputAudio::new("UklGRiQA...", "wav"))
+        .build()
+        .expect("transcription request should build");
+
+    let result = client.audio().transcriptions().create(&request).await;
+    assert!(matches!(result, Err(OpenRouterError::KeyNotConfigured)));
+}
+
+#[tokio::test]
 async fn test_videos_domain_requires_api_key() {
     let client = OpenRouterClient::builder()
         .build()
@@ -838,6 +853,45 @@ async fn test_audio_speech_domain_create_delegates_to_api_module() {
     assert_eq!(body_json["input"], "Hello world");
     assert_eq!(body_json["voice"], "alloy");
     assert_eq!(body_json["response_format"], "mp3");
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_audio_transcriptions_domain_create_delegates_to_api_module() {
+    let response_body = r#"{"text":"hello world","usage":{"seconds":1.5}}"#;
+    let (base_url, rx, server) = spawn_json_server(response_body);
+    let client = OpenRouterClient::builder()
+        .base_url(base_url)
+        .api_key("api-key")
+        .build()
+        .expect("client should build");
+    let request = audio::TranscriptionRequest::builder()
+        .model("openai/whisper-large-v3")
+        .input_audio(audio::TranscriptionInputAudio::new("UklGRiQA...", "wav"))
+        .build()
+        .expect("transcription request should build");
+
+    let response = client
+        .audio()
+        .transcriptions()
+        .create(&request)
+        .await
+        .expect("transcription should succeed");
+    assert_eq!(response.text, "hello world");
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "POST /api/v1/audio/transcriptions HTTP/1.1"
+    );
+
+    let body_json: serde_json::Value =
+        serde_json::from_str(&captured.body_text).expect("body should be valid json");
+    assert_eq!(body_json["model"], "openai/whisper-large-v3");
+    assert_eq!(body_json["input_audio"]["format"], "wav");
 
     server.join().expect("server thread should finish");
 }

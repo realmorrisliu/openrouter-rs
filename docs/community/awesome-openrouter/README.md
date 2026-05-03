@@ -91,7 +91,7 @@ Use the following reviewer-facing signals in the Awesome OpenRouter PR body. Sna
 - `openrouter-cli` crate: published companion CLI with `59` downloads across its first three releases
 - Current stable SDK release is `0.8.0`, which ships on `reqwest + rustls` instead of the old `surf -> isahc -> curl` stack
 - Published API docs on docs.rs and runnable examples in-repo
-- Endpoint coverage, live test status, and nightly OpenAPI drift reporting are published in [`docs/operations/official-endpoint-test-matrix.md`](../../operations/official-endpoint-test-matrix.md) and [`docs/operations/openapi-drift-reporting.md`](../../operations/openapi-drift-reporting.md)
+- Endpoint coverage, live test status, and weekly OpenAPI drift reporting are published in [`docs/operations/official-endpoint-test-matrix.md`](../../operations/official-endpoint-test-matrix.md) and [`docs/operations/openapi-drift-reporting.md`](../../operations/openapi-drift-reporting.md)
 - Contributor, security, support, release, MSRV, and breaking-change policies are public in-repo
 
 Refresh the numbers above if submission happens materially later than this snapshot date.

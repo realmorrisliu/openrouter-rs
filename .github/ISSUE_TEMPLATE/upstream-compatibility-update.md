@@ -11,7 +11,7 @@ Briefly describe the upstream change and why it matters for `openrouter-rs`.
 
 ## Trigger
 
-- [ ] Nightly OpenAPI drift report
+- [ ] Weekly OpenAPI drift report
 - [ ] Upstream docs or release note
 - [ ] Live contract or integration behavior difference
 - [ ] User report
