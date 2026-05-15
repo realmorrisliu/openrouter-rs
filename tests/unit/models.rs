@@ -113,6 +113,46 @@ fn test_model_endpoints_pricing_allows_missing_optional_fields() {
     assert!(pricing.image.is_none());
 }
 
+#[test]
+fn test_model_response_deserializes_supported_voices() {
+    let raw = r#"{
+        "data": [{
+            "id": "openai/tts-1",
+            "name": "OpenAI TTS",
+            "created": 1735689600,
+            "description": "Test model data",
+            "context_length": 4096,
+            "architecture": {
+                "modality": "text->audio",
+                "tokenizer": "Other",
+                "instruct_type": null
+            },
+            "top_provider": {
+                "context_length": 4096,
+                "max_completion_tokens": null,
+                "is_moderated": false
+            },
+            "pricing": {
+                "prompt": "0",
+                "completion": "0",
+                "image": null,
+                "request": "0"
+            },
+            "per_request_limits": null,
+            "supported_voices": ["alloy", "verse"]
+        }]
+    }"#;
+
+    let parsed: ApiResponse<Vec<models::Model>> =
+        serde_json::from_str(raw).expect("model list should deserialize");
+
+    assert_eq!(parsed.data[0].id, "openai/tts-1");
+    assert_eq!(
+        parsed.data[0].supported_voices.as_deref(),
+        Some(["alloy".to_string(), "verse".to_string()].as_slice())
+    );
+}
+
 #[tokio::test]
 async fn test_list_model_endpoints_encodes_author_slug_and_auth_header() {
     let listener = TcpListener::bind("127.0.0.1:0").expect("listener should bind");

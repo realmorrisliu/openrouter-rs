@@ -31,6 +31,7 @@ The current repo snapshot implements `52 / 52` official OpenAPI method/path entr
 - Streaming support for chat, responses, and messages, including a unified stream abstraction
 - Typed tools, manual JSON-schema tools, and multimodal chat content
 - Typed chat usage metadata for token counts, OpenRouter cost, provider cost breakdowns, and BYOK status
+- Opt-in experimental response metadata for chat, Responses API, and Anthropic-compatible Messages requests
 - Discovery, rerank, audio speech/transcription, video generation, embeddings, API-key management, workspace management, organization members, guardrails, activity, credits, and generation metadata/content coverage
 - A companion CLI for profile resolution, discovery, management, and billing/usage workflows
 
@@ -118,6 +119,8 @@ At runtime, the builder/client exposes the values the SDK directly consumes:
 - `x_title`
 - `app_categories`
 
+Chat, Responses API, and Anthropic-compatible Messages request builders also expose `experimental_metadata(OpenRouterExperimentalMetadata::Enabled)` for OpenRouter's opt-in routing metadata response header.
+
 ## Common Workflows
 
 `openrouter-rs` is not just a thin `/chat/completions` wrapper. The repo currently covers:
@@ -128,8 +131,8 @@ At runtime, the builder/client exposes the values the SDK directly consumes:
 - manual tools and typed tools backed by `schemars`
 - multimodal chat content, including image, audio, video, and file parts
 - model discovery, provider discovery, embeddings, and ZDR endpoints
-- typed generation metadata, workspace I/O logging controls, and video callback URL support
-- management-key workflows for keys, workspace-scoped keys, auth codes, organization members, workspaces, workspace membership, guardrails, workspace-scoped guardrails, and activity, plus API-key-authenticated credits and generation metadata/content endpoints
+- typed generation metadata, model voice metadata, workspace I/O logging controls, and video callback URL support
+- management-key workflows for keys, workspace-scoped keys, auth codes, organization members, workspaces, workspace membership, guardrails, guardrail content filters, workspace-scoped guardrails, and activity, plus API-key-authenticated credits and generation metadata/content endpoints
 
 For deeper examples, prefer the runnable examples in [`examples/`](examples) over long README snippets.
 

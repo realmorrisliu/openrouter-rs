@@ -122,6 +122,7 @@ fn test_models_for_user_response_deserialization() {
             },
             "per_request_limits": null,
             "supported_parameters": ["temperature", "top_p"],
+            "supported_voices": ["alloy", "verse"],
             "default_parameters": null,
             "expiration_date": null
         }]
@@ -132,6 +133,10 @@ fn test_models_for_user_response_deserialization() {
     assert_eq!(parsed.data.len(), 1);
     assert_eq!(parsed.data[0].canonical_slug, "openai/gpt-4.1");
     assert_eq!(parsed.data[0].supported_parameters.len(), 2);
+    assert_eq!(
+        parsed.data[0].supported_voices.as_deref(),
+        Some(["alloy".to_string(), "verse".to_string()].as_slice())
+    );
     assert!(matches!(
         parsed.data[0].pricing.prompt,
         BigNumber::String(_)

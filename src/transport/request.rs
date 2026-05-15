@@ -1,5 +1,7 @@
 use reqwest::{Client, Method, RequestBuilder};
 
+use crate::types::OpenRouterExperimentalMetadata;
+
 pub(crate) fn request(client: &Client, method: Method, url: &str) -> RequestBuilder {
     client.request(method, url)
 }
@@ -62,6 +64,20 @@ pub(crate) fn with_client_request_headers(
     )
 }
 
+pub(crate) fn with_experimental_metadata_header(
+    req: RequestBuilder,
+    experimental_metadata: &Option<OpenRouterExperimentalMetadata>,
+) -> RequestBuilder {
+    if let Some(level) = experimental_metadata {
+        req.header(
+            "X-OpenRouter-Experimental-Metadata",
+            level.as_header_value(),
+        )
+    } else {
+        req
+    }
+}
+
 fn serialize_app_categories(
     app_categories: &[String],
 ) -> Result<String, crate::error::OpenRouterError> {
@@ -107,7 +123,9 @@ fn serialize_app_categories(
 mod tests {
     use reqwest::header::AUTHORIZATION;
 
-    use super::{post, with_client_request_headers};
+    use crate::types::OpenRouterExperimentalMetadata;
+
+    use super::{post, with_client_request_headers, with_experimental_metadata_header};
 
     #[test]
     fn test_with_client_request_headers_sets_auth_and_metadata() {
@@ -175,6 +193,25 @@ mod tests {
         assert!(
             matches!(error, crate::error::OpenRouterError::ConfigError(_)),
             "expected config error, got {error:?}"
+        );
+    }
+
+    #[test]
+    fn test_with_experimental_metadata_header_sets_level() {
+        let client = reqwest::Client::new();
+        let request = with_experimental_metadata_header(
+            post(&client, "http://example.com/test"),
+            &Some(OpenRouterExperimentalMetadata::Enabled),
+        )
+        .build()
+        .expect("request should build");
+
+        assert_eq!(
+            request
+                .headers()
+                .get("X-OpenRouter-Experimental-Metadata")
+                .expect("experimental metadata header should exist"),
+            "enabled"
         );
     }
 }

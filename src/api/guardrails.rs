@@ -10,6 +10,90 @@ use crate::{
     types::{ApiResponse, PaginationOptions},
 };
 
+/// Action for a custom regex content filter.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+#[serde(rename_all = "lowercase")]
+pub enum ContentFilterAction {
+    Redact,
+    Block,
+}
+
+/// Action for a built-in content filter.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+#[serde(rename_all = "lowercase")]
+pub enum ContentFilterBuiltinAction {
+    Redact,
+    Block,
+    Flag,
+}
+
+/// Built-in content filter identifier.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+#[serde(rename_all = "kebab-case")]
+pub enum ContentFilterBuiltinSlug {
+    Email,
+    Phone,
+    Ssn,
+    CreditCard,
+    IpAddress,
+    PersonName,
+    Address,
+    RegexPromptInjection,
+}
+
+/// Built-in content filter entry used by guardrail create/update requests and responses.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct ContentFilterBuiltinEntry {
+    pub slug: ContentFilterBuiltinSlug,
+    pub action: ContentFilterBuiltinAction,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+}
+
+impl ContentFilterBuiltinEntry {
+    pub fn new(slug: ContentFilterBuiltinSlug, action: ContentFilterBuiltinAction) -> Self {
+        Self {
+            slug,
+            action,
+            label: None,
+        }
+    }
+
+    pub fn label(mut self, label: impl Into<String>) -> Self {
+        self.label = Some(label.into());
+        self
+    }
+}
+
+/// Custom regex content filter entry used by guardrail create/update requests and responses.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct ContentFilterEntry {
+    pub pattern: String,
+    pub action: ContentFilterAction,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+}
+
+impl ContentFilterEntry {
+    pub fn new(pattern: impl Into<String>, action: ContentFilterAction) -> Self {
+        Self {
+            pattern: pattern.into(),
+            action,
+            label: None,
+        }
+    }
+
+    pub fn label(mut self, label: impl Into<String>) -> Self {
+        self.label = Some(label.into());
+        self
+    }
+}
+
 /// Guardrail model.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
@@ -27,7 +111,19 @@ pub struct Guardrail {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub allowed_models: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub content_filter_builtins: Option<Vec<ContentFilterBuiltinEntry>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub content_filters: Option<Vec<ContentFilterEntry>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub enforce_zdr: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enforce_zdr_anthropic: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enforce_zdr_openai: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enforce_zdr_google: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enforce_zdr_other: Option<bool>,
     pub created_at: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<String>,
@@ -65,9 +161,27 @@ pub struct CreateGuardrailRequest {
     #[builder(setter(custom), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     allowed_models: Option<Vec<String>>,
+    #[builder(setter(custom), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    content_filter_builtins: Option<Vec<ContentFilterBuiltinEntry>>,
+    #[builder(setter(custom), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    content_filters: Option<Vec<ContentFilterEntry>>,
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     enforce_zdr: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    enforce_zdr_anthropic: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    enforce_zdr_openai: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    enforce_zdr_google: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    enforce_zdr_other: Option<bool>,
     #[builder(setter(into, strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     workspace_id: Option<String>,
@@ -76,6 +190,8 @@ pub struct CreateGuardrailRequest {
 impl CreateGuardrailRequestBuilder {
     strip_option_vec_setter!(allowed_providers, String);
     strip_option_vec_setter!(allowed_models, String);
+    strip_option_vec_setter!(content_filter_builtins, ContentFilterBuiltinEntry);
+    strip_option_vec_setter!(content_filters, ContentFilterEntry);
 }
 
 impl CreateGuardrailRequest {
@@ -107,8 +223,26 @@ pub struct UpdateGuardrailRequest {
     #[serde(skip)]
     #[builder(setter(custom), default)]
     clear_allowed_models: bool,
+    #[builder(setter(custom), default)]
+    content_filter_builtins: Option<Vec<ContentFilterBuiltinEntry>>,
+    #[serde(skip)]
+    #[builder(setter(custom), default)]
+    clear_content_filter_builtins: bool,
+    #[builder(setter(custom), default)]
+    content_filters: Option<Vec<ContentFilterEntry>>,
+    #[serde(skip)]
+    #[builder(setter(custom), default)]
+    clear_content_filters: bool,
     #[builder(setter(strip_option), default)]
     enforce_zdr: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    enforce_zdr_anthropic: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    enforce_zdr_openai: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    enforce_zdr_google: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    enforce_zdr_other: Option<bool>,
 }
 
 impl Serialize for UpdateGuardrailRequest {
@@ -139,8 +273,33 @@ impl Serialize for UpdateGuardrailRequest {
         } else if let Some(value) = &self.allowed_models {
             map.serialize_entry("allowed_models", value)?;
         }
+        if self.clear_content_filter_builtins {
+            map.serialize_entry(
+                "content_filter_builtins",
+                &Option::<Vec<ContentFilterBuiltinEntry>>::None,
+            )?;
+        } else if let Some(value) = &self.content_filter_builtins {
+            map.serialize_entry("content_filter_builtins", value)?;
+        }
+        if self.clear_content_filters {
+            map.serialize_entry("content_filters", &Option::<Vec<ContentFilterEntry>>::None)?;
+        } else if let Some(value) = &self.content_filters {
+            map.serialize_entry("content_filters", value)?;
+        }
         if let Some(value) = &self.enforce_zdr {
             map.serialize_entry("enforce_zdr", value)?;
+        }
+        if let Some(value) = &self.enforce_zdr_anthropic {
+            map.serialize_entry("enforce_zdr_anthropic", value)?;
+        }
+        if let Some(value) = &self.enforce_zdr_openai {
+            map.serialize_entry("enforce_zdr_openai", value)?;
+        }
+        if let Some(value) = &self.enforce_zdr_google {
+            map.serialize_entry("enforce_zdr_google", value)?;
+        }
+        if let Some(value) = &self.enforce_zdr_other {
+            map.serialize_entry("enforce_zdr_other", value)?;
         }
         map.end()
     }
@@ -176,6 +335,38 @@ impl UpdateGuardrailRequestBuilder {
     pub fn clear_allowed_models(&mut self) -> &mut Self {
         self.allowed_models = Some(None);
         self.clear_allowed_models = Some(true);
+        self
+    }
+
+    pub fn content_filter_builtins<T, S>(&mut self, items: T) -> &mut Self
+    where
+        T: IntoIterator<Item = S>,
+        S: Into<ContentFilterBuiltinEntry>,
+    {
+        self.content_filter_builtins = Some(Some(items.into_iter().map(Into::into).collect()));
+        self.clear_content_filter_builtins = Some(false);
+        self
+    }
+
+    pub fn content_filters<T, S>(&mut self, items: T) -> &mut Self
+    where
+        T: IntoIterator<Item = S>,
+        S: Into<ContentFilterEntry>,
+    {
+        self.content_filters = Some(Some(items.into_iter().map(Into::into).collect()));
+        self.clear_content_filters = Some(false);
+        self
+    }
+
+    pub fn clear_content_filter_builtins(&mut self) -> &mut Self {
+        self.content_filter_builtins = Some(None);
+        self.clear_content_filter_builtins = Some(true);
+        self
+    }
+
+    pub fn clear_content_filters(&mut self) -> &mut Self {
+        self.content_filters = Some(None);
+        self.clear_content_filters = Some(true);
         self
     }
 }

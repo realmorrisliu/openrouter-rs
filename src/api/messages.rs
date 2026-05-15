@@ -13,7 +13,7 @@ use crate::{
     transport::{
         request as transport_request, response as transport_response, sse::response_lines,
     },
-    types::ProviderPreferences,
+    types::{OpenRouterExperimentalMetadata, ProviderPreferences},
     utils::parse_sse_frames,
 };
 
@@ -470,6 +470,10 @@ pub struct AnthropicMessagesRequest {
     stream: Option<bool>,
 
     #[builder(setter(strip_option), default)]
+    #[serde(skip)]
+    experimental_metadata: Option<OpenRouterExperimentalMetadata>,
+
+    #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     temperature: Option<f64>,
 
@@ -587,6 +591,10 @@ impl AnthropicMessagesRequest {
         req.stream = Some(stream);
         req
     }
+
+    pub fn experimental_metadata(&self) -> Option<OpenRouterExperimentalMetadata> {
+        self.experimental_metadata
+    }
 }
 
 /// Usage object in Anthropic messages response.
@@ -643,7 +651,12 @@ pub enum AnthropicMessagesStreamEvent {
         delta: Value,
         usage: Value,
     },
-    MessageStop,
+    MessageStop {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        openrouter_metadata: Option<Value>,
+        #[serde(flatten)]
+        extra: HashMap<String, Value>,
+    },
     ContentBlockStart {
         index: u32,
         content_block: Box<AnthropicContentPart>,
@@ -666,7 +679,7 @@ impl AnthropicMessagesStreamEvent {
         match self {
             Self::MessageStart { .. } => "message_start",
             Self::MessageDelta { .. } => "message_delta",
-            Self::MessageStop => "message_stop",
+            Self::MessageStop { .. } => "message_stop",
             Self::ContentBlockStart { .. } => "content_block_start",
             Self::ContentBlockDelta { .. } => "content_block_delta",
             Self::ContentBlockStop { .. } => "content_block_stop",
@@ -718,13 +731,16 @@ pub(crate) async fn create_message_with_client(
     let url = format!("{base_url}/messages");
     let request = request.stream(false);
 
-    let response = transport_request::with_client_request_headers(
-        transport_request::post(http_client, &url),
-        api_key,
-        x_title,
-        http_referer,
-        app_categories,
-    )?
+    let response = transport_request::with_experimental_metadata_header(
+        transport_request::with_client_request_headers(
+            transport_request::post(http_client, &url),
+            api_key,
+            x_title,
+            http_referer,
+            app_categories,
+        )?,
+        &request.experimental_metadata,
+    )
     .json(&request)
     .send()
     .await?;
@@ -775,13 +791,16 @@ pub(crate) async fn stream_messages_with_client(
     let url = format!("{base_url}/messages");
     let request = request.stream(true);
 
-    let response = transport_request::with_client_request_headers(
-        transport_request::post(http_client, &url),
-        api_key,
-        x_title,
-        http_referer,
-        app_categories,
-    )?
+    let response = transport_request::with_experimental_metadata_header(
+        transport_request::with_client_request_headers(
+            transport_request::post(http_client, &url),
+            api_key,
+            x_title,
+            http_referer,
+            app_categories,
+        )?,
+        &request.experimental_metadata,
+    )
     .json(&request)
     .send()
     .await?;

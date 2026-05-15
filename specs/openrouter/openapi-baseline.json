@@ -166,6 +166,88 @@
           "type": "response.output_text.annotation.added"
         }
       },
+      "AnthropicAdvisorMessageUsageIteration": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/AnthropicBaseUsageIteration"
+          },
+          {
+            "properties": {
+              "model": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "advisor_message"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "model"
+            ],
+            "type": "object"
+          }
+        ],
+        "example": {
+          "cache_creation": null,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 823,
+          "model": "claude-opus-4-6",
+          "output_tokens": 1612,
+          "type": "advisor_message"
+        }
+      },
+      "AnthropicAdvisorToolResult": {
+        "example": {
+          "content": {
+            "text": "Advisor response text",
+            "type": "advisor_result"
+          },
+          "tool_use_id": "srvtoolu_01abc",
+          "type": "advisor_tool_result"
+        },
+        "properties": {
+          "content": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "type": "object"
+          },
+          "tool_use_id": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "advisor_tool_result"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "tool_use_id",
+          "content"
+        ],
+        "type": "object"
+      },
+      "AnthropicAllowedCallers": {
+        "example": [
+          "direct"
+        ],
+        "items": {
+          "enum": [
+            "direct",
+            "code_execution_20250825",
+            "code_execution_20260120"
+          ],
+          "type": "string",
+          "x-speakeasy-unknown-values": "allow"
+        },
+        "type": "array"
+      },
       "AnthropicBase64ImageSource": {
         "example": {
           "data": "/9j/4AAQ...",
@@ -400,6 +482,7 @@
         "type": "object"
       },
       "AnthropicCacheControlDirective": {
+        "description": "Enable automatic prompt caching. When set at the top level, the system automatically applies cache breakpoints to the last cacheable block in the request. Currently supported for Anthropic Claude models.",
         "example": {
           "type": "ephemeral"
         },
@@ -1627,20 +1710,6 @@
         "type": "string",
         "x-speakeasy-unknown-values": "allow"
       },
-      "AnthropicServerToolName": {
-        "enum": [
-          "web_search",
-          "web_fetch",
-          "code_execution",
-          "bash_code_execution",
-          "text_editor_code_execution",
-          "tool_search_tool_regex",
-          "tool_search_tool_bm25"
-        ],
-        "example": "web_search",
-        "type": "string",
-        "x-speakeasy-unknown-values": "allow"
-      },
       "AnthropicServerToolUsage": {
         "example": {
           "web_fetch_requests": 0,
@@ -1658,46 +1727,6 @@
         "required": [
           "web_search_requests",
           "web_fetch_requests"
-        ],
-        "type": "object"
-      },
-      "AnthropicServerToolUseBlock": {
-        "example": {
-          "caller": {
-            "type": "direct"
-          },
-          "id": "srvtoolu_01abc",
-          "input": {
-            "query": "latest news"
-          },
-          "name": "web_search",
-          "type": "server_tool_use"
-        },
-        "properties": {
-          "caller": {
-            "$ref": "#/components/schemas/AnthropicCaller"
-          },
-          "id": {
-            "type": "string"
-          },
-          "input": {
-            "nullable": true
-          },
-          "name": {
-            "$ref": "#/components/schemas/AnthropicServerToolName"
-          },
-          "type": {
-            "enum": [
-              "server_tool_use"
-            ],
-            "type": "string"
-          }
-        },
-        "required": [
-          "type",
-          "id",
-          "caller",
-          "name"
         ],
         "type": "object"
       },
@@ -2493,6 +2522,9 @@
             "$ref": "#/components/schemas/AnthropicMessageUsageIteration"
           },
           {
+            "$ref": "#/components/schemas/AnthropicAdvisorMessageUsageIteration"
+          },
+          {
             "$ref": "#/components/schemas/AnthropicUnknownUsageIteration"
           }
         ],
@@ -2847,6 +2879,172 @@
         ],
         "type": "object"
       },
+      "ApplyPatchCallItem": {
+        "description": "A file create/update/delete via diff patch",
+        "example": {
+          "call_id": "call-abc123",
+          "operation": {
+            "diff": "--- a\n+++ b\n",
+            "path": "src/main.ts",
+            "type": "update_file"
+          },
+          "status": "completed",
+          "type": "apply_patch_call"
+        },
+        "properties": {
+          "call_id": {
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "operation": {
+            "oneOf": [
+              {
+                "properties": {
+                  "diff": {
+                    "type": "string"
+                  },
+                  "path": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "create_file"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "path",
+                  "diff"
+                ],
+                "type": "object"
+              },
+              {
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "delete_file"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "path"
+                ],
+                "type": "object"
+              },
+              {
+                "properties": {
+                  "diff": {
+                    "type": "string"
+                  },
+                  "path": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "update_file"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "path",
+                  "diff"
+                ],
+                "type": "object"
+              }
+            ]
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "in_progress"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "completed"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "type": {
+            "enum": [
+              "apply_patch_call"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "call_id",
+          "operation",
+          "status"
+        ],
+        "type": "object"
+      },
+      "ApplyPatchCallOutputItem": {
+        "description": "Output from an apply patch operation",
+        "example": {
+          "call_id": "call-abc123",
+          "status": "completed",
+          "type": "apply_patch_call_output"
+        },
+        "properties": {
+          "call_id": {
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "output": {
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "completed"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "failed"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "type": {
+            "enum": [
+              "apply_patch_call_output"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "call_id",
+          "status"
+        ],
+        "type": "object"
+      },
       "ApplyPatchServerTool": {
         "description": "Apply patch tool configuration",
         "example": {
@@ -2915,6 +3113,13 @@
           "error": {
             "$ref": "#/components/schemas/BadGatewayResponseErrorData"
           },
+          "openrouter_metadata": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true,
+            "type": "object"
+          },
           "user_id": {
             "nullable": true,
             "type": "string"
@@ -2963,6 +3168,13 @@
         "properties": {
           "error": {
             "$ref": "#/components/schemas/BadRequestResponseErrorData"
+          },
+          "openrouter_metadata": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true,
+            "type": "object"
           },
           "user_id": {
             "nullable": true,
@@ -3159,6 +3371,82 @@
           "item_id",
           "content_index",
           "part",
+          "sequence_number"
+        ],
+        "type": "object"
+      },
+      "BaseCustomToolCallInputDeltaEvent": {
+        "description": "Event emitted when a custom tool call's freeform input is being streamed. Mirrors `response.function_call_arguments.delta` but for `custom` tools whose input is opaque text rather than JSON arguments.",
+        "example": {
+          "delta": "*** Begin Patch",
+          "item_id": "item-1",
+          "output_index": 0,
+          "sequence_number": 4,
+          "type": "response.custom_tool_call_input.delta"
+        },
+        "properties": {
+          "delta": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "output_index": {
+            "type": "integer"
+          },
+          "sequence_number": {
+            "type": "integer"
+          },
+          "type": {
+            "enum": [
+              "response.custom_tool_call_input.delta"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "item_id",
+          "output_index",
+          "delta",
+          "sequence_number"
+        ],
+        "type": "object"
+      },
+      "BaseCustomToolCallInputDoneEvent": {
+        "description": "Event emitted when a custom tool call's freeform input streaming is complete. Mirrors `response.function_call_arguments.done` but for `custom` tools.",
+        "example": {
+          "input": "*** Begin Patch\n*** End Patch",
+          "item_id": "item-1",
+          "output_index": 0,
+          "sequence_number": 6,
+          "type": "response.custom_tool_call_input.done"
+        },
+        "properties": {
+          "input": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "output_index": {
+            "type": "integer"
+          },
+          "sequence_number": {
+            "type": "integer"
+          },
+          "type": {
+            "enum": [
+              "response.custom_tool_call_input.done"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "item_id",
+          "output_index",
+          "input",
           "sequence_number"
         ],
         "type": "object"
@@ -3403,6 +3691,12 @@
                 },
                 {
                   "$ref": "#/components/schemas/OutputMessage"
+                },
+                {
+                  "$ref": "#/components/schemas/OpenAIResponseCustomToolCall"
+                },
+                {
+                  "$ref": "#/components/schemas/OpenAIResponseCustomToolCallOutput"
                 }
               ]
             },
@@ -3425,7 +3719,7 @@
           "container": null,
           "content": [
             {
-              "citations": null,
+              "citations": [],
               "text": "Hello!",
               "type": "text"
             }
@@ -3967,6 +4261,7 @@
             "items": {
               "discriminator": {
                 "mapping": {
+                  "custom_tool_call": "#/components/schemas/OutputItemCustomToolCall",
                   "file_search_call": "#/components/schemas/OutputItemFileSearchCall",
                   "function_call": "#/components/schemas/OutputItemFunctionCall",
                   "image_generation_call": "#/components/schemas/OutputItemImageGenerationCall",
@@ -3985,6 +4280,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/OutputItemFunctionCall"
+                },
+                {
+                  "$ref": "#/components/schemas/OutputItemCustomToolCall"
                 },
                 {
                   "$ref": "#/components/schemas/OutputItemWebSearchCall"
@@ -5440,14 +5738,7 @@
         },
         "properties": {
           "cache_control": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/AnthropicCacheControlDirective"
-              },
-              {
-                "description": "Enable automatic prompt caching. When set, the system automatically applies cache breakpoints to the last cacheable block in the request. Currently supported for Anthropic Claude models."
-              }
-            ]
+            "$ref": "#/components/schemas/AnthropicCacheControlDirective"
           },
           "debug": {
             "$ref": "#/components/schemas/ChatDebugOptions"
@@ -5554,6 +5845,7 @@
                   "auto-router": "#/components/schemas/AutoRouterPlugin",
                   "context-compression": "#/components/schemas/ContextCompressionPlugin",
                   "file-parser": "#/components/schemas/FileParserPlugin",
+                  "fusion": "#/components/schemas/FusionPlugin",
                   "moderation": "#/components/schemas/ModerationPlugin",
                   "pareto-router": "#/components/schemas/ParetoRouterPlugin",
                   "response-healing": "#/components/schemas/ResponseHealingPlugin",
@@ -5582,6 +5874,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/ParetoRouterPlugin"
+                },
+                {
+                  "$ref": "#/components/schemas/FusionPlugin"
                 }
               ]
             },
@@ -5823,6 +6118,9 @@
             ],
             "type": "string"
           },
+          "openrouter_metadata": {
+            "$ref": "#/components/schemas/OpenRouterMetadata"
+          },
           "service_tier": {
             "description": "The service tier used by the upstream provider for this request",
             "example": "default",
@@ -5977,6 +6275,9 @@
               "chat.completion.chunk"
             ],
             "type": "string"
+          },
+          "openrouter_metadata": {
+            "$ref": "#/components/schemas/OpenRouterMetadata"
           },
           "service_tier": {
             "description": "The service tier used by the upstream provider for this request",
@@ -6137,6 +6438,35 @@
         },
         "required": [
           "index"
+        ],
+        "type": "object"
+      },
+      "ChatStreamingResponse": {
+        "example": {
+          "data": {
+            "choices": [
+              {
+                "delta": {
+                  "content": "Hello",
+                  "role": "assistant"
+                },
+                "finish_reason": null,
+                "index": 0
+              }
+            ],
+            "created": 1677652288,
+            "id": "chatcmpl-123",
+            "model": "openai/gpt-4",
+            "object": "chat.completion.chunk"
+          }
+        },
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ChatStreamChunk"
+          }
+        },
+        "required": [
+          "data"
         ],
         "type": "object"
       },
@@ -6553,7 +6883,7 @@
         },
         "properties": {
           "allowed_domains": {
-            "description": "Limit search results to these domains. Supported by Exa, Parallel, and most native providers (Anthropic, OpenAI, xAI). Not supported with Firecrawl or Perplexity.",
+            "description": "Limit search results to these domains. Supported by Exa, Firecrawl, Parallel, and most native providers (Anthropic, OpenAI, xAI). Not supported with Perplexity. Cannot be used with excluded_domains.",
             "items": {
               "type": "string"
             },
@@ -6563,7 +6893,7 @@
             "$ref": "#/components/schemas/WebSearchEngineEnum"
           },
           "excluded_domains": {
-            "description": "Exclude search results from these domains. Supported by Exa, Parallel, Anthropic, and xAI. Not supported with Firecrawl, OpenAI (silently ignored), or Perplexity.",
+            "description": "Exclude search results from these domains. Supported by Exa, Firecrawl, Parallel, Anthropic, and xAI. Not supported with OpenAI (silently ignored) or Perplexity. Cannot be used with allowed_domains.",
             "items": {
               "type": "string"
             },
@@ -6771,6 +7101,33 @@
         ],
         "type": "object"
       },
+      "CompactionItem": {
+        "description": "A context compaction marker with encrypted summary",
+        "example": {
+          "encrypted_content": "enc_abc123...",
+          "type": "compaction"
+        },
+        "properties": {
+          "encrypted_content": {
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "compaction"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "encrypted_content"
+        ],
+        "type": "object"
+      },
       "CompletedEvent": {
         "description": "Event emitted when a response has completed successfully",
         "example": {
@@ -6920,6 +7277,13 @@
           "error": {
             "$ref": "#/components/schemas/ConflictResponseErrorData"
           },
+          "openrouter_metadata": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true,
+            "type": "object"
+          },
           "user_id": {
             "nullable": true,
             "type": "string"
@@ -6954,6 +7318,101 @@
         "required": [
           "code",
           "message"
+        ],
+        "type": "object"
+      },
+      "ContentFilterAction": {
+        "description": "Action taken when the pattern matches",
+        "enum": [
+          "redact",
+          "block"
+        ],
+        "example": "block",
+        "type": "string",
+        "x-speakeasy-unknown-values": "allow"
+      },
+      "ContentFilterBuiltinAction": {
+        "description": "Action taken when the builtin filter triggers",
+        "enum": [
+          "redact",
+          "block",
+          "flag"
+        ],
+        "example": "block",
+        "type": "string",
+        "x-speakeasy-unknown-values": "allow"
+      },
+      "ContentFilterBuiltinEntry": {
+        "description": "A builtin content filter entry. Builtin filters include PII detectors and the regex-based prompt injection detector.",
+        "example": {
+          "action": "block",
+          "label": "[PROMPT_INJECTION]",
+          "slug": "regex-prompt-injection"
+        },
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/ContentFilterBuiltinAction"
+          },
+          "label": {
+            "description": "Optional label used in redaction placeholders (e.g. \"[PROMPT_INJECTION]\")",
+            "example": "[PROMPT_INJECTION]",
+            "maxLength": 100,
+            "type": "string"
+          },
+          "slug": {
+            "$ref": "#/components/schemas/ContentFilterBuiltinSlug"
+          }
+        },
+        "required": [
+          "slug",
+          "action"
+        ],
+        "type": "object"
+      },
+      "ContentFilterBuiltinSlug": {
+        "description": "The builtin filter identifier",
+        "enum": [
+          "email",
+          "phone",
+          "ssn",
+          "credit-card",
+          "ip-address",
+          "person-name",
+          "address",
+          "regex-prompt-injection"
+        ],
+        "example": "regex-prompt-injection",
+        "type": "string",
+        "x-speakeasy-unknown-values": "allow"
+      },
+      "ContentFilterEntry": {
+        "description": "A custom regex content filter that scans request messages for matching patterns.",
+        "example": {
+          "action": "redact",
+          "label": "[API_KEY]",
+          "pattern": "\\b(sk-[a-zA-Z0-9]{48})\\b"
+        },
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/ContentFilterAction"
+          },
+          "label": {
+            "description": "Optional label used in redaction placeholders or error messages",
+            "example": "[API_KEY]",
+            "maxLength": 100,
+            "nullable": true,
+            "type": "string"
+          },
+          "pattern": {
+            "description": "A regex pattern to match against request content",
+            "example": "\\b(sk-[a-zA-Z0-9]{48})\\b",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "pattern",
+          "action"
         ],
         "type": "object"
       },
@@ -7136,8 +7595,18 @@
             "anthropic",
             "deepseek"
           ],
+          "content_filter_builtins": [
+            {
+              "action": "block",
+              "slug": "regex-prompt-injection"
+            }
+          ],
+          "content_filters": null,
           "description": "A guardrail for limiting API usage",
-          "enforce_zdr": false,
+          "enforce_zdr_anthropic": true,
+          "enforce_zdr_google": false,
+          "enforce_zdr_openai": true,
+          "enforce_zdr_other": false,
           "ignored_models": null,
           "ignored_providers": null,
           "limit_usd": 50,
@@ -7173,6 +7642,35 @@
             "nullable": true,
             "type": "array"
           },
+          "content_filter_builtins": {
+            "description": "Builtin content filters to apply. The \"flag\" action is only supported for \"regex-prompt-injection\"; PII slugs (email, phone, ssn, credit-card, ip-address, person-name, address) accept \"block\" or \"redact\" only.",
+            "example": [
+              {
+                "action": "block",
+                "slug": "regex-prompt-injection"
+              }
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ContentFilterBuiltinEntry"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "content_filters": {
+            "description": "Custom regex content filters to apply to request messages",
+            "example": [
+              {
+                "action": "redact",
+                "label": "[API_KEY]",
+                "pattern": "\\b(sk-[a-zA-Z0-9]{48})\\b"
+              }
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ContentFilterEntry"
+            },
+            "nullable": true,
+            "type": "array"
+          },
           "description": {
             "description": "Description of the guardrail",
             "example": "A guardrail for limiting API usage",
@@ -7181,7 +7679,32 @@
             "type": "string"
           },
           "enforce_zdr": {
-            "description": "Whether to enforce zero data retention",
+            "deprecated": true,
+            "description": "Deprecated. Use enforce_zdr_anthropic, enforce_zdr_openai, enforce_zdr_google, and enforce_zdr_other instead. When provided, its value is copied into any of those per-provider fields that are not explicitly specified on the request.",
+            "example": false,
+            "nullable": true,
+            "type": "boolean"
+          },
+          "enforce_zdr_anthropic": {
+            "description": "Whether to enforce zero data retention for Anthropic models. Falls back to enforce_zdr when not provided.",
+            "example": false,
+            "nullable": true,
+            "type": "boolean"
+          },
+          "enforce_zdr_google": {
+            "description": "Whether to enforce zero data retention for Google models. Falls back to enforce_zdr when not provided.",
+            "example": false,
+            "nullable": true,
+            "type": "boolean"
+          },
+          "enforce_zdr_openai": {
+            "description": "Whether to enforce zero data retention for OpenAI models. Falls back to enforce_zdr when not provided.",
+            "example": false,
+            "nullable": true,
+            "type": "boolean"
+          },
+          "enforce_zdr_other": {
+            "description": "Whether to enforce zero data retention for models that are not from Anthropic, OpenAI, or Google. Falls back to enforce_zdr when not provided.",
             "example": false,
             "nullable": true,
             "type": "boolean"
@@ -7248,9 +7771,21 @@
               "anthropic",
               "google"
             ],
+            "content_filter_builtins": [
+              {
+                "action": "block",
+                "label": "[PROMPT_INJECTION]",
+                "slug": "regex-prompt-injection"
+              }
+            ],
+            "content_filters": null,
             "created_at": "2025-08-24T10:30:00Z",
             "description": "A guardrail for limiting API usage",
-            "enforce_zdr": false,
+            "enforce_zdr": null,
+            "enforce_zdr_anthropic": true,
+            "enforce_zdr_google": false,
+            "enforce_zdr_openai": true,
+            "enforce_zdr_other": false,
             "id": "550e8400-e29b-41d4-a716-446655440000",
             "ignored_models": null,
             "ignored_providers": null,
@@ -7351,11 +7886,11 @@
             "type": "string"
           },
           "slug": {
-            "description": "URL-friendly slug (lowercase alphanumeric and hyphens only)",
+            "description": "URL-friendly slug (lowercase alphanumeric segments separated by single hyphens, no leading/trailing hyphens)",
             "example": "production",
             "maxLength": 50,
             "minLength": 1,
-            "pattern": "^[a-z0-9-]+$",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
             "type": "string"
           }
         },
@@ -7517,6 +8052,141 @@
           "name"
         ],
         "type": "object"
+      },
+      "CustomToolCallInputDeltaEvent": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseCustomToolCallInputDeltaEvent"
+          },
+          {
+            "properties": {},
+            "type": "object"
+          }
+        ],
+        "description": "Event emitted when a custom tool call's freeform input is being streamed. Mirrors `response.function_call_arguments.delta` but for `custom` tools whose input is opaque text rather than JSON arguments.",
+        "example": {
+          "delta": "*** Begin Patch",
+          "item_id": "item-1",
+          "output_index": 0,
+          "sequence_number": 4,
+          "type": "response.custom_tool_call_input.delta"
+        }
+      },
+      "CustomToolCallInputDoneEvent": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseCustomToolCallInputDoneEvent"
+          },
+          {
+            "properties": {},
+            "type": "object"
+          }
+        ],
+        "description": "Event emitted when a custom tool call's freeform input streaming is complete. Mirrors `response.function_call_arguments.done` but for `custom` tools.",
+        "example": {
+          "input": "*** Begin Patch\n*** End Patch",
+          "item_id": "item-1",
+          "output_index": 0,
+          "sequence_number": 6,
+          "type": "response.custom_tool_call_input.done"
+        }
+      },
+      "CustomToolCallItem": {
+        "description": "A call to a custom (freeform-grammar) tool created by the model \u2014 distinct from `function_call`. Used for tools like Codex CLI's `apply_patch` whose payload is opaque text rather than JSON arguments.",
+        "example": {
+          "call_id": "call-abc123",
+          "id": "ctc-abc123",
+          "input": "*** Begin Patch\n*** End Patch",
+          "name": "apply_patch",
+          "type": "custom_tool_call"
+        },
+        "properties": {
+          "call_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "input": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "namespace": {
+            "description": "Namespace qualifier for tools registered as part of a namespace tool group (e.g. an MCP server)",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "custom_tool_call"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "call_id",
+          "name",
+          "input"
+        ],
+        "type": "object"
+      },
+      "CustomToolCallOutputItem": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/OpenAIResponseCustomToolCallOutput"
+          },
+          {
+            "properties": {
+              "output": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "items": {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/InputText"
+                        },
+                        {
+                          "allOf": [
+                            {
+                              "$ref": "#/components/schemas/InputImage"
+                            },
+                            {
+                              "properties": {},
+                              "type": "object"
+                            }
+                          ],
+                          "description": "Image input content item",
+                          "example": {
+                            "detail": "auto",
+                            "image_url": "https://example.com/image.jpg",
+                            "type": "input_image"
+                          }
+                        },
+                        {
+                          "$ref": "#/components/schemas/InputFile"
+                        }
+                      ]
+                    },
+                    "type": "array"
+                  }
+                ]
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "description": "The output from a custom (freeform-grammar) tool call execution. Mirrors `function_call_output` but is matched to a `custom_tool_call` rather than a `function_call`.",
+        "example": {
+          "call_id": "call-abc123",
+          "id": "ctco-abc123",
+          "output": "patch applied successfully",
+          "type": "custom_tool_call_output"
+        }
       },
       "DatetimeServerTool": {
         "description": "OpenRouter built-in server tool: returns the current date and time",
@@ -7776,6 +8446,13 @@
           "error": {
             "$ref": "#/components/schemas/EdgeNetworkTimeoutResponseErrorData"
           },
+          "openrouter_metadata": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true,
+            "type": "object"
+          },
           "user_id": {
             "nullable": true,
             "type": "string"
@@ -7813,6 +8490,30 @@
         ],
         "type": "object"
       },
+      "EndpointInfo": {
+        "example": {
+          "model": "openai/gpt-4o",
+          "provider": "OpenAI",
+          "selected": true
+        },
+        "properties": {
+          "model": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "selected": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "provider",
+          "model",
+          "selected"
+        ],
+        "type": "object"
+      },
       "EndpointStatus": {
         "enum": [
           0,
@@ -7825,6 +8526,34 @@
         "example": 0,
         "type": "integer",
         "x-speakeasy-unknown-values": "allow"
+      },
+      "EndpointsMetadata": {
+        "example": {
+          "available": [
+            {
+              "model": "openai/gpt-4o",
+              "provider": "OpenAI",
+              "selected": true
+            }
+          ],
+          "total": 3
+        },
+        "properties": {
+          "available": {
+            "items": {
+              "$ref": "#/components/schemas/EndpointInfo"
+            },
+            "type": "array"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "available"
+        ],
+        "type": "object"
       },
       "ErrorEvent": {
         "allOf": [
@@ -8099,6 +8828,13 @@
         "properties": {
           "error": {
             "$ref": "#/components/schemas/ForbiddenResponseErrorData"
+          },
+          "openrouter_metadata": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true,
+            "type": "object"
           },
           "user_id": {
             "nullable": true,
@@ -8452,6 +9188,112 @@
         ],
         "type": "object"
       },
+      "FusionPlugin": {
+        "example": {
+          "analysis_models": [
+            "~anthropic/claude-opus-latest",
+            "~openai/gpt-latest",
+            "~google/gemini-pro-latest"
+          ],
+          "enabled": true,
+          "id": "fusion",
+          "model": "~anthropic/claude-opus-latest"
+        },
+        "properties": {
+          "analysis_models": {
+            "description": "Slugs of models to run in parallel as the \"expert panel\" the judge analyzes. Each model receives the same user prompt with web_search + web_fetch enabled. Capped at 8 models to bound cost amplification. When omitted, defaults to the Quality preset from the /labs/fusion UI (~anthropic/claude-opus-latest, ~openai/gpt-latest, ~google/gemini-pro-latest).",
+            "example": [
+              "~anthropic/claude-opus-latest",
+              "~openai/gpt-latest",
+              "~google/gemini-pro-latest"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "type": "array"
+          },
+          "enabled": {
+            "description": "Set to false to disable the fusion plugin for this request. Defaults to true.",
+            "type": "boolean"
+          },
+          "id": {
+            "enum": [
+              "fusion"
+            ],
+            "type": "string"
+          },
+          "model": {
+            "description": "Slug of the model that performs both the judge step (with web_search + web_fetch) and the final synthesis. When omitted, defaults to the first model in the Quality preset.",
+            "example": "~anthropic/claude-opus-latest",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "FusionServerToolConfig": {
+        "description": "Configuration for the openrouter:fusion server tool.",
+        "example": {
+          "analysis_models": [
+            "~anthropic/claude-opus-latest",
+            "~openai/gpt-latest",
+            "~google/gemini-pro-latest"
+          ]
+        },
+        "properties": {
+          "analysis_models": {
+            "description": "Slugs of models to run in parallel as the analysis panel. Each model receives the user prompt with openrouter:web_search and openrouter:web_fetch enabled, then a judge model summarizes the collective output into structured analysis JSON. Capped at 8 models to bound cost amplification. Defaults to the Quality preset from /labs/fusion.",
+            "example": [
+              "~anthropic/claude-opus-latest",
+              "~openai/gpt-latest",
+              "~google/gemini-pro-latest"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "type": "array"
+          },
+          "model": {
+            "description": "Slug of the judge model that produces the structured analysis JSON. Defaults to the model used in the outer API request.",
+            "example": "~anthropic/claude-opus-latest",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "FusionServerTool_OpenRouter": {
+        "description": "OpenRouter built-in server tool: fans out the user prompt to a panel of analysis models, then asks a judge model to summarize their collective output as structured JSON the outer model can synthesize from.",
+        "example": {
+          "parameters": {
+            "analysis_models": [
+              "~anthropic/claude-opus-latest",
+              "~openai/gpt-latest"
+            ]
+          },
+          "type": "openrouter:fusion"
+        },
+        "properties": {
+          "parameters": {
+            "$ref": "#/components/schemas/FusionServerToolConfig"
+          },
+          "type": {
+            "enum": [
+              "openrouter:fusion"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
       "GenerationContentData": {
         "description": "Stored prompt and completion content",
         "example": {
@@ -8596,6 +9438,7 @@
             "provider_responses": null,
             "request_id": "req-1727282430-aBcDeFgHiJkLmNoPqRsT",
             "router": "openrouter/auto",
+            "service_tier": "priority",
             "session_id": null,
             "streamed": true,
             "tokens_completion": 25,
@@ -8805,6 +9648,12 @@
                 "nullable": true,
                 "type": "string"
               },
+              "service_tier": {
+                "description": "Service tier the upstream provider reported running this request on, or null if it did not report one.",
+                "example": "priority",
+                "nullable": true,
+                "type": "string"
+              },
               "session_id": {
                 "description": "Session identifier grouping multiple generations in the same session",
                 "nullable": true,
@@ -8881,6 +9730,7 @@
               "moderation_latency",
               "generation_time",
               "finish_reason",
+              "service_tier",
               "tokens_prompt",
               "tokens_completion",
               "native_tokens_prompt",
@@ -8922,9 +9772,21 @@
               "anthropic",
               "google"
             ],
+            "content_filter_builtins": [
+              {
+                "action": "block",
+                "label": "[PROMPT_INJECTION]",
+                "slug": "regex-prompt-injection"
+              }
+            ],
+            "content_filters": null,
             "created_at": "2025-08-24T10:30:00Z",
             "description": "Guardrail for production environment",
-            "enforce_zdr": false,
+            "enforce_zdr": null,
+            "enforce_zdr_anthropic": true,
+            "enforce_zdr_google": false,
+            "enforce_zdr_openai": true,
+            "enforce_zdr_other": false,
             "id": "550e8400-e29b-41d4-a716-446655440000",
             "ignored_models": null,
             "ignored_providers": null,
@@ -9001,6 +9863,13 @@
           "error": {
             "$ref": "#/components/schemas/GoneResponseErrorData"
           },
+          "openrouter_metadata": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true,
+            "type": "object"
+          },
           "user_id": {
             "nullable": true,
             "type": "string"
@@ -9046,9 +9915,21 @@
             "anthropic",
             "google"
           ],
+          "content_filter_builtins": [
+            {
+              "action": "block",
+              "label": "[PROMPT_INJECTION]",
+              "slug": "regex-prompt-injection"
+            }
+          ],
+          "content_filters": null,
           "created_at": "2025-08-24T10:30:00Z",
           "description": "Guardrail for production environment",
-          "enforce_zdr": false,
+          "enforce_zdr": null,
+          "enforce_zdr_anthropic": true,
+          "enforce_zdr_google": false,
+          "enforce_zdr_openai": true,
+          "enforce_zdr_other": false,
           "id": "550e8400-e29b-41d4-a716-446655440000",
           "ignored_models": null,
           "ignored_providers": null,
@@ -9085,6 +9966,36 @@
             "nullable": true,
             "type": "array"
           },
+          "content_filter_builtins": {
+            "description": "Builtin content filters applied to requests. Includes PII detectors and the regex-based prompt injection detector.",
+            "example": [
+              {
+                "action": "block",
+                "label": "[PROMPT_INJECTION]",
+                "slug": "regex-prompt-injection"
+              }
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ContentFilterBuiltinEntry"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "content_filters": {
+            "description": "Custom regex content filters applied to request messages",
+            "example": [
+              {
+                "action": "redact",
+                "label": "[API_KEY]",
+                "pattern": "\\b(sk-[a-zA-Z0-9]{48})\\b"
+              }
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ContentFilterEntry"
+            },
+            "nullable": true,
+            "type": "array"
+          },
           "created_at": {
             "description": "ISO 8601 timestamp of when the guardrail was created",
             "example": "2025-08-24T10:30:00Z",
@@ -9097,7 +10008,32 @@
             "type": "string"
           },
           "enforce_zdr": {
-            "description": "Whether to enforce zero data retention",
+            "deprecated": true,
+            "description": "Deprecated. Use enforce_zdr_anthropic, enforce_zdr_openai, enforce_zdr_google, and enforce_zdr_other instead. When provided, its value is copied into any of those per-provider fields that are not explicitly specified on the request.",
+            "example": false,
+            "nullable": true,
+            "type": "boolean"
+          },
+          "enforce_zdr_anthropic": {
+            "description": "Whether to enforce zero data retention for Anthropic models. Falls back to enforce_zdr when not provided.",
+            "example": false,
+            "nullable": true,
+            "type": "boolean"
+          },
+          "enforce_zdr_google": {
+            "description": "Whether to enforce zero data retention for Google models. Falls back to enforce_zdr when not provided.",
+            "example": false,
+            "nullable": true,
+            "type": "boolean"
+          },
+          "enforce_zdr_openai": {
+            "description": "Whether to enforce zero data retention for OpenAI models. Falls back to enforce_zdr when not provided.",
+            "example": false,
+            "nullable": true,
+            "type": "boolean"
+          },
+          "enforce_zdr_other": {
+            "description": "Whether to enforce zero data retention for models that are not from Anthropic, OpenAI, or Google. Falls back to enforce_zdr when not provided.",
             "example": false,
             "nullable": true,
             "type": "boolean"
@@ -9925,6 +10861,9 @@
                   "$ref": "#/components/schemas/OutputFunctionCallItem"
                 },
                 {
+                  "$ref": "#/components/schemas/OutputCustomToolCallItem"
+                },
+                {
                   "$ref": "#/components/schemas/OutputWebSearchCallItem"
                 },
                 {
@@ -9980,6 +10919,48 @@
                 },
                 {
                   "$ref": "#/components/schemas/OutputSearchModelsServerToolItem"
+                },
+                {
+                  "$ref": "#/components/schemas/LocalShellCallItem"
+                },
+                {
+                  "$ref": "#/components/schemas/LocalShellCallOutputItem"
+                },
+                {
+                  "$ref": "#/components/schemas/ShellCallItem"
+                },
+                {
+                  "$ref": "#/components/schemas/ShellCallOutputItem"
+                },
+                {
+                  "$ref": "#/components/schemas/ApplyPatchCallItem"
+                },
+                {
+                  "$ref": "#/components/schemas/ApplyPatchCallOutputItem"
+                },
+                {
+                  "$ref": "#/components/schemas/McpListToolsItem"
+                },
+                {
+                  "$ref": "#/components/schemas/McpApprovalRequestItem"
+                },
+                {
+                  "$ref": "#/components/schemas/McpApprovalResponseItem"
+                },
+                {
+                  "$ref": "#/components/schemas/McpCallItem"
+                },
+                {
+                  "$ref": "#/components/schemas/CustomToolCallItem"
+                },
+                {
+                  "$ref": "#/components/schemas/CustomToolCallOutputItem"
+                },
+                {
+                  "$ref": "#/components/schemas/CompactionItem"
+                },
+                {
+                  "$ref": "#/components/schemas/ItemReferenceItem"
                 }
               ]
             },
@@ -10038,6 +11019,13 @@
           "error": {
             "$ref": "#/components/schemas/InternalServerResponseErrorData"
           },
+          "openrouter_metadata": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true,
+            "type": "object"
+          },
           "user_id": {
             "nullable": true,
             "type": "string"
@@ -10072,6 +11060,29 @@
         "required": [
           "code",
           "message"
+        ],
+        "type": "object"
+      },
+      "ItemReferenceItem": {
+        "description": "A reference to a previous response item by ID",
+        "example": {
+          "id": "msg-abc123",
+          "type": "item_reference"
+        },
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "item_reference"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "id"
         ],
         "type": "object"
       },
@@ -10369,9 +11380,21 @@
                 "anthropic",
                 "google"
               ],
+              "content_filter_builtins": [
+                {
+                  "action": "block",
+                  "label": "[PROMPT_INJECTION]",
+                  "slug": "regex-prompt-injection"
+                }
+              ],
+              "content_filters": null,
               "created_at": "2025-08-24T10:30:00Z",
               "description": "Guardrail for production environment",
-              "enforce_zdr": false,
+              "enforce_zdr": null,
+              "enforce_zdr_anthropic": true,
+              "enforce_zdr_google": false,
+              "enforce_zdr_openai": true,
+              "enforce_zdr_other": false,
               "id": "550e8400-e29b-41d4-a716-446655440000",
               "ignored_models": null,
               "ignored_providers": null,
@@ -10513,6 +11536,327 @@
         "required": [
           "data",
           "total_count"
+        ],
+        "type": "object"
+      },
+      "LocalShellCallItem": {
+        "description": "A local shell command execution call",
+        "example": {
+          "action": {
+            "command": [
+              "ls",
+              "-la"
+            ],
+            "env": {
+              "PATH": "/usr/bin"
+            },
+            "timeout_ms": 5000,
+            "type": "exec"
+          },
+          "call_id": "call-abc123",
+          "id": "shell-abc123",
+          "status": "completed",
+          "type": "local_shell_call"
+        },
+        "properties": {
+          "action": {
+            "properties": {
+              "command": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "env": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              "timeout_ms": {
+                "nullable": true,
+                "type": "integer"
+              },
+              "type": {
+                "enum": [
+                  "exec"
+                ],
+                "type": "string"
+              },
+              "user": {
+                "nullable": true,
+                "type": "string"
+              },
+              "working_directory": {
+                "nullable": true,
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "command",
+              "env"
+            ],
+            "type": "object"
+          },
+          "call_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ToolCallStatus"
+          },
+          "type": {
+            "enum": [
+              "local_shell_call"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "id",
+          "call_id",
+          "action",
+          "status"
+        ],
+        "type": "object"
+      },
+      "LocalShellCallOutputItem": {
+        "description": "Output from a local shell command execution",
+        "example": {
+          "id": "output-abc123",
+          "output": "total 24\ndrwxr-xr-x  5 user  staff  160 Jan  1 12:00 .",
+          "status": "completed",
+          "type": "local_shell_call_output"
+        },
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "output": {
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ToolCallStatus"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "type": {
+            "enum": [
+              "local_shell_call_output"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "id",
+          "output"
+        ],
+        "type": "object"
+      },
+      "McpApprovalRequestItem": {
+        "description": "Request for approval to execute an MCP tool",
+        "example": {
+          "arguments": "{\"id\":\"123\"}",
+          "id": "approval-abc123",
+          "name": "delete_record",
+          "server_label": "database-server",
+          "type": "mcp_approval_request"
+        },
+        "properties": {
+          "arguments": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "server_label": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "mcp_approval_request"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "id",
+          "name",
+          "arguments",
+          "server_label"
+        ],
+        "type": "object"
+      },
+      "McpApprovalResponseItem": {
+        "description": "User response to an MCP tool approval request",
+        "example": {
+          "approval_request_id": "approval-abc123",
+          "approve": true,
+          "reason": "Approved for execution",
+          "type": "mcp_approval_response"
+        },
+        "properties": {
+          "approval_request_id": {
+            "type": "string"
+          },
+          "approve": {
+            "type": "boolean"
+          },
+          "id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "reason": {
+            "nullable": true,
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "mcp_approval_response"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "approval_request_id",
+          "approve"
+        ],
+        "type": "object"
+      },
+      "McpCallItem": {
+        "description": "An MCP tool call with its output or error",
+        "example": {
+          "arguments": "{\"query\":\"SELECT * FROM users\"}",
+          "id": "mcp-call-abc123",
+          "name": "query_database",
+          "output": "[{\"id\":1,\"name\":\"Alice\"}]",
+          "server_label": "database-server",
+          "type": "mcp_call"
+        },
+        "properties": {
+          "arguments": {
+            "type": "string"
+          },
+          "error": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "output": {
+            "nullable": true,
+            "type": "string"
+          },
+          "server_label": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "mcp_call"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "id",
+          "name",
+          "arguments",
+          "server_label"
+        ],
+        "type": "object"
+      },
+      "McpListToolsItem": {
+        "description": "List of available MCP tools from a server",
+        "example": {
+          "id": "mcp-list-abc123",
+          "server_label": "database-server",
+          "tools": [
+            {
+              "description": "Execute a database query",
+              "input_schema": {
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "name": "query_database"
+            }
+          ],
+          "type": "mcp_list_tools"
+        },
+        "properties": {
+          "error": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "server_label": {
+            "type": "string"
+          },
+          "tools": {
+            "items": {
+              "properties": {
+                "annotations": {
+                  "nullable": true
+                },
+                "description": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "input_schema": {
+                  "additionalProperties": {
+                    "nullable": true
+                  },
+                  "type": "object"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "input_schema"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "type": {
+            "enum": [
+              "mcp_list_tools"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "id",
+          "server_label",
+          "tools"
         ],
         "type": "object"
       },
@@ -10694,6 +12038,40 @@
           "guardrail_id",
           "assigned_by",
           "created_at"
+        ],
+        "type": "object"
+      },
+      "MessagesAdvisorToolResultBlock": {
+        "description": "Advisor tool result from a prior assistant turn, replayed back to the model on the next turn. Mirrors the block Anthropic returns in assistant content when the `advisor_20260301` tool runs.",
+        "example": {
+          "content": {
+            "text": "Advisor response text",
+            "type": "advisor_result"
+          },
+          "tool_use_id": "srvtoolu_01abc",
+          "type": "advisor_tool_result"
+        },
+        "properties": {
+          "content": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "type": "object"
+          },
+          "tool_use_id": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "advisor_tool_result"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "tool_use_id",
+          "content"
         ],
         "type": "object"
       },
@@ -10890,7 +12268,7 @@
                 "$ref": "#/components/schemas/AnthropicRedactedThinkingBlock"
               },
               {
-                "$ref": "#/components/schemas/AnthropicServerToolUseBlock"
+                "$ref": "#/components/schemas/ORAnthropicServerToolUseBlock"
               },
               {
                 "$ref": "#/components/schemas/AnthropicWebSearchToolResult"
@@ -10915,6 +12293,9 @@
               },
               {
                 "$ref": "#/components/schemas/AnthropicCompactionBlock"
+              },
+              {
+                "$ref": "#/components/schemas/AnthropicAdvisorToolResult"
               },
               {
                 "properties": {
@@ -11332,7 +12713,7 @@
                           "nullable": true
                         },
                         "name": {
-                          "$ref": "#/components/schemas/AnthropicServerToolName"
+                          "type": "string"
                         },
                         "type": {
                           "enum": [
@@ -11430,6 +12811,9 @@
                         "content"
                       ],
                       "type": "object"
+                    },
+                    {
+                      "$ref": "#/components/schemas/MessagesAdvisorToolResultBlock"
                     }
                   ]
                 },
@@ -11754,6 +13138,7 @@
                   "auto-router": "#/components/schemas/AutoRouterPlugin",
                   "context-compression": "#/components/schemas/ContextCompressionPlugin",
                   "file-parser": "#/components/schemas/FileParserPlugin",
+                  "fusion": "#/components/schemas/FusionPlugin",
                   "moderation": "#/components/schemas/ModerationPlugin",
                   "pareto-router": "#/components/schemas/ParetoRouterPlugin",
                   "response-healing": "#/components/schemas/ResponseHealingPlugin",
@@ -11782,6 +13167,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/ParetoRouterPlugin"
+                },
+                {
+                  "$ref": "#/components/schemas/FusionPlugin"
                 }
               ]
             },
@@ -11794,12 +13182,7 @@
             "$ref": "#/components/schemas/DeprecatedRoute"
           },
           "service_tier": {
-            "enum": [
-              "auto",
-              "standard_only"
-            ],
-            "type": "string",
-            "x-speakeasy-unknown-values": "allow"
+            "type": "string"
           },
           "session_id": {
             "description": "A unique identifier for grouping related requests (e.g., a conversation or agent workflow) for observability. If provided in both the request body and the x-session-id header, the body value takes precedence. Maximum of 256 characters.",
@@ -12117,16 +13500,7 @@
                 {
                   "properties": {
                     "allowed_callers": {
-                      "items": {
-                        "enum": [
-                          "direct",
-                          "code_execution_20250825",
-                          "code_execution_20260120"
-                        ],
-                        "type": "string",
-                        "x-speakeasy-unknown-values": "allow"
-                      },
-                      "type": "array"
+                      "$ref": "#/components/schemas/AnthropicAllowedCallers"
                     },
                     "allowed_domains": {
                       "items": {
@@ -12172,6 +13546,53 @@
                   "type": "object"
                 },
                 {
+                  "properties": {
+                    "allowed_callers": {
+                      "$ref": "#/components/schemas/AnthropicAllowedCallers"
+                    },
+                    "cache_control": {
+                      "$ref": "#/components/schemas/AnthropicCacheControlDirective"
+                    },
+                    "caching": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/AnthropicCacheControlDirective"
+                        },
+                        {
+                          "nullable": true
+                        }
+                      ]
+                    },
+                    "defer_loading": {
+                      "type": "boolean"
+                    },
+                    "max_uses": {
+                      "type": "integer"
+                    },
+                    "model": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "enum": [
+                        "advisor"
+                      ],
+                      "type": "string"
+                    },
+                    "type": {
+                      "enum": [
+                        "advisor_20260301"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "name",
+                    "model"
+                  ],
+                  "type": "object"
+                },
+                {
                   "$ref": "#/components/schemas/DatetimeServerTool"
                 },
                 {
@@ -12185,6 +13606,20 @@
                 },
                 {
                   "$ref": "#/components/schemas/OpenRouterWebSearchServerTool"
+                },
+                {
+                  "additionalProperties": {
+                    "nullable": true
+                  },
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ],
+                  "type": "object"
                 }
               ]
             },
@@ -12245,6 +13680,9 @@
                 ],
                 "type": "object"
               },
+              "openrouter_metadata": {
+                "$ref": "#/components/schemas/OpenRouterMetadata"
+              },
               "provider": {
                 "$ref": "#/components/schemas/ProviderName"
               },
@@ -12303,7 +13741,7 @@
           "container": null,
           "content": [
             {
-              "citations": null,
+              "citations": [],
               "text": "Hello! I'm doing well, thank you for asking.",
               "type": "text"
             }
@@ -12416,6 +13854,7 @@
                   "Clarifai",
                   "Cloudflare",
                   "Cohere",
+                  "Crucible",
                   "Crusoe",
                   "DeepInfra",
                   "DeepSeek",
@@ -12454,6 +13893,7 @@
                   "OpenInference",
                   "Parasail",
                   "Poolside",
+                  "Perceptron",
                   "Perplexity",
                   "Phala",
                   "Recraft",
@@ -12565,6 +14005,9 @@
           "type": "message_stop"
         },
         "properties": {
+          "openrouter_metadata": {
+            "$ref": "#/components/schemas/OpenRouterMetadata"
+          },
           "type": {
             "enum": [
               "message_stop"
@@ -12627,6 +14070,42 @@
           }
         ]
       },
+      "MessagesStreamingResponse": {
+        "example": {
+          "data": {
+            "delta": {
+              "text": "Hello",
+              "type": "text_delta"
+            },
+            "index": 0,
+            "type": "content_block_delta"
+          },
+          "event": "content_block_delta"
+        },
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/MessagesStreamEvents"
+          },
+          "event": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "event",
+          "data"
+        ],
+        "type": "object"
+      },
+      "MetadataLevel": {
+        "description": "Opt-in level for surfacing routing metadata on the response under `openrouter_metadata`.",
+        "enum": [
+          "disabled",
+          "enabled"
+        ],
+        "example": "enabled",
+        "type": "string",
+        "x-speakeasy-unknown-values": "allow"
+      },
       "Model": {
         "description": "Information about an AI model available on OpenRouter",
         "example": {
@@ -12665,6 +14144,7 @@
             "top_p",
             "max_tokens"
           ],
+          "supported_voices": null,
           "top_provider": {
             "context_length": 8192,
             "is_moderated": true,
@@ -12743,6 +14223,15 @@
             },
             "type": "array"
           },
+          "supported_voices": {
+            "description": "List of supported voice identifiers for TTS models. Null for non-TTS models.",
+            "example": null,
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
           "top_provider": {
             "$ref": "#/components/schemas/TopProviderInfo"
           }
@@ -12759,6 +14248,7 @@
           "per_request_limits",
           "supported_parameters",
           "default_parameters",
+          "supported_voices",
           "links"
         ],
         "type": "object"
@@ -12963,6 +14453,7 @@
                 "frequency_penalty",
                 "presence_penalty"
               ],
+              "supported_voices": null,
               "top_provider": {
                 "context_length": 8192,
                 "is_moderated": true,
@@ -13020,6 +14511,7 @@
               "top_p",
               "max_tokens"
             ],
+            "supported_voices": null,
             "top_provider": {
               "context_length": 8192,
               "is_moderated": true,
@@ -13061,6 +14553,13 @@
           "error": {
             "$ref": "#/components/schemas/NotFoundResponseErrorData"
           },
+          "openrouter_metadata": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true,
+            "type": "object"
+          },
           "user_id": {
             "nullable": true,
             "type": "string"
@@ -13101,12 +14600,13 @@
       "ORAnthropicContentBlock": {
         "discriminator": {
           "mapping": {
+            "advisor_tool_result": "#/components/schemas/AnthropicAdvisorToolResult",
             "bash_code_execution_tool_result": "#/components/schemas/AnthropicBashCodeExecutionToolResult",
             "code_execution_tool_result": "#/components/schemas/AnthropicCodeExecutionToolResult",
             "compaction": "#/components/schemas/AnthropicCompactionBlock",
             "container_upload": "#/components/schemas/AnthropicContainerUpload",
             "redacted_thinking": "#/components/schemas/AnthropicRedactedThinkingBlock",
-            "server_tool_use": "#/components/schemas/AnthropicServerToolUseBlock",
+            "server_tool_use": "#/components/schemas/ORAnthropicServerToolUseBlock",
             "text": "#/components/schemas/AnthropicTextBlock",
             "text_editor_code_execution_tool_result": "#/components/schemas/AnthropicTextEditorCodeExecutionToolResult",
             "thinking": "#/components/schemas/AnthropicThinkingBlock",
@@ -13136,7 +14636,7 @@
             "$ref": "#/components/schemas/AnthropicRedactedThinkingBlock"
           },
           {
-            "$ref": "#/components/schemas/AnthropicServerToolUseBlock"
+            "$ref": "#/components/schemas/ORAnthropicServerToolUseBlock"
           },
           {
             "$ref": "#/components/schemas/AnthropicWebSearchToolResult"
@@ -13161,8 +14661,71 @@
           },
           {
             "$ref": "#/components/schemas/AnthropicCompactionBlock"
+          },
+          {
+            "$ref": "#/components/schemas/AnthropicAdvisorToolResult"
           }
         ]
+      },
+      "ORAnthropicNullableCaller": {
+        "discriminator": {
+          "mapping": {
+            "code_execution_20250825": "#/components/schemas/AnthropicCodeExecution20250825Caller",
+            "code_execution_20260120": "#/components/schemas/AnthropicCodeExecution20260120Caller",
+            "direct": "#/components/schemas/AnthropicDirectCaller"
+          },
+          "propertyName": "type"
+        },
+        "example": null,
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/AnthropicDirectCaller"
+          },
+          {
+            "$ref": "#/components/schemas/AnthropicCodeExecution20250825Caller"
+          },
+          {
+            "$ref": "#/components/schemas/AnthropicCodeExecution20260120Caller"
+          },
+          {
+            "nullable": true
+          }
+        ]
+      },
+      "ORAnthropicServerToolUseBlock": {
+        "example": {
+          "caller": null,
+          "id": "srvtoolu_01abc",
+          "input": {},
+          "name": "advisor",
+          "type": "server_tool_use"
+        },
+        "properties": {
+          "caller": {
+            "$ref": "#/components/schemas/ORAnthropicNullableCaller"
+          },
+          "id": {
+            "type": "string"
+          },
+          "input": {
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "server_tool_use"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "id",
+          "name"
+        ],
+        "type": "object"
       },
       "ORAnthropicStopReason": {
         "enum": [
@@ -13179,6 +14742,104 @@
         "nullable": true,
         "type": "string",
         "x-speakeasy-unknown-values": "allow"
+      },
+      "OpenAIResponseCustomToolCall": {
+        "example": {
+          "call_id": "call-abc123",
+          "id": "ctc-abc123",
+          "input": "*** Begin Patch\n*** End Patch",
+          "name": "apply_patch",
+          "type": "custom_tool_call"
+        },
+        "properties": {
+          "call_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "input": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "namespace": {
+            "description": "Namespace qualifier for tools registered as part of a namespace tool group (e.g. an MCP server)",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "custom_tool_call"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "call_id",
+          "name",
+          "input"
+        ],
+        "type": "object"
+      },
+      "OpenAIResponseCustomToolCallOutput": {
+        "example": {
+          "call_id": "call-abc123",
+          "output": "patch applied successfully",
+          "type": "custom_tool_call_output"
+        },
+        "properties": {
+          "call_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "output": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "discriminator": {
+                    "mapping": {
+                      "input_file": "#/components/schemas/InputFile",
+                      "input_image": "#/components/schemas/InputImage",
+                      "input_text": "#/components/schemas/InputText"
+                    },
+                    "propertyName": "type"
+                  },
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/InputText"
+                    },
+                    {
+                      "$ref": "#/components/schemas/InputImage"
+                    },
+                    {
+                      "$ref": "#/components/schemas/InputFile"
+                    }
+                  ]
+                },
+                "type": "array"
+              }
+            ]
+          },
+          "type": {
+            "enum": [
+              "custom_tool_call_output"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "call_id",
+          "output"
+        ],
+        "type": "object"
       },
       "OpenAIResponseFunctionToolCall": {
         "example": {
@@ -13200,6 +14861,10 @@
             "type": "string"
           },
           "name": {
+            "type": "string"
+          },
+          "namespace": {
+            "description": "Namespace qualifier for tools registered as part of a namespace tool group (e.g. an MCP server)",
             "type": "string"
           },
           "status": {
@@ -13912,6 +15577,9 @@
           },
           {
             "properties": {
+              "openrouter_metadata": {
+                "$ref": "#/components/schemas/OpenRouterMetadata"
+              },
               "output": {
                 "items": {
                   "$ref": "#/components/schemas/OutputItems"
@@ -13998,6 +15666,75 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "OpenRouterMetadata": {
+        "example": {
+          "attempt": 1,
+          "endpoints": {
+            "available": [
+              {
+                "model": "openai/gpt-4o",
+                "provider": "OpenAI",
+                "selected": true
+              }
+            ],
+            "total": 1
+          },
+          "is_byok": false,
+          "region": "iad",
+          "requested": "openai/gpt-4o",
+          "strategy": "direct",
+          "summary": "available=1, selected=OpenAI"
+        },
+        "properties": {
+          "attempt": {
+            "type": "integer"
+          },
+          "attempts": {
+            "items": {
+              "$ref": "#/components/schemas/RouterAttempt"
+            },
+            "type": "array"
+          },
+          "endpoints": {
+            "$ref": "#/components/schemas/EndpointsMetadata"
+          },
+          "is_byok": {
+            "type": "boolean"
+          },
+          "params": {
+            "$ref": "#/components/schemas/RouterParams"
+          },
+          "pipeline": {
+            "items": {
+              "$ref": "#/components/schemas/PipelineStage"
+            },
+            "type": "array"
+          },
+          "region": {
+            "nullable": true,
+            "type": "string"
+          },
+          "requested": {
+            "type": "string"
+          },
+          "strategy": {
+            "$ref": "#/components/schemas/RoutingStrategy"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "requested",
+          "strategy",
+          "region",
+          "summary",
+          "attempt",
+          "is_byok",
+          "endpoints"
+        ],
         "type": "object"
       },
       "OpenRouterWebSearchServerTool": {
@@ -14271,6 +16008,47 @@
         ],
         "type": "object"
       },
+      "OutputCustomToolCallItem": {
+        "description": "A call to a custom (freeform-grammar) tool created by the model \u2014 distinct from `function_call`. Used for tools like Codex CLI's `apply_patch` whose payload is opaque text rather than JSON arguments.",
+        "example": {
+          "call_id": "call-abc123",
+          "id": "ctc-abc123",
+          "input": "*** Begin Patch\n*** End Patch",
+          "name": "apply_patch",
+          "type": "custom_tool_call"
+        },
+        "properties": {
+          "call_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "input": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "namespace": {
+            "description": "Namespace qualifier for tools registered as part of a namespace tool group (e.g. an MCP server)",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "custom_tool_call"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "name",
+          "input",
+          "call_id"
+        ],
+        "type": "object"
+      },
       "OutputDatetimeItem": {
         "description": "An openrouter:datetime server tool output item",
         "example": {
@@ -14385,6 +16163,149 @@
           "type": "function_call"
         }
       },
+      "OutputFusionServerToolItem": {
+        "description": "An openrouter:fusion server tool output item",
+        "example": {
+          "id": "st_tmp_abc123",
+          "status": "completed",
+          "type": "openrouter:fusion"
+        },
+        "properties": {
+          "analysis": {
+            "description": "Structured analysis produced by the fusion judge model.",
+            "properties": {
+              "blind_spots": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "consensus": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "contradictions": {
+                "items": {
+                  "properties": {
+                    "stances": {
+                      "items": {
+                        "properties": {
+                          "model": {
+                            "type": "string"
+                          },
+                          "stance": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "model",
+                          "stance"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "topic": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "topic",
+                    "stances"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "partial_coverage": {
+                "items": {
+                  "properties": {
+                    "models": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "point": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "models",
+                    "point"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "unique_insights": {
+                "items": {
+                  "properties": {
+                    "insight": {
+                      "type": "string"
+                    },
+                    "model": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "model",
+                    "insight"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "consensus",
+              "contradictions",
+              "partial_coverage",
+              "unique_insights",
+              "blind_spots"
+            ],
+            "type": "object"
+          },
+          "error": {
+            "description": "Error message when the fusion run did not produce an analysis result.",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "responses": {
+            "description": "Slugs of the analysis models that produced a response in this fusion run.",
+            "items": {
+              "properties": {
+                "model": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "model"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ToolCallStatus"
+          },
+          "type": {
+            "enum": [
+              "openrouter:fusion"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "type"
+        ],
+        "type": "object"
+      },
       "OutputImageGenerationCallItem": {
         "allOf": [
           {
@@ -14463,6 +16384,7 @@
           "item": {
             "discriminator": {
               "mapping": {
+                "custom_tool_call": "#/components/schemas/OutputItemCustomToolCall",
                 "file_search_call": "#/components/schemas/OutputItemFileSearchCall",
                 "function_call": "#/components/schemas/OutputItemFunctionCall",
                 "image_generation_call": "#/components/schemas/OutputItemImageGenerationCall",
@@ -14481,6 +16403,9 @@
               },
               {
                 "$ref": "#/components/schemas/OutputItemFunctionCall"
+              },
+              {
+                "$ref": "#/components/schemas/OutputItemCustomToolCall"
               },
               {
                 "$ref": "#/components/schemas/OutputItemWebSearchCall"
@@ -14514,6 +16439,46 @@
         ],
         "type": "object"
       },
+      "OutputItemCustomToolCall": {
+        "example": {
+          "call_id": "call-abc123",
+          "id": "ctc-abc123",
+          "input": "*** Begin Patch\n*** End Patch",
+          "name": "apply_patch",
+          "type": "custom_tool_call"
+        },
+        "properties": {
+          "call_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "input": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "namespace": {
+            "description": "Namespace qualifier for tools registered as part of a namespace tool group (e.g. an MCP server)",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "custom_tool_call"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "name",
+          "input",
+          "call_id"
+        ],
+        "type": "object"
+      },
       "OutputItemDoneEvent": {
         "description": "Event emitted when an output item is complete",
         "example": {
@@ -14538,6 +16503,7 @@
           "item": {
             "discriminator": {
               "mapping": {
+                "custom_tool_call": "#/components/schemas/OutputItemCustomToolCall",
                 "file_search_call": "#/components/schemas/OutputItemFileSearchCall",
                 "function_call": "#/components/schemas/OutputItemFunctionCall",
                 "image_generation_call": "#/components/schemas/OutputItemImageGenerationCall",
@@ -14556,6 +16522,9 @@
               },
               {
                 "$ref": "#/components/schemas/OutputItemFunctionCall"
+              },
+              {
+                "$ref": "#/components/schemas/OutputItemCustomToolCall"
               },
               {
                 "$ref": "#/components/schemas/OutputItemWebSearchCall"
@@ -14646,6 +16615,10 @@
             "type": "string"
           },
           "name": {
+            "type": "string"
+          },
+          "namespace": {
+            "description": "Namespace qualifier for tools registered as part of a namespace tool group (e.g. an MCP server)",
             "type": "string"
           },
           "status": {
@@ -14897,6 +16870,7 @@
           "mapping": {
             "code_interpreter_call": "#/components/schemas/OutputCodeInterpreterCallItem",
             "computer_call": "#/components/schemas/OutputComputerCallItem",
+            "custom_tool_call": "#/components/schemas/OutputCustomToolCallItem",
             "file_search_call": "#/components/schemas/OutputFileSearchCallItem",
             "function_call": "#/components/schemas/OutputFunctionCallItem",
             "image_generation_call": "#/components/schemas/OutputImageGenerationCallItem",
@@ -14908,6 +16882,7 @@
             "openrouter:datetime": "#/components/schemas/OutputDatetimeItem",
             "openrouter:experimental__search_models": "#/components/schemas/OutputSearchModelsServerToolItem",
             "openrouter:file_search": "#/components/schemas/OutputFileSearchServerToolItem",
+            "openrouter:fusion": "#/components/schemas/OutputFusionServerToolItem",
             "openrouter:image_generation": "#/components/schemas/OutputImageGenerationServerToolItem",
             "openrouter:mcp": "#/components/schemas/OutputMcpServerToolItem",
             "openrouter:memory": "#/components/schemas/OutputMemoryServerToolItem",
@@ -14998,6 +16973,12 @@
           },
           {
             "$ref": "#/components/schemas/OutputSearchModelsServerToolItem"
+          },
+          {
+            "$ref": "#/components/schemas/OutputFusionServerToolItem"
+          },
+          {
+            "$ref": "#/components/schemas/OutputCustomToolCallItem"
           }
         ]
       },
@@ -15621,6 +17602,13 @@
           "error": {
             "$ref": "#/components/schemas/PayloadTooLargeResponseErrorData"
           },
+          "openrouter_metadata": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true,
+            "type": "object"
+          },
           "user_id": {
             "nullable": true,
             "type": "string"
@@ -15669,6 +17657,13 @@
         "properties": {
           "error": {
             "$ref": "#/components/schemas/PaymentRequiredResponseErrorData"
+          },
+          "openrouter_metadata": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true,
+            "type": "object"
           },
           "user_id": {
             "nullable": true,
@@ -15843,6 +17838,70 @@
         },
         "type": "object"
       },
+      "PipelineStage": {
+        "example": {
+          "data": {
+            "action": "redacted",
+            "engines": [
+              "presidio"
+            ],
+            "flagged": true,
+            "matched_entity_types": [
+              "EMAIL",
+              "PHONE"
+            ]
+          },
+          "name": "content-filter",
+          "summary": "PII redacted via Presidio (EMAIL, PHONE)",
+          "type": "guardrail"
+        },
+        "properties": {
+          "cost_usd": {
+            "format": "double",
+            "nullable": true,
+            "type": "number"
+          },
+          "data": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "type": "object"
+          },
+          "guardrail_id": {
+            "type": "string"
+          },
+          "guardrail_scope": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/PipelineStageType"
+          }
+        },
+        "required": [
+          "type",
+          "name"
+        ],
+        "type": "object"
+      },
+      "PipelineStageType": {
+        "description": "Categorical kind of a pipeline stage. Multiple plugins can share a type (e.g. all guardrail-level plugins emit `guardrail`); the `name` field disambiguates which plugin emitted it.",
+        "enum": [
+          "guardrail",
+          "plugin",
+          "server_tools",
+          "response_healing",
+          "context_compression"
+        ],
+        "example": "guardrail",
+        "type": "string",
+        "x-speakeasy-unknown-values": "allow"
+      },
       "PreferredMaxLatency": {
         "anyOf": [
           {
@@ -16007,6 +18066,7 @@
           "Clarifai",
           "Cloudflare",
           "Cohere",
+          "Crucible",
           "Crusoe",
           "DeepInfra",
           "DeepSeek",
@@ -16045,6 +18105,7 @@
           "OpenInference",
           "Parasail",
           "Poolside",
+          "Perceptron",
           "Perplexity",
           "Phala",
           "Recraft",
@@ -16236,6 +18297,12 @@
             "type": "object"
           },
           "crofai": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "type": "object"
+          },
+          "crucible": {
             "additionalProperties": {
               "nullable": true
             },
@@ -16559,6 +18626,12 @@
             },
             "type": "object"
           },
+          "perceptron": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "type": "object"
+          },
           "perplexity": {
             "additionalProperties": {
               "nullable": true
@@ -16747,6 +18820,13 @@
         "properties": {
           "error": {
             "$ref": "#/components/schemas/ProviderOverloadedResponseErrorData"
+          },
+          "openrouter_metadata": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true,
+            "type": "object"
           },
           "user_id": {
             "nullable": true,
@@ -17055,6 +19135,7 @@
               "Clarifai",
               "Cloudflare",
               "Cohere",
+              "Crucible",
               "Crusoe",
               "DeepInfra",
               "DeepSeek",
@@ -17093,6 +19174,7 @@
               "OpenInference",
               "Parasail",
               "Poolside",
+              "Perceptron",
               "Perplexity",
               "Phala",
               "Recraft",
@@ -18100,6 +20182,13 @@
           "error": {
             "$ref": "#/components/schemas/RequestTimeoutResponseErrorData"
           },
+          "openrouter_metadata": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true,
+            "type": "object"
+          },
           "user_id": {
             "nullable": true,
             "type": "string"
@@ -18337,6 +20426,9 @@
             "nullable": true,
             "type": "boolean"
           },
+          "cache_control": {
+            "$ref": "#/components/schemas/AnthropicCacheControlDirective"
+          },
           "frequency_penalty": {
             "format": "double",
             "nullable": true,
@@ -18402,6 +20494,7 @@
                   "auto-router": "#/components/schemas/AutoRouterPlugin",
                   "context-compression": "#/components/schemas/ContextCompressionPlugin",
                   "file-parser": "#/components/schemas/FileParserPlugin",
+                  "fusion": "#/components/schemas/FusionPlugin",
                   "moderation": "#/components/schemas/ModerationPlugin",
                   "pareto-router": "#/components/schemas/ParetoRouterPlugin",
                   "response-healing": "#/components/schemas/ResponseHealingPlugin",
@@ -18430,6 +20523,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/ParetoRouterPlugin"
+                },
+                {
+                  "$ref": "#/components/schemas/FusionPlugin"
                 }
               ]
             },
@@ -18586,6 +20682,9 @@
                   "$ref": "#/components/schemas/DatetimeServerTool"
                 },
                 {
+                  "$ref": "#/components/schemas/FusionServerTool_OpenRouter"
+                },
+                {
                   "$ref": "#/components/schemas/ImageGenerationServerTool_OpenRouter"
                 },
                 {
@@ -18626,6 +20725,85 @@
           }
         },
         "type": "object"
+      },
+      "ResponsesStreamingResponse": {
+        "example": {
+          "data": {
+            "delta": "Hello",
+            "type": "response.output_text.delta"
+          }
+        },
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/StreamEvents"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "RouterAttempt": {
+        "example": {
+          "model": "openai/gpt-4o",
+          "provider": "OpenAI",
+          "status": 200
+        },
+        "properties": {
+          "model": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "provider",
+          "model",
+          "status"
+        ],
+        "type": "object"
+      },
+      "RouterParams": {
+        "additionalProperties": {
+          "nullable": true
+        },
+        "example": {
+          "version_group": "anthropic/claude-sonnet-4"
+        },
+        "properties": {
+          "quality_floor": {
+            "format": "double",
+            "type": "number"
+          },
+          "throughput_floor": {
+            "format": "double",
+            "type": "number"
+          },
+          "version_group": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "RoutingStrategy": {
+        "enum": [
+          "direct",
+          "auto",
+          "free",
+          "latest",
+          "alias",
+          "fallback",
+          "pareto",
+          "bodybuilder",
+          "fusion"
+        ],
+        "example": "direct",
+        "type": "string",
+        "x-speakeasy-unknown-values": "allow"
       },
       "STTInputAudio": {
         "description": "Base64-encoded audio to transcribe",
@@ -18788,7 +20966,7 @@
         "type": "object"
       },
       "SearchQualityLevel": {
-        "description": "How much context to retrieve per result. Defaults to medium (15000 chars). Applies to Exa and Parallel engines; ignored with native provider search and Firecrawl.",
+        "description": "How much context to retrieve per result. Applies to Exa and Parallel engines; ignored with native provider search and Firecrawl. For Exa, pins a fixed per-result character cap (low=5,000, medium=15,000, high=30,000); when omitted, Exa picks an adaptive size per query and document (typically ~2,000\u20134,000 characters per result). For Parallel, controls the total characters across all results; when omitted, Parallel uses its own default size.",
         "enum": [
           "low",
           "medium",
@@ -18824,6 +21002,13 @@
           "error": {
             "$ref": "#/components/schemas/ServiceUnavailableResponseErrorData"
           },
+          "openrouter_metadata": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true,
+            "type": "object"
+          },
           "user_id": {
             "nullable": true,
             "type": "string"
@@ -18858,6 +21043,151 @@
         "required": [
           "code",
           "message"
+        ],
+        "type": "object"
+      },
+      "ShellCallItem": {
+        "description": "A shell command execution call (newer variant)",
+        "example": {
+          "action": {
+            "commands": [
+              "ls",
+              "-la"
+            ],
+            "max_output_length": 10000
+          },
+          "call_id": "call-abc123",
+          "status": "completed",
+          "type": "shell_call"
+        },
+        "properties": {
+          "action": {
+            "properties": {
+              "commands": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "max_output_length": {
+                "nullable": true,
+                "type": "integer"
+              },
+              "timeout_ms": {
+                "nullable": true,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "commands"
+            ],
+            "type": "object"
+          },
+          "call_id": {
+            "type": "string"
+          },
+          "environment": {
+            "nullable": true
+          },
+          "id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ToolCallStatus"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "type": {
+            "enum": [
+              "shell_call"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "call_id",
+          "action"
+        ],
+        "type": "object"
+      },
+      "ShellCallOutputItem": {
+        "description": "Output from a shell command execution (newer variant)",
+        "example": {
+          "call_id": "call-abc123",
+          "output": [
+            {
+              "content": "total 0\n",
+              "type": "stdout"
+            }
+          ],
+          "status": "completed",
+          "type": "shell_call_output"
+        },
+        "properties": {
+          "call_id": {
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "max_output_length": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "output": {
+            "items": {
+              "additionalProperties": {
+                "nullable": true
+              },
+              "properties": {
+                "content": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "exit_code": {
+                  "nullable": true,
+                  "type": "integer"
+                },
+                "type": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ToolCallStatus"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "type": {
+            "enum": [
+              "shell_call_output"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "call_id",
+          "output"
         ],
         "type": "object"
       },
@@ -18985,6 +21315,8 @@
             "response.content_part.added": "#/components/schemas/ContentPartAddedEvent",
             "response.content_part.done": "#/components/schemas/ContentPartDoneEvent",
             "response.created": "#/components/schemas/OpenResponsesCreatedEvent",
+            "response.custom_tool_call_input.delta": "#/components/schemas/CustomToolCallInputDeltaEvent",
+            "response.custom_tool_call_input.done": "#/components/schemas/CustomToolCallInputDoneEvent",
             "response.failed": "#/components/schemas/StreamEventsResponseFailed",
             "response.function_call_arguments.delta": "#/components/schemas/FunctionCallArgsDeltaEvent",
             "response.function_call_arguments.done": "#/components/schemas/FunctionCallArgsDoneEvent",
@@ -19125,6 +21457,12 @@
           },
           {
             "$ref": "#/components/schemas/WebSearchCallCompletedEvent"
+          },
+          {
+            "$ref": "#/components/schemas/CustomToolCallInputDeltaEvent"
+          },
+          {
+            "$ref": "#/components/schemas/CustomToolCallInputDoneEvent"
           }
         ]
       },
@@ -19483,6 +21821,13 @@
           "error": {
             "$ref": "#/components/schemas/TooManyRequestsResponseErrorData"
           },
+          "openrouter_metadata": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true,
+            "type": "object"
+          },
           "user_id": {
             "nullable": true,
             "type": "string"
@@ -19701,6 +22046,13 @@
           "error": {
             "$ref": "#/components/schemas/UnauthorizedResponseErrorData"
           },
+          "openrouter_metadata": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true,
+            "type": "object"
+          },
           "user_id": {
             "nullable": true,
             "type": "string"
@@ -19749,6 +22101,13 @@
         "properties": {
           "error": {
             "$ref": "#/components/schemas/UnprocessableEntityResponseErrorData"
+          },
+          "openrouter_metadata": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true,
+            "type": "object"
           },
           "user_id": {
             "nullable": true,
@@ -19821,6 +22180,29 @@
             "nullable": true,
             "type": "array"
           },
+          "content_filter_builtins": {
+            "description": "Builtin content filters to apply. Set to null to remove. The \"flag\" action is only supported for \"regex-prompt-injection\"; PII slugs (email, phone, ssn, credit-card, ip-address, person-name, address) accept \"block\" or \"redact\" only.",
+            "example": [
+              {
+                "action": "block",
+                "slug": "regex-prompt-injection"
+              }
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ContentFilterBuiltinEntry"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "content_filters": {
+            "description": "Custom regex content filters to apply. Set to null to remove.",
+            "example": null,
+            "items": {
+              "$ref": "#/components/schemas/ContentFilterEntry"
+            },
+            "nullable": true,
+            "type": "array"
+          },
           "description": {
             "description": "New description for the guardrail",
             "example": "Updated description",
@@ -19829,7 +22211,32 @@
             "type": "string"
           },
           "enforce_zdr": {
-            "description": "Whether to enforce zero data retention",
+            "deprecated": true,
+            "description": "Deprecated. Use enforce_zdr_anthropic, enforce_zdr_openai, enforce_zdr_google, and enforce_zdr_other instead. When provided, its value is copied into any of those per-provider fields that are not explicitly specified on the request.",
+            "example": true,
+            "nullable": true,
+            "type": "boolean"
+          },
+          "enforce_zdr_anthropic": {
+            "description": "Whether to enforce zero data retention for Anthropic models. Falls back to enforce_zdr when not provided.",
+            "example": true,
+            "nullable": true,
+            "type": "boolean"
+          },
+          "enforce_zdr_google": {
+            "description": "Whether to enforce zero data retention for Google models. Falls back to enforce_zdr when not provided.",
+            "example": true,
+            "nullable": true,
+            "type": "boolean"
+          },
+          "enforce_zdr_openai": {
+            "description": "Whether to enforce zero data retention for OpenAI models. Falls back to enforce_zdr when not provided.",
+            "example": true,
+            "nullable": true,
+            "type": "boolean"
+          },
+          "enforce_zdr_other": {
+            "description": "Whether to enforce zero data retention for models that are not from Anthropic, OpenAI, or Google. Falls back to enforce_zdr when not provided.",
             "example": true,
             "nullable": true,
             "type": "boolean"
@@ -19885,9 +22292,21 @@
             "allowed_providers": [
               "openai"
             ],
+            "content_filter_builtins": [
+              {
+                "action": "block",
+                "label": "[PROMPT_INJECTION]",
+                "slug": "regex-prompt-injection"
+              }
+            ],
+            "content_filters": null,
             "created_at": "2025-08-24T10:30:00Z",
             "description": "Updated description",
-            "enforce_zdr": true,
+            "enforce_zdr": null,
+            "enforce_zdr_anthropic": true,
+            "enforce_zdr_google": true,
+            "enforce_zdr_openai": true,
+            "enforce_zdr_other": true,
             "id": "550e8400-e29b-41d4-a716-446655440000",
             "ignored_models": null,
             "ignored_providers": null,
@@ -19984,11 +22403,11 @@
             "type": "string"
           },
           "slug": {
-            "description": "New URL-friendly slug",
+            "description": "New URL-friendly slug (lowercase alphanumeric segments separated by single hyphens, no leading/trailing hyphens)",
             "example": "updated-workspace",
             "maxLength": 50,
             "minLength": 1,
-            "pattern": "^[a-z0-9-]+$",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
             "type": "string"
           }
         },
@@ -20111,6 +22530,8 @@
               "1:1",
               "4:3",
               "3:4",
+              "3:2",
+              "2:3",
               "21:9",
               "9:21"
             ],
@@ -20372,6 +22793,8 @@
                 "1:1",
                 "4:3",
                 "3:4",
+                "3:2",
+                "2:3",
                 "21:9",
                 "9:21"
               ],
@@ -20425,30 +22848,38 @@
               "enum": [
                 "480x480",
                 "480x640",
+                "480x720",
                 "480x854",
                 "480x1120",
                 "640x480",
+                "720x480",
                 "720x720",
                 "720x960",
+                "720x1080",
                 "720x1280",
                 "720x1680",
                 "854x480",
                 "960x720",
+                "1080x720",
                 "1080x1080",
                 "1080x1440",
+                "1080x1620",
                 "1080x1920",
                 "1080x2520",
                 "1120x480",
                 "1280x720",
                 "1440x1080",
+                "1620x1080",
                 "1680x720",
                 "1920x1080",
                 "2160x2160",
                 "2160x2880",
+                "2160x3240",
                 "2160x3840",
                 "2160x5040",
                 "2520x1080",
                 "2880x2160",
+                "3240x2160",
                 "3840x2160",
                 "5040x2160"
               ],
@@ -20522,7 +22953,7 @@
         "type": "object"
       },
       "WebFetchEngineEnum": {
-        "description": "Which fetch engine to use. \"auto\" (default) uses native if the provider supports it, otherwise Exa. \"native\" forces the provider's built-in fetch. \"exa\" uses Exa Contents API (supports BYOK). \"openrouter\" uses direct HTTP fetch. \"firecrawl\" uses Firecrawl scrape (requires BYOK).",
+        "description": "Which fetch engine to use. \"auto\" (default) uses native if the provider supports it, otherwise Exa. \"native\" forces the provider's built-in fetch. \"exa\" uses Exa Contents API. \"openrouter\" uses direct HTTP fetch. \"firecrawl\" uses Firecrawl scrape (requires BYOK).",
         "enum": [
           "auto",
           "native",
@@ -20656,7 +23087,7 @@
         },
         "properties": {
           "allowed_domains": {
-            "description": "Limit search results to these domains. Supported by Exa, Parallel, and most native providers (Anthropic, OpenAI, xAI). Not supported with Firecrawl or Perplexity.",
+            "description": "Limit search results to these domains. Supported by Exa, Firecrawl, Parallel, and most native providers (Anthropic, OpenAI, xAI). Not supported with Perplexity. Cannot be used with excluded_domains.",
             "items": {
               "type": "string"
             },
@@ -20666,7 +23097,7 @@
             "$ref": "#/components/schemas/WebSearchEngineEnum"
           },
           "excluded_domains": {
-            "description": "Exclude search results from these domains. Supported by Exa, Parallel, Anthropic, and xAI. Not supported with Firecrawl, OpenAI (silently ignored), or Perplexity.",
+            "description": "Exclude search results from these domains. Supported by Exa, Firecrawl, Parallel, Anthropic, and xAI. Not supported with OpenAI (silently ignored) or Perplexity. Cannot be used with allowed_domains.",
             "items": {
               "type": "string"
             },
@@ -20865,6 +23296,49 @@
         ],
         "type": "object"
       },
+      "WebSearchServerToolConfig": {
+        "description": "Configuration for the openrouter:web_search server tool",
+        "example": {
+          "max_results": 5,
+          "search_context_size": "medium"
+        },
+        "properties": {
+          "allowed_domains": {
+            "description": "Limit search results to these domains. Supported by Exa, Firecrawl, Parallel, and most native providers (Anthropic, OpenAI, xAI). Not supported with Perplexity. Cannot be used with excluded_domains.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "engine": {
+            "$ref": "#/components/schemas/WebSearchEngineEnum"
+          },
+          "excluded_domains": {
+            "description": "Exclude search results from these domains. Supported by Exa, Firecrawl, Parallel, Anthropic, and xAI. Not supported with OpenAI (silently ignored) or Perplexity. Cannot be used with allowed_domains.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "max_results": {
+            "description": "Maximum number of search results to return per search call. Defaults to 5. Applies to Exa, Firecrawl, and Parallel engines; ignored with native provider search.",
+            "example": 5,
+            "type": "integer"
+          },
+          "max_total_results": {
+            "description": "Maximum total number of search results across all search calls in a single request. Once this limit is reached, the tool will stop returning new results. Useful for controlling cost and context size in agentic loops.",
+            "example": 20,
+            "type": "integer"
+          },
+          "search_context_size": {
+            "$ref": "#/components/schemas/SearchQualityLevel"
+          },
+          "user_location": {
+            "$ref": "#/components/schemas/WebSearchUserLocationServerTool"
+          }
+        },
+        "type": "object"
+      },
       "WebSearchServerTool_OpenRouter": {
         "description": "OpenRouter built-in server tool: searches the web for current information",
         "example": {
@@ -20875,19 +23349,7 @@
         },
         "properties": {
           "parameters": {
-            "properties": {
-              "max_results": {
-                "description": "Maximum number of search results to return per search call. Defaults to 5.",
-                "example": 5,
-                "type": "integer"
-              },
-              "max_total_results": {
-                "description": "Maximum total number of search results across all search calls in a single request. Once this limit is reached, the tool will stop returning new results.",
-                "example": 20,
-                "type": "integer"
-              }
-            },
-            "type": "object"
+            "$ref": "#/components/schemas/WebSearchServerToolConfig"
           },
           "type": {
             "enum": [
@@ -21368,7 +23830,7 @@
     },
     "/audio/speech": {
       "post": {
-        "description": "Synthesizes audio from the input text",
+        "description": "Synthesizes audio from the input text. Returns a raw audio bytestream in the requested format (e.g. mp3, pcm, wav).",
         "operationId": "createAudioSpeech",
         "requestBody": {
           "content": {
@@ -21566,12 +24028,13 @@
         "tags": [
           "TTS"
         ],
+        "x-speakeasy-max-method-params": 1,
         "x-speakeasy-name-override": "createSpeech"
       }
     },
     "/audio/transcriptions": {
       "post": {
-        "description": "Transcribes audio into text",
+        "description": "Transcribes audio into text. Accepts base64-encoded audio input and returns the transcribed text.",
         "operationId": "createAudioTranscriptions",
         "requestBody": {
           "content": {
@@ -21777,6 +24240,7 @@
         "tags": [
           "STT"
         ],
+        "x-speakeasy-max-method-params": 1,
         "x-speakeasy-name-override": "createTranscription"
       }
     },
@@ -22155,6 +24619,18 @@
       "post": {
         "description": "Sends a request for a model response for the given chat conversation. Supports both streaming and non-streaming modes.",
         "operationId": "sendChatCompletionRequest",
+        "parameters": [
+          {
+            "description": "Opt-in to surface routing metadata on the response under `openrouter_metadata`. Defaults to `disabled`.",
+            "example": "enabled",
+            "in": "header",
+            "name": "X-OpenRouter-Experimental-Metadata",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/MetadataLevel"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -22229,15 +24705,7 @@
                   }
                 },
                 "schema": {
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/ChatStreamChunk"
-                    }
-                  },
-                  "required": [
-                    "data"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/ChatStreamingResponse"
                 },
                 "x-speakeasy-sse-sentinel": "[DONE]"
               }
@@ -22291,6 +24759,78 @@
               }
             },
             "description": "Payment Required - Insufficient credits or quota to complete request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "guardrail-blocked": {
+                    "summary": "Guardrail blocked the request",
+                    "value": {
+                      "error": {
+                        "code": 403,
+                        "message": "Request blocked: prompt injection patterns detected",
+                        "metadata": {
+                          "patterns": [
+                            "ignore all previous instructions"
+                          ]
+                        }
+                      },
+                      "openrouter_metadata": {
+                        "attempt": 1,
+                        "endpoints": {
+                          "available": [
+                            {
+                              "model": "openai/gpt-4o",
+                              "provider": "OpenAI",
+                              "selected": false
+                            }
+                          ],
+                          "total": 1
+                        },
+                        "is_byok": false,
+                        "pipeline": [
+                          {
+                            "data": {
+                              "action": "blocked",
+                              "detected": true,
+                              "engines": [
+                                "regex"
+                              ],
+                              "patterns": [
+                                "ignore all previous instructions"
+                              ]
+                            },
+                            "guardrail_id": "grd_abc123",
+                            "guardrail_scope": "api-key",
+                            "name": "regex_pi_detection",
+                            "summary": "Blocked: prompt injection detected (1 pattern matched)",
+                            "type": "guardrail"
+                          }
+                        ],
+                        "region": "iad",
+                        "requested": "openai/gpt-4o",
+                        "strategy": "direct",
+                        "summary": "available=1"
+                      }
+                    }
+                  },
+                  "insufficient-permissions": {
+                    "summary": "Insufficient permissions",
+                    "value": {
+                      "error": {
+                        "code": 403,
+                        "message": "Only management keys can perform this operation"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            },
+            "description": "Forbidden - Authentication successful but insufficient permissions, or a guardrail blocked the request. When guardrails block and the `X-OpenRouter-Experimental-Metadata: enabled` header is present, the response includes `openrouter_metadata` with full routing context and a `pipeline` array containing guardrail stage details."
           },
           "404": {
             "content": {
@@ -23161,6 +25701,7 @@
                         "request": "0"
                       },
                       "supported_parameters": [],
+                      "supported_voices": null,
                       "top_provider": {
                         "context_length": 8192,
                         "is_moderated": false,
@@ -23885,7 +26426,10 @@
                   "deepseek"
                 ],
                 "description": "A guardrail for limiting API usage",
-                "enforce_zdr": false,
+                "enforce_zdr_anthropic": true,
+                "enforce_zdr_google": false,
+                "enforce_zdr_openai": true,
+                "enforce_zdr_other": false,
                 "ignored_models": null,
                 "ignored_providers": null,
                 "limit_usd": 50,
@@ -23913,7 +26457,11 @@
                     ],
                     "created_at": "2025-08-24T10:30:00Z",
                     "description": "A guardrail for limiting API usage",
-                    "enforce_zdr": false,
+                    "enforce_zdr": null,
+                    "enforce_zdr_anthropic": true,
+                    "enforce_zdr_google": false,
+                    "enforce_zdr_openai": true,
+                    "enforce_zdr_other": false,
                     "id": "550e8400-e29b-41d4-a716-446655440000",
                     "ignored_models": null,
                     "ignored_providers": null,
@@ -24468,7 +27016,11 @@
                     ],
                     "created_at": "2025-08-24T10:30:00Z",
                     "description": "Updated description",
-                    "enforce_zdr": true,
+                    "enforce_zdr": null,
+                    "enforce_zdr_anthropic": true,
+                    "enforce_zdr_google": true,
+                    "enforce_zdr_openai": true,
+                    "enforce_zdr_other": true,
                     "id": "550e8400-e29b-41d4-a716-446655440000",
                     "ignored_models": null,
                     "ignored_providers": null,
@@ -27233,6 +29785,18 @@
       "post": {
         "description": "Creates a message using the Anthropic Messages API format. Supports text, images, PDFs, tools, and extended thinking.",
         "operationId": "createMessages",
+        "parameters": [
+          {
+            "description": "Opt-in to surface routing metadata on the response under `openrouter_metadata`. Defaults to `disabled`.",
+            "example": "enabled",
+            "in": "header",
+            "name": "X-OpenRouter-Experimental-Metadata",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/MetadataLevel"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -27291,19 +29855,7 @@
                   "event": "content_block_delta"
                 },
                 "schema": {
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/MessagesStreamEvents"
-                    },
-                    "event": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "event",
-                    "data"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/MessagesStreamingResponse"
                 },
                 "x-speakeasy-sse-sentinel": "[DONE]"
               }
@@ -27347,19 +29899,74 @@
           "403": {
             "content": {
               "application/json": {
-                "example": {
-                  "error": {
-                    "message": "Permission denied",
-                    "type": "permission_error"
+                "examples": {
+                  "guardrail-blocked": {
+                    "summary": "Guardrail blocked the request",
+                    "value": {
+                      "error": {
+                        "code": 403,
+                        "message": "Request blocked: prompt injection patterns detected",
+                        "metadata": {
+                          "patterns": [
+                            "ignore all previous instructions"
+                          ]
+                        }
+                      },
+                      "openrouter_metadata": {
+                        "attempt": 1,
+                        "endpoints": {
+                          "available": [
+                            {
+                              "model": "openai/gpt-4o",
+                              "provider": "OpenAI",
+                              "selected": false
+                            }
+                          ],
+                          "total": 1
+                        },
+                        "is_byok": false,
+                        "pipeline": [
+                          {
+                            "data": {
+                              "action": "blocked",
+                              "detected": true,
+                              "engines": [
+                                "regex"
+                              ],
+                              "patterns": [
+                                "ignore all previous instructions"
+                              ]
+                            },
+                            "guardrail_id": "grd_abc123",
+                            "guardrail_scope": "api-key",
+                            "name": "regex_pi_detection",
+                            "summary": "Blocked: prompt injection detected (1 pattern matched)",
+                            "type": "guardrail"
+                          }
+                        ],
+                        "region": "iad",
+                        "requested": "openai/gpt-4o",
+                        "strategy": "direct",
+                        "summary": "available=1"
+                      }
+                    }
                   },
-                  "type": "error"
+                  "insufficient-permissions": {
+                    "summary": "Insufficient permissions",
+                    "value": {
+                      "error": {
+                        "code": 403,
+                        "message": "Only management keys can perform this operation"
+                      }
+                    }
+                  }
                 },
                 "schema": {
-                  "$ref": "#/components/schemas/MessagesErrorResponse"
+                  "$ref": "#/components/schemas/ForbiddenResponse"
                 }
               }
             },
-            "description": "Permission denied error"
+            "description": "Forbidden - Authentication successful but insufficient permissions, or a guardrail blocked the request. When guardrails block and the `X-OpenRouter-Experimental-Metadata: enabled` header is present, the response includes `openrouter_metadata` with full routing context and a `pipeline` array containing guardrail stage details."
           },
           "404": {
             "content": {
@@ -27551,6 +30158,7 @@
                         "top_p",
                         "max_tokens"
                       ],
+                      "supported_voices": null,
                       "top_provider": {
                         "context_length": 8192,
                         "is_moderated": true,
@@ -27724,6 +30332,7 @@
                         "top_p",
                         "max_tokens"
                       ],
+                      "supported_voices": null,
                       "top_provider": {
                         "context_length": 8192,
                         "is_moderated": true,
@@ -29185,6 +31794,18 @@
       "post": {
         "description": "Creates a streaming or non-streaming response using OpenResponses API format",
         "operationId": "createResponses",
+        "parameters": [
+          {
+            "description": "Opt-in to surface routing metadata on the response under `openrouter_metadata`. Defaults to `disabled`.",
+            "example": "enabled",
+            "in": "header",
+            "name": "X-OpenRouter-Experimental-Metadata",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/MetadataLevel"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -29239,15 +31860,7 @@
                   }
                 },
                 "schema": {
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/StreamEvents"
-                    }
-                  },
-                  "required": [
-                    "data"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/ResponsesStreamingResponse"
                 },
                 "x-speakeasy-sse-sentinel": "[DONE]"
               }
@@ -29301,6 +31914,78 @@
               }
             },
             "description": "Payment Required - Insufficient credits or quota to complete request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "guardrail-blocked": {
+                    "summary": "Guardrail blocked the request",
+                    "value": {
+                      "error": {
+                        "code": 403,
+                        "message": "Request blocked: prompt injection patterns detected",
+                        "metadata": {
+                          "patterns": [
+                            "ignore all previous instructions"
+                          ]
+                        }
+                      },
+                      "openrouter_metadata": {
+                        "attempt": 1,
+                        "endpoints": {
+                          "available": [
+                            {
+                              "model": "openai/gpt-4o",
+                              "provider": "OpenAI",
+                              "selected": false
+                            }
+                          ],
+                          "total": 1
+                        },
+                        "is_byok": false,
+                        "pipeline": [
+                          {
+                            "data": {
+                              "action": "blocked",
+                              "detected": true,
+                              "engines": [
+                                "regex"
+                              ],
+                              "patterns": [
+                                "ignore all previous instructions"
+                              ]
+                            },
+                            "guardrail_id": "grd_abc123",
+                            "guardrail_scope": "api-key",
+                            "name": "regex_pi_detection",
+                            "summary": "Blocked: prompt injection detected (1 pattern matched)",
+                            "type": "guardrail"
+                          }
+                        ],
+                        "region": "iad",
+                        "requested": "openai/gpt-4o",
+                        "strategy": "direct",
+                        "summary": "available=1"
+                      }
+                    }
+                  },
+                  "insufficient-permissions": {
+                    "summary": "Insufficient permissions",
+                    "value": {
+                      "error": {
+                        "code": 403,
+                        "message": "Only management keys can perform this operation"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            },
+            "description": "Forbidden - Authentication successful but insufficient permissions, or a guardrail blocked the request. When guardrails block and the `X-OpenRouter-Experimental-Metadata: enabled` header is present, the response includes `openrouter_metadata` with full routing context and a `pipeline` array containing guardrail stage details."
           },
           "404": {
             "content": {
@@ -29723,7 +32408,7 @@
                   "generation_id": "gen-xyz789",
                   "id": "job-abc123",
                   "polling_url": "/api/v1/videos/job-abc123",
-                  "status": "complete",
+                  "status": "completed",
                   "unsigned_urls": [
                     "https://storage.example.com/video.mp4"
                   ],
@@ -30891,11 +33576,13 @@
     },
     {
       "description": "Speech-to-text endpoints",
-      "name": "STT"
+      "name": "STT",
+      "x-displayName": "Transcriptions"
     },
     {
       "description": "Text-to-speech endpoints",
-      "name": "TTS"
+      "name": "TTS",
+      "x-displayName": "Speech"
     },
     {
       "description": "Video Generation endpoints",

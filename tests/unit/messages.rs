@@ -17,6 +17,7 @@ use openrouter_rs::api::{
         create_message, stream_messages,
     },
 };
+use openrouter_rs::types::OpenRouterExperimentalMetadata;
 use serde_json::json;
 
 #[test]
@@ -160,6 +161,44 @@ fn test_anthropic_messages_stream_event_deserialization() {
     }
 }
 
+#[test]
+fn test_anthropic_message_stop_event_preserves_metadata() {
+    let raw = r#"{
+        "type": "message_stop",
+        "openrouter_metadata": {
+            "provider": "Anthropic",
+            "pipeline": [{
+                "type": "provider",
+                "provider_name": "anthropic"
+            }]
+        },
+        "trace_id": "trace_123"
+    }"#;
+
+    let event: AnthropicMessagesStreamEvent =
+        serde_json::from_str(raw).expect("message_stop event should deserialize");
+    assert_eq!(event.event_type(), "message_stop");
+    match event {
+        AnthropicMessagesStreamEvent::MessageStop {
+            openrouter_metadata,
+            extra,
+        } => {
+            assert_eq!(
+                openrouter_metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("provider"))
+                    .and_then(|value| value.as_str()),
+                Some("Anthropic")
+            );
+            assert_eq!(
+                extra.get("trace_id").and_then(|value| value.as_str()),
+                Some("trace_123")
+            );
+        }
+        other => panic!("expected message_stop, got {other:?}"),
+    }
+}
+
 #[tokio::test]
 async fn test_stream_messages_parses_event_and_data_lines() {
     let listener = TcpListener::bind("127.0.0.1:0").expect("listener should bind");
@@ -230,6 +269,9 @@ async fn test_stream_messages_parses_event_and_data_lines() {
             "event: content_block_delta\r\n",
             "data: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Hi\"}}\r\n",
             "\r\n",
+            "event: message_stop\r\n",
+            "data: {\"type\":\"message_stop\",\"openrouter_metadata\":{\"provider\":\"Anthropic\",\"pipeline\":[{\"type\":\"provider\",\"provider_name\":\"anthropic\"}]}}\r\n",
+            "\r\n",
             "data: [DONE]\r\n",
             "\r\n"
         );
@@ -248,6 +290,7 @@ async fn test_stream_messages_parses_event_and_data_lines() {
         .model("anthropic/claude-sonnet-4")
         .max_tokens(128)
         .messages(vec![AnthropicMessage::user("hello")])
+        .experimental_metadata(OpenRouterExperimentalMetadata::Enabled)
         .build()
         .expect("messages request should build");
 
@@ -270,7 +313,7 @@ async fn test_stream_messages_parses_event_and_data_lines() {
         serde_json::from_str(&request_body).expect("request body should be valid JSON");
     assert_eq!(request_json["stream"], true);
 
-    assert_eq!(events.len(), 2);
+    assert_eq!(events.len(), 3);
     assert_eq!(events[0].event, "message_start");
     assert_eq!(events[1].event, "content_block_delta");
     match &events[1].data {
@@ -279,6 +322,22 @@ async fn test_stream_messages_parses_event_and_data_lines() {
             assert_eq!(delta["text"], "Hi");
         }
         _ => panic!("expected content_block_delta"),
+    }
+    assert_eq!(events[2].event, "message_stop");
+    match &events[2].data {
+        AnthropicMessagesStreamEvent::MessageStop {
+            openrouter_metadata,
+            ..
+        } => {
+            assert_eq!(
+                openrouter_metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("provider"))
+                    .and_then(|value| value.as_str()),
+                Some("Anthropic")
+            );
+        }
+        _ => panic!("expected message_stop"),
     }
 
     server.join().expect("server thread should finish");
@@ -350,6 +409,7 @@ async fn test_stream_messages_parses_multiline_sse_frames() {
         .model("anthropic/claude-sonnet-4")
         .max_tokens(128)
         .messages(vec![AnthropicMessage::user("hello")])
+        .experimental_metadata(OpenRouterExperimentalMetadata::Enabled)
         .build()
         .expect("messages request should build");
 
@@ -449,6 +509,7 @@ async fn test_create_message_sets_stream_false_and_headers() {
         .model("anthropic/claude-sonnet-4")
         .max_tokens(128)
         .messages(vec![AnthropicMessage::user("hello")])
+        .experimental_metadata(OpenRouterExperimentalMetadata::Enabled)
         .build()
         .expect("messages request should build");
     let x_title = Some("openrouter-rs-tests".to_string());
@@ -501,10 +562,16 @@ async fn test_create_message_sets_stream_false_and_headers() {
             || headers_lower.contains("x-openrouter-categories:cli-agent"),
         "x-openrouter-categories header should be present, headers:\n{header_text}"
     );
+    assert!(
+        headers_lower.contains("x-openrouter-experimental-metadata: enabled")
+            || headers_lower.contains("x-openrouter-experimental-metadata:enabled"),
+        "experimental metadata header should be present, headers:\n{header_text}"
+    );
 
     let request_json: serde_json::Value =
         serde_json::from_str(&request_body).expect("request body should be valid json");
     assert_eq!(request_json["stream"], false);
+    assert!(request_json.get("experimental_metadata").is_none());
 
     server.join().expect("server thread should finish");
 }

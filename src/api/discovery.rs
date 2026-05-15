@@ -123,6 +123,8 @@ pub struct UserModel {
     #[serde(default)]
     pub supported_parameters: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub supported_voices: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub default_parameters: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expiration_date: Option<String>,

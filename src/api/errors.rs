@@ -1,12 +1,14 @@
 use http::StatusCode;
 use serde::Deserialize;
-use serde_json::Value;
+use serde_json::{Map, Value};
 
 use crate::error::{ApiErrorContext, ApiErrorKind, OpenRouterError};
 
 #[derive(Deserialize, Debug)]
 struct ApiErrorResponse {
     error: ApiError,
+    openrouter_metadata: Option<Value>,
+    user_id: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -53,8 +55,13 @@ fn normalize_error_status(status: StatusCode, api_code: Option<i64>) -> StatusCo
 fn build_api_error(
     status: StatusCode,
     request_id: Option<String>,
-    api_error: ApiError,
+    payload: ApiErrorResponse,
 ) -> OpenRouterError {
+    let ApiErrorResponse {
+        error: api_error,
+        openrouter_metadata,
+        user_id,
+    } = payload;
     let ApiError {
         code,
         message,
@@ -87,6 +94,8 @@ fn build_api_error(
         Some(ApiErrorMetadata::Raw(raw)) => (ApiErrorKind::Generic, Some(raw)),
         None => (ApiErrorKind::Generic, None),
     };
+    let normalized_metadata =
+        merge_top_level_metadata(normalized_metadata, openrouter_metadata, user_id);
 
     OpenRouterError::Api(Box::new(ApiErrorContext {
         status,
@@ -98,13 +107,42 @@ fn build_api_error(
     }))
 }
 
+fn merge_top_level_metadata(
+    metadata: Option<Value>,
+    openrouter_metadata: Option<Value>,
+    user_id: Option<String>,
+) -> Option<Value> {
+    if openrouter_metadata.is_none() && user_id.is_none() {
+        return metadata;
+    }
+
+    let mut merged = match metadata {
+        Some(Value::Object(object)) => object,
+        Some(value) => {
+            let mut object = Map::new();
+            object.insert("error_metadata".to_string(), value);
+            object
+        }
+        None => Map::new(),
+    };
+
+    if let Some(openrouter_metadata) = openrouter_metadata {
+        merged.insert("openrouter_metadata".to_string(), openrouter_metadata);
+    }
+    if let Some(user_id) = user_id {
+        merged.insert("user_id".to_string(), Value::String(user_id));
+    }
+
+    Some(Value::Object(merged))
+}
+
 pub fn parse_api_error(
     status: StatusCode,
     request_id: Option<String>,
     text: &str,
 ) -> OpenRouterError {
     match serde_json::from_str::<ApiErrorResponse>(text) {
-        Ok(payload) => build_api_error(status, request_id, payload.error),
+        Ok(payload) => build_api_error(status, request_id, payload),
         Err(_) => OpenRouterError::Api(Box::new(ApiErrorContext {
             status,
             api_code: Some(i64::from(u16::from(status))),

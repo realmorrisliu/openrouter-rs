@@ -161,6 +161,24 @@ pub struct ApiResponse<T> {
     pub data: T,
 }
 
+/// Opt-in level for OpenRouter's experimental response metadata header.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+#[serde(rename_all = "lowercase")]
+pub enum OpenRouterExperimentalMetadata {
+    Disabled,
+    Enabled,
+}
+
+impl OpenRouterExperimentalMetadata {
+    pub(crate) fn as_header_value(self) -> &'static str {
+        match self {
+            Self::Disabled => "disabled",
+            Self::Enabled => "enabled",
+        }
+    }
+}
+
 /// Message role in a conversation
 ///
 /// Specifies who or what is sending a message in a chat completion.

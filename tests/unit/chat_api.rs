@@ -11,7 +11,7 @@ use openrouter_rs::{
     api::chat::{
         ChatCompletionRequestBuilder, Message, send_chat_completion, stream_chat_completion,
     },
-    types::Role,
+    types::{OpenRouterExperimentalMetadata, Role, completion::CompletionsResponse},
 };
 
 struct CapturedRequest {
@@ -113,6 +113,7 @@ async fn test_send_chat_completion_sets_stream_false_and_headers() {
     let request = ChatCompletionRequestBuilder::default()
         .model("openai/gpt-4o-mini")
         .messages(vec![Message::new(Role::User, "hello")])
+        .experimental_metadata(OpenRouterExperimentalMetadata::Enabled)
         .build()
         .expect("chat request should build");
     let x_title = Some("openrouter-rs-tests".to_string());
@@ -172,13 +173,55 @@ async fn test_send_chat_completion_sets_stream_false_and_headers() {
         "x-openrouter-categories header should be present, headers:\n{}",
         captured.header_text
     );
+    assert!(
+        headers_lower.contains("x-openrouter-experimental-metadata: enabled")
+            || headers_lower.contains("x-openrouter-experimental-metadata:enabled"),
+        "experimental metadata header should be present, headers:\n{}",
+        captured.header_text
+    );
 
     let request_json: serde_json::Value =
         serde_json::from_str(&captured.body_text).expect("request body should be valid JSON");
     assert_eq!(request_json["stream"], false);
     assert_eq!(request_json["model"], "openai/gpt-4o-mini");
+    assert!(request_json.get("experimental_metadata").is_none());
 
     server.join().expect("server thread should finish");
+}
+
+#[test]
+fn test_chat_completion_response_deserializes_openrouter_metadata_and_service_tier() {
+    let raw = r#"{
+        "id": "gen-123",
+        "choices": [{
+            "message": {
+                "role": "assistant",
+                "content": "Hello"
+            }
+        }],
+        "created": 1700000000,
+        "model": "openai/gpt-4o-mini",
+        "object": "chat.completion",
+        "service_tier": "priority",
+        "openrouter_metadata": {
+            "attempt": 1,
+            "is_byok": false,
+            "summary": "available=1, selected=OpenAI"
+        }
+    }"#;
+
+    let parsed: CompletionsResponse =
+        serde_json::from_str(raw).expect("chat completion response should deserialize");
+
+    assert_eq!(parsed.service_tier.as_deref(), Some("priority"));
+    assert_eq!(
+        parsed
+            .openrouter_metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("attempt"))
+            .and_then(|value| value.as_i64()),
+        Some(1)
+    );
 }
 
 #[tokio::test]

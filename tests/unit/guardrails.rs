@@ -9,8 +9,10 @@ use std::{
 use openrouter_rs::{
     api::guardrails::{
         self, AssignedCountResponse, BulkKeyAssignmentRequest, BulkMemberAssignmentRequest,
-        CreateGuardrailRequest, Guardrail, GuardrailKeyAssignmentsResponse, GuardrailListResponse,
-        GuardrailMemberAssignmentsResponse, UnassignedCountResponse, UpdateGuardrailRequest,
+        ContentFilterAction, ContentFilterBuiltinAction, ContentFilterBuiltinEntry,
+        ContentFilterBuiltinSlug, ContentFilterEntry, CreateGuardrailRequest, Guardrail,
+        GuardrailKeyAssignmentsResponse, GuardrailListResponse, GuardrailMemberAssignmentsResponse,
+        UnassignedCountResponse, UpdateGuardrailRequest,
     },
     types::{ApiResponse, PaginationOptions},
 };
@@ -134,6 +136,49 @@ fn test_create_guardrail_request_serialization() {
 }
 
 #[test]
+fn test_create_guardrail_request_serializes_content_filters_and_provider_zdr_flags() {
+    let request = CreateGuardrailRequest::builder()
+        .name("Filtered")
+        .content_filter_builtins([ContentFilterBuiltinEntry::new(
+            ContentFilterBuiltinSlug::RegexPromptInjection,
+            ContentFilterBuiltinAction::Block,
+        )
+        .label("[PROMPT_INJECTION]")])
+        .content_filters([ContentFilterEntry::new(
+            r"\b(sk-[a-zA-Z0-9]{48})\b",
+            ContentFilterAction::Redact,
+        )
+        .label("[API_KEY]")])
+        .enforce_zdr_anthropic(true)
+        .enforce_zdr_openai(false)
+        .enforce_zdr_google(true)
+        .enforce_zdr_other(false)
+        .build()
+        .expect("create guardrail request should build");
+
+    let value = serde_json::to_value(&request).expect("request should serialize");
+    assert_eq!(
+        value["content_filter_builtins"][0]["slug"],
+        "regex-prompt-injection"
+    );
+    assert_eq!(value["content_filter_builtins"][0]["action"], "block");
+    assert_eq!(
+        value["content_filter_builtins"][0]["label"],
+        "[PROMPT_INJECTION]"
+    );
+    assert_eq!(
+        value["content_filters"][0]["pattern"],
+        r"\b(sk-[a-zA-Z0-9]{48})\b"
+    );
+    assert_eq!(value["content_filters"][0]["action"], "redact");
+    assert_eq!(value["content_filters"][0]["label"], "[API_KEY]");
+    assert_eq!(value["enforce_zdr_anthropic"], true);
+    assert_eq!(value["enforce_zdr_openai"], false);
+    assert_eq!(value["enforce_zdr_google"], true);
+    assert_eq!(value["enforce_zdr_other"], false);
+}
+
+#[test]
 fn test_update_guardrail_request_serialization() {
     let request = UpdateGuardrailRequest::builder()
         .name("Updated")
@@ -146,6 +191,51 @@ fn test_update_guardrail_request_serialization() {
     assert_eq!(value["enforce_zdr"], false);
     assert!(value.get("description").is_none());
     assert!(value.get("allowed_models").is_none());
+}
+
+#[test]
+fn test_update_guardrail_request_serializes_and_clears_content_filters() {
+    let request = UpdateGuardrailRequest::builder()
+        .content_filter_builtins([ContentFilterBuiltinEntry::new(
+            ContentFilterBuiltinSlug::Email,
+            ContentFilterBuiltinAction::Redact,
+        )
+        .label("[EMAIL]")])
+        .content_filters([ContentFilterEntry::new(
+            "secret",
+            ContentFilterAction::Block,
+        )])
+        .enforce_zdr_anthropic(true)
+        .enforce_zdr_openai(true)
+        .enforce_zdr_google(false)
+        .enforce_zdr_other(false)
+        .build()
+        .expect("update guardrail request should build");
+
+    let value = serde_json::to_value(&request).expect("request should serialize");
+    assert_eq!(value["content_filter_builtins"][0]["slug"], "email");
+    assert_eq!(value["content_filter_builtins"][0]["action"], "redact");
+    assert_eq!(value["content_filters"][0]["pattern"], "secret");
+    assert_eq!(value["content_filters"][0]["action"], "block");
+    assert_eq!(value["enforce_zdr_anthropic"], true);
+    assert_eq!(value["enforce_zdr_openai"], true);
+    assert_eq!(value["enforce_zdr_google"], false);
+    assert_eq!(value["enforce_zdr_other"], false);
+
+    let cleared = UpdateGuardrailRequest::builder()
+        .clear_content_filter_builtins()
+        .clear_content_filters()
+        .build()
+        .expect("update guardrail request should build");
+    let cleared_value = serde_json::to_value(&cleared).expect("request should serialize");
+    assert_eq!(
+        cleared_value.get("content_filter_builtins"),
+        Some(&serde_json::Value::Null)
+    );
+    assert_eq!(
+        cleared_value.get("content_filters"),
+        Some(&serde_json::Value::Null)
+    );
 }
 
 #[test]
@@ -224,7 +314,21 @@ fn test_guardrail_response_deserialization() {
             "reset_interval": "monthly",
             "allowed_providers": ["openai"],
             "allowed_models": ["openai/gpt-4.1"],
+            "content_filter_builtins": [{
+                "slug": "regex-prompt-injection",
+                "action": "flag",
+                "label": "[PROMPT_INJECTION]"
+            }],
+            "content_filters": [{
+                "pattern": "secret",
+                "action": "block",
+                "label": null
+            }],
             "enforce_zdr": true,
+            "enforce_zdr_anthropic": true,
+            "enforce_zdr_openai": false,
+            "enforce_zdr_google": true,
+            "enforce_zdr_other": false,
             "workspace_id": "ws_123",
             "created_at": "2025-01-01T00:00:00.000Z",
             "updated_at": "2025-01-02T00:00:00.000Z"
@@ -237,6 +341,18 @@ fn test_guardrail_response_deserialization() {
     assert_eq!(parsed.data.name, "Production Guardrail");
     assert_eq!(parsed.data.allowed_providers.unwrap_or_default().len(), 1);
     assert_eq!(parsed.data.enforce_zdr, Some(true));
+    assert_eq!(parsed.data.enforce_zdr_anthropic, Some(true));
+    assert_eq!(parsed.data.enforce_zdr_openai, Some(false));
+    assert_eq!(parsed.data.enforce_zdr_google, Some(true));
+    assert_eq!(parsed.data.enforce_zdr_other, Some(false));
+    assert_eq!(
+        parsed.data.content_filter_builtins.unwrap_or_default()[0].slug,
+        ContentFilterBuiltinSlug::RegexPromptInjection
+    );
+    assert_eq!(
+        parsed.data.content_filters.unwrap_or_default()[0].action,
+        ContentFilterAction::Block
+    );
     assert_eq!(parsed.data.workspace_id.as_deref(), Some("ws_123"));
 }
 
