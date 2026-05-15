@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Preserved top-level `openrouter_metadata` and `user_id` fields on normalized API errors so guardrail-blocked responses keep their diagnostic metadata.
+- Preserved `openrouter_metadata` and future top-level extras on Anthropic Messages `message_stop` stream events.
 
 ## [0.9.0] - 2026-04-28
 

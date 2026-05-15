@@ -726,7 +726,7 @@ pub fn adapt_messages_stream(
                                 });
                             }
                         }
-                        AnthropicMessagesStreamEvent::MessageStop => {
+                        AnthropicMessagesStreamEvent::MessageStop { .. } => {
                             state.done_emitted = true;
                             state.pending.push_back(UnifiedStreamEvent::Done {
                                 source: UnifiedStreamSource::Messages,

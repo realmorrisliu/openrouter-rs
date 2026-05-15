@@ -651,7 +651,12 @@ pub enum AnthropicMessagesStreamEvent {
         delta: Value,
         usage: Value,
     },
-    MessageStop,
+    MessageStop {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        openrouter_metadata: Option<Value>,
+        #[serde(flatten)]
+        extra: HashMap<String, Value>,
+    },
     ContentBlockStart {
         index: u32,
         content_block: Box<AnthropicContentPart>,
@@ -674,7 +679,7 @@ impl AnthropicMessagesStreamEvent {
         match self {
             Self::MessageStart { .. } => "message_start",
             Self::MessageDelta { .. } => "message_delta",
-            Self::MessageStop => "message_stop",
+            Self::MessageStop { .. } => "message_stop",
             Self::ContentBlockStart { .. } => "content_block_start",
             Self::ContentBlockDelta { .. } => "content_block_delta",
             Self::ContentBlockStop { .. } => "content_block_stop",
