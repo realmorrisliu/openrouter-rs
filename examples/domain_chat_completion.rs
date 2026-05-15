@@ -1,4 +1,8 @@
-use openrouter_rs::{OpenRouterClient, api::chat::*, types::Role};
+use openrouter_rs::{
+    OpenRouterClient,
+    api::chat::*,
+    types::{OpenRouterExperimentalMetadata, Role},
+};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -14,6 +18,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )])
         .max_tokens(64)
         .temperature(0.2)
+        .experimental_metadata(OpenRouterExperimentalMetadata::Enabled)
         .build()?;
 
     let response = client.chat().create(&request).await?;

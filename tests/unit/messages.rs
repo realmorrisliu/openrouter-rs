@@ -17,6 +17,7 @@ use openrouter_rs::api::{
         create_message, stream_messages,
     },
 };
+use openrouter_rs::types::OpenRouterExperimentalMetadata;
 use serde_json::json;
 
 #[test]
@@ -248,6 +249,7 @@ async fn test_stream_messages_parses_event_and_data_lines() {
         .model("anthropic/claude-sonnet-4")
         .max_tokens(128)
         .messages(vec![AnthropicMessage::user("hello")])
+        .experimental_metadata(OpenRouterExperimentalMetadata::Enabled)
         .build()
         .expect("messages request should build");
 
@@ -350,6 +352,7 @@ async fn test_stream_messages_parses_multiline_sse_frames() {
         .model("anthropic/claude-sonnet-4")
         .max_tokens(128)
         .messages(vec![AnthropicMessage::user("hello")])
+        .experimental_metadata(OpenRouterExperimentalMetadata::Enabled)
         .build()
         .expect("messages request should build");
 
@@ -449,6 +452,7 @@ async fn test_create_message_sets_stream_false_and_headers() {
         .model("anthropic/claude-sonnet-4")
         .max_tokens(128)
         .messages(vec![AnthropicMessage::user("hello")])
+        .experimental_metadata(OpenRouterExperimentalMetadata::Enabled)
         .build()
         .expect("messages request should build");
     let x_title = Some("openrouter-rs-tests".to_string());
@@ -501,10 +505,16 @@ async fn test_create_message_sets_stream_false_and_headers() {
             || headers_lower.contains("x-openrouter-categories:cli-agent"),
         "x-openrouter-categories header should be present, headers:\n{header_text}"
     );
+    assert!(
+        headers_lower.contains("x-openrouter-experimental-metadata: enabled")
+            || headers_lower.contains("x-openrouter-experimental-metadata:enabled"),
+        "experimental metadata header should be present, headers:\n{header_text}"
+    );
 
     let request_json: serde_json::Value =
         serde_json::from_str(&request_body).expect("request body should be valid json");
     assert_eq!(request_json["stream"], false);
+    assert!(request_json.get("experimental_metadata").is_none());
 
     server.join().expect("server thread should finish");
 }

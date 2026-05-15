@@ -578,4 +578,8 @@ pub struct CompletionsResponse {
     pub provider: Option<String>,
     pub system_fingerprint: Option<String>,
     pub usage: Option<ResponseUsage>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub service_tier: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub openrouter_metadata: Option<Value>,
 }

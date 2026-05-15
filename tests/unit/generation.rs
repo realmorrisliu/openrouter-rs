@@ -144,7 +144,8 @@ fn test_generation_response_deserializes_num_fetches() {
             "is_byok": false,
             "native_tokens_reasoning": 8,
             "num_fetches": 3,
-            "response_cache_source_id": "gen_original"
+            "response_cache_source_id": "gen_original",
+            "service_tier": "priority"
         }
     }"#;
 
@@ -158,6 +159,7 @@ fn test_generation_response_deserializes_num_fetches() {
         parsed.data.response_cache_source_id.as_deref(),
         Some("gen_original")
     );
+    assert_eq!(parsed.data.service_tier.as_deref(), Some("priority"));
 }
 
 #[test]

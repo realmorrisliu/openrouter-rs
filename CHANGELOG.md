@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `OpenRouterExperimentalMetadata` request-header opt-in for chat completions, Responses API, and Anthropic-compatible Messages requests, plus typed chat response access to `service_tier` and `openrouter_metadata`.
+- Added typed guardrail content-filter support, including built-in filter entries, custom regex filters, and provider-specific ZDR flags on guardrail create/update requests and guardrail responses.
+- Added typed `supported_voices` model discovery fields and `GenerationData::service_tier` for generation metadata responses.
 - Added typed SDK support for `POST /audio/transcriptions`, including `api::audio::{TranscriptionRequest, TranscriptionInputAudio, TranscriptionResponse}` and the canonical `client.audio().transcriptions().create(...)` surface.
 - Added typed OpenRouter chat-completion usage cost fields via `ResponseUsage::cost`, `ResponseUsage::cost_details`, `ResponseUsage::is_byok`, and `ResponseCostDetails`.
 - Added ergonomic constructors for non-exhaustive helper types such as `ResponseUsage::new`, `ToolCall::new`, `FunctionCall::new`, `JsonSchemaConfig::new`, embedding multimodal parts, and provider-options wrappers.
@@ -16,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Breaking (0.10.0 target): Marked high-churn public SDK request, response, metadata, usage, pricing, discovery, streaming, and upstream taxonomy types as `#[non_exhaustive]`; construct affected request/configuration types through builders, constructors, or helpers, and include wildcard arms when matching affected public enums outside the crate.
 - Accepted the 2026-04-29 OpenAPI drift review, including `stt` generation origins and chat usage cost metadata, and kept the repository snapshot at `51 / 51` official OpenAPI endpoint coverage.
 - Accepted the 2026-05-03 OpenAPI drift review, including audio transcription support, and restored the repository snapshot to `52 / 52` official OpenAPI endpoint coverage.
+- Accepted the 2026-05-15 OpenAPI drift review, including experimental response metadata, guardrail content filters, model supported voices, and generation service tiers, while keeping the repository snapshot at `52 / 52` official OpenAPI endpoint coverage.
 - Changed the scheduled OpenAPI drift workflow from daily to weekly while keeping manual `workflow_dispatch` runs available.
 
 ## [0.9.0] - 2026-04-28

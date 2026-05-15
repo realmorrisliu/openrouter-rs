@@ -20,6 +20,8 @@ pub struct Model {
     pub top_provider: TopProvider,
     pub pricing: Pricing,
     pub per_request_limits: Option<std::collections::HashMap<String, String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub supported_voices: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

@@ -1,6 +1,6 @@
 # Official Endpoint Test Matrix
 
-Snapshot date: 2026-05-03
+Snapshot date: 2026-05-15
 Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)  
 Tracked baseline: `specs/openrouter/openapi-baseline.json`  
 Weekly drift workflow: `.github/workflows/openapi-drift.yml`
@@ -24,6 +24,9 @@ Drift review note:
 - Upstream refreshed web-search, provider, and Responses output schemas. Existing OpenRouter plugin passthrough, Anthropic hosted-tool extras, provider option maps, and Responses `Value` payloads carry those schema details without a public API migration.
 - Upstream added `stt` as a generation origin and chat-completion usage cost metadata. `GenerationData::origin` remains a flexible `String`, and `ResponseUsage` now exposes typed `cost`, `cost_details`, and `is_byok` fields. The 2026-04-29 baseline refresh keeps the accepted endpoint snapshot at `51 / 51`.
 - Upstream added `POST /audio/transcriptions`. The SDK now exposes a typed transcription surface, and the 2026-05-03 baseline refresh keeps the accepted endpoint snapshot at `52 / 52`.
+- Upstream added experimental response metadata headers for chat completions, Responses API, and Anthropic-compatible Messages. The SDK exposes this through `OpenRouterExperimentalMetadata` on the request builders and parses chat `openrouter_metadata` / `service_tier` response fields.
+- Upstream expanded guardrails with built-in content filters, custom regex filters, and provider-specific ZDR flags. The SDK now exposes those typed fields on guardrail create/update requests and guardrail responses.
+- Upstream added model `supported_voices` and generation `service_tier` metadata. The SDK now exposes those typed fields, and the 2026-05-15 baseline refresh keeps the accepted endpoint snapshot at `52 / 52`.
 
 Legend:
 
