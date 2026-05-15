@@ -86,6 +86,67 @@ async fn test_normalized_generic_api_error_shape() {
 }
 
 #[tokio::test]
+async fn test_api_error_preserves_top_level_openrouter_metadata() {
+    let (base_url, server) = spawn_error_server(
+        "403 Forbidden",
+        r#"{
+            "error": {
+                "code": 403,
+                "message": "Guardrail blocked request"
+            },
+            "openrouter_metadata": {
+                "attempt": 1,
+                "pipeline": [{
+                    "type": "guardrail",
+                    "guardrail_id": "gr_123",
+                    "data": {
+                        "action": "block",
+                        "patterns": ["secret"]
+                    }
+                }]
+            },
+            "user_id": "user_123"
+        }"#,
+        Some("req_guardrail"),
+    );
+
+    let result = models::list_models(&base_url, "test-key", None, None).await;
+    let error = result.expect_err("request should fail");
+    match error {
+        OpenRouterError::Api(api_error) => {
+            assert_eq!(api_error.status, StatusCode::FORBIDDEN);
+            assert_eq!(api_error.api_code, Some(403));
+            assert_eq!(api_error.message, "Guardrail blocked request");
+            assert_eq!(api_error.request_id.as_deref(), Some("req_guardrail"));
+            assert_eq!(
+                api_error
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("openrouter_metadata"))
+                    .and_then(|metadata| metadata.get("pipeline"))
+                    .and_then(|pipeline| pipeline.get(0))
+                    .and_then(|stage| stage.get("guardrail_id"))
+                    .and_then(|value| value.as_str()),
+                Some("gr_123")
+            );
+            assert_eq!(
+                api_error
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("user_id"))
+                    .and_then(|value| value.as_str()),
+                Some("user_123")
+            );
+        }
+        other => panic!("expected Api error, got {other:?}"),
+    }
+
+    server
+        .join()
+        .expect("server thread should join in reasonable time");
+}
+
+#[tokio::test]
 async fn test_unreadable_error_body_preserves_read_failure_context() {
     let listener = TcpListener::bind("127.0.0.1:0").expect("listener should bind");
     let addr = listener

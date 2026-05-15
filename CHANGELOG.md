@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Accepted the 2026-05-15 OpenAPI drift review, including experimental response metadata, guardrail content filters, model supported voices, and generation service tiers, while keeping the repository snapshot at `52 / 52` official OpenAPI endpoint coverage.
 - Changed the scheduled OpenAPI drift workflow from daily to weekly while keeping manual `workflow_dispatch` runs available.
 
+### Fixed
+- Preserved top-level `openrouter_metadata` and `user_id` fields on normalized API errors so guardrail-blocked responses keep their diagnostic metadata.
+
 ## [0.9.0] - 2026-04-28
 
 ### Added
