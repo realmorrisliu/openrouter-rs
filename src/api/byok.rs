@@ -1,6 +1,6 @@
 use derive_builder::Builder;
 use reqwest::Client as HttpClient;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer, ser::SerializeMap};
 use urlencoding::encode;
 
 use crate::{
@@ -93,28 +93,65 @@ impl CreateByokKeyRequestBuilder {
 }
 
 /// Request payload for updating a BYOK credential (`PATCH /byok/{id}`).
-#[derive(Serialize, Deserialize, Debug, Clone, Builder)]
+#[derive(Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
 pub struct UpdateByokKeyRequest {
     #[builder(setter(into, strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub key: Option<String>,
-    #[builder(setter(into, strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(setter(custom), default)]
     pub name: Option<String>,
+    #[serde(skip)]
     #[builder(setter(custom), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
+    clear_name: bool,
+    #[builder(setter(custom), default)]
     pub allowed_models: Option<Vec<String>>,
+    #[serde(skip)]
     #[builder(setter(custom), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
+    clear_allowed_models: bool,
+    #[builder(setter(custom), default)]
     pub allowed_user_ids: Option<Vec<String>>,
+    #[serde(skip)]
+    #[builder(setter(custom), default)]
+    clear_allowed_user_ids: bool,
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub disabled: Option<bool>,
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub is_fallback: Option<bool>,
+}
+
+impl Serialize for UpdateByokKeyRequest {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut map = serializer.serialize_map(None)?;
+        if let Some(value) = &self.key {
+            map.serialize_entry("key", value)?;
+        }
+        if self.clear_name {
+            map.serialize_entry("name", &Option::<String>::None)?;
+        } else if let Some(value) = &self.name {
+            map.serialize_entry("name", value)?;
+        }
+        if self.clear_allowed_models {
+            map.serialize_entry("allowed_models", &Option::<Vec<String>>::None)?;
+        } else if let Some(value) = &self.allowed_models {
+            map.serialize_entry("allowed_models", value)?;
+        }
+        if self.clear_allowed_user_ids {
+            map.serialize_entry("allowed_user_ids", &Option::<Vec<String>>::None)?;
+        } else if let Some(value) = &self.allowed_user_ids {
+            map.serialize_entry("allowed_user_ids", value)?;
+        }
+        if let Some(value) = &self.disabled {
+            map.serialize_entry("disabled", value)?;
+        }
+        if let Some(value) = &self.is_fallback {
+            map.serialize_entry("is_fallback", value)?;
+        }
+        map.end()
+    }
 }
 
 impl UpdateByokKeyRequest {
@@ -124,8 +161,49 @@ impl UpdateByokKeyRequest {
 }
 
 impl UpdateByokKeyRequestBuilder {
-    strip_option_vec_setter!(allowed_models, String);
-    strip_option_vec_setter!(allowed_user_ids, String);
+    pub fn name(&mut self, value: impl Into<String>) -> &mut Self {
+        self.name = Some(Some(value.into()));
+        self.clear_name = Some(false);
+        self
+    }
+
+    pub fn clear_name(&mut self) -> &mut Self {
+        self.name = Some(None);
+        self.clear_name = Some(true);
+        self
+    }
+
+    pub fn allowed_models<T, S>(&mut self, items: T) -> &mut Self
+    where
+        T: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.allowed_models = Some(Some(items.into_iter().map(Into::into).collect()));
+        self.clear_allowed_models = Some(false);
+        self
+    }
+
+    pub fn allowed_user_ids<T, S>(&mut self, items: T) -> &mut Self
+    where
+        T: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.allowed_user_ids = Some(Some(items.into_iter().map(Into::into).collect()));
+        self.clear_allowed_user_ids = Some(false);
+        self
+    }
+
+    pub fn clear_allowed_models(&mut self) -> &mut Self {
+        self.allowed_models = Some(None);
+        self.clear_allowed_models = Some(true);
+        self
+    }
+
+    pub fn clear_allowed_user_ids(&mut self) -> &mut Self {
+        self.allowed_user_ids = Some(None);
+        self.clear_allowed_user_ids = Some(true);
+        self
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

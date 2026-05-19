@@ -135,6 +135,73 @@ fn test_create_byok_key_request_serialization() {
 }
 
 #[test]
+fn test_update_byok_key_request_can_clear_nullable_fields() {
+    let request = UpdateByokKeyRequest::builder()
+        .clear_name()
+        .clear_allowed_models()
+        .clear_allowed_user_ids()
+        .build()
+        .expect("update BYOK request should build");
+
+    let value = serde_json::to_value(&request).expect("request should serialize");
+    assert_eq!(value.get("name"), Some(&serde_json::Value::Null));
+    assert_eq!(value.get("allowed_models"), Some(&serde_json::Value::Null));
+    assert_eq!(
+        value.get("allowed_user_ids"),
+        Some(&serde_json::Value::Null)
+    );
+}
+
+#[test]
+fn test_update_byok_key_request_preserves_empty_allowlists() {
+    let request = UpdateByokKeyRequest::builder()
+        .allowed_models(Vec::<String>::new())
+        .allowed_user_ids(Vec::<String>::new())
+        .build()
+        .expect("update BYOK request should build");
+
+    let value = serde_json::to_value(&request).expect("request should serialize");
+    assert_eq!(value.get("allowed_models"), Some(&serde_json::json!([])));
+    assert_eq!(value.get("allowed_user_ids"), Some(&serde_json::json!([])));
+
+    let value_after_clear = UpdateByokKeyRequest::builder()
+        .clear_allowed_models()
+        .clear_allowed_user_ids()
+        .allowed_models(["openai/gpt-5"])
+        .allowed_user_ids(["user_123"])
+        .build()
+        .expect("update BYOK request should build");
+    let value_after_clear_json =
+        serde_json::to_value(&value_after_clear).expect("request should serialize");
+    assert_eq!(
+        value_after_clear_json.get("allowed_models"),
+        Some(&serde_json::json!(["openai/gpt-5"]))
+    );
+    assert_eq!(
+        value_after_clear_json.get("allowed_user_ids"),
+        Some(&serde_json::json!(["user_123"]))
+    );
+
+    let clear_after_value = UpdateByokKeyRequest::builder()
+        .allowed_models(["openai/gpt-5"])
+        .allowed_user_ids(["user_123"])
+        .clear_allowed_models()
+        .clear_allowed_user_ids()
+        .build()
+        .expect("update BYOK request should build");
+    let clear_after_value_json =
+        serde_json::to_value(&clear_after_value).expect("request should serialize");
+    assert_eq!(
+        clear_after_value_json.get("allowed_models"),
+        Some(&serde_json::Value::Null)
+    );
+    assert_eq!(
+        clear_after_value_json.get("allowed_user_ids"),
+        Some(&serde_json::Value::Null)
+    );
+}
+
+#[test]
 fn test_byok_key_response_deserialization() {
     let raw = r#"{
         "data": {

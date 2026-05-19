@@ -189,6 +189,85 @@ fn test_create_observability_destination_request_serialization() {
 }
 
 #[test]
+fn test_update_observability_destination_request_can_clear_nullable_filters() {
+    let request = UpdateObservabilityDestinationRequest::builder()
+        .clear_api_key_hashes()
+        .clear_filter_rules()
+        .build()
+        .expect("update observability request should build");
+
+    let value = serde_json::to_value(&request).expect("request should serialize");
+    assert_eq!(value.get("api_key_hashes"), Some(&serde_json::Value::Null));
+    assert_eq!(value.get("filter_rules"), Some(&serde_json::Value::Null));
+}
+
+#[test]
+fn test_update_observability_destination_request_preserves_replacement_values() {
+    let filter_rules = ObservabilityFilterRulesConfig::builder()
+        .groups(Vec::<ObservabilityFilterGroup>::new())
+        .build()
+        .expect("filter rules should build");
+    let request = UpdateObservabilityDestinationRequest::builder()
+        .api_key_hashes(["hash_123"])
+        .filter_rules(filter_rules)
+        .build()
+        .expect("update observability request should build");
+
+    let value = serde_json::to_value(&request).expect("request should serialize");
+    assert_eq!(
+        value.get("api_key_hashes"),
+        Some(&serde_json::json!(["hash_123"]))
+    );
+    assert_eq!(
+        value["filter_rules"]["groups"],
+        serde_json::Value::Array(Vec::new())
+    );
+
+    let value_after_clear = UpdateObservabilityDestinationRequest::builder()
+        .clear_api_key_hashes()
+        .clear_filter_rules()
+        .api_key_hashes(["hash_123"])
+        .filter_rules(
+            ObservabilityFilterRulesConfig::builder()
+                .groups(Vec::<ObservabilityFilterGroup>::new())
+                .build()
+                .expect("filter rules should build"),
+        )
+        .build()
+        .expect("update observability request should build");
+    let value_after_clear_json =
+        serde_json::to_value(&value_after_clear).expect("request should serialize");
+    assert_eq!(
+        value_after_clear_json.get("api_key_hashes"),
+        Some(&serde_json::json!(["hash_123"]))
+    );
+    assert!(value_after_clear_json.get("filter_rules").is_some());
+
+    let clear_after_value = UpdateObservabilityDestinationRequest::builder()
+        .api_key_hashes(["hash_123"])
+        .filter_rules(
+            ObservabilityFilterRulesConfig::builder()
+                .groups(Vec::<ObservabilityFilterGroup>::new())
+                .build()
+                .expect("filter rules should build"),
+        )
+        .clear_api_key_hashes()
+        .clear_filter_rules()
+        .build()
+        .expect("update observability request should build");
+    let clear_after_value_json =
+        serde_json::to_value(&clear_after_value).expect("request should serialize");
+    assert_eq!(
+        clear_after_value_json.get("api_key_hashes"),
+        Some(&serde_json::Value::Null)
+    );
+    assert_eq!(
+        clear_after_value_json.get("filter_rules"),
+        Some(&serde_json::Value::Null)
+    );
+}
+
+#[test]
 fn test_observability_destination_response_deserialization() {
     let parsed: ApiResponse<ObservabilityDestination> =
         serde_json::from_str(destination_body()).expect("destination response should deserialize");

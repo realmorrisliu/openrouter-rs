@@ -1,6 +1,6 @@
 use derive_builder::Builder;
 use reqwest::Client as HttpClient;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer, ser::SerializeMap};
 use serde_json::Value;
 use urlencoding::encode;
 
@@ -147,31 +147,68 @@ impl CreateObservabilityDestinationRequestBuilder {
 }
 
 /// Request payload for updating an observability destination.
-#[derive(Serialize, Deserialize, Debug, Clone, Builder)]
+#[derive(Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
 pub struct UpdateObservabilityDestinationRequest {
     #[builder(setter(into, strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub config: Option<Value>,
     #[builder(setter(custom), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub api_key_hashes: Option<Vec<String>>,
+    #[serde(skip)]
+    #[builder(setter(custom), default)]
+    clear_api_key_hashes: bool,
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub enabled: Option<bool>,
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub privacy_mode: Option<bool>,
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub sampling_rate: Option<f64>,
-    #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(setter(custom), default)]
     pub filter_rules: Option<ObservabilityFilterRulesConfig>,
+    #[serde(skip)]
+    #[builder(setter(custom), default)]
+    clear_filter_rules: bool,
+}
+
+impl Serialize for UpdateObservabilityDestinationRequest {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut map = serializer.serialize_map(None)?;
+        if let Some(value) = &self.name {
+            map.serialize_entry("name", value)?;
+        }
+        if let Some(value) = &self.config {
+            map.serialize_entry("config", value)?;
+        }
+        if self.clear_api_key_hashes {
+            map.serialize_entry("api_key_hashes", &Option::<Vec<String>>::None)?;
+        } else if let Some(value) = &self.api_key_hashes {
+            map.serialize_entry("api_key_hashes", value)?;
+        }
+        if let Some(value) = &self.enabled {
+            map.serialize_entry("enabled", value)?;
+        }
+        if let Some(value) = &self.privacy_mode {
+            map.serialize_entry("privacy_mode", value)?;
+        }
+        if let Some(value) = &self.sampling_rate {
+            map.serialize_entry("sampling_rate", value)?;
+        }
+        if self.clear_filter_rules {
+            map.serialize_entry(
+                "filter_rules",
+                &Option::<ObservabilityFilterRulesConfig>::None,
+            )?;
+        } else if let Some(value) = &self.filter_rules {
+            map.serialize_entry("filter_rules", value)?;
+        }
+        map.end()
+    }
 }
 
 impl UpdateObservabilityDestinationRequest {
@@ -181,7 +218,33 @@ impl UpdateObservabilityDestinationRequest {
 }
 
 impl UpdateObservabilityDestinationRequestBuilder {
-    strip_option_vec_setter!(api_key_hashes, String);
+    pub fn api_key_hashes<T, S>(&mut self, items: T) -> &mut Self
+    where
+        T: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.api_key_hashes = Some(Some(items.into_iter().map(Into::into).collect()));
+        self.clear_api_key_hashes = Some(false);
+        self
+    }
+
+    pub fn clear_api_key_hashes(&mut self) -> &mut Self {
+        self.api_key_hashes = Some(None);
+        self.clear_api_key_hashes = Some(true);
+        self
+    }
+
+    pub fn filter_rules(&mut self, value: ObservabilityFilterRulesConfig) -> &mut Self {
+        self.filter_rules = Some(Some(value));
+        self.clear_filter_rules = Some(false);
+        self
+    }
+
+    pub fn clear_filter_rules(&mut self) -> &mut Self {
+        self.filter_rules = Some(None);
+        self.clear_filter_rules = Some(true);
+        self
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
