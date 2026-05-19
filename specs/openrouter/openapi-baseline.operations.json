@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-05-15T07:34:15+00:00",
+  "captured_at": "2026-05-19T11:09:59+00:00",
   "info": {
     "contact": {
       "email": "support@openrouter.ai",
@@ -14,8 +14,19 @@
     "title": "OpenRouter API",
     "version": "1.0.0"
   },
-  "operation_count": 52,
+  "operation_count": 62,
   "operations": [
+    {
+      "deprecated": false,
+      "fingerprint": "54fa253a00ac5c42",
+      "id": "DELETE /byok/{id}",
+      "method": "DELETE",
+      "operation_id": "deleteBYOKKey",
+      "path": "/byok/{id}",
+      "tags": [
+        "BYOK"
+      ]
+    },
     {
       "deprecated": false,
       "fingerprint": "2fb8480286edd199",
@@ -40,6 +51,17 @@
     },
     {
       "deprecated": false,
+      "fingerprint": "7af9e020afb4c928",
+      "id": "DELETE /observability/destinations/{id}",
+      "method": "DELETE",
+      "operation_id": "deleteObservabilityDestination",
+      "path": "/observability/destinations/{id}",
+      "tags": [
+        "Observability"
+      ]
+    },
+    {
+      "deprecated": false,
       "fingerprint": "4cc4b797882b36d3",
       "id": "DELETE /workspaces/{id}",
       "method": "DELETE",
@@ -58,6 +80,28 @@
       "path": "/activity",
       "tags": [
         "Analytics"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "4107b67b850306f3",
+      "id": "GET /byok",
+      "method": "GET",
+      "operation_id": "listBYOKKeys",
+      "path": "/byok",
+      "tags": [
+        "BYOK"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "44df7c172632e2d0",
+      "id": "GET /byok/{id}",
+      "method": "GET",
+      "operation_id": "getBYOKKey",
+      "path": "/byok/{id}",
+      "tags": [
+        "BYOK"
       ]
     },
     {
@@ -260,6 +304,28 @@
     },
     {
       "deprecated": false,
+      "fingerprint": "4684d46d3e9ed4ba",
+      "id": "GET /observability/destinations",
+      "method": "GET",
+      "operation_id": "listObservabilityDestinations",
+      "path": "/observability/destinations",
+      "tags": [
+        "Observability"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "f6a02d96a127d2fb",
+      "id": "GET /observability/destinations/{id}",
+      "method": "GET",
+      "operation_id": "getObservabilityDestination",
+      "path": "/observability/destinations/{id}",
+      "tags": [
+        "Observability"
+      ]
+    },
+    {
+      "deprecated": false,
       "fingerprint": "9312fc5514215fa6",
       "id": "GET /organization/members",
       "method": "GET",
@@ -337,6 +403,17 @@
     },
     {
       "deprecated": false,
+      "fingerprint": "dad0322285e3ec9d",
+      "id": "PATCH /byok/{id}",
+      "method": "PATCH",
+      "operation_id": "updateBYOKKey",
+      "path": "/byok/{id}",
+      "tags": [
+        "BYOK"
+      ]
+    },
+    {
+      "deprecated": false,
       "fingerprint": "e927a97f82d97c98",
       "id": "PATCH /guardrails/{id}",
       "method": "PATCH",
@@ -355,6 +432,17 @@
       "path": "/keys/{hash}",
       "tags": [
         "API Keys"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "f131c45a71b39858",
+      "id": "PATCH /observability/destinations/{id}",
+      "method": "PATCH",
+      "operation_id": "updateObservabilityDestination",
+      "path": "/observability/destinations/{id}",
+      "tags": [
+        "Observability"
       ]
     },
     {
@@ -414,7 +502,18 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "7fb9b0f9d6910b9f",
+      "fingerprint": "ae1842cd453f2aa0",
+      "id": "POST /byok",
+      "method": "POST",
+      "operation_id": "createBYOKKey",
+      "path": "/byok",
+      "tags": [
+        "BYOK"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "5363f5b6080a61b7",
       "id": "POST /chat/completions",
       "method": "POST",
       "operation_id": "sendChatCompletionRequest",
@@ -436,7 +535,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f006042818f6b442",
+      "fingerprint": "6df7b43bc216e7c0",
       "id": "POST /embeddings",
       "method": "POST",
       "operation_id": "createEmbeddings",
@@ -513,13 +612,24 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "272fc47d729c98ad",
+      "fingerprint": "d7754357f9e76ce2",
       "id": "POST /messages",
       "method": "POST",
       "operation_id": "createMessages",
       "path": "/messages",
       "tags": [
         "Anthropic Messages"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "5086e3ca90802aa9",
+      "id": "POST /observability/destinations",
+      "method": "POST",
+      "operation_id": "createObservabilityDestination",
+      "path": "/observability/destinations",
+      "tags": [
+        "Observability"
       ]
     },
     {
@@ -535,7 +645,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "997bbd2c929d64db",
+      "fingerprint": "d07149e2fe298988",
       "id": "POST /responses",
       "method": "POST",
       "operation_id": "createResponses",

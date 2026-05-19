@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added `OpenRouterExperimentalMetadata` request-header opt-in for chat completions, Responses API, and Anthropic-compatible Messages requests, plus typed chat response access to `service_tier` and `openrouter_metadata`.
+- Added typed SDK support for BYOK provider credential management (`GET|POST /byok`, `GET|PATCH|DELETE /byok/{id}`) via `api::byok` and `client.management().*_byok_key(...)` methods.
+- Added typed SDK support for observability destination management (`GET|POST /observability/destinations`, `GET|PATCH|DELETE /observability/destinations/{id}`) via `api::observability` and `client.management().*_observability_destination(...)` methods.
+- Added embedding multimodal media helpers for audio, video, and file content parts through `EmbeddingContentPart::input_audio(...)`, `input_video(...)`, and `input_file(...)`.
 - Added typed guardrail content-filter support, including built-in filter entries, custom regex filters, and provider-specific ZDR flags on guardrail create/update requests and guardrail responses.
 - Added typed `supported_voices` model discovery fields and `GenerationData::service_tier` for generation metadata responses.
 - Added typed SDK support for `POST /audio/transcriptions`, including `api::audio::{TranscriptionRequest, TranscriptionInputAudio, TranscriptionResponse}` and the canonical `client.audio().transcriptions().create(...)` surface.
@@ -20,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Accepted the 2026-04-29 OpenAPI drift review, including `stt` generation origins and chat usage cost metadata, and kept the repository snapshot at `51 / 51` official OpenAPI endpoint coverage.
 - Accepted the 2026-05-03 OpenAPI drift review, including audio transcription support, and restored the repository snapshot to `52 / 52` official OpenAPI endpoint coverage.
 - Accepted the 2026-05-15 OpenAPI drift review, including experimental response metadata, guardrail content filters, model supported voices, and generation service tiers, while keeping the repository snapshot at `52 / 52` official OpenAPI endpoint coverage.
+- Accepted the 2026-05-19 OpenAPI drift review, including BYOK provider credentials, observability destinations, embeddings multimodal media parts, and Responses schema refreshes, restoring the repository snapshot to `62 / 62` official OpenAPI endpoint coverage.
 - Changed the scheduled OpenAPI drift workflow from daily to weekly while keeping manual `workflow_dispatch` runs available.
 
 ### Fixed

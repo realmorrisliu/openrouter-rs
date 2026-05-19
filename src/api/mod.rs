@@ -12,7 +12,7 @@
 //! - `client.audio().speech()` / `client.audio().transcriptions()` -> [`audio`]
 //! - `client.videos()` -> [`videos`]
 //! - `client.models()` -> [`models`], [`embeddings`], [`discovery`]
-//! - `client.management()` -> [`api_keys`], [`auth`], [`credits`], [`generation`], [`guardrails`], [`organization`], [`workspaces`]
+//! - `client.management()` -> [`api_keys`], [`auth`], [`byok`], [`credits`], [`generation`], [`guardrails`], [`observability`], [`organization`], [`workspaces`]
 //! - `client.legacy()` -> [`legacy`] (feature `legacy-completions`)
 //!
 //! Endpoint families currently implemented here:
@@ -27,6 +27,8 @@
 //! - embeddings
 //! - API-key and auth-code flows
 //! - credits, Coinbase charge creation, generation lookup/content, and activity
+//! - BYOK provider credential management
+//! - observability destination management
 //! - guardrails and guardrail assignments
 //! - organization member listing
 //! - workspace CRUD and membership management
@@ -116,6 +118,7 @@
 pub mod api_keys;
 pub mod audio;
 pub mod auth;
+pub mod byok;
 pub mod chat;
 pub mod credits;
 pub mod discovery;
@@ -125,6 +128,7 @@ pub mod generation;
 pub mod guardrails;
 pub mod messages;
 pub mod models;
+pub mod observability;
 pub mod organization;
 pub mod rerank;
 pub mod responses;

@@ -5,8 +5,8 @@ use futures_util::stream::BoxStream;
 use crate::api::legacy::completion;
 use crate::{
     api::{
-        api_keys, audio, auth, chat, credits, discovery, embeddings, generation, guardrails,
-        messages, models, organization, rerank, responses, videos, workspaces,
+        api_keys, audio, auth, byok, chat, credits, discovery, embeddings, generation, guardrails,
+        messages, models, observability, organization, rerank, responses, videos, workspaces,
     },
     error::OpenRouterError,
     strip_option_vec_setter,
@@ -1600,6 +1600,185 @@ impl OpenRouterClient {
         }
     }
 
+    /// List BYOK provider credentials (`GET /byok`). Requires a management key.
+    pub async fn list_byok_keys(
+        &self,
+        pagination: Option<PaginationOptions>,
+        workspace_id: Option<&str>,
+        provider: Option<&str>,
+    ) -> Result<byok::ByokKeyListResponse, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            byok::list_byok_keys_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                pagination,
+                workspace_id,
+                provider,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Create a BYOK provider credential (`POST /byok`). Requires a management key.
+    pub async fn create_byok_key(
+        &self,
+        request: &byok::CreateByokKeyRequest,
+    ) -> Result<byok::ByokKey, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            byok::create_byok_key_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Get a BYOK provider credential (`GET /byok/{id}`). Requires a management key.
+    pub async fn get_byok_key(&self, id: &str) -> Result<byok::ByokKey, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            byok::get_byok_key_with_client(self.http_client(), &self.base_url, management_key, id)
+                .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Update a BYOK provider credential (`PATCH /byok/{id}`). Requires a management key.
+    pub async fn update_byok_key(
+        &self,
+        id: &str,
+        request: &byok::UpdateByokKeyRequest,
+    ) -> Result<byok::ByokKey, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            byok::update_byok_key_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                id,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Delete a BYOK provider credential (`DELETE /byok/{id}`). Requires a management key.
+    pub async fn delete_byok_key(&self, id: &str) -> Result<bool, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            byok::delete_byok_key_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                id,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// List observability destinations (`GET /observability/destinations`).
+    pub async fn list_observability_destinations(
+        &self,
+        pagination: Option<PaginationOptions>,
+        workspace_id: Option<&str>,
+    ) -> Result<observability::ObservabilityDestinationListResponse, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            observability::list_observability_destinations_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                pagination,
+                workspace_id,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Create an observability destination (`POST /observability/destinations`).
+    pub async fn create_observability_destination(
+        &self,
+        request: &observability::CreateObservabilityDestinationRequest,
+    ) -> Result<observability::ObservabilityDestination, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            observability::create_observability_destination_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Get an observability destination (`GET /observability/destinations/{id}`).
+    pub async fn get_observability_destination(
+        &self,
+        id: &str,
+    ) -> Result<observability::ObservabilityDestination, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            observability::get_observability_destination_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                id,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Update an observability destination (`PATCH /observability/destinations/{id}`).
+    pub async fn update_observability_destination(
+        &self,
+        id: &str,
+        request: &observability::UpdateObservabilityDestinationRequest,
+    ) -> Result<observability::ObservabilityDestination, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            observability::update_observability_destination_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                id,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Delete an observability destination (`DELETE /observability/destinations/{id}`).
+    pub async fn delete_observability_destination(
+        &self,
+        id: &str,
+    ) -> Result<bool, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            observability::delete_observability_destination_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                id,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
     /// List organization members for the configured management key.
     pub async fn list_organization_members(
         &self,
@@ -2195,6 +2374,91 @@ impl<'a> ManagementClient<'a> {
         date: Option<&str>,
     ) -> Result<Vec<discovery::ActivityItem>, OpenRouterError> {
         self.client.get_activity(date).await
+    }
+
+    /// List BYOK provider credentials (`GET /byok`).
+    pub async fn list_byok_keys(
+        &self,
+        pagination: Option<PaginationOptions>,
+        workspace_id: Option<&str>,
+        provider: Option<&str>,
+    ) -> Result<byok::ByokKeyListResponse, OpenRouterError> {
+        self.client
+            .list_byok_keys(pagination, workspace_id, provider)
+            .await
+    }
+
+    /// Create a BYOK provider credential (`POST /byok`).
+    pub async fn create_byok_key(
+        &self,
+        request: &byok::CreateByokKeyRequest,
+    ) -> Result<byok::ByokKey, OpenRouterError> {
+        self.client.create_byok_key(request).await
+    }
+
+    /// Get a BYOK provider credential (`GET /byok/{id}`).
+    pub async fn get_byok_key(&self, id: &str) -> Result<byok::ByokKey, OpenRouterError> {
+        self.client.get_byok_key(id).await
+    }
+
+    /// Update a BYOK provider credential (`PATCH /byok/{id}`).
+    pub async fn update_byok_key(
+        &self,
+        id: &str,
+        request: &byok::UpdateByokKeyRequest,
+    ) -> Result<byok::ByokKey, OpenRouterError> {
+        self.client.update_byok_key(id, request).await
+    }
+
+    /// Delete a BYOK provider credential (`DELETE /byok/{id}`).
+    pub async fn delete_byok_key(&self, id: &str) -> Result<bool, OpenRouterError> {
+        self.client.delete_byok_key(id).await
+    }
+
+    /// List observability destinations (`GET /observability/destinations`).
+    pub async fn list_observability_destinations(
+        &self,
+        pagination: Option<PaginationOptions>,
+        workspace_id: Option<&str>,
+    ) -> Result<observability::ObservabilityDestinationListResponse, OpenRouterError> {
+        self.client
+            .list_observability_destinations(pagination, workspace_id)
+            .await
+    }
+
+    /// Create an observability destination (`POST /observability/destinations`).
+    pub async fn create_observability_destination(
+        &self,
+        request: &observability::CreateObservabilityDestinationRequest,
+    ) -> Result<observability::ObservabilityDestination, OpenRouterError> {
+        self.client.create_observability_destination(request).await
+    }
+
+    /// Get an observability destination (`GET /observability/destinations/{id}`).
+    pub async fn get_observability_destination(
+        &self,
+        id: &str,
+    ) -> Result<observability::ObservabilityDestination, OpenRouterError> {
+        self.client.get_observability_destination(id).await
+    }
+
+    /// Update an observability destination (`PATCH /observability/destinations/{id}`).
+    pub async fn update_observability_destination(
+        &self,
+        id: &str,
+        request: &observability::UpdateObservabilityDestinationRequest,
+    ) -> Result<observability::ObservabilityDestination, OpenRouterError> {
+        self.client
+            .update_observability_destination(id, request)
+            .await
+    }
+
+    /// Delete an observability destination (`DELETE /observability/destinations/{id}`).
+    pub async fn delete_observability_destination(
+        &self,
+        id: &str,
+    ) -> Result<bool, OpenRouterError> {
+        self.client.delete_observability_destination(id).await
     }
 
     /// List guardrails (`GET /guardrails`).

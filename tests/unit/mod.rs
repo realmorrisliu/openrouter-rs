@@ -6,6 +6,7 @@ fn dummy_test() {
 pub mod api_keys;
 pub mod audio;
 pub mod auth;
+pub mod byok;
 pub mod chat_api;
 pub mod chat_request;
 pub mod client_domains;
@@ -22,6 +23,7 @@ pub mod generation;
 pub mod guardrails;
 pub mod messages;
 pub mod models;
+pub mod observability;
 pub mod organization;
 pub mod pagination;
 pub mod provider;

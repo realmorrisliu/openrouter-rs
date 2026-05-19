@@ -31,13 +31,44 @@ impl EmbeddingImageUrl {
     }
 }
 
+/// Base64 or data-URL backed multimodal media for embedding content parts.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct EmbeddingMultimodalMedia {
+    pub data: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub format: Option<String>,
+}
+
+impl EmbeddingMultimodalMedia {
+    pub fn new(data: impl Into<String>, format: Option<impl Into<String>>) -> Self {
+        Self {
+            data: data.into(),
+            format: format.map(Into::into),
+        }
+    }
+}
+
 /// One multimodal content part for embedding input.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum EmbeddingContentPart {
-    Text { text: String },
-    ImageUrl { image_url: EmbeddingImageUrl },
+    Text {
+        text: String,
+    },
+    ImageUrl {
+        image_url: EmbeddingImageUrl,
+    },
+    InputAudio {
+        input_audio: EmbeddingMultimodalMedia,
+    },
+    InputVideo {
+        input_video: EmbeddingMultimodalMedia,
+    },
+    InputFile {
+        input_file: EmbeddingMultimodalMedia,
+    },
 }
 
 impl EmbeddingContentPart {
@@ -48,6 +79,24 @@ impl EmbeddingContentPart {
     pub fn image_url(url: impl Into<String>) -> Self {
         Self::ImageUrl {
             image_url: EmbeddingImageUrl::new(url),
+        }
+    }
+
+    pub fn input_audio(data: impl Into<String>, format: Option<impl Into<String>>) -> Self {
+        Self::InputAudio {
+            input_audio: EmbeddingMultimodalMedia::new(data, format),
+        }
+    }
+
+    pub fn input_video(data: impl Into<String>, format: Option<impl Into<String>>) -> Self {
+        Self::InputVideo {
+            input_video: EmbeddingMultimodalMedia::new(data, format),
+        }
+    }
+
+    pub fn input_file(data: impl Into<String>, format: Option<impl Into<String>>) -> Self {
+        Self::InputFile {
+            input_file: EmbeddingMultimodalMedia::new(data, format),
         }
     }
 }
