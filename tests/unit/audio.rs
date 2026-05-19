@@ -384,6 +384,33 @@ async fn test_create_speech_falls_back_to_legacy_path_when_official_path_is_miss
 
             let request_text = String::from_utf8_lossy(&request_bytes).to_string();
             let request_line = request_text.lines().next().unwrap_or_default().to_string();
+            let content_length = request_text
+                .lines()
+                .find_map(|line| {
+                    let lower = line.to_ascii_lowercase();
+                    if lower.starts_with("content-length:") {
+                        line.split(':').nth(1)?.trim().parse::<usize>().ok()
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or(0);
+            let header_len = request_bytes
+                .windows(4)
+                .position(|window| window == b"\r\n\r\n")
+                .map(|pos| pos + 4)
+                .unwrap_or(request_bytes.len());
+            let mut body_bytes = request_bytes[header_len..].to_vec();
+            while body_bytes.len() < content_length {
+                let read = stream
+                    .read(&mut chunk)
+                    .expect("server should drain request body");
+                if read == 0 {
+                    break;
+                }
+                body_bytes.extend_from_slice(&chunk[..read]);
+            }
+
             tx.send(request_line.clone())
                 .expect("server should send captured request");
 

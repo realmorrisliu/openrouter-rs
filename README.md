@@ -21,7 +21,7 @@ Type-safe, async Rust SDK for the OpenRouter API.
 
 `openrouter-rs` is a community-maintained Rust SDK for OpenRouter. It exposes a domain-oriented client for chat, responses, messages, rerank, audio speech/transcription, video generation, models, embeddings, and management APIs, plus a companion CLI in the same repository.
 
-The current repo snapshot implements `52 / 52` official OpenAPI method/path entries, with published live integration coverage tracked in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md).
+The current repo snapshot implements `62 / 62` official OpenAPI method/path entries, with published live integration coverage tracked in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md).
 
 ## Why `openrouter-rs`
 
@@ -32,7 +32,7 @@ The current repo snapshot implements `52 / 52` official OpenAPI method/path entr
 - Typed tools, manual JSON-schema tools, and multimodal chat content
 - Typed chat usage metadata for token counts, OpenRouter cost, provider cost breakdowns, and BYOK status
 - Opt-in experimental response metadata for chat, Responses API, and Anthropic-compatible Messages requests
-- Discovery, rerank, audio speech/transcription, video generation, embeddings, API-key management, workspace management, organization members, guardrails, activity, credits, and generation metadata/content coverage
+- Discovery, rerank, audio speech/transcription, video generation, embeddings, API-key management, BYOK provider credentials, observability destinations, workspace management, organization members, guardrails, activity, credits, and generation metadata/content coverage
 - A companion CLI for profile resolution, discovery, management, and billing/usage workflows
 
 ## Installation
@@ -107,7 +107,7 @@ The canonical public surface is domain-oriented:
 | `audio().transcriptions()` | `create` | `/audio/transcriptions` | API key |
 | `videos()` | `create`, `list_models`, `get_generation`, `get_content` | `/videos*` | API key |
 | `models()` | `list`, `list_by_category`, `list_by_parameters`, `list_endpoints`, `list_providers`, `list_user_models`, `get_model_count`, `list_zdr_endpoints`, `create_embedding`, `list_embedding_models` | `/models*`, `/providers`, `/endpoints/zdr`, `/embeddings*` | API key |
-| `management()` | `create_api_key`, `create_api_key_in_workspace`, `list_api_keys`, `list_api_keys_in_workspace`, `create_auth_code`, `create_api_key_from_auth_code`, `list_guardrails`, `list_guardrails_in_workspace`, `create_guardrail`, `list_organization_members`, `list_workspaces`, `create_workspace`, `get_workspace`, `update_workspace`, `delete_workspace`, `add_workspace_members`, `remove_workspace_members`, `get_activity`, `get_credits`, `create_coinbase_charge`, `get_generation`, `get_generation_content` | `/keys*`, `/auth/keys*`, `/guardrails*`, `/organization/members`, `/workspaces*`, `/activity`, `/credits*`, `/generation*`, `/key` | Governed endpoints require a management key; billing/session endpoints still use the normal API key because that is how OpenRouter authenticates them |
+| `management()` | `create_api_key`, `create_api_key_in_workspace`, `list_api_keys`, `list_api_keys_in_workspace`, `list_byok_keys`, `create_byok_key`, `get_byok_key`, `update_byok_key`, `delete_byok_key`, `list_observability_destinations`, `create_observability_destination`, `get_observability_destination`, `update_observability_destination`, `delete_observability_destination`, `create_auth_code`, `create_api_key_from_auth_code`, `list_guardrails`, `list_guardrails_in_workspace`, `create_guardrail`, `list_organization_members`, `list_workspaces`, `create_workspace`, `get_workspace`, `update_workspace`, `delete_workspace`, `add_workspace_members`, `remove_workspace_members`, `get_activity`, `get_credits`, `create_coinbase_charge`, `get_generation`, `get_generation_content` | `/keys*`, `/byok*`, `/observability/destinations*`, `/auth/keys*`, `/guardrails*`, `/organization/members`, `/workspaces*`, `/activity`, `/credits*`, `/generation*`, `/key` | Governed endpoints require a management key; billing/session endpoints still use the normal API key because that is how OpenRouter authenticates them |
 | `legacy()` | `completions().create` | `/completions` | `legacy-completions` feature + API key |
 
 At runtime, the builder/client exposes the values the SDK directly consumes:
@@ -132,7 +132,7 @@ Chat, Responses API, and Anthropic-compatible Messages request builders also exp
 - multimodal chat content, including image, audio, video, and file parts
 - model discovery, provider discovery, embeddings, and ZDR endpoints
 - typed generation metadata, model voice metadata, workspace I/O logging controls, and video callback URL support
-- management-key workflows for keys, workspace-scoped keys, auth codes, organization members, workspaces, workspace membership, guardrails, guardrail content filters, workspace-scoped guardrails, and activity, plus API-key-authenticated credits and generation metadata/content endpoints
+- management-key workflows for keys, workspace-scoped keys, BYOK provider credentials, observability destinations, auth codes, organization members, workspaces, workspace membership, guardrails, guardrail content filters, workspace-scoped guardrails, and activity, plus API-key-authenticated credits and generation metadata/content endpoints
 
 For deeper examples, prefer the runnable examples in [`examples/`](examples) over long README snippets.
 
@@ -171,6 +171,8 @@ The repo includes runnable examples for the highest-value workflows:
 | [`examples/create_video_generation.rs`](examples/create_video_generation.rs) | `videos().create(...)` |
 | [`examples/create_embedding.rs`](examples/create_embedding.rs) | `models().create_embedding(...)` |
 | [`examples/domain_management_api_keys.rs`](examples/domain_management_api_keys.rs) | API-key management via `management()` |
+| [`examples/list_byok_keys.rs`](examples/list_byok_keys.rs) | `management().list_byok_keys(...)` |
+| [`examples/list_observability_destinations.rs`](examples/list_observability_destinations.rs) | `management().list_observability_destinations(...)` |
 | [`examples/list_organization_members.rs`](examples/list_organization_members.rs) | `management().list_organization_members(...)` |
 | [`examples/list_workspaces.rs`](examples/list_workspaces.rs) | `management().list_workspaces(...)` |
 | [`examples/exchange_code_for_api_key.rs`](examples/exchange_code_for_api_key.rs) | PKCE/auth-code flow |
@@ -192,6 +194,8 @@ cargo run --example create_rerank
 cargo run --example create_speech
 cargo run --example create_transcription
 cargo run --example create_embedding
+cargo run --example list_byok_keys
+cargo run --example list_observability_destinations
 ```
 
 For shell and CI automation recipes built around the companion CLI, see [`docs/operations/cli-automation-workflows.md`](docs/operations/cli-automation-workflows.md).
@@ -218,7 +222,7 @@ For copy-paste shell/CI recipes, see [`docs/operations/cli-automation-workflows.
 
 - Community-maintained third-party SDK; not affiliated with OpenRouter
 - Canonical docs and examples prefer the domain clients over older flat helpers
-- Accepted endpoint coverage is tracked against the current OpenAPI snapshot, and the current baseline is fully implemented at the SDK surface (`52 / 52`)
+- Accepted endpoint coverage is tracked against the current OpenAPI snapshot, and the current baseline is fully implemented at the SDK surface (`62 / 62`)
 - Live integration coverage and gaps are published in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md)
 - Migration guidance for the planned `0.9.x -> 0.10.0` public-model future-proofing release, the `0.8.x -> 0.9.0` audio speech release, the `0.7.x -> 0.8.0` transport/error-surface release, and the archived `0.5.x -> 0.6.x` naming guide lives in [`MIGRATION.md`](MIGRATION.md)
 - Legacy `POST /completions` support remains available behind the `legacy-completions` feature

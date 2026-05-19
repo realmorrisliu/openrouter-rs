@@ -50,6 +50,38 @@ fn test_embedding_request_multimodal_input_serialize() {
 }
 
 #[test]
+fn test_embedding_request_multimodal_media_and_file_parts_serialize() {
+    let input = EmbeddingInput::MultimodalArray(vec![EmbeddingMultimodalInput::new(vec![
+        EmbeddingContentPart::input_audio("data:audio/wav;base64,UklGRg==", Some("wav")),
+        EmbeddingContentPart::input_video("data:video/mp4;base64,AAAA", Some("mp4")),
+        EmbeddingContentPart::input_file("data:application/pdf;base64,JVBERg==", Some("pdf")),
+    ])]);
+
+    let request = EmbeddingRequest::new("openai/text-embedding-3-large", input);
+    let value = serde_json::to_value(&request).expect("embedding request should serialize");
+
+    assert_eq!(value["input"][0]["content"][0]["type"], "input_audio");
+    assert_eq!(
+        value["input"][0]["content"][0]["input_audio"]["data"],
+        "data:audio/wav;base64,UklGRg=="
+    );
+    assert_eq!(
+        value["input"][0]["content"][0]["input_audio"]["format"],
+        "wav"
+    );
+    assert_eq!(value["input"][0]["content"][1]["type"], "input_video");
+    assert_eq!(
+        value["input"][0]["content"][1]["input_video"]["format"],
+        "mp4"
+    );
+    assert_eq!(value["input"][0]["content"][2]["type"], "input_file");
+    assert_eq!(
+        value["input"][0]["content"][2]["input_file"]["format"],
+        "pdf"
+    );
+}
+
+#[test]
 fn test_embedding_response_float_deserialization() {
     let raw = r#"{
         "id": "emb-001",

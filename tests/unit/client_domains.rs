@@ -9,8 +9,8 @@ use std::{
 use openrouter_rs::{
     OpenRouterClient,
     api::{
-        audio, auth, chat, credits, embeddings, guardrails, messages, rerank, responses, videos,
-        workspaces,
+        audio, auth, byok, chat, credits, embeddings, guardrails, messages, observability, rerank,
+        responses, videos, workspaces,
     },
     error::OpenRouterError,
     types::{ModelCategory, PaginationOptions, Role, SupportedParameters},
@@ -502,6 +502,27 @@ async fn test_management_domain_remaining_methods_require_configured_key() {
         .user_ids(vec!["user_1".to_string()])
         .build()
         .expect("workspace members request should build");
+    let create_byok_request = byok::CreateByokKeyRequest::builder()
+        .provider("openai")
+        .key("sk-provider")
+        .build()
+        .expect("create BYOK request should build");
+    let update_byok_request = byok::UpdateByokKeyRequest::builder()
+        .name("Updated")
+        .build()
+        .expect("update BYOK request should build");
+    let create_observability_request =
+        observability::CreateObservabilityDestinationRequest::builder()
+            .destination_type("langfuse")
+            .name("Production Langfuse")
+            .config(serde_json::json!({"publicKey":"pk","secretKey":"sk"}))
+            .build()
+            .expect("create observability request should build");
+    let update_observability_request =
+        observability::UpdateObservabilityDestinationRequest::builder()
+            .name("Updated Langfuse")
+            .build()
+            .expect("update observability request should build");
 
     assert!(matches!(
         client.management().get_current_api_key_info().await,
@@ -574,6 +595,70 @@ async fn test_management_domain_remaining_methods_require_configured_key() {
     ));
     assert!(matches!(
         client.management().get_activity(Some("2026-03-11")).await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .management()
+            .list_byok_keys(None, Some("ws_123"), Some("openai"))
+            .await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .management()
+            .create_byok_key(&create_byok_request)
+            .await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client.management().get_byok_key("byok_123").await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .management()
+            .update_byok_key("byok_123", &update_byok_request)
+            .await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client.management().delete_byok_key("byok_123").await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .management()
+            .list_observability_destinations(None, Some("ws_123"))
+            .await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .management()
+            .create_observability_destination(&create_observability_request)
+            .await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .management()
+            .get_observability_destination("dest_123")
+            .await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .management()
+            .update_observability_destination("dest_123", &update_observability_request)
+            .await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .management()
+            .delete_observability_destination("dest_123")
+            .await,
         Err(OpenRouterError::KeyNotConfigured)
     ));
     assert!(matches!(
@@ -713,6 +798,81 @@ async fn test_management_domain_remaining_methods_require_configured_key() {
             .await,
         Err(OpenRouterError::KeyNotConfigured)
     ));
+}
+
+#[tokio::test]
+async fn test_management_domain_list_byok_keys_without_filters_delegates() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
+    let client = OpenRouterClient::builder()
+        .base_url(base_url)
+        .management_key("management-key")
+        .build()
+        .expect("client should build");
+
+    let response = client
+        .management()
+        .list_byok_keys(None, None, None)
+        .await
+        .expect("list_byok_keys should succeed");
+    assert_eq!(response.total_count, 0);
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(captured.request_line, "GET /api/v1/byok HTTP/1.1");
+    assert!(
+        captured
+            .request_text
+            .to_ascii_lowercase()
+            .contains("authorization: bearer management-key")
+            || captured
+                .request_text
+                .to_ascii_lowercase()
+                .contains("authorization:bearer management-key"),
+        "authorization header should include management key, request:\n{}",
+        captured.request_text
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_management_domain_list_observability_destinations_without_filters_delegates() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
+    let client = OpenRouterClient::builder()
+        .base_url(base_url)
+        .management_key("management-key")
+        .build()
+        .expect("client should build");
+
+    let response = client
+        .management()
+        .list_observability_destinations(None, None)
+        .await
+        .expect("list_observability_destinations should succeed");
+    assert_eq!(response.total_count, 0);
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/observability/destinations HTTP/1.1"
+    );
+    assert!(
+        captured
+            .request_text
+            .to_ascii_lowercase()
+            .contains("authorization: bearer management-key")
+            || captured
+                .request_text
+                .to_ascii_lowercase()
+                .contains("authorization:bearer management-key"),
+        "authorization header should include management key, request:\n{}",
+        captured.request_text
+    );
+
+    server.join().expect("server thread should finish");
 }
 
 #[tokio::test]

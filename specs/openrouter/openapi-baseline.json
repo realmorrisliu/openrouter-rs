@@ -2880,12 +2880,13 @@
         "type": "object"
       },
       "ApplyPatchCallItem": {
-        "description": "A file create/update/delete via diff patch",
+        "description": "A tool call emitted by the model requesting a V4A patch operation. The client applies the patch and echoes an `apply_patch_call_output` on the next turn.",
         "example": {
-          "call_id": "call-abc123",
+          "call_id": "call_abc123",
+          "id": "apc_abc123",
           "operation": {
-            "diff": "--- a\n+++ b\n",
-            "path": "src/main.ts",
+            "diff": "@@ function main() {\n+  console.log(\"hi\");\n }",
+            "path": "/src/main.ts",
             "type": "update_file"
           },
           "status": "completed",
@@ -2900,86 +2901,10 @@
             "type": "string"
           },
           "operation": {
-            "oneOf": [
-              {
-                "properties": {
-                  "diff": {
-                    "type": "string"
-                  },
-                  "path": {
-                    "type": "string"
-                  },
-                  "type": {
-                    "enum": [
-                      "create_file"
-                    ],
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "type",
-                  "path",
-                  "diff"
-                ],
-                "type": "object"
-              },
-              {
-                "properties": {
-                  "path": {
-                    "type": "string"
-                  },
-                  "type": {
-                    "enum": [
-                      "delete_file"
-                    ],
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "type",
-                  "path"
-                ],
-                "type": "object"
-              },
-              {
-                "properties": {
-                  "diff": {
-                    "type": "string"
-                  },
-                  "path": {
-                    "type": "string"
-                  },
-                  "type": {
-                    "enum": [
-                      "update_file"
-                    ],
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "type",
-                  "path",
-                  "diff"
-                ],
-                "type": "object"
-              }
-            ]
+            "$ref": "#/components/schemas/ApplyPatchCallOperation"
           },
           "status": {
-            "anyOf": [
-              {
-                "enum": [
-                  "in_progress"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "completed"
-                ],
-                "type": "string"
-              }
-            ]
+            "$ref": "#/components/schemas/ApplyPatchCallStatus"
           },
           "type": {
             "enum": [
@@ -2991,15 +2916,164 @@
         "required": [
           "type",
           "call_id",
-          "operation",
-          "status"
+          "status",
+          "operation"
+        ],
+        "type": "object"
+      },
+      "ApplyPatchCallOperation": {
+        "description": "The patch operation requested by an `apply_patch_call`. `create_file` and `update_file` carry a V4A diff; `delete_file` omits it.",
+        "example": {
+          "diff": "@@ function main() {\n+  console.log(\"hi\");\n }",
+          "path": "/src/main.ts",
+          "type": "update_file"
+        },
+        "oneOf": [
+          {
+            "properties": {
+              "diff": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "create_file"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "path",
+              "diff"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "diff": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "update_file"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "path",
+              "diff"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "delete_file"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "path"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "ApplyPatchCallOperationDiffDeltaEvent": {
+        "description": "Incremental chunk of `operation.diff` for an `apply_patch_call`. Matches OpenAI's streaming shape.",
+        "example": {
+          "delta": "+console.log(\"hi\");\n",
+          "item_id": "apc_abc123",
+          "output_index": 0,
+          "sequence_number": 5,
+          "type": "response.apply_patch_call_operation_diff.delta"
+        },
+        "properties": {
+          "delta": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "output_index": {
+            "type": "integer"
+          },
+          "sequence_number": {
+            "type": "integer"
+          },
+          "type": {
+            "enum": [
+              "response.apply_patch_call_operation_diff.delta"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "item_id",
+          "output_index",
+          "delta",
+          "sequence_number"
+        ],
+        "type": "object"
+      },
+      "ApplyPatchCallOperationDiffDoneEvent": {
+        "description": "Emitted when `operation.diff` streaming completes for an `apply_patch_call`.",
+        "example": {
+          "diff": "@@\n+console.log(\"hi\");\n",
+          "item_id": "apc_abc123",
+          "output_index": 0,
+          "sequence_number": 12,
+          "type": "response.apply_patch_call_operation_diff.done"
+        },
+        "properties": {
+          "diff": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "output_index": {
+            "type": "integer"
+          },
+          "sequence_number": {
+            "type": "integer"
+          },
+          "type": {
+            "enum": [
+              "response.apply_patch_call_operation_diff.done"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "item_id",
+          "output_index",
+          "diff",
+          "sequence_number"
         ],
         "type": "object"
       },
       "ApplyPatchCallOutputItem": {
-        "description": "Output from an apply patch operation",
+        "description": "The client's echo of an `apply_patch_call` after applying the patch. `output` is an optional human-readable log; `status` is `completed` when the patch was applied successfully, `failed` otherwise.",
         "example": {
-          "call_id": "call-abc123",
+          "call_id": "call_abc123",
+          "output": "Applied patch to /src/main.ts",
           "status": "completed",
           "type": "apply_patch_call_output"
         },
@@ -3016,20 +3090,12 @@
             "type": "string"
           },
           "status": {
-            "anyOf": [
-              {
-                "enum": [
-                  "completed"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "failed"
-                ],
-                "type": "string"
-              }
-            ]
+            "enum": [
+              "completed",
+              "failed"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
           },
           "type": {
             "enum": [
@@ -3045,6 +3111,16 @@
         ],
         "type": "object"
       },
+      "ApplyPatchCallStatus": {
+        "description": "Lifecycle state of an `apply_patch_call` output item.",
+        "enum": [
+          "in_progress",
+          "completed"
+        ],
+        "example": "completed",
+        "type": "string",
+        "x-speakeasy-unknown-values": "allow"
+      },
       "ApplyPatchServerTool": {
         "description": "Apply patch tool configuration",
         "example": {
@@ -3054,6 +3130,33 @@
           "type": {
             "enum": [
               "apply_patch"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "ApplyPatchServerToolConfig": {
+        "description": "Configuration for the openrouter:apply_patch server tool",
+        "example": {},
+        "properties": {},
+        "type": "object"
+      },
+      "ApplyPatchServerTool_OpenRouter": {
+        "description": "OpenRouter built-in server tool: validates V4A diff patches for file operations (create, update, delete). Restricted to the Responses API.",
+        "example": {
+          "type": "openrouter:apply_patch"
+        },
+        "properties": {
+          "parameters": {
+            "$ref": "#/components/schemas/ApplyPatchServerToolConfig"
+          },
+          "type": {
+            "enum": [
+              "openrouter:apply_patch"
             ],
             "type": "string"
           }
@@ -3100,6 +3203,204 @@
           "id"
         ],
         "type": "object"
+      },
+      "BYOKKey": {
+        "example": {
+          "allowed_api_key_hashes": null,
+          "allowed_models": null,
+          "allowed_user_ids": null,
+          "created_at": "2025-08-24T10:30:00Z",
+          "disabled": false,
+          "id": "11111111-2222-3333-4444-555555555555",
+          "is_fallback": false,
+          "label": "sk-...AbCd",
+          "name": "Production OpenAI Key",
+          "provider": "openai",
+          "sort_order": 0,
+          "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+        },
+        "properties": {
+          "allowed_api_key_hashes": {
+            "description": "Optional allowlist of OpenRouter API key hashes (`api_keys.hash`) that may use this credential. `null` means no restriction.",
+            "example": [
+              "f01d52606dc8f0a8303a7b5cc3fa07109c2e346cec7c0a16b40de462992ce943"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "nullable": true,
+            "type": "array"
+          },
+          "allowed_models": {
+            "description": "Optional allowlist of model slugs this credential may be used for. `null` means no restriction.",
+            "example": null,
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "nullable": true,
+            "type": "array"
+          },
+          "allowed_user_ids": {
+            "description": "Optional allowlist of user IDs that may use this credential. `null` means no restriction.",
+            "example": null,
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "nullable": true,
+            "type": "array"
+          },
+          "created_at": {
+            "description": "ISO timestamp of when the credential was created.",
+            "example": "2025-08-24T10:30:00Z",
+            "type": "string"
+          },
+          "disabled": {
+            "description": "Whether this credential is currently disabled.",
+            "example": false,
+            "type": "boolean"
+          },
+          "id": {
+            "description": "Stable public identifier for this BYOK credential.",
+            "example": "11111111-2222-3333-4444-555555555555",
+            "format": "uuid",
+            "type": "string"
+          },
+          "is_fallback": {
+            "description": "Whether this credential is treated as a fallback \u2014 used only after non-fallback keys for the same provider have been tried.",
+            "example": false,
+            "type": "boolean"
+          },
+          "label": {
+            "description": "Short masked snippet of the key (e.g. the first/last few characters) used to identify it in the UI.",
+            "example": "sk-...AbCd",
+            "type": "string"
+          },
+          "name": {
+            "description": "Optional human-readable name for the credential.",
+            "example": "Production OpenAI Key",
+            "nullable": true,
+            "type": "string"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/BYOKProviderSlug"
+          },
+          "sort_order": {
+            "description": "Position within the provider \u2014 credentials are tried in ascending sort order.",
+            "example": 0,
+            "type": "integer"
+          },
+          "workspace_id": {
+            "description": "ID of the workspace this credential belongs to.",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "workspace_id",
+          "label",
+          "disabled",
+          "is_fallback",
+          "allowed_models",
+          "allowed_api_key_hashes",
+          "allowed_user_ids",
+          "sort_order",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "BYOKProviderSlug": {
+        "description": "The upstream provider this credential authenticates against, as a lowercase slug (e.g. `openai`, `anthropic`, `amazon-bedrock`).",
+        "enum": [
+          "ai21",
+          "aion-labs",
+          "akashml",
+          "alibaba",
+          "amazon-bedrock",
+          "amazon-nova",
+          "ambient",
+          "anthropic",
+          "arcee-ai",
+          "atlas-cloud",
+          "avian",
+          "azure",
+          "baidu",
+          "baseten",
+          "black-forest-labs",
+          "byteplus",
+          "cerebras",
+          "chutes",
+          "cirrascale",
+          "clarifai",
+          "cloudflare",
+          "cohere",
+          "crusoe",
+          "deepinfra",
+          "deepseek",
+          "dekallm",
+          "featherless",
+          "fireworks",
+          "friendli",
+          "gmicloud",
+          "google-ai-studio",
+          "google-vertex",
+          "groq",
+          "hyperbolic",
+          "inception",
+          "inceptron",
+          "inference-net",
+          "infermatic",
+          "inflection",
+          "io-net",
+          "ionstream",
+          "liquid",
+          "mancer",
+          "mara",
+          "minimax",
+          "mistral",
+          "modelrun",
+          "modular",
+          "moonshotai",
+          "morph",
+          "ncompass",
+          "nebius",
+          "nex-agi",
+          "nextbit",
+          "novita",
+          "nvidia",
+          "open-inference",
+          "openai",
+          "parasail",
+          "perceptron",
+          "perplexity",
+          "phala",
+          "poolside",
+          "recraft",
+          "reka",
+          "relace",
+          "sambanova",
+          "seed",
+          "siliconflow",
+          "sourceful",
+          "stepfun",
+          "streamlake",
+          "switchpoint",
+          "together",
+          "upstage",
+          "venice",
+          "wandb",
+          "xai",
+          "xiaomi",
+          "z-ai"
+        ],
+        "example": "openai",
+        "type": "string",
+        "x-speakeasy-unknown-values": "allow"
       },
       "BadGatewayResponse": {
         "description": "Bad Gateway - Provider/upstream API failure",
@@ -3697,6 +3998,12 @@
                 },
                 {
                   "$ref": "#/components/schemas/OpenAIResponseCustomToolCallOutput"
+                },
+                {
+                  "$ref": "#/components/schemas/ApplyPatchCallItem"
+                },
+                {
+                  "$ref": "#/components/schemas/ApplyPatchCallOutputItem"
                 }
               ]
             },
@@ -6905,8 +7212,8 @@
             "type": "integer"
           },
           "max_total_results": {
-            "description": "Maximum total number of search results across all search calls in a single request. Once this limit is reached, the tool will stop returning new results. Useful for controlling cost and context size in agentic loops.",
-            "example": 20,
+            "description": "Maximum total number of search results across all search calls in a single request. Once this limit is reached, the tool will stop returning new results. Useful for controlling cost and context size in agentic loops. Defaults to 50 when not specified.",
+            "example": 50,
             "type": "integer"
           },
           "parameters": {
@@ -7524,6 +7831,81 @@
         ],
         "type": "object"
       },
+      "ContentPartInputAudio": {
+        "example": {
+          "input_audio": {
+            "data": "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAA...",
+            "format": "wav"
+          },
+          "type": "input_audio"
+        },
+        "properties": {
+          "input_audio": {
+            "$ref": "#/components/schemas/MultimodalMedia"
+          },
+          "type": {
+            "enum": [
+              "input_audio"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "input_audio"
+        ],
+        "type": "object"
+      },
+      "ContentPartInputFile": {
+        "example": {
+          "input_file": {
+            "data": "data:application/pdf;base64,JVBERi0xLjQKJeLjz9MKMyAw...",
+            "format": "pdf"
+          },
+          "type": "input_file"
+        },
+        "properties": {
+          "input_file": {
+            "$ref": "#/components/schemas/MultimodalMedia"
+          },
+          "type": {
+            "enum": [
+              "input_file"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "input_file"
+        ],
+        "type": "object"
+      },
+      "ContentPartInputVideo": {
+        "example": {
+          "input_video": {
+            "data": "data:video/mp4;base64,AAAAGGZ0eXBtcDQyAAAAAGlzb21tcDQy...",
+            "format": "mp4"
+          },
+          "type": "input_video"
+        },
+        "properties": {
+          "input_video": {
+            "$ref": "#/components/schemas/MultimodalMedia"
+          },
+          "type": {
+            "enum": [
+              "input_video"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "input_video"
+        ],
+        "type": "object"
+      },
       "ContextCompressionEngine": {
         "description": "The compression engine to use. Defaults to \"middle-out\".",
         "enum": [
@@ -7584,6 +7966,106 @@
         "required": [
           "upstream_inference_prompt_cost",
           "upstream_inference_completions_cost"
+        ],
+        "type": "object"
+      },
+      "CreateBYOKKeyRequest": {
+        "example": {
+          "key": "sk-proj-abc123...",
+          "name": "Production OpenAI Key",
+          "provider": "openai"
+        },
+        "properties": {
+          "allowed_models": {
+            "description": "Optional allowlist of model slugs this credential may be used for. `null` means no restriction.",
+            "example": null,
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "nullable": true,
+            "type": "array"
+          },
+          "allowed_user_ids": {
+            "description": "Optional allowlist of user IDs that may use this credential. `null` means no restriction.",
+            "example": null,
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "nullable": true,
+            "type": "array"
+          },
+          "disabled": {
+            "description": "Whether this credential should be created in a disabled state.",
+            "example": false,
+            "type": "boolean"
+          },
+          "is_fallback": {
+            "description": "Whether this credential is treated as a fallback \u2014 used only after non-fallback keys for the same provider have been tried.",
+            "example": false,
+            "type": "boolean"
+          },
+          "key": {
+            "description": "The raw provider API key or credential. This value is encrypted at rest and never returned in API responses.",
+            "example": "sk-proj-abc123...",
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "description": "Optional human-readable name for the credential.",
+            "example": "Production OpenAI Key",
+            "maxLength": 255,
+            "nullable": true,
+            "type": "string"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/BYOKProviderSlug"
+          },
+          "workspace_id": {
+            "description": "Optional workspace ID. Defaults to the authenticated entity's default workspace.",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "key"
+        ],
+        "type": "object"
+      },
+      "CreateBYOKKeyResponse": {
+        "example": {
+          "data": {
+            "allowed_api_key_hashes": null,
+            "allowed_models": null,
+            "allowed_user_ids": null,
+            "created_at": "2025-08-24T10:30:00Z",
+            "disabled": false,
+            "id": "11111111-2222-3333-4444-555555555555",
+            "is_fallback": false,
+            "label": "sk-...AbCd",
+            "name": "Production OpenAI Key",
+            "provider": "openai",
+            "sort_order": 0,
+            "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        },
+        "properties": {
+          "data": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BYOKKey"
+              },
+              {
+                "description": "The created BYOK credential."
+              }
+            ]
+          }
+        },
+        "required": [
+          "data"
         ],
         "type": "object"
       },
@@ -7804,6 +8286,142 @@
               },
               {
                 "description": "The created guardrail"
+              }
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "CreateObservabilityDestinationRequest": {
+        "example": {
+          "config": {
+            "baseUrl": "https://us.cloud.langfuse.com",
+            "publicKey": "pk-l...EfGh",
+            "secretKey": "sk-l...AbCd"
+          },
+          "name": "Production Langfuse",
+          "type": "langfuse"
+        },
+        "properties": {
+          "api_key_hashes": {
+            "description": "Optional allowlist of OpenRouter API key hashes whose traffic is forwarded. `null` or omitted means all keys. Must contain at least one hash if provided.",
+            "example": null,
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "nullable": true,
+            "type": "array"
+          },
+          "config": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "description": "Provider-specific configuration. The shape depends on `type` and is validated server-side.",
+            "example": {
+              "baseUrl": "https://us.cloud.langfuse.com",
+              "publicKey": "pk-l...EfGh",
+              "secretKey": "sk-l...AbCd"
+            },
+            "type": "object"
+          },
+          "enabled": {
+            "default": true,
+            "description": "Whether this destination should be enabled immediately.",
+            "example": true,
+            "type": "boolean"
+          },
+          "filter_rules": {
+            "$ref": "#/components/schemas/ObservabilityFilterRulesConfig"
+          },
+          "name": {
+            "description": "Human-readable name for the destination.",
+            "example": "Production Langfuse",
+            "type": "string"
+          },
+          "privacy_mode": {
+            "default": false,
+            "description": "When true, request/response bodies are not forwarded \u2014 only metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "sampling_rate": {
+            "description": "Sampling rate between 0 and 1 (1 = 100%).",
+            "example": 1,
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "description": "The destination type. Only stable destination types are accepted.",
+            "enum": [
+              "arize",
+              "braintrust",
+              "clickhouse",
+              "datadog",
+              "grafana",
+              "langfuse",
+              "langsmith",
+              "newrelic",
+              "opik",
+              "otel-collector",
+              "posthog",
+              "ramp",
+              "s3",
+              "sentry",
+              "snowflake",
+              "weave",
+              "webhook"
+            ],
+            "example": "langfuse",
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "workspace_id": {
+            "description": "Optional workspace ID. Defaults to the authenticated entity's default workspace.",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "name",
+          "config"
+        ],
+        "type": "object"
+      },
+      "CreateObservabilityDestinationResponse": {
+        "example": {
+          "data": {
+            "api_key_hashes": null,
+            "config": {
+              "baseUrl": "https://us.cloud.langfuse.com",
+              "publicKey": "pk-l...EfGh",
+              "secretKey": "sk-l...AbCd"
+            },
+            "created_at": "2025-08-24T10:30:00Z",
+            "enabled": true,
+            "filter_rules": null,
+            "id": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+            "name": "Production Langfuse",
+            "privacy_mode": false,
+            "sampling_rate": 1,
+            "type": "langfuse",
+            "updated_at": "2025-08-24T15:45:00Z",
+            "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        },
+        "properties": {
+          "data": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ObservabilityDestination"
+              },
+              {
+                "description": "The newly created observability destination."
               }
             ]
           }
@@ -8271,6 +8889,23 @@
         },
         "type": "object"
       },
+      "DeleteBYOKKeyResponse": {
+        "example": {
+          "deleted": true
+        },
+        "properties": {
+          "deleted": {
+            "const": true,
+            "description": "Confirmation that the BYOK credential was deleted.",
+            "example": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "type": "object"
+      },
       "DeleteGuardrailResponse": {
         "example": {
           "deleted": true
@@ -8280,6 +8915,22 @@
             "const": true,
             "description": "Confirmation that the guardrail was deleted",
             "example": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "type": "object"
+      },
+      "DeleteObservabilityDestinationResponse": {
+        "example": {
+          "deleted": true
+        },
+        "properties": {
+          "deleted": {
+            "const": true,
+            "description": "Always `true` on success.",
             "type": "boolean"
           }
         },
@@ -9224,6 +9875,13 @@
             ],
             "type": "string"
           },
+          "max_tool_calls": {
+            "description": "Maximum number of tool-calling steps each panelist (analysis model) and the judge model may take during their agentic web-research loop. Models with web_search/web_fetch enabled iterate until they produce a text response or hit this ceiling. Defaults to 8. Capped at 16.",
+            "example": 12,
+            "maximum": 16,
+            "minimum": 1,
+            "type": "integer"
+          },
           "model": {
             "description": "Slug of the model that performs both the judge step (with web_search + web_fetch) and the final synthesis. When omitted, defaults to the first model in the Quality preset.",
             "example": "~anthropic/claude-opus-latest",
@@ -9258,6 +9916,13 @@
             "maxItems": 8,
             "minItems": 1,
             "type": "array"
+          },
+          "max_tool_calls": {
+            "description": "Maximum number of tool-calling steps each panelist (analysis model) and the judge model may take during their agentic web-research loop. Models with web_search/web_fetch enabled iterate until they produce a text response or hit this ceiling. Defaults to 8. Capped at 16.",
+            "example": 12,
+            "maximum": 16,
+            "minimum": 1,
+            "type": "integer"
           },
           "model": {
             "description": "Slug of the judge model that produces the structured analysis JSON. Defaults to the model used in the outer API request.",
@@ -9763,6 +10428,40 @@
         ],
         "type": "object"
       },
+      "GetBYOKKeyResponse": {
+        "example": {
+          "data": {
+            "allowed_api_key_hashes": null,
+            "allowed_models": null,
+            "allowed_user_ids": null,
+            "created_at": "2025-08-24T10:30:00Z",
+            "disabled": false,
+            "id": "11111111-2222-3333-4444-555555555555",
+            "is_fallback": false,
+            "label": "sk-...AbCd",
+            "name": "Production OpenAI Key",
+            "provider": "openai",
+            "sort_order": 0,
+            "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        },
+        "properties": {
+          "data": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BYOKKey"
+              },
+              {
+                "description": "The BYOK credential."
+              }
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "GetGuardrailResponse": {
         "example": {
           "data": {
@@ -9805,6 +10504,44 @@
               },
               {
                 "description": "The guardrail"
+              }
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "GetObservabilityDestinationResponse": {
+        "example": {
+          "data": {
+            "api_key_hashes": null,
+            "config": {
+              "baseUrl": "https://us.cloud.langfuse.com",
+              "publicKey": "pk-l...EfGh",
+              "secretKey": "sk-l...AbCd"
+            },
+            "created_at": "2025-08-24T10:30:00Z",
+            "enabled": true,
+            "filter_rules": null,
+            "id": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+            "name": "Production Langfuse",
+            "privacy_mode": false,
+            "sampling_rate": 1,
+            "type": "langfuse",
+            "updated_at": "2025-08-24T15:45:00Z",
+            "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        },
+        "properties": {
+          "data": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ObservabilityDestination"
+              },
+              {
+                "description": "The observability destination."
               }
             ]
           }
@@ -10578,7 +11315,8 @@
             "enum": [
               "auto",
               "high",
-              "low"
+              "low",
+              "original"
             ],
             "type": "string",
             "x-speakeasy-unknown-values": "allow"
@@ -10770,6 +11508,12 @@
                   "$ref": "#/components/schemas/FunctionCallOutputItem"
                 },
                 {
+                  "$ref": "#/components/schemas/ApplyPatchCallItem"
+                },
+                {
+                  "$ref": "#/components/schemas/ApplyPatchCallOutputItem"
+                },
+                {
                   "allOf": [
                     {
                       "$ref": "#/components/schemas/OutputMessageItem"
@@ -10931,12 +11675,6 @@
                 },
                 {
                   "$ref": "#/components/schemas/ShellCallOutputItem"
-                },
-                {
-                  "$ref": "#/components/schemas/ApplyPatchCallItem"
-                },
-                {
-                  "$ref": "#/components/schemas/ApplyPatchCallOutputItem"
                 },
                 {
                   "$ref": "#/components/schemas/McpListToolsItem"
@@ -11214,6 +11952,46 @@
         ],
         "type": "object"
       },
+      "ListBYOKKeysResponse": {
+        "example": {
+          "data": [
+            {
+              "allowed_api_key_hashes": null,
+              "allowed_models": null,
+              "allowed_user_ids": null,
+              "created_at": "2025-08-24T10:30:00Z",
+              "disabled": false,
+              "id": "11111111-2222-3333-4444-555555555555",
+              "is_fallback": false,
+              "label": "sk-...AbCd",
+              "name": "Production OpenAI Key",
+              "provider": "openai",
+              "sort_order": 0,
+              "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+            }
+          ],
+          "total_count": 1
+        },
+        "properties": {
+          "data": {
+            "description": "List of BYOK credentials.",
+            "items": {
+              "$ref": "#/components/schemas/BYOKKey"
+            },
+            "type": "array"
+          },
+          "total_count": {
+            "description": "Total number of BYOK credentials matching the filters.",
+            "example": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "data",
+          "total_count"
+        ],
+        "type": "object"
+      },
       "ListEndpointsResponse": {
         "description": "List of available endpoints for a model",
         "example": {
@@ -11487,6 +12265,50 @@
           "total_count": {
             "description": "Total number of member assignments",
             "example": 10,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "data",
+          "total_count"
+        ],
+        "type": "object"
+      },
+      "ListObservabilityDestinationsResponse": {
+        "example": {
+          "data": [
+            {
+              "api_key_hashes": null,
+              "config": {
+                "baseUrl": "https://us.cloud.langfuse.com",
+                "publicKey": "pk-l...EfGh",
+                "secretKey": "sk-l...AbCd"
+              },
+              "created_at": "2025-08-24T10:30:00Z",
+              "enabled": true,
+              "filter_rules": null,
+              "id": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+              "name": "Production Langfuse",
+              "privacy_mode": false,
+              "sampling_rate": 1,
+              "type": "langfuse",
+              "updated_at": "2025-08-24T15:45:00Z",
+              "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+            }
+          ],
+          "total_count": 1
+        },
+        "properties": {
+          "data": {
+            "description": "List of observability destinations.",
+            "items": {
+              "$ref": "#/components/schemas/ObservabilityDestination"
+            },
+            "type": "array"
+          },
+          "total_count": {
+            "description": "Total number of destinations matching the filters.",
+            "example": 1,
             "type": "integer"
           }
         },
@@ -14541,6 +15363,24 @@
         ],
         "type": "object"
       },
+      "MultimodalMedia": {
+        "example": {
+          "data": "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAA...",
+          "format": "wav"
+        },
+        "properties": {
+          "data": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "NotFoundResponse": {
         "description": "Not Found - Resource does not exist",
         "example": {
@@ -14742,6 +15582,2386 @@
         "nullable": true,
         "type": "string",
         "x-speakeasy-unknown-values": "allow"
+      },
+      "ObservabilityArizeDestination": {
+        "example": {
+          "api_key_hashes": null,
+          "config": {
+            "apiKey": "arize_...AbCd",
+            "baseUrl": "https://otlp.arize.com",
+            "modelId": "openrouter-prod",
+            "spaceKey": "space_...EfGh"
+          },
+          "created_at": "2025-08-24T10:30:00Z",
+          "enabled": true,
+          "filter_rules": null,
+          "id": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+          "name": "Production Arize",
+          "privacy_mode": false,
+          "sampling_rate": 1,
+          "type": "arize",
+          "updated_at": "2025-08-24T15:45:00Z",
+          "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+        },
+        "properties": {
+          "api_key_hashes": {
+            "description": "Optional allowlist of OpenRouter API key hashes (`api_keys.hash`) whose traffic is forwarded to this destination. `null` means all keys.",
+            "example": null,
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "config": {
+            "properties": {
+              "apiKey": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "baseUrl": {
+                "default": "https://otlp.arize.com",
+                "type": "string"
+              },
+              "headers": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Custom HTTP headers to include in requests to this destination.",
+                "type": "object"
+              },
+              "modelId": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "spaceKey": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "apiKey",
+              "spaceKey",
+              "modelId"
+            ],
+            "type": "object"
+          },
+          "created_at": {
+            "description": "ISO timestamp of when the destination was created.",
+            "example": "2025-08-24T10:30:00Z",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether this destination is currently enabled.",
+            "example": true,
+            "type": "boolean"
+          },
+          "filter_rules": {
+            "$ref": "#/components/schemas/ObservabilityFilterRulesConfig"
+          },
+          "id": {
+            "description": "Stable public identifier for this destination.",
+            "example": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "description": "Human-readable name for the destination.",
+            "example": "Production Langfuse",
+            "nullable": true,
+            "type": "string"
+          },
+          "privacy_mode": {
+            "description": "When true, request/response bodies are not forwarded to this destination \u2014 only metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "sampling_rate": {
+            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "example": 1,
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "arize"
+            ],
+            "type": "string"
+          },
+          "updated_at": {
+            "description": "ISO timestamp of when the destination was last updated.",
+            "example": "2025-08-24T15:45:00Z",
+            "type": "string"
+          },
+          "workspace_id": {
+            "description": "ID of the workspace this destination belongs to.",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "name",
+          "enabled",
+          "privacy_mode",
+          "sampling_rate",
+          "api_key_hashes",
+          "filter_rules",
+          "created_at",
+          "updated_at",
+          "type",
+          "config"
+        ],
+        "type": "object"
+      },
+      "ObservabilityBraintrustDestination": {
+        "example": {
+          "api_key_hashes": null,
+          "config": {
+            "apiKey": "sk-...AbCd",
+            "baseUrl": "https://api.braintrust.dev",
+            "projectId": "proj_..."
+          },
+          "created_at": "2025-08-24T10:30:00Z",
+          "enabled": true,
+          "filter_rules": null,
+          "id": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+          "name": "Production Braintrust",
+          "privacy_mode": false,
+          "sampling_rate": 1,
+          "type": "braintrust",
+          "updated_at": "2025-08-24T15:45:00Z",
+          "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+        },
+        "properties": {
+          "api_key_hashes": {
+            "description": "Optional allowlist of OpenRouter API key hashes (`api_keys.hash`) whose traffic is forwarded to this destination. `null` means all keys.",
+            "example": null,
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "config": {
+            "properties": {
+              "apiKey": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "baseUrl": {
+                "default": "https://api.braintrust.dev",
+                "type": "string"
+              },
+              "headers": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Custom HTTP headers to include in requests to this destination.",
+                "type": "object"
+              },
+              "projectId": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "apiKey",
+              "projectId"
+            ],
+            "type": "object"
+          },
+          "created_at": {
+            "description": "ISO timestamp of when the destination was created.",
+            "example": "2025-08-24T10:30:00Z",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether this destination is currently enabled.",
+            "example": true,
+            "type": "boolean"
+          },
+          "filter_rules": {
+            "$ref": "#/components/schemas/ObservabilityFilterRulesConfig"
+          },
+          "id": {
+            "description": "Stable public identifier for this destination.",
+            "example": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "description": "Human-readable name for the destination.",
+            "example": "Production Langfuse",
+            "nullable": true,
+            "type": "string"
+          },
+          "privacy_mode": {
+            "description": "When true, request/response bodies are not forwarded to this destination \u2014 only metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "sampling_rate": {
+            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "example": 1,
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "braintrust"
+            ],
+            "type": "string"
+          },
+          "updated_at": {
+            "description": "ISO timestamp of when the destination was last updated.",
+            "example": "2025-08-24T15:45:00Z",
+            "type": "string"
+          },
+          "workspace_id": {
+            "description": "ID of the workspace this destination belongs to.",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "name",
+          "enabled",
+          "privacy_mode",
+          "sampling_rate",
+          "api_key_hashes",
+          "filter_rules",
+          "created_at",
+          "updated_at",
+          "type",
+          "config"
+        ],
+        "type": "object"
+      },
+      "ObservabilityClickhouseDestination": {
+        "example": {
+          "api_key_hashes": null,
+          "config": {
+            "database": "analytics",
+            "host": "https://clickhouse.example.com:8123",
+            "password": "********",
+            "table": "OPENROUTER_TRACES",
+            "username": "default"
+          },
+          "created_at": "2025-08-24T10:30:00Z",
+          "enabled": true,
+          "filter_rules": null,
+          "id": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+          "name": "Production ClickHouse",
+          "privacy_mode": false,
+          "sampling_rate": 1,
+          "type": "clickhouse",
+          "updated_at": "2025-08-24T15:45:00Z",
+          "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+        },
+        "properties": {
+          "api_key_hashes": {
+            "description": "Optional allowlist of OpenRouter API key hashes (`api_keys.hash`) whose traffic is forwarded to this destination. `null` means all keys.",
+            "example": null,
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "config": {
+            "properties": {
+              "database": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "headers": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Custom HTTP headers to include in requests to this destination.",
+                "type": "object"
+              },
+              "host": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "password": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "table": {
+                "default": "OPENROUTER_TRACES",
+                "type": "string"
+              },
+              "username": {
+                "description": "If you have not set a specific username in ClickHouse, simply type in 'default' below.",
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "host",
+              "database",
+              "username",
+              "password"
+            ],
+            "type": "object"
+          },
+          "created_at": {
+            "description": "ISO timestamp of when the destination was created.",
+            "example": "2025-08-24T10:30:00Z",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether this destination is currently enabled.",
+            "example": true,
+            "type": "boolean"
+          },
+          "filter_rules": {
+            "$ref": "#/components/schemas/ObservabilityFilterRulesConfig"
+          },
+          "id": {
+            "description": "Stable public identifier for this destination.",
+            "example": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "description": "Human-readable name for the destination.",
+            "example": "Production Langfuse",
+            "nullable": true,
+            "type": "string"
+          },
+          "privacy_mode": {
+            "description": "When true, request/response bodies are not forwarded to this destination \u2014 only metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "sampling_rate": {
+            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "example": 1,
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "clickhouse"
+            ],
+            "type": "string"
+          },
+          "updated_at": {
+            "description": "ISO timestamp of when the destination was last updated.",
+            "example": "2025-08-24T15:45:00Z",
+            "type": "string"
+          },
+          "workspace_id": {
+            "description": "ID of the workspace this destination belongs to.",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "name",
+          "enabled",
+          "privacy_mode",
+          "sampling_rate",
+          "api_key_hashes",
+          "filter_rules",
+          "created_at",
+          "updated_at",
+          "type",
+          "config"
+        ],
+        "type": "object"
+      },
+      "ObservabilityDatadogDestination": {
+        "example": {
+          "api_key_hashes": null,
+          "config": {
+            "apiKey": "************...AbCd",
+            "mlApp": "my-llm-app",
+            "url": "https://api.us5.datadoghq.com"
+          },
+          "created_at": "2025-08-24T10:30:00Z",
+          "enabled": true,
+          "filter_rules": null,
+          "id": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+          "name": "Production Datadog",
+          "privacy_mode": false,
+          "sampling_rate": 1,
+          "type": "datadog",
+          "updated_at": "2025-08-24T15:45:00Z",
+          "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+        },
+        "properties": {
+          "api_key_hashes": {
+            "description": "Optional allowlist of OpenRouter API key hashes (`api_keys.hash`) whose traffic is forwarded to this destination. `null` means all keys.",
+            "example": null,
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "config": {
+            "properties": {
+              "apiKey": {
+                "description": "Datadog API key must have LLM Observability permissions. Create at: ",
+                "minLength": 1,
+                "type": "string"
+              },
+              "headers": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Custom HTTP headers to include in requests to this destination.",
+                "type": "object"
+              },
+              "mlApp": {
+                "description": "Name to identify your application in Datadog LLM Observability",
+                "minLength": 1,
+                "type": "string"
+              },
+              "url": {
+                "default": "https://api.us5.datadoghq.com",
+                "description": "Datadog API URL for your region (e.g., https://api.datadoghq.com, https://api.us3.datadoghq.com, https://api.datadoghq.eu)",
+                "type": "string"
+              }
+            },
+            "required": [
+              "apiKey",
+              "mlApp"
+            ],
+            "type": "object"
+          },
+          "created_at": {
+            "description": "ISO timestamp of when the destination was created.",
+            "example": "2025-08-24T10:30:00Z",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether this destination is currently enabled.",
+            "example": true,
+            "type": "boolean"
+          },
+          "filter_rules": {
+            "$ref": "#/components/schemas/ObservabilityFilterRulesConfig"
+          },
+          "id": {
+            "description": "Stable public identifier for this destination.",
+            "example": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "description": "Human-readable name for the destination.",
+            "example": "Production Langfuse",
+            "nullable": true,
+            "type": "string"
+          },
+          "privacy_mode": {
+            "description": "When true, request/response bodies are not forwarded to this destination \u2014 only metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "sampling_rate": {
+            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "example": 1,
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "datadog"
+            ],
+            "type": "string"
+          },
+          "updated_at": {
+            "description": "ISO timestamp of when the destination was last updated.",
+            "example": "2025-08-24T15:45:00Z",
+            "type": "string"
+          },
+          "workspace_id": {
+            "description": "ID of the workspace this destination belongs to.",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "name",
+          "enabled",
+          "privacy_mode",
+          "sampling_rate",
+          "api_key_hashes",
+          "filter_rules",
+          "created_at",
+          "updated_at",
+          "type",
+          "config"
+        ],
+        "type": "object"
+      },
+      "ObservabilityDestination": {
+        "discriminator": {
+          "mapping": {
+            "arize": "#/components/schemas/ObservabilityArizeDestination",
+            "braintrust": "#/components/schemas/ObservabilityBraintrustDestination",
+            "clickhouse": "#/components/schemas/ObservabilityClickhouseDestination",
+            "datadog": "#/components/schemas/ObservabilityDatadogDestination",
+            "grafana": "#/components/schemas/ObservabilityGrafanaDestination",
+            "langfuse": "#/components/schemas/ObservabilityLangfuseDestination",
+            "langsmith": "#/components/schemas/ObservabilityLangsmithDestination",
+            "newrelic": "#/components/schemas/ObservabilityNewrelicDestination",
+            "opik": "#/components/schemas/ObservabilityOpikDestination",
+            "otel-collector": "#/components/schemas/ObservabilityOtelCollectorDestination",
+            "posthog": "#/components/schemas/ObservabilityPosthogDestination",
+            "ramp": "#/components/schemas/ObservabilityRampDestination",
+            "s3": "#/components/schemas/ObservabilityS3Destination",
+            "sentry": "#/components/schemas/ObservabilitySentryDestination",
+            "snowflake": "#/components/schemas/ObservabilitySnowflakeDestination",
+            "weave": "#/components/schemas/ObservabilityWeaveDestination",
+            "webhook": "#/components/schemas/ObservabilityWebhookDestination"
+          },
+          "propertyName": "type"
+        },
+        "example": {
+          "api_key_hashes": null,
+          "config": {
+            "baseUrl": "https://us.cloud.langfuse.com",
+            "publicKey": "pk-l...EfGh",
+            "secretKey": "sk-l...AbCd"
+          },
+          "created_at": "2025-08-24T10:30:00Z",
+          "enabled": true,
+          "filter_rules": null,
+          "id": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+          "name": "Production Langfuse",
+          "privacy_mode": false,
+          "sampling_rate": 1,
+          "type": "langfuse",
+          "updated_at": "2025-08-24T15:45:00Z",
+          "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ObservabilityArizeDestination"
+          },
+          {
+            "$ref": "#/components/schemas/ObservabilityBraintrustDestination"
+          },
+          {
+            "$ref": "#/components/schemas/ObservabilityClickhouseDestination"
+          },
+          {
+            "$ref": "#/components/schemas/ObservabilityDatadogDestination"
+          },
+          {
+            "$ref": "#/components/schemas/ObservabilityGrafanaDestination"
+          },
+          {
+            "$ref": "#/components/schemas/ObservabilityLangfuseDestination"
+          },
+          {
+            "$ref": "#/components/schemas/ObservabilityLangsmithDestination"
+          },
+          {
+            "$ref": "#/components/schemas/ObservabilityNewrelicDestination"
+          },
+          {
+            "$ref": "#/components/schemas/ObservabilityOpikDestination"
+          },
+          {
+            "$ref": "#/components/schemas/ObservabilityOtelCollectorDestination"
+          },
+          {
+            "$ref": "#/components/schemas/ObservabilityPosthogDestination"
+          },
+          {
+            "$ref": "#/components/schemas/ObservabilityRampDestination"
+          },
+          {
+            "$ref": "#/components/schemas/ObservabilityS3Destination"
+          },
+          {
+            "$ref": "#/components/schemas/ObservabilitySentryDestination"
+          },
+          {
+            "$ref": "#/components/schemas/ObservabilitySnowflakeDestination"
+          },
+          {
+            "$ref": "#/components/schemas/ObservabilityWeaveDestination"
+          },
+          {
+            "$ref": "#/components/schemas/ObservabilityWebhookDestination"
+          }
+        ]
+      },
+      "ObservabilityFilterRulesConfig": {
+        "description": "Optional structured filter rules controlling which events are forwarded.",
+        "example": null,
+        "nullable": true,
+        "properties": {
+          "enabled": {
+            "default": true,
+            "type": "boolean"
+          },
+          "groups": {
+            "items": {
+              "properties": {
+                "logic": {
+                  "default": "and",
+                  "enum": [
+                    "and",
+                    "or"
+                  ],
+                  "type": "string",
+                  "x-speakeasy-unknown-values": "allow"
+                },
+                "rules": {
+                  "items": {
+                    "properties": {
+                      "field": {
+                        "enum": [
+                          "model",
+                          "provider",
+                          "session_id",
+                          "user_id",
+                          "api_key_name",
+                          "finish_reason",
+                          "input",
+                          "output",
+                          "total_cost",
+                          "total_tokens",
+                          "prompt_tokens",
+                          "completion_tokens"
+                        ],
+                        "type": "string",
+                        "x-speakeasy-unknown-values": "allow"
+                      },
+                      "operator": {
+                        "enum": [
+                          "equals",
+                          "not_equals",
+                          "contains",
+                          "not_contains",
+                          "regex",
+                          "starts_with",
+                          "ends_with",
+                          "gt",
+                          "lt",
+                          "gte",
+                          "lte",
+                          "exists",
+                          "not_exists"
+                        ],
+                        "type": "string",
+                        "x-speakeasy-unknown-values": "allow"
+                      },
+                      "value": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "field",
+                      "operator"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              },
+              "required": [
+                "rules"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "groups"
+        ],
+        "type": "object"
+      },
+      "ObservabilityGrafanaDestination": {
+        "example": {
+          "api_key_hashes": null,
+          "config": {
+            "apiKey": "glc_...AbCd",
+            "baseUrl": "https://otlp-gateway-prod-us-west-0.grafana.net",
+            "instanceId": "123456"
+          },
+          "created_at": "2025-08-24T10:30:00Z",
+          "enabled": true,
+          "filter_rules": null,
+          "id": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+          "name": "Production Grafana",
+          "privacy_mode": false,
+          "sampling_rate": 1,
+          "type": "grafana",
+          "updated_at": "2025-08-24T15:45:00Z",
+          "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+        },
+        "properties": {
+          "api_key_hashes": {
+            "description": "Optional allowlist of OpenRouter API key hashes (`api_keys.hash`) whose traffic is forwarded to this destination. `null` means all keys.",
+            "example": null,
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "config": {
+            "properties": {
+              "apiKey": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "baseUrl": {
+                "default": "https://otlp-gateway-prod-us-west-0.grafana.net",
+                "type": "string"
+              },
+              "headers": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Custom HTTP headers to include in requests to this destination.",
+                "type": "object"
+              },
+              "instanceId": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "apiKey",
+              "instanceId"
+            ],
+            "type": "object"
+          },
+          "created_at": {
+            "description": "ISO timestamp of when the destination was created.",
+            "example": "2025-08-24T10:30:00Z",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether this destination is currently enabled.",
+            "example": true,
+            "type": "boolean"
+          },
+          "filter_rules": {
+            "$ref": "#/components/schemas/ObservabilityFilterRulesConfig"
+          },
+          "id": {
+            "description": "Stable public identifier for this destination.",
+            "example": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "description": "Human-readable name for the destination.",
+            "example": "Production Langfuse",
+            "nullable": true,
+            "type": "string"
+          },
+          "privacy_mode": {
+            "description": "When true, request/response bodies are not forwarded to this destination \u2014 only metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "sampling_rate": {
+            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "example": 1,
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "grafana"
+            ],
+            "type": "string"
+          },
+          "updated_at": {
+            "description": "ISO timestamp of when the destination was last updated.",
+            "example": "2025-08-24T15:45:00Z",
+            "type": "string"
+          },
+          "workspace_id": {
+            "description": "ID of the workspace this destination belongs to.",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "name",
+          "enabled",
+          "privacy_mode",
+          "sampling_rate",
+          "api_key_hashes",
+          "filter_rules",
+          "created_at",
+          "updated_at",
+          "type",
+          "config"
+        ],
+        "type": "object"
+      },
+      "ObservabilityLangfuseDestination": {
+        "example": {
+          "api_key_hashes": null,
+          "config": {
+            "baseUrl": "https://us.cloud.langfuse.com",
+            "publicKey": "pk-l...EfGh",
+            "secretKey": "sk-l...AbCd"
+          },
+          "created_at": "2025-08-24T10:30:00Z",
+          "enabled": true,
+          "filter_rules": null,
+          "id": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+          "name": "Production Langfuse",
+          "privacy_mode": false,
+          "sampling_rate": 1,
+          "type": "langfuse",
+          "updated_at": "2025-08-24T15:45:00Z",
+          "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+        },
+        "properties": {
+          "api_key_hashes": {
+            "description": "Optional allowlist of OpenRouter API key hashes (`api_keys.hash`) whose traffic is forwarded to this destination. `null` means all keys.",
+            "example": null,
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "config": {
+            "properties": {
+              "baseUrl": {
+                "default": "https://us.cloud.langfuse.com",
+                "type": "string"
+              },
+              "headers": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Custom HTTP headers to include in requests to this destination.",
+                "type": "object"
+              },
+              "publicKey": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "secretKey": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "secretKey",
+              "publicKey"
+            ],
+            "type": "object"
+          },
+          "created_at": {
+            "description": "ISO timestamp of when the destination was created.",
+            "example": "2025-08-24T10:30:00Z",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether this destination is currently enabled.",
+            "example": true,
+            "type": "boolean"
+          },
+          "filter_rules": {
+            "$ref": "#/components/schemas/ObservabilityFilterRulesConfig"
+          },
+          "id": {
+            "description": "Stable public identifier for this destination.",
+            "example": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "description": "Human-readable name for the destination.",
+            "example": "Production Langfuse",
+            "nullable": true,
+            "type": "string"
+          },
+          "privacy_mode": {
+            "description": "When true, request/response bodies are not forwarded to this destination \u2014 only metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "sampling_rate": {
+            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "example": 1,
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "langfuse"
+            ],
+            "type": "string"
+          },
+          "updated_at": {
+            "description": "ISO timestamp of when the destination was last updated.",
+            "example": "2025-08-24T15:45:00Z",
+            "type": "string"
+          },
+          "workspace_id": {
+            "description": "ID of the workspace this destination belongs to.",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "name",
+          "enabled",
+          "privacy_mode",
+          "sampling_rate",
+          "api_key_hashes",
+          "filter_rules",
+          "created_at",
+          "updated_at",
+          "type",
+          "config"
+        ],
+        "type": "object"
+      },
+      "ObservabilityLangsmithDestination": {
+        "example": {
+          "api_key_hashes": null,
+          "config": {
+            "apiKey": "lsv2_...AbCd",
+            "endpoint": "https://api.smith.langchain.com",
+            "project": "main"
+          },
+          "created_at": "2025-08-24T10:30:00Z",
+          "enabled": true,
+          "filter_rules": null,
+          "id": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+          "name": "Production LangSmith",
+          "privacy_mode": false,
+          "sampling_rate": 1,
+          "type": "langsmith",
+          "updated_at": "2025-08-24T15:45:00Z",
+          "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+        },
+        "properties": {
+          "api_key_hashes": {
+            "description": "Optional allowlist of OpenRouter API key hashes (`api_keys.hash`) whose traffic is forwarded to this destination. `null` means all keys.",
+            "example": null,
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "config": {
+            "properties": {
+              "apiKey": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "endpoint": {
+                "default": "https://api.smith.langchain.com",
+                "type": "string"
+              },
+              "headers": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Custom HTTP headers to include in requests to this destination.",
+                "type": "object"
+              },
+              "project": {
+                "default": "main",
+                "description": "The name for this project, such as pr-openrouter-demo. Defaults to \"main\" if not set.",
+                "minLength": 1,
+                "type": "string"
+              },
+              "workspaceId": {
+                "description": "Required for org-scoped API keys. Find this in your LangSmith workspace settings.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "apiKey"
+            ],
+            "type": "object"
+          },
+          "created_at": {
+            "description": "ISO timestamp of when the destination was created.",
+            "example": "2025-08-24T10:30:00Z",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether this destination is currently enabled.",
+            "example": true,
+            "type": "boolean"
+          },
+          "filter_rules": {
+            "$ref": "#/components/schemas/ObservabilityFilterRulesConfig"
+          },
+          "id": {
+            "description": "Stable public identifier for this destination.",
+            "example": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "description": "Human-readable name for the destination.",
+            "example": "Production Langfuse",
+            "nullable": true,
+            "type": "string"
+          },
+          "privacy_mode": {
+            "description": "When true, request/response bodies are not forwarded to this destination \u2014 only metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "sampling_rate": {
+            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "example": 1,
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "langsmith"
+            ],
+            "type": "string"
+          },
+          "updated_at": {
+            "description": "ISO timestamp of when the destination was last updated.",
+            "example": "2025-08-24T15:45:00Z",
+            "type": "string"
+          },
+          "workspace_id": {
+            "description": "ID of the workspace this destination belongs to.",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "name",
+          "enabled",
+          "privacy_mode",
+          "sampling_rate",
+          "api_key_hashes",
+          "filter_rules",
+          "created_at",
+          "updated_at",
+          "type",
+          "config"
+        ],
+        "type": "object"
+      },
+      "ObservabilityNewrelicDestination": {
+        "example": {
+          "api_key_hashes": null,
+          "config": {
+            "licenseKey": "****...AbCd",
+            "region": "US"
+          },
+          "created_at": "2025-08-24T10:30:00Z",
+          "enabled": true,
+          "filter_rules": null,
+          "id": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+          "name": "Production New Relic",
+          "privacy_mode": false,
+          "sampling_rate": 1,
+          "type": "newrelic",
+          "updated_at": "2025-08-24T15:45:00Z",
+          "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+        },
+        "properties": {
+          "api_key_hashes": {
+            "description": "Optional allowlist of OpenRouter API key hashes (`api_keys.hash`) whose traffic is forwarded to this destination. `null` means all keys.",
+            "example": null,
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "config": {
+            "properties": {
+              "headers": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Custom HTTP headers to include in requests to this destination.",
+                "type": "object"
+              },
+              "licenseKey": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "region": {
+                "default": "us",
+                "enum": [
+                  "us",
+                  "eu"
+                ],
+                "type": "string",
+                "x-speakeasy-unknown-values": "allow"
+              }
+            },
+            "required": [
+              "licenseKey"
+            ],
+            "type": "object"
+          },
+          "created_at": {
+            "description": "ISO timestamp of when the destination was created.",
+            "example": "2025-08-24T10:30:00Z",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether this destination is currently enabled.",
+            "example": true,
+            "type": "boolean"
+          },
+          "filter_rules": {
+            "$ref": "#/components/schemas/ObservabilityFilterRulesConfig"
+          },
+          "id": {
+            "description": "Stable public identifier for this destination.",
+            "example": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "description": "Human-readable name for the destination.",
+            "example": "Production Langfuse",
+            "nullable": true,
+            "type": "string"
+          },
+          "privacy_mode": {
+            "description": "When true, request/response bodies are not forwarded to this destination \u2014 only metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "sampling_rate": {
+            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "example": 1,
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "newrelic"
+            ],
+            "type": "string"
+          },
+          "updated_at": {
+            "description": "ISO timestamp of when the destination was last updated.",
+            "example": "2025-08-24T15:45:00Z",
+            "type": "string"
+          },
+          "workspace_id": {
+            "description": "ID of the workspace this destination belongs to.",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "name",
+          "enabled",
+          "privacy_mode",
+          "sampling_rate",
+          "api_key_hashes",
+          "filter_rules",
+          "created_at",
+          "updated_at",
+          "type",
+          "config"
+        ],
+        "type": "object"
+      },
+      "ObservabilityOpikDestination": {
+        "example": {
+          "api_key_hashes": null,
+          "config": {
+            "apiKey": "****...AbCd",
+            "projectName": "openrouter-prod",
+            "workspace": "my-workspace"
+          },
+          "created_at": "2025-08-24T10:30:00Z",
+          "enabled": true,
+          "filter_rules": null,
+          "id": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+          "name": "Production Opik",
+          "privacy_mode": false,
+          "sampling_rate": 1,
+          "type": "opik",
+          "updated_at": "2025-08-24T15:45:00Z",
+          "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+        },
+        "properties": {
+          "api_key_hashes": {
+            "description": "Optional allowlist of OpenRouter API key hashes (`api_keys.hash`) whose traffic is forwarded to this destination. `null` means all keys.",
+            "example": null,
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "config": {
+            "properties": {
+              "apiKey": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "headers": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Custom HTTP headers to include in requests to this destination.",
+                "type": "object"
+              },
+              "projectName": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "workspace": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "apiKey",
+              "workspace",
+              "projectName"
+            ],
+            "type": "object"
+          },
+          "created_at": {
+            "description": "ISO timestamp of when the destination was created.",
+            "example": "2025-08-24T10:30:00Z",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether this destination is currently enabled.",
+            "example": true,
+            "type": "boolean"
+          },
+          "filter_rules": {
+            "$ref": "#/components/schemas/ObservabilityFilterRulesConfig"
+          },
+          "id": {
+            "description": "Stable public identifier for this destination.",
+            "example": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "description": "Human-readable name for the destination.",
+            "example": "Production Langfuse",
+            "nullable": true,
+            "type": "string"
+          },
+          "privacy_mode": {
+            "description": "When true, request/response bodies are not forwarded to this destination \u2014 only metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "sampling_rate": {
+            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "example": 1,
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "opik"
+            ],
+            "type": "string"
+          },
+          "updated_at": {
+            "description": "ISO timestamp of when the destination was last updated.",
+            "example": "2025-08-24T15:45:00Z",
+            "type": "string"
+          },
+          "workspace_id": {
+            "description": "ID of the workspace this destination belongs to.",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "name",
+          "enabled",
+          "privacy_mode",
+          "sampling_rate",
+          "api_key_hashes",
+          "filter_rules",
+          "created_at",
+          "updated_at",
+          "type",
+          "config"
+        ],
+        "type": "object"
+      },
+      "ObservabilityOtelCollectorDestination": {
+        "example": {
+          "api_key_hashes": null,
+          "config": {
+            "endpoint": "https://otel.example.com:4318"
+          },
+          "created_at": "2025-08-24T10:30:00Z",
+          "enabled": true,
+          "filter_rules": null,
+          "id": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+          "name": "Production OTel Collector",
+          "privacy_mode": false,
+          "sampling_rate": 1,
+          "type": "otel-collector",
+          "updated_at": "2025-08-24T15:45:00Z",
+          "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+        },
+        "properties": {
+          "api_key_hashes": {
+            "description": "Optional allowlist of OpenRouter API key hashes (`api_keys.hash`) whose traffic is forwarded to this destination. `null` means all keys.",
+            "example": null,
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "config": {
+            "properties": {
+              "endpoint": {
+                "type": "string"
+              },
+              "headers": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Custom HTTP headers as a JSON object. For Axiom, use {\"Authorization\": \"Bearer xaat-xxx\", \"X-Axiom-Dataset\": \"your-dataset\"}",
+                "type": "object"
+              }
+            },
+            "required": [
+              "endpoint"
+            ],
+            "type": "object"
+          },
+          "created_at": {
+            "description": "ISO timestamp of when the destination was created.",
+            "example": "2025-08-24T10:30:00Z",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether this destination is currently enabled.",
+            "example": true,
+            "type": "boolean"
+          },
+          "filter_rules": {
+            "$ref": "#/components/schemas/ObservabilityFilterRulesConfig"
+          },
+          "id": {
+            "description": "Stable public identifier for this destination.",
+            "example": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "description": "Human-readable name for the destination.",
+            "example": "Production Langfuse",
+            "nullable": true,
+            "type": "string"
+          },
+          "privacy_mode": {
+            "description": "When true, request/response bodies are not forwarded to this destination \u2014 only metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "sampling_rate": {
+            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "example": 1,
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "otel-collector"
+            ],
+            "type": "string"
+          },
+          "updated_at": {
+            "description": "ISO timestamp of when the destination was last updated.",
+            "example": "2025-08-24T15:45:00Z",
+            "type": "string"
+          },
+          "workspace_id": {
+            "description": "ID of the workspace this destination belongs to.",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "name",
+          "enabled",
+          "privacy_mode",
+          "sampling_rate",
+          "api_key_hashes",
+          "filter_rules",
+          "created_at",
+          "updated_at",
+          "type",
+          "config"
+        ],
+        "type": "object"
+      },
+      "ObservabilityPosthogDestination": {
+        "example": {
+          "api_key_hashes": null,
+          "config": {
+            "apiKey": "phc_...AbCd",
+            "endpoint": "https://us.i.posthog.com"
+          },
+          "created_at": "2025-08-24T10:30:00Z",
+          "enabled": true,
+          "filter_rules": null,
+          "id": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+          "name": "Production PostHog",
+          "privacy_mode": false,
+          "sampling_rate": 1,
+          "type": "posthog",
+          "updated_at": "2025-08-24T15:45:00Z",
+          "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+        },
+        "properties": {
+          "api_key_hashes": {
+            "description": "Optional allowlist of OpenRouter API key hashes (`api_keys.hash`) whose traffic is forwarded to this destination. `null` means all keys.",
+            "example": null,
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "config": {
+            "properties": {
+              "apiKey": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "endpoint": {
+                "default": "https://us.i.posthog.com",
+                "type": "string"
+              },
+              "headers": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Custom HTTP headers to include in requests to this destination.",
+                "type": "object"
+              }
+            },
+            "required": [
+              "apiKey"
+            ],
+            "type": "object"
+          },
+          "created_at": {
+            "description": "ISO timestamp of when the destination was created.",
+            "example": "2025-08-24T10:30:00Z",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether this destination is currently enabled.",
+            "example": true,
+            "type": "boolean"
+          },
+          "filter_rules": {
+            "$ref": "#/components/schemas/ObservabilityFilterRulesConfig"
+          },
+          "id": {
+            "description": "Stable public identifier for this destination.",
+            "example": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "description": "Human-readable name for the destination.",
+            "example": "Production Langfuse",
+            "nullable": true,
+            "type": "string"
+          },
+          "privacy_mode": {
+            "description": "When true, request/response bodies are not forwarded to this destination \u2014 only metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "sampling_rate": {
+            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "example": 1,
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "posthog"
+            ],
+            "type": "string"
+          },
+          "updated_at": {
+            "description": "ISO timestamp of when the destination was last updated.",
+            "example": "2025-08-24T15:45:00Z",
+            "type": "string"
+          },
+          "workspace_id": {
+            "description": "ID of the workspace this destination belongs to.",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "name",
+          "enabled",
+          "privacy_mode",
+          "sampling_rate",
+          "api_key_hashes",
+          "filter_rules",
+          "created_at",
+          "updated_at",
+          "type",
+          "config"
+        ],
+        "type": "object"
+      },
+      "ObservabilityRampDestination": {
+        "example": {
+          "api_key_hashes": null,
+          "config": {
+            "apiKey": "rmp_...AbCd",
+            "baseUrl": "https://api.ramp.com/developer/v1/ai-usage/openrouter"
+          },
+          "created_at": "2025-08-24T10:30:00Z",
+          "enabled": true,
+          "filter_rules": null,
+          "id": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+          "name": "Production Ramp",
+          "privacy_mode": false,
+          "sampling_rate": 1,
+          "type": "ramp",
+          "updated_at": "2025-08-24T15:45:00Z",
+          "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+        },
+        "properties": {
+          "api_key_hashes": {
+            "description": "Optional allowlist of OpenRouter API key hashes (`api_keys.hash`) whose traffic is forwarded to this destination. `null` means all keys.",
+            "example": null,
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "config": {
+            "properties": {
+              "apiKey": {
+                "description": "Generate this in your Ramp integration settings.",
+                "minLength": 1,
+                "type": "string"
+              },
+              "baseUrl": {
+                "default": "https://api.ramp.com/developer/v1/ai-usage/openrouter",
+                "type": "string"
+              },
+              "headers": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Custom HTTP headers to include in requests to Ramp.",
+                "type": "object"
+              }
+            },
+            "required": [
+              "apiKey"
+            ],
+            "type": "object"
+          },
+          "created_at": {
+            "description": "ISO timestamp of when the destination was created.",
+            "example": "2025-08-24T10:30:00Z",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether this destination is currently enabled.",
+            "example": true,
+            "type": "boolean"
+          },
+          "filter_rules": {
+            "$ref": "#/components/schemas/ObservabilityFilterRulesConfig"
+          },
+          "id": {
+            "description": "Stable public identifier for this destination.",
+            "example": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "description": "Human-readable name for the destination.",
+            "example": "Production Langfuse",
+            "nullable": true,
+            "type": "string"
+          },
+          "privacy_mode": {
+            "description": "When true, request/response bodies are not forwarded to this destination \u2014 only metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "sampling_rate": {
+            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "example": 1,
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "ramp"
+            ],
+            "type": "string"
+          },
+          "updated_at": {
+            "description": "ISO timestamp of when the destination was last updated.",
+            "example": "2025-08-24T15:45:00Z",
+            "type": "string"
+          },
+          "workspace_id": {
+            "description": "ID of the workspace this destination belongs to.",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "name",
+          "enabled",
+          "privacy_mode",
+          "sampling_rate",
+          "api_key_hashes",
+          "filter_rules",
+          "created_at",
+          "updated_at",
+          "type",
+          "config"
+        ],
+        "type": "object"
+      },
+      "ObservabilityS3Destination": {
+        "example": {
+          "api_key_hashes": null,
+          "config": {
+            "accessKeyId": "AKIA...AbCd",
+            "bucketName": "openrouter-traces",
+            "secretAccessKey": "****...EfGh"
+          },
+          "created_at": "2025-08-24T10:30:00Z",
+          "enabled": true,
+          "filter_rules": null,
+          "id": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+          "name": "Production S3",
+          "privacy_mode": false,
+          "sampling_rate": 1,
+          "type": "s3",
+          "updated_at": "2025-08-24T15:45:00Z",
+          "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+        },
+        "properties": {
+          "api_key_hashes": {
+            "description": "Optional allowlist of OpenRouter API key hashes (`api_keys.hash`) whose traffic is forwarded to this destination. `null` means all keys.",
+            "example": null,
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "config": {
+            "properties": {
+              "accessKeyId": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "bucketName": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "endpoint": {
+                "description": "Only for S3-compatible services like Cloudflare R2 (https://account-id.r2.cloudflarestorage.com) or MinIO. Leave blank for standard AWS S3.",
+                "format": "uri",
+                "type": "string"
+              },
+              "headers": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Custom HTTP headers to include in requests to this destination.",
+                "type": "object"
+              },
+              "pathTemplate": {
+                "default": "{prefix}/{date}",
+                "description": "Template for S3 object path. The filename ({traceId}-{timestamp}.json) is automatically appended. Available variables: {prefix}, {date}, {year}, {month}, {day}, {apiKeyName}",
+                "type": "string"
+              },
+              "prefix": {
+                "default": "openrouter-traces",
+                "type": "string"
+              },
+              "region": {
+                "type": "string"
+              },
+              "secretAccessKey": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "sessionToken": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "bucketName",
+              "accessKeyId",
+              "secretAccessKey"
+            ],
+            "type": "object"
+          },
+          "created_at": {
+            "description": "ISO timestamp of when the destination was created.",
+            "example": "2025-08-24T10:30:00Z",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether this destination is currently enabled.",
+            "example": true,
+            "type": "boolean"
+          },
+          "filter_rules": {
+            "$ref": "#/components/schemas/ObservabilityFilterRulesConfig"
+          },
+          "id": {
+            "description": "Stable public identifier for this destination.",
+            "example": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "description": "Human-readable name for the destination.",
+            "example": "Production Langfuse",
+            "nullable": true,
+            "type": "string"
+          },
+          "privacy_mode": {
+            "description": "When true, request/response bodies are not forwarded to this destination \u2014 only metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "sampling_rate": {
+            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "example": 1,
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "s3"
+            ],
+            "type": "string"
+          },
+          "updated_at": {
+            "description": "ISO timestamp of when the destination was last updated.",
+            "example": "2025-08-24T15:45:00Z",
+            "type": "string"
+          },
+          "workspace_id": {
+            "description": "ID of the workspace this destination belongs to.",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "name",
+          "enabled",
+          "privacy_mode",
+          "sampling_rate",
+          "api_key_hashes",
+          "filter_rules",
+          "created_at",
+          "updated_at",
+          "type",
+          "config"
+        ],
+        "type": "object"
+      },
+      "ObservabilitySentryDestination": {
+        "example": {
+          "api_key_hashes": null,
+          "config": {
+            "otlpEndpoint": "https://o0.ingest.sentry.io/api/0/otlp"
+          },
+          "created_at": "2025-08-24T10:30:00Z",
+          "enabled": true,
+          "filter_rules": null,
+          "id": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+          "name": "Production Sentry",
+          "privacy_mode": false,
+          "sampling_rate": 1,
+          "type": "sentry",
+          "updated_at": "2025-08-24T15:45:00Z",
+          "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+        },
+        "properties": {
+          "api_key_hashes": {
+            "description": "Optional allowlist of OpenRouter API key hashes (`api_keys.hash`) whose traffic is forwarded to this destination. `null` means all keys.",
+            "example": null,
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "config": {
+            "properties": {
+              "dsn": {
+                "minLength": 1,
+                "pattern": "^https:\\/\\/([^:@]+)(?::[^@]*)?@([^/]+)(?:\\/[^/]+)*\\/(\\d+)\\/?$",
+                "type": "string"
+              },
+              "headers": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Custom HTTP headers to include in requests to this destination.",
+                "type": "object"
+              },
+              "otlpEndpoint": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "otlpEndpoint",
+              "dsn"
+            ],
+            "type": "object"
+          },
+          "created_at": {
+            "description": "ISO timestamp of when the destination was created.",
+            "example": "2025-08-24T10:30:00Z",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether this destination is currently enabled.",
+            "example": true,
+            "type": "boolean"
+          },
+          "filter_rules": {
+            "$ref": "#/components/schemas/ObservabilityFilterRulesConfig"
+          },
+          "id": {
+            "description": "Stable public identifier for this destination.",
+            "example": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "description": "Human-readable name for the destination.",
+            "example": "Production Langfuse",
+            "nullable": true,
+            "type": "string"
+          },
+          "privacy_mode": {
+            "description": "When true, request/response bodies are not forwarded to this destination \u2014 only metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "sampling_rate": {
+            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "example": 1,
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "sentry"
+            ],
+            "type": "string"
+          },
+          "updated_at": {
+            "description": "ISO timestamp of when the destination was last updated.",
+            "example": "2025-08-24T15:45:00Z",
+            "type": "string"
+          },
+          "workspace_id": {
+            "description": "ID of the workspace this destination belongs to.",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "name",
+          "enabled",
+          "privacy_mode",
+          "sampling_rate",
+          "api_key_hashes",
+          "filter_rules",
+          "created_at",
+          "updated_at",
+          "type",
+          "config"
+        ],
+        "type": "object"
+      },
+      "ObservabilitySnowflakeDestination": {
+        "example": {
+          "api_key_hashes": null,
+          "config": {
+            "account": "xy12345.us-east-1",
+            "token": "****...AbCd"
+          },
+          "created_at": "2025-08-24T10:30:00Z",
+          "enabled": true,
+          "filter_rules": null,
+          "id": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+          "name": "Production Snowflake",
+          "privacy_mode": false,
+          "sampling_rate": 1,
+          "type": "snowflake",
+          "updated_at": "2025-08-24T15:45:00Z",
+          "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+        },
+        "properties": {
+          "api_key_hashes": {
+            "description": "Optional allowlist of OpenRouter API key hashes (`api_keys.hash`) whose traffic is forwarded to this destination. `null` means all keys.",
+            "example": null,
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "config": {
+            "properties": {
+              "account": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "database": {
+                "default": "SNOWFLAKE_LEARNING_DB",
+                "type": "string"
+              },
+              "headers": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Custom HTTP headers to include in requests to this destination.",
+                "type": "object"
+              },
+              "schema": {
+                "default": "PUBLIC",
+                "type": "string"
+              },
+              "table": {
+                "default": "OPENROUTER_TRACES",
+                "type": "string"
+              },
+              "token": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "warehouse": {
+                "default": "COMPUTE_WH",
+                "type": "string"
+              }
+            },
+            "required": [
+              "account",
+              "token"
+            ],
+            "type": "object"
+          },
+          "created_at": {
+            "description": "ISO timestamp of when the destination was created.",
+            "example": "2025-08-24T10:30:00Z",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether this destination is currently enabled.",
+            "example": true,
+            "type": "boolean"
+          },
+          "filter_rules": {
+            "$ref": "#/components/schemas/ObservabilityFilterRulesConfig"
+          },
+          "id": {
+            "description": "Stable public identifier for this destination.",
+            "example": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "description": "Human-readable name for the destination.",
+            "example": "Production Langfuse",
+            "nullable": true,
+            "type": "string"
+          },
+          "privacy_mode": {
+            "description": "When true, request/response bodies are not forwarded to this destination \u2014 only metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "sampling_rate": {
+            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "example": 1,
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "snowflake"
+            ],
+            "type": "string"
+          },
+          "updated_at": {
+            "description": "ISO timestamp of when the destination was last updated.",
+            "example": "2025-08-24T15:45:00Z",
+            "type": "string"
+          },
+          "workspace_id": {
+            "description": "ID of the workspace this destination belongs to.",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "name",
+          "enabled",
+          "privacy_mode",
+          "sampling_rate",
+          "api_key_hashes",
+          "filter_rules",
+          "created_at",
+          "updated_at",
+          "type",
+          "config"
+        ],
+        "type": "object"
+      },
+      "ObservabilityWeaveDestination": {
+        "example": {
+          "api_key_hashes": null,
+          "config": {
+            "apiKey": "****...AbCd",
+            "baseUrl": "https://trace.wandb.ai",
+            "entity": "my-team",
+            "project": "openrouter-prod"
+          },
+          "created_at": "2025-08-24T10:30:00Z",
+          "enabled": true,
+          "filter_rules": null,
+          "id": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+          "name": "Production Weave",
+          "privacy_mode": false,
+          "sampling_rate": 1,
+          "type": "weave",
+          "updated_at": "2025-08-24T15:45:00Z",
+          "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+        },
+        "properties": {
+          "api_key_hashes": {
+            "description": "Optional allowlist of OpenRouter API key hashes (`api_keys.hash`) whose traffic is forwarded to this destination. `null` means all keys.",
+            "example": null,
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "config": {
+            "properties": {
+              "apiKey": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "baseUrl": {
+                "default": "https://trace.wandb.ai",
+                "type": "string"
+              },
+              "entity": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "headers": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Custom HTTP headers to include in requests to this destination.",
+                "type": "object"
+              },
+              "project": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "apiKey",
+              "entity",
+              "project"
+            ],
+            "type": "object"
+          },
+          "created_at": {
+            "description": "ISO timestamp of when the destination was created.",
+            "example": "2025-08-24T10:30:00Z",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether this destination is currently enabled.",
+            "example": true,
+            "type": "boolean"
+          },
+          "filter_rules": {
+            "$ref": "#/components/schemas/ObservabilityFilterRulesConfig"
+          },
+          "id": {
+            "description": "Stable public identifier for this destination.",
+            "example": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "description": "Human-readable name for the destination.",
+            "example": "Production Langfuse",
+            "nullable": true,
+            "type": "string"
+          },
+          "privacy_mode": {
+            "description": "When true, request/response bodies are not forwarded to this destination \u2014 only metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "sampling_rate": {
+            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "example": 1,
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "weave"
+            ],
+            "type": "string"
+          },
+          "updated_at": {
+            "description": "ISO timestamp of when the destination was last updated.",
+            "example": "2025-08-24T15:45:00Z",
+            "type": "string"
+          },
+          "workspace_id": {
+            "description": "ID of the workspace this destination belongs to.",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "name",
+          "enabled",
+          "privacy_mode",
+          "sampling_rate",
+          "api_key_hashes",
+          "filter_rules",
+          "created_at",
+          "updated_at",
+          "type",
+          "config"
+        ],
+        "type": "object"
+      },
+      "ObservabilityWebhookDestination": {
+        "example": {
+          "api_key_hashes": null,
+          "config": {
+            "url": "https://example.com/openrouter-events"
+          },
+          "created_at": "2025-08-24T10:30:00Z",
+          "enabled": true,
+          "filter_rules": null,
+          "id": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+          "name": "Production Webhook",
+          "privacy_mode": false,
+          "sampling_rate": 1,
+          "type": "webhook",
+          "updated_at": "2025-08-24T15:45:00Z",
+          "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+        },
+        "properties": {
+          "api_key_hashes": {
+            "description": "Optional allowlist of OpenRouter API key hashes (`api_keys.hash`) whose traffic is forwarded to this destination. `null` means all keys.",
+            "example": null,
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "config": {
+            "properties": {
+              "headers": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              "method": {
+                "default": "POST",
+                "enum": [
+                  "POST",
+                  "PUT"
+                ],
+                "type": "string",
+                "x-speakeasy-unknown-values": "allow"
+              },
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "url"
+            ],
+            "type": "object"
+          },
+          "created_at": {
+            "description": "ISO timestamp of when the destination was created.",
+            "example": "2025-08-24T10:30:00Z",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether this destination is currently enabled.",
+            "example": true,
+            "type": "boolean"
+          },
+          "filter_rules": {
+            "$ref": "#/components/schemas/ObservabilityFilterRulesConfig"
+          },
+          "id": {
+            "description": "Stable public identifier for this destination.",
+            "example": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "description": "Human-readable name for the destination.",
+            "example": "Production Langfuse",
+            "nullable": true,
+            "type": "string"
+          },
+          "privacy_mode": {
+            "description": "When true, request/response bodies are not forwarded to this destination \u2014 only metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "sampling_rate": {
+            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "example": 1,
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "webhook"
+            ],
+            "type": "string"
+          },
+          "updated_at": {
+            "description": "ISO timestamp of when the destination was last updated.",
+            "example": "2025-08-24T15:45:00Z",
+            "type": "string"
+          },
+          "workspace_id": {
+            "description": "ID of the workspace this destination belongs to.",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "name",
+          "enabled",
+          "privacy_mode",
+          "sampling_rate",
+          "api_key_hashes",
+          "filter_rules",
+          "created_at",
+          "updated_at",
+          "type",
+          "config"
+        ],
+        "type": "object"
       },
       "OpenAIResponseCustomToolCall": {
         "example": {
@@ -15322,6 +18542,34 @@
           },
           {
             "$ref": "#/components/schemas/ToolChoiceAllowed"
+          },
+          {
+            "properties": {
+              "type": {
+                "enum": [
+                  "apply_patch"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "type": {
+                "enum": [
+                  "shell"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "type": "object"
           }
         ],
         "example": "auto"
@@ -15761,23 +19009,70 @@
         ],
         "type": "object"
       },
-      "OutputApplyPatchServerToolItem": {
-        "description": "An openrouter:apply_patch server tool output item",
+      "OutputApplyPatchCallItem": {
+        "description": "A native `apply_patch_call` output item matching OpenAI's Responses API shape. Emitted when the client requested the `apply_patch` shorthand.",
         "example": {
-          "filePath": "/src/main.ts",
-          "id": "ap_tmp_abc123",
+          "call_id": "call_abc123",
+          "id": "apc_abc123",
+          "operation": {
+            "diff": "@@ function main() {\n+  console.log(\"hi\");\n }",
+            "path": "/src/main.ts",
+            "type": "update_file"
+          },
           "status": "completed",
-          "type": "openrouter:apply_patch"
+          "type": "apply_patch_call"
         },
         "properties": {
-          "filePath": {
+          "call_id": {
             "type": "string"
           },
           "id": {
             "type": "string"
           },
-          "patch": {
+          "operation": {
+            "$ref": "#/components/schemas/ApplyPatchCallOperation"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ApplyPatchCallStatus"
+          },
+          "type": {
+            "enum": [
+              "apply_patch_call"
+            ],
             "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "id",
+          "call_id",
+          "status",
+          "operation"
+        ],
+        "type": "object"
+      },
+      "OutputApplyPatchServerToolItem": {
+        "description": "An openrouter:apply_patch server tool output item. The turn halts when validation succeeds so the client can apply the patch and echo an `apply_patch_call_output` on the next turn.",
+        "example": {
+          "call_id": "call_abc123",
+          "id": "apc_abc123",
+          "operation": {
+            "diff": "@@ function main() {\n+  console.log(\"hi\");\n }",
+            "path": "/src/main.ts",
+            "type": "update_file"
+          },
+          "status": "completed",
+          "type": "openrouter:apply_patch"
+        },
+        "properties": {
+          "call_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "operation": {
+            "$ref": "#/components/schemas/ApplyPatchCallOperation"
           },
           "status": {
             "$ref": "#/components/schemas/ToolCallStatus"
@@ -16271,6 +19566,27 @@
           "error": {
             "description": "Error message when the fusion run did not produce an analysis result.",
             "type": "string"
+          },
+          "failed_models": {
+            "description": "Models that were requested as part of the analysis panel but did not produce a response. Present when at least one requested analysis model failed. The fusion result is still usable but was produced from a degraded panel.",
+            "items": {
+              "properties": {
+                "error": {
+                  "description": "Error message describing why the model failed.",
+                  "type": "string"
+                },
+                "model": {
+                  "description": "Slug of the analysis model that failed.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "model",
+                "error"
+              ],
+              "type": "object"
+            },
+            "type": "array"
           },
           "id": {
             "type": "string"
@@ -16868,6 +20184,7 @@
         "description": "An output item from the response",
         "discriminator": {
           "mapping": {
+            "apply_patch_call": "#/components/schemas/OutputApplyPatchCallItem",
             "code_interpreter_call": "#/components/schemas/OutputCodeInterpreterCallItem",
             "computer_call": "#/components/schemas/OutputComputerCallItem",
             "custom_tool_call": "#/components/schemas/OutputCustomToolCallItem",
@@ -16958,6 +20275,9 @@
           },
           {
             "$ref": "#/components/schemas/OutputApplyPatchServerToolItem"
+          },
+          {
+            "$ref": "#/components/schemas/OutputApplyPatchCallItem"
           },
           {
             "$ref": "#/components/schemas/OutputWebFetchServerToolItem"
@@ -20695,6 +24015,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/WebSearchServerTool_OpenRouter"
+                },
+                {
+                  "$ref": "#/components/schemas/ApplyPatchServerTool_OpenRouter"
                 }
               ]
             },
@@ -21311,6 +24634,8 @@
         "discriminator": {
           "mapping": {
             "error": "#/components/schemas/ErrorEvent",
+            "response.apply_patch_call_operation_diff.delta": "#/components/schemas/ApplyPatchCallOperationDiffDeltaEvent",
+            "response.apply_patch_call_operation_diff.done": "#/components/schemas/ApplyPatchCallOperationDiffDoneEvent",
             "response.completed": "#/components/schemas/StreamEventsResponseCompleted",
             "response.content_part.added": "#/components/schemas/ContentPartAddedEvent",
             "response.content_part.done": "#/components/schemas/ContentPartDoneEvent",
@@ -21463,6 +24788,12 @@
           },
           {
             "$ref": "#/components/schemas/CustomToolCallInputDoneEvent"
+          },
+          {
+            "$ref": "#/components/schemas/ApplyPatchCallOperationDiffDeltaEvent"
+          },
+          {
+            "$ref": "#/components/schemas/ApplyPatchCallOperationDiffDoneEvent"
           }
         ]
       },
@@ -22146,6 +25477,92 @@
         ],
         "type": "object"
       },
+      "UpdateBYOKKeyRequest": {
+        "example": {
+          "disabled": false,
+          "name": "Updated OpenAI Key"
+        },
+        "properties": {
+          "allowed_models": {
+            "description": "Optional allowlist of model slugs this credential may be used for. `null` means no restriction.",
+            "example": null,
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "nullable": true,
+            "type": "array"
+          },
+          "allowed_user_ids": {
+            "description": "Optional allowlist of user IDs that may use this credential. `null` means no restriction.",
+            "example": null,
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "nullable": true,
+            "type": "array"
+          },
+          "disabled": {
+            "description": "Whether this credential is disabled.",
+            "example": false,
+            "type": "boolean"
+          },
+          "is_fallback": {
+            "description": "Whether this credential is treated as a fallback \u2014 used only after non-fallback keys for the same provider have been tried.",
+            "example": false,
+            "type": "boolean"
+          },
+          "key": {
+            "description": "A new raw provider API key to rotate the credential in-place. The previous key material is overwritten and the masked label is regenerated. Encrypted at rest and never returned in API responses.",
+            "example": "sk-proj-newkey456...",
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "description": "Optional human-readable name for the credential.",
+            "example": "Updated OpenAI Key",
+            "maxLength": 255,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateBYOKKeyResponse": {
+        "example": {
+          "data": {
+            "allowed_api_key_hashes": null,
+            "allowed_models": null,
+            "allowed_user_ids": null,
+            "created_at": "2025-08-24T10:30:00Z",
+            "disabled": false,
+            "id": "11111111-2222-3333-4444-555555555555",
+            "is_fallback": false,
+            "label": "sk-...AbCd",
+            "name": "Updated OpenAI Key",
+            "provider": "openai",
+            "sort_order": 0,
+            "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        },
+        "properties": {
+          "data": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BYOKKey"
+              },
+              {
+                "description": "The updated BYOK credential."
+              }
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "UpdateGuardrailRequest": {
         "example": {
           "description": "Updated description",
@@ -22325,6 +25742,106 @@
               },
               {
                 "description": "The updated guardrail"
+              }
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "UpdateObservabilityDestinationRequest": {
+        "example": {
+          "enabled": false,
+          "name": "Updated Langfuse"
+        },
+        "properties": {
+          "api_key_hashes": {
+            "description": "Optional allowlist of OpenRouter API key hashes. `null` clears the filter (all keys). Omitting leaves the current value. Must contain at least one hash if provided.",
+            "example": null,
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "nullable": true,
+            "type": "array"
+          },
+          "config": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "description": "Provider-specific configuration fields to update. Masked values are ignored; unset fields keep their current value.",
+            "example": {
+              "baseUrl": "https://us.cloud.langfuse.com",
+              "publicKey": "pk-l...EfGh",
+              "secretKey": "sk-l...AbCd"
+            },
+            "type": "object"
+          },
+          "enabled": {
+            "description": "Whether the destination is enabled.",
+            "example": true,
+            "type": "boolean"
+          },
+          "filter_rules": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ObservabilityFilterRulesConfig"
+              },
+              {
+                "description": "Optional structured filter rules. `null` clears the rules. Omitting keeps the current value."
+              }
+            ]
+          },
+          "name": {
+            "description": "Human-readable name for the destination.",
+            "example": "Production Langfuse",
+            "type": "string"
+          },
+          "privacy_mode": {
+            "description": "When true, request/response bodies are not forwarded \u2014 only metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "sampling_rate": {
+            "description": "Sampling rate between 0 and 1 (1 = 100%).",
+            "example": 1,
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateObservabilityDestinationResponse": {
+        "example": {
+          "data": {
+            "api_key_hashes": null,
+            "config": {
+              "baseUrl": "https://us.cloud.langfuse.com",
+              "publicKey": "pk-l...EfGh",
+              "secretKey": "sk-l...AbCd"
+            },
+            "created_at": "2025-08-24T10:30:00Z",
+            "enabled": true,
+            "filter_rules": null,
+            "id": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+            "name": "Production Langfuse",
+            "privacy_mode": false,
+            "sampling_rate": 1,
+            "type": "langfuse",
+            "updated_at": "2025-08-24T15:45:00Z",
+            "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        },
+        "properties": {
+          "data": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ObservabilityDestination"
+              },
+              {
+                "description": "The updated observability destination."
               }
             ]
           }
@@ -23109,8 +26626,8 @@
             "type": "integer"
           },
           "max_total_results": {
-            "description": "Maximum total number of search results across all search calls in a single request. Once this limit is reached, the tool will stop returning new results. Useful for controlling cost and context size in agentic loops.",
-            "example": 20,
+            "description": "Maximum total number of search results across all search calls in a single request. Once this limit is reached, the tool will stop returning new results. Useful for controlling cost and context size in agentic loops. Defaults to 50 when not specified.",
+            "example": 50,
             "type": "integer"
           },
           "search_context_size": {
@@ -23326,8 +26843,8 @@
             "type": "integer"
           },
           "max_total_results": {
-            "description": "Maximum total number of search results across all search calls in a single request. Once this limit is reached, the tool will stop returning new results. Useful for controlling cost and context size in agentic loops.",
-            "example": 20,
+            "description": "Maximum total number of search results across all search calls in a single request. Once this limit is reached, the tool will stop returning new results. Useful for controlling cost and context size in agentic loops. Defaults to 50 when not specified.",
+            "example": 50,
             "type": "integer"
           },
           "search_context_size": {
@@ -24615,6 +28132,664 @@
         "x-speakeasy-name-override": "createAuthCode"
       }
     },
+    "/byok": {
+      "get": {
+        "description": "List the bring-your-own-key (BYOK) provider credentials for the authenticated entity's default workspace. Use the `workspace_id` query parameter to scope the result to a different workspace, or the `provider` query parameter to filter by upstream provider. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "operationId": "listBYOKKeys",
+        "parameters": [
+          {
+            "description": "Number of records to skip for pagination",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "description": "Number of records to skip for pagination",
+              "example": 0,
+              "minimum": 0,
+              "nullable": true,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of records to return (max 100)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "description": "Maximum number of records to return (max 100)",
+              "example": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Optional workspace ID to filter by. Defaults to the authenticated entity's default workspace.",
+            "in": "query",
+            "name": "workspace_id",
+            "required": false,
+            "schema": {
+              "description": "Optional workspace ID to filter by. Defaults to the authenticated entity's default workspace.",
+              "example": "550e8400-e29b-41d4-a716-446655440000",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional provider slug to filter by (e.g. `openai`, `anthropic`, `amazon-bedrock`).",
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "description": "Optional provider slug to filter by (e.g. `openai`, `anthropic`, `amazon-bedrock`).",
+              "enum": [
+                "ai21",
+                "aion-labs",
+                "akashml",
+                "alibaba",
+                "amazon-bedrock",
+                "amazon-nova",
+                "ambient",
+                "anthropic",
+                "arcee-ai",
+                "atlas-cloud",
+                "avian",
+                "azure",
+                "baidu",
+                "baseten",
+                "black-forest-labs",
+                "byteplus",
+                "cerebras",
+                "chutes",
+                "cirrascale",
+                "clarifai",
+                "cloudflare",
+                "cohere",
+                "crusoe",
+                "deepinfra",
+                "deepseek",
+                "dekallm",
+                "featherless",
+                "fireworks",
+                "friendli",
+                "gmicloud",
+                "google-ai-studio",
+                "google-vertex",
+                "groq",
+                "hyperbolic",
+                "inception",
+                "inceptron",
+                "inference-net",
+                "infermatic",
+                "inflection",
+                "io-net",
+                "ionstream",
+                "liquid",
+                "mancer",
+                "mara",
+                "minimax",
+                "mistral",
+                "modelrun",
+                "modular",
+                "moonshotai",
+                "morph",
+                "ncompass",
+                "nebius",
+                "nex-agi",
+                "nextbit",
+                "novita",
+                "nvidia",
+                "open-inference",
+                "openai",
+                "parasail",
+                "perceptron",
+                "perplexity",
+                "phala",
+                "poolside",
+                "recraft",
+                "reka",
+                "relace",
+                "sambanova",
+                "seed",
+                "siliconflow",
+                "sourceful",
+                "stepfun",
+                "streamlake",
+                "switchpoint",
+                "together",
+                "upstage",
+                "venice",
+                "wandb",
+                "xai",
+                "xiaomi",
+                "z-ai"
+              ],
+              "example": "openai",
+              "type": "string",
+              "x-speakeasy-unknown-values": "allow"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": [
+                    {
+                      "allowed_api_key_hashes": null,
+                      "allowed_models": null,
+                      "allowed_user_ids": null,
+                      "created_at": "2025-08-24T10:30:00Z",
+                      "disabled": false,
+                      "id": "11111111-2222-3333-4444-555555555555",
+                      "is_fallback": false,
+                      "label": "sk-...AbCd",
+                      "name": "Production OpenAI Key",
+                      "provider": "openai",
+                      "sort_order": 0,
+                      "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+                    }
+                  ],
+                  "total_count": 1
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ListBYOKKeysResponse"
+                }
+              }
+            },
+            "description": "List of BYOK credentials"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "summary": "List BYOK provider credentials",
+        "tags": [
+          "BYOK"
+        ],
+        "x-speakeasy-name-override": "list",
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "offset",
+              "type": "offset"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "results": "$.data"
+          },
+          "type": "offsetLimit"
+        }
+      },
+      "post": {
+        "description": "Create a new bring-your-own-key (BYOK) provider credential. The raw key is encrypted at rest and never returned in API responses. Defaults to the authenticated entity's default workspace; use the `workspace_id` body field to scope to a different workspace. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "operationId": "createBYOKKey",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "key": "sk-proj-abc123...",
+                "name": "Production OpenAI Key",
+                "provider": "openai"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/CreateBYOKKeyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": {
+                    "allowed_api_key_hashes": null,
+                    "allowed_models": null,
+                    "allowed_user_ids": null,
+                    "created_at": "2025-08-24T10:30:00Z",
+                    "disabled": false,
+                    "id": "11111111-2222-3333-4444-555555555555",
+                    "is_fallback": false,
+                    "label": "sk-...AbCd",
+                    "name": "Production OpenAI Key",
+                    "provider": "openai",
+                    "sort_order": 0,
+                    "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/CreateBYOKKeyResponse"
+                }
+              }
+            },
+            "description": "BYOK credential created successfully"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 400,
+                    "message": "Invalid request parameters"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            },
+            "description": "Bad Request - Invalid request parameters or malformed input"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 403,
+                    "message": "Only management keys can perform this operation"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            },
+            "description": "Forbidden - Authentication successful but insufficient permissions"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "summary": "Create a BYOK provider credential",
+        "tags": [
+          "BYOK"
+        ],
+        "x-speakeasy-name-override": "create"
+      }
+    },
+    "/byok/{id}": {
+      "delete": {
+        "description": "Delete (soft-delete) a bring-your-own-key (BYOK) provider credential by its `id`. The encrypted key material is wiped and the record is marked as deleted. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "operationId": "deleteBYOKKey",
+        "parameters": [
+          {
+            "description": "The BYOK credential ID (UUID).",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The BYOK credential ID (UUID).",
+              "example": "11111111-2222-3333-4444-555555555555",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "deleted": true
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteBYOKKeyResponse"
+                }
+              }
+            },
+            "description": "BYOK credential deleted successfully"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 404,
+                    "message": "Resource not found"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundResponse"
+                }
+              }
+            },
+            "description": "Not Found - Resource does not exist"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "summary": "Delete a BYOK provider credential",
+        "tags": [
+          "BYOK"
+        ],
+        "x-speakeasy-name-override": "delete"
+      },
+      "get": {
+        "description": "Get a single bring-your-own-key (BYOK) provider credential by its `id`. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "operationId": "getBYOKKey",
+        "parameters": [
+          {
+            "description": "The BYOK credential ID (UUID).",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The BYOK credential ID (UUID).",
+              "example": "11111111-2222-3333-4444-555555555555",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": {
+                    "allowed_api_key_hashes": null,
+                    "allowed_models": null,
+                    "allowed_user_ids": null,
+                    "created_at": "2025-08-24T10:30:00Z",
+                    "disabled": false,
+                    "id": "11111111-2222-3333-4444-555555555555",
+                    "is_fallback": false,
+                    "label": "sk-...AbCd",
+                    "name": "Production OpenAI Key",
+                    "provider": "openai",
+                    "sort_order": 0,
+                    "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/GetBYOKKeyResponse"
+                }
+              }
+            },
+            "description": "BYOK credential details"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 404,
+                    "message": "Resource not found"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundResponse"
+                }
+              }
+            },
+            "description": "Not Found - Resource does not exist"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "summary": "Get a BYOK provider credential",
+        "tags": [
+          "BYOK"
+        ],
+        "x-speakeasy-name-override": "get"
+      },
+      "patch": {
+        "description": "Update an existing bring-your-own-key (BYOK) provider credential by its `id`. Include the `key` field to rotate the raw provider API key in-place (the previous key material is overwritten). [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "operationId": "updateBYOKKey",
+        "parameters": [
+          {
+            "description": "The BYOK credential ID (UUID).",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The BYOK credential ID (UUID).",
+              "example": "11111111-2222-3333-4444-555555555555",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "disabled": false,
+                "name": "Updated OpenAI Key"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBYOKKeyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": {
+                    "allowed_api_key_hashes": null,
+                    "allowed_models": null,
+                    "allowed_user_ids": null,
+                    "created_at": "2025-08-24T10:30:00Z",
+                    "disabled": false,
+                    "id": "11111111-2222-3333-4444-555555555555",
+                    "is_fallback": false,
+                    "label": "sk-...AbCd",
+                    "name": "Updated OpenAI Key",
+                    "provider": "openai",
+                    "sort_order": 0,
+                    "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateBYOKKeyResponse"
+                }
+              }
+            },
+            "description": "BYOK credential updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 400,
+                    "message": "Invalid request parameters"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            },
+            "description": "Bad Request - Invalid request parameters or malformed input"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 404,
+                    "message": "Resource not found"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundResponse"
+                }
+              }
+            },
+            "description": "Not Found - Resource does not exist"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "summary": "Update a BYOK provider credential",
+        "tags": [
+          "BYOK"
+        ],
+        "x-speakeasy-name-override": "update"
+      }
+    },
     "/chat/completions": {
       "post": {
         "description": "Sends a request for a model response for the given chat conversation. Supports both streaming and non-streaming modes.",
@@ -25258,6 +29433,15 @@
                                       "image_url"
                                     ],
                                     "type": "object"
+                                  },
+                                  {
+                                    "$ref": "#/components/schemas/ContentPartInputAudio"
+                                  },
+                                  {
+                                    "$ref": "#/components/schemas/ContentPartInputVideo"
+                                  },
+                                  {
+                                    "$ref": "#/components/schemas/ContentPartInputFile"
                                   }
                                 ]
                               },
@@ -25440,6 +29624,10 @@
                           "properties": {
                             "audio_tokens": {
                               "description": "Number of audio tokens in the input",
+                              "type": "integer"
+                            },
+                            "file_tokens": {
+                              "description": "Number of file/document tokens in the input",
                               "type": "integer"
                             },
                             "image_tokens": {
@@ -30575,6 +34763,622 @@
         "x-speakeasy-name-override": "list"
       }
     },
+    "/observability/destinations": {
+      "get": {
+        "description": "List the observability destinations configured for the authenticated entity's default workspace. Use the `workspace_id` query parameter to scope the result to a different workspace. Only destinations with stable release status are surfaced \u2014 destinations of other types are excluded. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "operationId": "listObservabilityDestinations",
+        "parameters": [
+          {
+            "description": "Number of records to skip for pagination",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "description": "Number of records to skip for pagination",
+              "example": 0,
+              "minimum": 0,
+              "nullable": true,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of records to return (max 100)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "description": "Maximum number of records to return (max 100)",
+              "example": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Optional workspace ID to filter by. Defaults to the authenticated entity's default workspace.",
+            "in": "query",
+            "name": "workspace_id",
+            "required": false,
+            "schema": {
+              "description": "Optional workspace ID to filter by. Defaults to the authenticated entity's default workspace.",
+              "example": "550e8400-e29b-41d4-a716-446655440000",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": [
+                    {
+                      "api_key_hashes": null,
+                      "config": {
+                        "baseUrl": "https://us.cloud.langfuse.com",
+                        "publicKey": "pk-l...EfGh",
+                        "secretKey": "sk-l...AbCd"
+                      },
+                      "created_at": "2025-08-24T10:30:00Z",
+                      "enabled": true,
+                      "filter_rules": null,
+                      "id": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+                      "name": "Production Langfuse",
+                      "privacy_mode": false,
+                      "sampling_rate": 1,
+                      "type": "langfuse",
+                      "updated_at": "2025-08-24T15:45:00Z",
+                      "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+                    }
+                  ],
+                  "total_count": 1
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ListObservabilityDestinationsResponse"
+                }
+              }
+            },
+            "description": "List of observability destinations"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "summary": "List observability destinations",
+        "tags": [
+          "Observability"
+        ],
+        "x-speakeasy-name-override": "list",
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "offset",
+              "type": "offset"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "results": "$.data"
+          },
+          "type": "offsetLimit"
+        }
+      },
+      "post": {
+        "description": "Create a new observability destination. A maximum of 5 destinations per type is allowed. Defaults to the authenticated entity's default workspace; use the `workspace_id` body field to scope to a different workspace. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "operationId": "createObservabilityDestination",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "config": {
+                  "baseUrl": "https://us.cloud.langfuse.com",
+                  "publicKey": "pk-l...EfGh",
+                  "secretKey": "sk-l...AbCd"
+                },
+                "name": "Production Langfuse",
+                "type": "langfuse"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/CreateObservabilityDestinationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": {
+                    "api_key_hashes": null,
+                    "config": {
+                      "baseUrl": "https://us.cloud.langfuse.com",
+                      "publicKey": "pk-l...EfGh",
+                      "secretKey": "sk-l...AbCd"
+                    },
+                    "created_at": "2025-08-24T10:30:00Z",
+                    "enabled": true,
+                    "filter_rules": null,
+                    "id": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+                    "name": "Production Langfuse",
+                    "privacy_mode": false,
+                    "sampling_rate": 1,
+                    "type": "langfuse",
+                    "updated_at": "2025-08-24T15:45:00Z",
+                    "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/CreateObservabilityDestinationResponse"
+                }
+              }
+            },
+            "description": "Destination created successfully"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 400,
+                    "message": "Invalid request parameters"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            },
+            "description": "Bad Request - Invalid request parameters or malformed input"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 403,
+                    "message": "Only management keys can perform this operation"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            },
+            "description": "Forbidden - Authentication successful but insufficient permissions"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 409,
+                    "message": "Resource conflict. Please try again later."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictResponse"
+                }
+              }
+            },
+            "description": "Conflict - Resource conflict or concurrent modification"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "summary": "Create an observability destination",
+        "tags": [
+          "Observability"
+        ],
+        "x-speakeasy-name-override": "create"
+      }
+    },
+    "/observability/destinations/{id}": {
+      "delete": {
+        "description": "Delete an existing observability destination. This performs a soft delete. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "operationId": "deleteObservabilityDestination",
+        "parameters": [
+          {
+            "description": "The destination ID (UUID).",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The destination ID (UUID).",
+              "example": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "deleted": true
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteObservabilityDestinationResponse"
+                }
+              }
+            },
+            "description": "Destination deleted successfully"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 404,
+                    "message": "Resource not found"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundResponse"
+                }
+              }
+            },
+            "description": "Not Found - Resource does not exist"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "summary": "Delete an observability destination",
+        "tags": [
+          "Observability"
+        ],
+        "x-speakeasy-name-override": "delete"
+      },
+      "get": {
+        "description": "Fetch a single observability destination by its UUID. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "operationId": "getObservabilityDestination",
+        "parameters": [
+          {
+            "description": "The destination ID (UUID).",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The destination ID (UUID).",
+              "example": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": {
+                    "api_key_hashes": null,
+                    "config": {
+                      "baseUrl": "https://us.cloud.langfuse.com",
+                      "publicKey": "pk-l...EfGh",
+                      "secretKey": "sk-l...AbCd"
+                    },
+                    "created_at": "2025-08-24T10:30:00Z",
+                    "enabled": true,
+                    "filter_rules": null,
+                    "id": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+                    "name": "Production Langfuse",
+                    "privacy_mode": false,
+                    "sampling_rate": 1,
+                    "type": "langfuse",
+                    "updated_at": "2025-08-24T15:45:00Z",
+                    "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/GetObservabilityDestinationResponse"
+                }
+              }
+            },
+            "description": "The observability destination"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 404,
+                    "message": "Resource not found"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundResponse"
+                }
+              }
+            },
+            "description": "Not Found - Resource does not exist"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "summary": "Get an observability destination",
+        "tags": [
+          "Observability"
+        ],
+        "x-speakeasy-name-override": "get"
+      },
+      "patch": {
+        "description": "Update an existing observability destination. Only the fields provided in the request body are updated. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "operationId": "updateObservabilityDestination",
+        "parameters": [
+          {
+            "description": "The destination ID (UUID).",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The destination ID (UUID).",
+              "example": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "enabled": false,
+                "name": "Updated Langfuse"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/UpdateObservabilityDestinationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": {
+                    "api_key_hashes": null,
+                    "config": {
+                      "baseUrl": "https://us.cloud.langfuse.com",
+                      "publicKey": "pk-l...EfGh",
+                      "secretKey": "sk-l...AbCd"
+                    },
+                    "created_at": "2025-08-24T10:30:00Z",
+                    "enabled": true,
+                    "filter_rules": null,
+                    "id": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+                    "name": "Production Langfuse",
+                    "privacy_mode": false,
+                    "sampling_rate": 1,
+                    "type": "langfuse",
+                    "updated_at": "2025-08-24T15:45:00Z",
+                    "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateObservabilityDestinationResponse"
+                }
+              }
+            },
+            "description": "Destination updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 400,
+                    "message": "Invalid request parameters"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            },
+            "description": "Bad Request - Invalid request parameters or malformed input"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 404,
+                    "message": "Resource not found"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundResponse"
+                }
+              }
+            },
+            "description": "Not Found - Resource does not exist"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 409,
+                    "message": "Resource conflict. Please try again later."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictResponse"
+                }
+              }
+            },
+            "description": "Conflict - Resource conflict or concurrent modification"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "summary": "Update an observability destination",
+        "tags": [
+          "Observability"
+        ],
+        "x-speakeasy-name-override": "update"
+      }
+    },
     "/organization/members": {
       "get": {
         "description": "List all members of the organization associated with the authenticated management key. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
@@ -33531,6 +38335,10 @@
       "name": "Anthropic Messages"
     },
     {
+      "description": "BYOK endpoints",
+      "name": "BYOK"
+    },
+    {
       "description": "Chat completion endpoints",
       "name": "Chat"
     },
@@ -33561,6 +38369,10 @@
     {
       "description": "OAuth authentication endpoints",
       "name": "OAuth"
+    },
+    {
+      "description": "Observability endpoints",
+      "name": "Observability"
     },
     {
       "description": "Organization endpoints",
