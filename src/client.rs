@@ -41,7 +41,7 @@ pub struct OpenRouterClient {
     x_title: Option<String>,
     #[builder(setter(custom), default)]
     app_categories: Option<Vec<String>>,
-    #[builder(setter(skip), default = "crate::transport::new_client()?")]
+    #[builder(setter(into), default = "crate::transport::new_client()?")]
     http_client: reqwest::Client,
 }
 
