@@ -1,16 +1,16 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-03-02T00:00:00Z",
+  "generated_at": "2026-05-20T08:21:53Z",
   "source": {
-    "type": "bootstrap",
-    "endpoint": "https://openrouter.ai/rankings",
+    "type": "models-endpoint-fallback",
+    "endpoint": "https://openrouter.ai/api/v1/models",
     "top_n": 10
   },
   "stable": {
-    "chat": "x-ai/grok-code-fast-1",
+    "chat": "x-ai/grok-4.3",
     "reasoning": "deepseek/deepseek-r1",
     "regression": [
-      "x-ai/grok-code-fast-1",
+      "x-ai/grok-4.3",
       "openai/gpt-4o-mini",
       "deepseek/deepseek-r1"
     ]
@@ -18,16 +18,16 @@
   "responses": {
     "hot": {
       "models": [
-        "minimax/minimax-m2.5",
-        "google/gemini-3-flash-preview",
-        "deepseek/deepseek-v3.2",
-        "moonshotai/kimi-k2.5",
-        "anthropic/claude-opus-4.6",
-        "x-ai/grok-4.1-fast",
-        "anthropic/claude-sonnet-4.6",
-        "z-ai/glm-5",
-        "arcee-ai/trinity-large-preview:free",
-        "anthropic/claude-sonnet-4.5"
+        "google/gemini-3.5-flash",
+        "anthropic/claude-opus-4.7-fast",
+        "perceptron/perceptron-mk1",
+        "inclusionai/ring-2.6-1t",
+        "google/gemini-3.1-flash-lite",
+        "baidu/cobuddy:free",
+        "openai/gpt-chat-latest",
+        "x-ai/grok-4.3",
+        "ibm-granite/granite-4.1-8b",
+        "mistralai/mistral-medium-3-5"
       ]
     }
   }
