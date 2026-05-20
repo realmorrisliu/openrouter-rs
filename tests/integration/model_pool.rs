@@ -3,10 +3,10 @@ use std::{collections::HashSet, env, fs, path::PathBuf};
 
 const DEFAULT_MODEL_POOL_FILE: &str = "tests/integration/model_pool.json";
 const LEGACY_MODEL_POOL_FILE: &str = "tests/integration/hot_models.json";
-const DEFAULT_CHAT_MODEL: &str = "x-ai/grok-code-fast-1";
+const DEFAULT_CHAT_MODEL: &str = "x-ai/grok-4.3";
 const DEFAULT_REASONING_MODEL: &str = "deepseek/deepseek-r1";
 const DEFAULT_STABLE_REGRESSION_MODELS: [&str; 3] = [
-    "x-ai/grok-code-fast-1",
+    "x-ai/grok-4.3",
     "openai/gpt-4o-mini",
     "deepseek/deepseek-r1",
 ];
@@ -225,8 +225,8 @@ mod tests {
     #[test]
     fn test_model_pool_config_deserializes_missing_fields() {
         let parsed: ModelPoolConfig =
-            serde_json::from_str(r#"{"stable":{"chat":"x-ai/grok-code-fast-1"}}"#).unwrap();
-        assert_eq!(parsed.stable.chat.as_deref(), Some("x-ai/grok-code-fast-1"));
+            serde_json::from_str(r#"{"stable":{"chat":"x-ai/grok-4.3"}}"#).unwrap();
+        assert_eq!(parsed.stable.chat.as_deref(), Some("x-ai/grok-4.3"));
         assert!(parsed.stable.regression.is_empty());
         assert!(parsed.responses.hot.models.is_empty());
         assert!(parsed.hot.models.is_empty());

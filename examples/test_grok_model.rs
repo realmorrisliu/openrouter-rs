@@ -15,11 +15,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .x_title("openrouter-rs-grok-test")
         .build()?;
 
-    println!("Testing Grok model: x-ai/grok-code-fast-1");
+    println!("Testing Grok model: x-ai/grok-4.3");
     println!("=========================================\n");
 
     let chat_request = ChatCompletionRequest::builder()
-        .model("x-ai/grok-code-fast-1")
+        .model("x-ai/grok-4.3")
         .messages(vec![Message::new(
             Role::User,
             "Say 'Hello from Rust!' in exactly those words.",

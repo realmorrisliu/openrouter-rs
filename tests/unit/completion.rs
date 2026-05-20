@@ -45,7 +45,7 @@ fn test_response_with_index_field() {
             }
         }],
         "created": 1700000000,
-        "model": "x-ai/grok-code-fast-1",
+        "model": "x-ai/grok-4.3",
         "object": "chat.completion"
     }"#;
 
