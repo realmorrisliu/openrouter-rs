@@ -122,26 +122,6 @@ At runtime, the builder/client exposes the values the SDK directly consumes:
 
 Chat, Responses API, and Anthropic-compatible Messages request builders also expose `experimental_metadata(OpenRouterExperimentalMetadata::Enabled)` for OpenRouter's opt-in routing metadata response header.
 
-### Custom HTTP client
-
-By default `OpenRouterClient` builds an internal `reqwest::Client` via `crate::transport::new_client()`. If you need to customize the underlying transport — to route through an HTTP/SOCKS proxy (e.g. for geo-restricted routes), tune timeouts, attach retry/tracing middleware, or configure mTLS — pass your own `reqwest::Client` via the builder:
-
-```rust
-use std::time::Duration;
-use openrouter_rs::OpenRouterClient;
-
-let http_client = reqwest::Client::builder()
-    .timeout(Duration::from_secs(120))
-    .pool_max_idle_per_host(64)
-    // .proxy(reqwest::Proxy::https("http://user:pass@proxy.example:6999")?)
-    .build()?;
-
-let client = OpenRouterClient::builder()
-    .api_key(std::env::var("OPENROUTER_API_KEY")?)
-    .http_client(http_client)
-    .build()?;
-```
-
 ## Common Workflows
 
 `openrouter-rs` is not just a thin `/chat/completions` wrapper. The repo currently covers:
