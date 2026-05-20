@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `OpenRouterClientBuilder::http_client(...)` — allow injecting a custom `reqwest::Client`. Enables HTTP/SOCKS proxies (e.g. for geo-restricted routes), custom timeouts, retry/tracing middleware, mTLS, and other transport-layer customization. The internal default client is preserved when `.http_client(...)` is not called, so existing code is unaffected. See `examples/custom_http_client.rs`.
 - Added `OpenRouterExperimentalMetadata` request-header opt-in for chat completions, Responses API, and Anthropic-compatible Messages requests, plus typed chat response access to `service_tier` and `openrouter_metadata`.
 - Added typed SDK support for BYOK provider credential management (`GET|POST /byok`, `GET|PATCH|DELETE /byok/{id}`) via `api::byok` and `client.management().*_byok_key(...)` methods.
 - Added typed SDK support for observability destination management (`GET|POST /observability/destinations`, `GET|PATCH|DELETE /observability/destinations/{id}`) via `api::observability` and `client.management().*_observability_destination(...)` methods.
