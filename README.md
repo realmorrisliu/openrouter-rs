@@ -39,7 +39,7 @@ The current repo snapshot implements `62 / 62` official OpenAPI method/path entr
 
 ```toml
 [dependencies]
-openrouter-rs = "0.9.0"
+openrouter-rs = "0.10.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -47,7 +47,7 @@ Legacy text completions are opt-in:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.9.0", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.10.0", features = ["legacy-completions"] }
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -227,7 +227,7 @@ For copy-paste shell/CI recipes, see [`docs/operations/cli-automation-workflows.
 - Canonical docs and examples prefer the domain clients over older flat helpers
 - Accepted endpoint coverage is tracked against the current OpenAPI snapshot, and the current baseline is fully implemented at the SDK surface (`62 / 62`)
 - Live integration coverage and gaps are published in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md)
-- Migration guidance for the planned `0.9.x -> 0.10.0` public-model future-proofing release, the `0.8.x -> 0.9.0` audio speech release, the `0.7.x -> 0.8.0` transport/error-surface release, and the archived `0.5.x -> 0.6.x` naming guide lives in [`MIGRATION.md`](MIGRATION.md)
+- Migration guidance for the `0.9.x -> 0.10.0` public-model future-proofing release, the `0.8.x -> 0.9.0` audio speech release, the `0.7.x -> 0.8.0` transport/error-surface release, and the archived `0.5.x -> 0.6.x` naming guide lives in [`MIGRATION.md`](MIGRATION.md)
 - Legacy `POST /completions` support remains available behind the `legacy-completions` feature
 
 ### 🔁 0.10 Public Model Migration
@@ -238,7 +238,7 @@ Full migration guide: [`MIGRATION.md`](MIGRATION.md)
 - Replace affected struct literals with builders, constructors, helpers, or serde deserialization
 - Add wildcard arms when matching affected public enums outside the crate
 - Use constructors such as `ResponseUsage::new(...)`, `ToolCall::new(...)`, `FunctionCall::new(...)`, and `JsonSchemaConfig::new(...)` for small helper/test fixtures
-- This source-level break is held for `0.10.0`
+- This source-level break lands in `0.10.0`
 
 ### 🔁 0.9 Audio Speech Migration
 
@@ -326,7 +326,14 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 ## 📈 Release History
 
-### Version 0.9.0 *(Latest)*
+### Version 0.10.0 *(Latest)*
+
+- Marked high-churn public SDK request, response, metadata, usage, pricing, discovery, streaming, and upstream taxonomy types as `#[non_exhaustive]`; use builders, constructors, helpers, serde deserialization, or wildcard enum arms when migrating from `0.9.x`.
+- Added typed SDK coverage for audio transcriptions, BYOK provider credentials, observability destinations, multimodal embedding media parts, experimental response metadata, and model/generation metadata refreshes.
+- Added `OpenRouterClientBuilder::http_client(...)` for injecting a custom `reqwest::Client` while preserving the default transport when omitted.
+- Accepted OpenAPI drift through the 2026-05-19 review and restored the tracked endpoint snapshot to `62 / 62`, while preserving OpenRouter metadata on normalized API errors and Anthropic Messages stream stop events.
+
+### Version 0.9.0
 
 - Added the canonical `audio().speech()` SDK surface for official `/audio/speech`, with deprecated `tts()` compatibility aliases.
 - Expanded workspace, workspace-scoped keys/guardrails, workspace I/O logging, generation content/metadata, and video callback coverage while keeping the endpoint snapshot at `51 / 51`.
