@@ -1,9 +1,9 @@
-use std::time::Duration;
 use openrouter_rs::{
     OpenRouterClient,
     api::chat::{ChatCompletionRequest, Message},
     types::Role,
 };
+use std::time::Duration;
 
 /// Example: inject a custom `reqwest::Client` into `OpenRouterClient`.
 ///

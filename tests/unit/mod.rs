@@ -13,9 +13,9 @@ pub mod client_domains;
 #[cfg(feature = "legacy-completions")]
 pub mod client_legacy;
 pub mod client_management_key;
-pub mod custom_http_client;
 pub mod completion;
 pub mod credits;
+pub mod custom_http_client;
 pub mod default_headers;
 pub mod discovery;
 pub mod embeddings;
