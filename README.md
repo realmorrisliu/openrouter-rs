@@ -118,8 +118,29 @@ At runtime, the builder/client exposes the values the SDK directly consumes:
 - `http_referer`
 - `x_title`
 - `app_categories`
+- `http_client`
 
 Chat, Responses API, and Anthropic-compatible Messages request builders also expose `experimental_metadata(OpenRouterExperimentalMetadata::Enabled)` for OpenRouter's opt-in routing metadata response header.
+
+### Custom HTTP client
+
+By default `OpenRouterClient` builds an internal `reqwest::Client` via `crate::transport::new_client()`. If you need to customize the underlying transport — to route through an HTTP/SOCKS proxy (e.g. for geo-restricted routes), tune timeouts, attach retry/tracing middleware, or configure mTLS — pass your own `reqwest::Client` via the builder:
+
+```rust
+use std::time::Duration;
+use openrouter_rs::OpenRouterClient;
+
+let http_client = reqwest::Client::builder()
+    .timeout(Duration::from_secs(120))
+    .pool_max_idle_per_host(64)
+    // .proxy(reqwest::Proxy::https("http://user:pass@proxy.example:6999")?)
+    .build()?;
+
+let client = OpenRouterClient::builder()
+    .api_key(std::env::var("OPENROUTER_API_KEY")?)
+    .http_client(http_client)
+    .build()?;
+```
 
 ## Common Workflows
 
@@ -147,6 +168,7 @@ The repo includes runnable examples for the highest-value workflows:
 | [`examples/axum_chat_gateway.rs`](examples/axum_chat_gateway.rs) | Minimal `axum` server that proxies prompts through `OpenRouterClient` |
 | [`examples/typed_tool_agent.rs`](examples/typed_tool_agent.rs) | Practical typed-tool agent loop with explicit tool dispatch |
 | [`examples/domain_chat_completion.rs`](examples/domain_chat_completion.rs) | Canonical `chat()` request with the domain-oriented client |
+| [`examples/custom_http_client.rs`](examples/custom_http_client.rs) | Inject a custom `reqwest::Client` (proxies, timeouts, middleware) |
 
 ### Tokio Streaming
 
@@ -196,6 +218,7 @@ cargo run --example create_transcription
 cargo run --example create_embedding
 cargo run --example list_byok_keys
 cargo run --example list_observability_destinations
+cargo run --example custom_http_client
 ```
 
 For shell and CI automation recipes built around the companion CLI, see [`docs/operations/cli-automation-workflows.md`](docs/operations/cli-automation-workflows.md).
