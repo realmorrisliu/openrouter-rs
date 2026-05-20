@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-05-20
+
 ### Added
 - `OpenRouterClientBuilder::http_client(...)` — allow injecting a custom `reqwest::Client`. Enables HTTP/SOCKS proxies (e.g. for geo-restricted routes), custom timeouts, retry/tracing middleware, mTLS, and other transport-layer customization. The internal default client is preserved when `.http_client(...)` is not called, so existing code is unaffected. See `examples/custom_http_client.rs`.
 - Added `OpenRouterExperimentalMetadata` request-header opt-in for chat completions, Responses API, and Anthropic-compatible Messages requests, plus typed chat response access to `service_tier` and `openrouter_metadata`.
@@ -20,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added ergonomic constructors for non-exhaustive helper types such as `ResponseUsage::new`, `ToolCall::new`, `FunctionCall::new`, `JsonSchemaConfig::new`, embedding multimodal parts, and provider-options wrappers.
 
 ### Changed
-- Breaking (0.10.0 target): Marked high-churn public SDK request, response, metadata, usage, pricing, discovery, streaming, and upstream taxonomy types as `#[non_exhaustive]`; construct affected request/configuration types through builders, constructors, or helpers, and include wildcard arms when matching affected public enums outside the crate.
+- Breaking: Marked high-churn public SDK request, response, metadata, usage, pricing, discovery, streaming, and upstream taxonomy types as `#[non_exhaustive]`; construct affected request/configuration types through builders, constructors, or helpers, and include wildcard arms when matching affected public enums outside the crate.
 - Accepted the 2026-04-29 OpenAPI drift review, including `stt` generation origins and chat usage cost metadata, and kept the repository snapshot at `51 / 51` official OpenAPI endpoint coverage.
 - Accepted the 2026-05-03 OpenAPI drift review, including audio transcription support, and restored the repository snapshot to `52 / 52` official OpenAPI endpoint coverage.
 - Accepted the 2026-05-15 OpenAPI drift review, including experimental response metadata, guardrail content filters, model supported voices, and generation service tiers, while keeping the repository snapshot at `52 / 52` official OpenAPI endpoint coverage.
