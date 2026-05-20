@@ -118,6 +118,7 @@ At runtime, the builder/client exposes the values the SDK directly consumes:
 - `http_referer`
 - `x_title`
 - `app_categories`
+- `http_client`
 
 Chat, Responses API, and Anthropic-compatible Messages request builders also expose `experimental_metadata(OpenRouterExperimentalMetadata::Enabled)` for OpenRouter's opt-in routing metadata response header.
 
@@ -147,6 +148,7 @@ The repo includes runnable examples for the highest-value workflows:
 | [`examples/axum_chat_gateway.rs`](examples/axum_chat_gateway.rs) | Minimal `axum` server that proxies prompts through `OpenRouterClient` |
 | [`examples/typed_tool_agent.rs`](examples/typed_tool_agent.rs) | Practical typed-tool agent loop with explicit tool dispatch |
 | [`examples/domain_chat_completion.rs`](examples/domain_chat_completion.rs) | Canonical `chat()` request with the domain-oriented client |
+| [`examples/custom_http_client.rs`](examples/custom_http_client.rs) | Inject a custom `reqwest::Client` (proxies, timeouts, middleware) |
 
 ### Tokio Streaming
 
@@ -196,6 +198,7 @@ cargo run --example create_transcription
 cargo run --example create_embedding
 cargo run --example list_byok_keys
 cargo run --example list_observability_destinations
+cargo run --example custom_http_client
 ```
 
 For shell and CI automation recipes built around the companion CLI, see [`docs/operations/cli-automation-workflows.md`](docs/operations/cli-automation-workflows.md).
