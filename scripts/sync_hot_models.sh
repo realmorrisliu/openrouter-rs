@@ -320,14 +320,14 @@ while IFS= read -r model; do
 done < <(read_existing_array '.stable.regression')
 
 if [ -z "$stable_chat" ]; then
-  stable_chat="x-ai/grok-code-fast-1"
+  stable_chat="x-ai/grok-4.3"
 fi
 if [ -z "$stable_reasoning" ]; then
   stable_reasoning="deepseek/deepseek-r1"
 fi
 if [ "${#stable_regression[@]}" -eq 0 ]; then
   stable_regression=(
-    "x-ai/grok-code-fast-1"
+    "x-ai/grok-4.3"
     "openai/gpt-4o-mini"
     "deepseek/deepseek-r1"
   )
