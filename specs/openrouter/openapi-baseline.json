@@ -27817,18 +27817,18 @@
             "content": {
               "application/json": {
                 "example": {
-                  "key": "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",
+                  "key": "sk-or-v1-[REDACTED]",
                   "user_id": "user_2yOPcMpKoQhcd4bVgSMlELRaIah"
                 },
                 "schema": {
                   "example": {
-                    "key": "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",
+                    "key": "sk-or-v1-[REDACTED]",
                     "user_id": "user_2yOPcMpKoQhcd4bVgSMlELRaIah"
                   },
                   "properties": {
                     "key": {
                       "description": "The API key to use for OpenRouter requests",
-                      "example": "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",
+                      "example": "sk-or-v1-[REDACTED]",
                       "type": "string"
                     },
                     "user_id": {
@@ -32816,7 +32816,7 @@
                     "usage_weekly": 0,
                     "workspace_id": "0df9e665-d932-5740-b2c7-b52af166bc11"
                   },
-                  "key": "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"
+                  "key": "sk-or-v1-[REDACTED]"
                 },
                 "schema": {
                   "example": {
@@ -32843,7 +32843,7 @@
                       "usage_weekly": 0,
                       "workspace_id": "0df9e665-d932-5740-b2c7-b52af166bc11"
                     },
-                    "key": "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"
+                    "key": "sk-or-v1-[REDACTED]"
                   },
                   "properties": {
                     "data": {
@@ -33021,7 +33021,7 @@
                     },
                     "key": {
                       "description": "The actual API key string (only shown once)",
-                      "example": "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",
+                      "example": "sk-or-v1-[REDACTED]",
                       "type": "string"
                     }
                   },

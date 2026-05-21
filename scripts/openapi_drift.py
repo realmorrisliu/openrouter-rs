@@ -7,12 +7,15 @@ import datetime as dt
 import difflib
 import hashlib
 import json
+import re
 import sys
 import urllib.request
 from pathlib import Path
 from typing import Any
 
 UPSTREAM_OPENAPI_URL = "https://openrouter.ai/openapi.json"
+OPENROUTER_EXAMPLE_TOKEN_PATTERN = re.compile(r"sk-or-v1-[A-Za-z0-9_-]{20,}")
+OPENROUTER_EXAMPLE_TOKEN_PLACEHOLDER = "sk-or-v1-[REDACTED]"
 HTTP_METHODS = ("get", "post", "put", "patch", "delete", "options", "head", "trace")
 DOC_ONLY_FIELDS = {"description", "example", "examples", "externalDocs", "summary", "title"}
 REPO_KNOWN_METADATA_PARAMETERS = frozenset(
@@ -154,7 +157,7 @@ def validate_openapi_spec(spec: Any, source: str) -> dict[str, Any]:
     if not isinstance(paths, dict):
         raise ValueError(f"{source} is not an OpenAPI document: missing top-level `paths` object.")
 
-    return spec
+    return redact_openrouter_example_tokens(spec)
 
 
 def decode_json_pointer_token(token: str) -> str:
@@ -832,7 +835,23 @@ def collect_operations(spec: dict[str, Any]) -> dict[str, dict[str, Any]]:
 def reduce_spec_for_baseline(spec: dict[str, Any]) -> dict[str, Any]:
     reduced = {field: spec[field] for field in BASELINE_TOP_LEVEL_FIELDS if field in spec}
     reduced["paths"] = spec.get("paths", {})
-    return reduced
+    return redact_openrouter_example_tokens(reduced)
+
+
+def redact_openrouter_example_tokens(value: Any) -> Any:
+    if isinstance(value, str):
+        return OPENROUTER_EXAMPLE_TOKEN_PATTERN.sub(
+            OPENROUTER_EXAMPLE_TOKEN_PLACEHOLDER,
+            value,
+        )
+    if isinstance(value, list):
+        return [redact_openrouter_example_tokens(item) for item in value]
+    if isinstance(value, dict):
+        return {
+            key: redact_openrouter_example_tokens(item)
+            for key, item in value.items()
+        }
+    return value
 
 
 def build_snapshot(spec: dict[str, Any], source_url: str) -> dict[str, Any]:
