@@ -64,6 +64,66 @@ def build_spec(
 
 
 class OpenApiDriftReportTests(unittest.TestCase):
+    def test_reduce_spec_for_baseline_sanitizes_openrouter_api_key_examples(self):
+        raw_key = "sk-or-v1-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ab"
+        spec = build_spec(
+            method="post",
+            path="/keys",
+            operation_id="createKey",
+            response_properties={
+                "key": {
+                    "type": "string",
+                    "example": raw_key,
+                },
+                "label": {
+                    "type": "string",
+                    "example": "sk-or-v1-...1c96",
+                },
+            },
+        )
+        spec["paths"]["/keys"]["post"]["responses"]["200"]["content"][
+            "application/json"
+        ]["example"] = {"key": raw_key}
+
+        reduced = openapi_drift.reduce_spec_for_baseline(spec)
+
+        content = reduced["paths"]["/keys"]["post"]["responses"]["200"]["content"][
+            "application/json"
+        ]
+        self.assertEqual(content["example"]["key"], "sk-or-v1-[REDACTED]")
+        self.assertEqual(
+            content["schema"]["properties"]["key"]["example"],
+            "sk-or-v1-[REDACTED]",
+        )
+        self.assertEqual(
+            content["schema"]["properties"]["label"]["example"],
+            "sk-or-v1-...1c96",
+        )
+
+    def test_validate_openapi_spec_sanitizes_openrouter_api_key_examples(self):
+        raw_key = "sk-or-v1-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ab"
+        spec = build_spec(
+            method="post",
+            path="/auth/keys",
+            operation_id="createAuthKey",
+            response_properties={
+                "key": {
+                    "type": "string",
+                    "example": raw_key,
+                },
+            },
+        )
+
+        validated = openapi_drift.validate_openapi_spec(spec, "test spec")
+
+        content = validated["paths"]["/auth/keys"]["post"]["responses"]["200"][
+            "content"
+        ]["application/json"]
+        self.assertEqual(
+            content["schema"]["properties"]["key"]["example"],
+            "sk-or-v1-[REDACTED]",
+        )
+
     def test_metadata_only_header_drift_is_classified_as_already_supported(self):
         baseline = build_spec()
         candidate = build_spec(

@@ -30,6 +30,10 @@ Refresh the baseline locally with:
 just openapi-refresh-baseline
 ```
 
+The refresh tooling sanitizes OpenRouter API-key-shaped example values from the upstream spec before
+writing the checked-in baseline. Keep placeholder examples redacted; real or real-looking API keys
+do not belong in the repository even when they originate from upstream examples.
+
 Compare the tracked baseline against the latest upstream spec with:
 
 ```bash
