@@ -6,7 +6,8 @@ use crate::api::legacy::completion;
 use crate::{
     api::{
         api_keys, audio, auth, byok, chat, credits, discovery, embeddings, generation, guardrails,
-        messages, models, observability, organization, rerank, responses, videos, workspaces,
+        messages, models, observability, organization, presets, rerank, responses, videos,
+        workspaces,
     },
     error::OpenRouterError,
     strip_option_vec_setter,
@@ -1063,6 +1064,72 @@ impl OpenRouterClient {
         Ok(adapt_messages_stream(raw_stream))
     }
 
+    /// Create or update a preset from a chat-completions request body.
+    ///
+    /// Equivalent to `POST /presets/{slug}/chat/completions`.
+    pub async fn create_chat_completion_preset(
+        &self,
+        slug: &str,
+        request: &chat::ChatCompletionRequest,
+    ) -> Result<presets::PresetWithDesignatedVersion, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            presets::create_chat_completion_preset_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                slug,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Create or update a preset from a Responses API request body.
+    ///
+    /// Equivalent to `POST /presets/{slug}/responses`.
+    pub async fn create_response_preset(
+        &self,
+        slug: &str,
+        request: &responses::ResponsesRequest,
+    ) -> Result<presets::PresetWithDesignatedVersion, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            presets::create_response_preset_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                slug,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Create or update a preset from an Anthropic-compatible Messages request body.
+    ///
+    /// Equivalent to `POST /presets/{slug}/messages`.
+    pub async fn create_message_preset(
+        &self,
+        slug: &str,
+        request: &messages::AnthropicMessagesRequest,
+    ) -> Result<presets::PresetWithDesignatedVersion, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            presets::create_message_preset_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                slug,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
     /// Submit an embeddings request.
     ///
     /// # Arguments
@@ -1556,6 +1623,28 @@ impl OpenRouterClient {
     pub async fn count_models(&self) -> Result<discovery::ModelsCountData, OpenRouterError> {
         if let Some(api_key) = &self.api_key {
             discovery::count_models_with_client(self.http_client(), &self.base_url, api_key).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Return daily token totals for top public models.
+    ///
+    /// Equivalent to `GET /datasets/rankings-daily`.
+    pub async fn get_rankings_daily(
+        &self,
+        start_date: Option<&str>,
+        end_date: Option<&str>,
+    ) -> Result<discovery::RankingsDailyResponse, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            discovery::get_rankings_daily_with_client(
+                self.http_client(),
+                &self.base_url,
+                api_key,
+                start_date,
+                end_date,
+            )
+            .await
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
@@ -2217,6 +2306,15 @@ impl<'a> ModelsClient<'a> {
         self.client.count_models().await
     }
 
+    /// Return daily token totals for top public models (`GET /datasets/rankings-daily`).
+    pub async fn get_rankings_daily(
+        &self,
+        start_date: Option<&str>,
+        end_date: Option<&str>,
+    ) -> Result<discovery::RankingsDailyResponse, OpenRouterError> {
+        self.client.get_rankings_daily(start_date, end_date).await
+    }
+
     /// List ZDR-compatible endpoints (`GET /endpoints/zdr`).
     pub async fn list_zdr_endpoints(
         &self,
@@ -2271,6 +2369,35 @@ impl<'a> ManagementClient<'a> {
         &self,
     ) -> Result<api_keys::ApiKeyDetails, OpenRouterError> {
         self.client.get_current_api_key_info().await
+    }
+
+    /// Create or update a preset from a chat-completions request body.
+    pub async fn create_chat_completion_preset(
+        &self,
+        slug: &str,
+        request: &chat::ChatCompletionRequest,
+    ) -> Result<presets::PresetWithDesignatedVersion, OpenRouterError> {
+        self.client
+            .create_chat_completion_preset(slug, request)
+            .await
+    }
+
+    /// Create or update a preset from a Responses API request body.
+    pub async fn create_response_preset(
+        &self,
+        slug: &str,
+        request: &responses::ResponsesRequest,
+    ) -> Result<presets::PresetWithDesignatedVersion, OpenRouterError> {
+        self.client.create_response_preset(slug, request).await
+    }
+
+    /// Create or update a preset from an Anthropic-compatible Messages request body.
+    pub async fn create_message_preset(
+        &self,
+        slug: &str,
+        request: &messages::AnthropicMessagesRequest,
+    ) -> Result<presets::PresetWithDesignatedVersion, OpenRouterError> {
+        self.client.create_message_preset(slug, request).await
     }
 
     /// Delete an API key (`DELETE /keys/{hash}`).

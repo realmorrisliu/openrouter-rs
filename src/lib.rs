@@ -2,7 +2,7 @@
 //!
 //! `openrouter-rs` is a type-safe, async Rust SDK for the [OpenRouter API](https://openrouter.ai/),
 //! providing typed access to chat, responses, messages, rerank, audio speech/transcription, video generation,
-//! discovery, embeddings, and management endpoints.
+//! discovery, embeddings, presets, and management endpoints.
 //!
 //! ## ✨ Key Features
 //!

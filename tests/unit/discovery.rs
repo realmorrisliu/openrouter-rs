@@ -8,7 +8,8 @@ use std::{
 
 use openrouter_rs::{
     api::discovery::{
-        self, ActivityItem, BigNumber, ModelsCountData, Provider, PublicEndpoint, UserModel,
+        self, ActivityItem, BigNumber, ModelsCountData, Provider, PublicEndpoint,
+        RankingsDailyResponse, UserModel,
     },
     types::ApiResponse,
 };
@@ -219,6 +220,34 @@ fn test_activity_response_deserialization() {
     assert_eq!(parsed.data[0].requests, 5.0);
 }
 
+#[test]
+fn test_rankings_daily_response_deserialization() {
+    let raw = r#"{
+        "data": [{
+            "date": "2026-05-11",
+            "model_permaslug": "openai/gpt-4o-2024-05-13",
+            "total_tokens": "12345678"
+        }, {
+            "date": "2026-05-11",
+            "model_permaslug": "other",
+            "total_tokens": "4321098"
+        }],
+        "meta": {
+            "as_of": "2026-05-12T02:00:00Z",
+            "version": "v1",
+            "start_date": "2026-04-12",
+            "end_date": "2026-05-11"
+        }
+    }"#;
+
+    let parsed: RankingsDailyResponse =
+        serde_json::from_str(raw).expect("rankings daily response should deserialize");
+    assert_eq!(parsed.data.len(), 2);
+    assert_eq!(parsed.data[0].total_tokens, "12345678");
+    assert_eq!(parsed.data[1].model_permaslug, "other");
+    assert_eq!(parsed.meta.version, "v1");
+}
+
 #[tokio::test]
 async fn test_list_models_for_user_request_path() {
     let listener = TcpListener::bind("127.0.0.1:0").expect("listener should bind");
@@ -407,6 +436,38 @@ async fn test_list_zdr_endpoints_request_path_and_auth_header() {
         .recv_timeout(Duration::from_secs(2))
         .expect("should capture request");
     assert_eq!(captured.request_line, "GET /api/v1/endpoints/zdr HTTP/1.1");
+
+    let request_lower = captured.request_text.to_ascii_lowercase();
+    assert!(
+        request_lower.contains("authorization: bearer api-key")
+            || request_lower.contains("authorization:bearer api-key"),
+        "authorization header should include API key, request:\n{}",
+        captured.request_text
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_get_rankings_daily_with_date_query_and_auth_header() {
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":[],"meta":{"as_of":"2026-05-12T02:00:00Z","version":"v1","start_date":"2026-04-12","end_date":"2026-05-11"}}"#,
+    );
+
+    let rankings =
+        discovery::get_rankings_daily(&base_url, "api-key", Some("2026-04-12"), Some("2026-05-11"))
+            .await
+            .expect("rankings daily request should succeed");
+    assert!(rankings.data.is_empty(), "response payload should parse");
+    assert_eq!(rankings.meta.start_date, "2026-04-12");
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/datasets/rankings-daily?start_date=2026-04-12&end_date=2026-05-11 HTTP/1.1"
+    );
 
     let request_lower = captured.request_text.to_ascii_lowercase();
     assert!(

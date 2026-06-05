@@ -27,6 +27,7 @@ pub mod models;
 pub mod observability;
 pub mod organization;
 pub mod pagination;
+pub mod presets;
 pub mod provider;
 pub mod rerank;
 pub mod response_format;

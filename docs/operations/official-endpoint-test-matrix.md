@@ -1,15 +1,15 @@
 # Official Endpoint Test Matrix
 
-Snapshot date: 2026-05-19
+Snapshot date: 2026-06-05
 Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)  
 Tracked baseline: `specs/openrouter/openapi-baseline.json`  
 Weekly drift workflow: `.github/workflows/openapi-drift.yml`
 
 ## Coverage Summary
 
-- Official OpenAPI endpoints: `62` method+path entries.
-- SDK implementation coverage (`src/api` + domain client): `62 / 62` (`100.0%`).
-- Live integration coverage (`tests/integration`): `24 / 62` endpoints currently exercised.
+- Official OpenAPI endpoints: `66` method+path entries.
+- SDK implementation coverage (`src/api` + domain client): `66 / 66` (`100.0%`).
+- Live integration coverage (`tests/integration`): `24 / 66` endpoints currently exercised.
   - Covered live now: `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `POST /rerank`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`, `GET /organization/members`
 
 Drift review note:
@@ -30,6 +30,8 @@ Drift review note:
 - Upstream added BYOK provider credential management and observability destination management. The SDK now exposes those typed management-key surfaces, and the 2026-05-19 baseline refresh restores the accepted endpoint snapshot to `62 / 62`.
 - Upstream expanded embeddings multimodal content with audio, video, and file content parts. The SDK now exposes typed `EmbeddingContentPart` constructors for those media inputs.
 - Upstream refreshed Responses schemas including image detail `original` and response status shapes. The SDK already carries these through flexible `Value` and `String` fields, so no public API migration is required.
+- Upstream added `GET /datasets/rankings-daily` and preset creation endpoints for chat-completions, Responses, and Anthropic-compatible Messages request bodies. The SDK now exposes rankings through `client.models().get_rankings_daily(...)` and preset creation through `client.management().create_*_preset(...)`.
+- Upstream refreshed generation metadata, provider taxonomy values, plugin payload shapes, and Messages role variants. Existing flexible `String`, `Value`, `HashMap`, and `Option` fields carry those schema details without a public API migration.
 
 Legend:
 
@@ -57,6 +59,7 @@ Legend:
 | `POST /chat/completions` | `client.chat().create(...)` / `client.chat().stream(...)` | Yes | Contract | Yes | Keep |
 | `GET /credits` | `client.get_credits()` / `client.management().get_credits()` | Yes | Path | No | P2 |
 | `POST /credits/coinbase` | `client.create_coinbase_charge(...)` / `client.management().create_coinbase_charge(...)` | Yes | Path | No | P2 |
+| `GET /datasets/rankings-daily` | `client.models().get_rankings_daily(...)` | Yes | Path | No | P2 |
 | `POST /embeddings` | `client.create_embedding(...)` / `client.models().create_embedding(...)` | Yes | Contract | Yes | Keep |
 | `GET /embeddings/models` | `client.list_embedding_models()` / `client.models().list_embedding_models()` | Yes | Path | Yes | Keep |
 | `GET /endpoints/zdr` | `client.models().list_zdr_endpoints(...)` | Yes | Contract | Yes | Keep |
@@ -91,6 +94,9 @@ Legend:
 | `PATCH /observability/destinations/{id}` | `client.management().update_observability_destination(...)` | Yes | Path | No | P1 |
 | `DELETE /observability/destinations/{id}` | `client.management().delete_observability_destination(...)` | Yes | Path | No | P1 |
 | `GET /organization/members` | `client.management().list_organization_members(...)` | Yes | Path | Yes | Keep |
+| `POST /presets/{slug}/chat/completions` | `client.management().create_chat_completion_preset(...)` | Yes | Path | No | P2 |
+| `POST /presets/{slug}/messages` | `client.management().create_message_preset(...)` | Yes | Path | No | P2 |
+| `POST /presets/{slug}/responses` | `client.management().create_response_preset(...)` | Yes | Path | No | P2 |
 | `GET /providers` | `client.list_providers()` / `client.models().list_providers()` | Yes | Contract | Yes | Keep |
 | `GET /workspaces` | `client.management().list_workspaces(...)` | Yes | Path | No | P1 |
 | `GET /workspaces/{id}` | `client.management().get_workspace(...)` | Yes | Path | No | P1 |
@@ -122,7 +128,7 @@ The endpoint below is intentionally kept as legacy compatibility and is not part
 
 1. P1: add management-key live coverage for assignment endpoints (`/guardrails/*/assignments/*` and `/guardrails/assignments/*`).
 2. P1: add management-key live smoke coverage for `/activity`.
-3. P2: keep `/credits`, `/credits/coinbase`, `/generation`, `/generation/content`, and `/auth/keys*` as controlled scenarios (manual or mocked contract-first) due cost/side effects.
+3. P2: keep `/credits`, `/credits/coinbase`, `/generation`, `/generation/content`, `/datasets/rankings-daily`, `/presets*`, and `/auth/keys*` as controlled scenarios (manual or mocked contract-first) due rate limits, cost, or side effects.
 4. P1/P2: add low-cost live or smoke coverage for `/audio/speech`, `/audio/transcriptions`, and `/videos*` once stable fixtures and cost controls are defined.
 5. P1: add management-key live validation for `/workspaces*`, plus targeted workspace-scoped read/write coverage for `/keys` and `/guardrails`.
 6. P1: add management-key live validation for `/byok*` and `/observability/destinations*` once safe test credentials and destination fixtures are defined.

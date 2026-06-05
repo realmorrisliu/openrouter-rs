@@ -40,6 +40,7 @@ pub struct GenerationData {
     pub num_media_prompt: Option<u32>,
     pub num_media_completion: Option<u32>,
     pub num_search_results: Option<u32>,
+    pub preset_id: Option<String>,
     pub response_cache_source_id: Option<String>,
     pub service_tier: Option<String>,
 }

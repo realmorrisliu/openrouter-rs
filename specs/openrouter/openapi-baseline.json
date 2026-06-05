@@ -918,6 +918,7 @@
         "type": "object"
       },
       "AnthropicCitationsConfig": {
+        "default": null,
         "example": {
           "enabled": true
         },
@@ -1269,7 +1270,6 @@
           }
         },
         "required": [
-          "citations",
           "source",
           "title",
           "type"
@@ -1558,6 +1558,21 @@
           "output_tokens": 50,
           "type": "message"
         }
+      },
+      "AnthropicOutputTokensDetails": {
+        "example": {
+          "thinking_tokens": 0
+        },
+        "nullable": true,
+        "properties": {
+          "thinking_tokens": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "thinking_tokens"
+        ],
+        "type": "object"
       },
       "AnthropicPlainTextSource": {
         "example": {
@@ -2469,6 +2484,7 @@
           "inference_geo": null,
           "input_tokens": 100,
           "output_tokens": 50,
+          "output_tokens_details": null,
           "server_tool_use": null,
           "service_tier": "standard"
         },
@@ -2494,6 +2510,9 @@
           "output_tokens": {
             "type": "integer"
           },
+          "output_tokens_details": {
+            "$ref": "#/components/schemas/AnthropicOutputTokensDetails"
+          },
           "server_tool_use": {
             "$ref": "#/components/schemas/AnthropicServerToolUsage"
           },
@@ -2504,6 +2523,7 @@
         "required": [
           "input_tokens",
           "output_tokens",
+          "output_tokens_details",
           "cache_creation_input_tokens",
           "cache_read_input_tokens",
           "cache_creation",
@@ -2923,6 +2943,14 @@
       },
       "ApplyPatchCallOperation": {
         "description": "The patch operation requested by an `apply_patch_call`. `create_file` and `update_file` carry a V4A diff; `delete_file` omits it.",
+        "discriminator": {
+          "mapping": {
+            "create_file": "#/components/schemas/ApplyPatchCreateFileOperation",
+            "delete_file": "#/components/schemas/ApplyPatchDeleteFileOperation",
+            "update_file": "#/components/schemas/ApplyPatchUpdateFileOperation"
+          },
+          "propertyName": "type"
+        },
         "example": {
           "diff": "@@ function main() {\n+  console.log(\"hi\");\n }",
           "path": "/src/main.ts",
@@ -2930,66 +2958,13 @@
         },
         "oneOf": [
           {
-            "properties": {
-              "diff": {
-                "type": "string"
-              },
-              "path": {
-                "type": "string"
-              },
-              "type": {
-                "enum": [
-                  "create_file"
-                ],
-                "type": "string"
-              }
-            },
-            "required": [
-              "type",
-              "path",
-              "diff"
-            ],
-            "type": "object"
+            "$ref": "#/components/schemas/ApplyPatchCreateFileOperation"
           },
           {
-            "properties": {
-              "diff": {
-                "type": "string"
-              },
-              "path": {
-                "type": "string"
-              },
-              "type": {
-                "enum": [
-                  "update_file"
-                ],
-                "type": "string"
-              }
-            },
-            "required": [
-              "type",
-              "path",
-              "diff"
-            ],
-            "type": "object"
+            "$ref": "#/components/schemas/ApplyPatchUpdateFileOperation"
           },
           {
-            "properties": {
-              "path": {
-                "type": "string"
-              },
-              "type": {
-                "enum": [
-                  "delete_file"
-                ],
-                "type": "string"
-              }
-            },
-            "required": [
-              "type",
-              "path"
-            ],
-            "type": "object"
+            "$ref": "#/components/schemas/ApplyPatchDeleteFileOperation"
           }
         ]
       },
@@ -3121,6 +3096,68 @@
         "type": "string",
         "x-speakeasy-unknown-values": "allow"
       },
+      "ApplyPatchCreateFileOperation": {
+        "description": "The `create_file` variant of an `apply_patch_call.operation`. Carries a V4A diff describing the new file contents.",
+        "example": {
+          "diff": "@@\n+console.log(\"hi\");\n",
+          "path": "/src/main.ts",
+          "type": "create_file"
+        },
+        "properties": {
+          "diff": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "create_file"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "path",
+          "diff"
+        ],
+        "type": "object"
+      },
+      "ApplyPatchDeleteFileOperation": {
+        "description": "The `delete_file` variant of an `apply_patch_call.operation`. Identifies the file to remove; no diff is required.",
+        "example": {
+          "path": "/src/main.ts",
+          "type": "delete_file"
+        },
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "delete_file"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "path"
+        ],
+        "type": "object"
+      },
+      "ApplyPatchEngineEnum": {
+        "description": "Which apply_patch engine to use. \"auto\" (default) uses native passthrough when the endpoint advertises native apply_patch support, otherwise falls back to OpenRouter's HITL validator. \"native\" forces native passthrough \u2014 when the endpoint does not support native, the request falls back to HITL. \"openrouter\" always runs the HITL validator. Native passthrough streams the diff incrementally via `apply_patch_call_operation_diff.delta` events; HITL buffers the diff for atomic delivery as a single delta.",
+        "enum": [
+          "auto",
+          "native",
+          "openrouter"
+        ],
+        "example": "auto",
+        "type": "string",
+        "x-speakeasy-unknown-values": "allow"
+      },
       "ApplyPatchServerTool": {
         "description": "Apply patch tool configuration",
         "example": {
@@ -3141,8 +3178,14 @@
       },
       "ApplyPatchServerToolConfig": {
         "description": "Configuration for the openrouter:apply_patch server tool",
-        "example": {},
-        "properties": {},
+        "example": {
+          "engine": "auto"
+        },
+        "properties": {
+          "engine": {
+            "$ref": "#/components/schemas/ApplyPatchEngineEnum"
+          }
+        },
         "type": "object"
       },
       "ApplyPatchServerTool_OpenRouter": {
@@ -3166,12 +3209,41 @@
         ],
         "type": "object"
       },
+      "ApplyPatchUpdateFileOperation": {
+        "description": "The `update_file` variant of an `apply_patch_call.operation`. Carries a V4A diff describing edits to an existing file.",
+        "example": {
+          "diff": "@@ function main() {\n+  console.log(\"hi\");\n }",
+          "path": "/src/main.ts",
+          "type": "update_file"
+        },
+        "properties": {
+          "diff": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "update_file"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "path",
+          "diff"
+        ],
+        "type": "object"
+      },
       "AutoRouterPlugin": {
         "example": {
           "allowed_models": [
             "anthropic/*",
             "openai/gpt-4o"
           ],
+          "cost_quality_tradeoff": 7,
           "enabled": true,
           "id": "auto-router"
         },
@@ -3187,6 +3259,13 @@
               "type": "string"
             },
             "type": "array"
+          },
+          "cost_quality_tradeoff": {
+            "description": "Controls cost vs. quality routing tradeoff (0\u201310). 0 = pure quality (best model regardless of cost), 10 = maximize for cost (cheapest model wins). Intermediate values blend quality and cost signals continuously. Defaults to 7.",
+            "example": 7,
+            "maximum": 10,
+            "minimum": 0,
+            "type": "integer"
           },
           "enabled": {
             "description": "Set to false to disable the auto-router plugin for this request. Defaults to true.",
@@ -3340,9 +3419,11 @@
           "cloudflare",
           "cohere",
           "crusoe",
+          "darkbloom",
           "deepinfra",
           "deepseek",
           "dekallm",
+          "digitalocean",
           "featherless",
           "fireworks",
           "friendli",
@@ -3350,7 +3431,6 @@
           "google-ai-studio",
           "google-vertex",
           "groq",
-          "hyperbolic",
           "inception",
           "inceptron",
           "inference-net",
@@ -4110,6 +4190,7 @@
               "inference_geo": null,
               "input_tokens": 100,
               "output_tokens": 50,
+              "output_tokens_details": null,
               "server_tool_use": null,
               "service_tier": "standard"
             }
@@ -4568,6 +4649,7 @@
             "items": {
               "discriminator": {
                 "mapping": {
+                  "apply_patch_call": "#/components/schemas/OutputItemApplyPatchCall",
                   "custom_tool_call": "#/components/schemas/OutputItemCustomToolCall",
                   "file_search_call": "#/components/schemas/OutputItemFileSearchCall",
                   "function_call": "#/components/schemas/OutputItemFunctionCall",
@@ -4599,6 +4681,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/OutputItemImageGenerationCall"
+                },
+                {
+                  "$ref": "#/components/schemas/OutputItemApplyPatchCall"
                 }
               ]
             },
@@ -6156,7 +6241,8 @@
                   "moderation": "#/components/schemas/ModerationPlugin",
                   "pareto-router": "#/components/schemas/ParetoRouterPlugin",
                   "response-healing": "#/components/schemas/ResponseHealingPlugin",
-                  "web": "#/components/schemas/WebSearchPlugin"
+                  "web": "#/components/schemas/WebSearchPlugin",
+                  "web-fetch": "#/components/schemas/WebFetchPlugin"
                 },
                 "propertyName": "id"
               },
@@ -6169,6 +6255,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/WebSearchPlugin"
+                },
+                {
+                  "$ref": "#/components/schemas/WebFetchPlugin"
                 },
                 {
                   "$ref": "#/components/schemas/FileParserPlugin"
@@ -6286,7 +6375,7 @@
             "x-speakeasy-unknown-values": "allow"
           },
           "session_id": {
-            "description": "A unique identifier for grouping related requests (e.g., a conversation or agent workflow) for observability. If provided in both the request body and the x-session-id header, the body value takes precedence. Maximum of 256 characters.",
+            "description": "A unique identifier for grouping related requests (e.g., a conversation or agent workflow). When provided, OpenRouter uses it as the sticky routing key, routing all requests in the session to the same provider to maximize prompt cache hits. Also used for observability grouping. If provided in both the request body and the x-session-id header, the body value takes precedence. Maximum of 256 characters.",
             "maxLength": 256,
             "type": "string"
           },
@@ -6310,6 +6399,9 @@
             "example": [
               ""
             ]
+          },
+          "stop_server_tools_when": {
+            "$ref": "#/components/schemas/StopServerToolsWhen"
           },
           "stream": {
             "default": false,
@@ -6470,6 +6562,23 @@
             "enum": [
               "openrouter:experimental__search_models"
             ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "ChatServerToolChoice": {
+        "description": "OpenRouter extension: force a specific server tool by naming it directly in `tool_choice.type` instead of wrapping it in `{ type: \"function\", function: { name } }`.",
+        "example": {
+          "type": "openrouter:web_search"
+        },
+        "properties": {
+          "type": {
+            "description": "OpenRouter server-tool type to force (e.g. `openrouter:web_search`, `web_search`, `web_search_preview`).",
+            "example": "openrouter:web_search",
             "type": "string"
           }
         },
@@ -6992,6 +7101,9 @@
           },
           {
             "$ref": "#/components/schemas/ChatNamedToolChoice"
+          },
+          {
+            "$ref": "#/components/schemas/ChatServerToolChoice"
           }
         ],
         "description": "Tool choice configuration",
@@ -7652,19 +7764,51 @@
       "ContentFilterBuiltinEntry": {
         "description": "A builtin content filter entry. Builtin filters include PII detectors and the regex-based prompt injection detector.",
         "example": {
-          "action": "block",
-          "label": "[PROMPT_INJECTION]",
-          "slug": "regex-prompt-injection"
+          "action": "redact",
+          "label": "[EMAIL]",
+          "slug": "email"
         },
         "properties": {
           "action": {
             "$ref": "#/components/schemas/ContentFilterBuiltinAction"
           },
           "label": {
-            "description": "Optional label used in redaction placeholders (e.g. \"[PROMPT_INJECTION]\")",
-            "example": "[PROMPT_INJECTION]",
+            "description": "Read-only, system-assigned redaction placeholder derived from the slug (e.g. \"[EMAIL]\", \"[PHONE]\"). Not settable by the caller.",
+            "example": "[EMAIL]",
             "maxLength": 100,
             "type": "string"
+          },
+          "scan_scope": {
+            "$ref": "#/components/schemas/PromptInjectionScanScope"
+          },
+          "slug": {
+            "$ref": "#/components/schemas/ContentFilterBuiltinSlug"
+          }
+        },
+        "required": [
+          "slug",
+          "action"
+        ],
+        "type": "object"
+      },
+      "ContentFilterBuiltinEntryInput": {
+        "description": "A builtin content filter entry for create/update requests. Labels are system-assigned and cannot be set by the caller.",
+        "example": {
+          "action": "redact",
+          "slug": "email"
+        },
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/ContentFilterBuiltinAction"
+          },
+          "label": {
+            "deprecated": true,
+            "description": "Deprecated: labels are system-assigned and cannot be set by the caller. Accepted for backward compatibility but silently ignored.",
+            "maxLength": 100,
+            "type": "string"
+          },
+          "scan_scope": {
+            "$ref": "#/components/schemas/PromptInjectionScanScope"
           },
           "slug": {
             "$ref": "#/components/schemas/ContentFilterBuiltinSlug"
@@ -8133,7 +8277,7 @@
               }
             ],
             "items": {
-              "$ref": "#/components/schemas/ContentFilterBuiltinEntry"
+              "$ref": "#/components/schemas/ContentFilterBuiltinEntryInput"
             },
             "nullable": true,
             "type": "array"
@@ -8255,9 +8399,9 @@
             ],
             "content_filter_builtins": [
               {
-                "action": "block",
-                "label": "[PROMPT_INJECTION]",
-                "slug": "regex-prompt-injection"
+                "action": "redact",
+                "label": "[EMAIL]",
+                "slug": "email"
               }
             ],
             "content_filters": null,
@@ -8349,7 +8493,7 @@
             "type": "boolean"
           },
           "sampling_rate": {
-            "description": "Sampling rate between 0 and 1 (1 = 100%).",
+            "description": "Sampling rate between 0.0001 and 1 (1 = 100%).",
             "example": 1,
             "format": "double",
             "type": "number"
@@ -8424,6 +8568,46 @@
                 "description": "The newly created observability destination."
               }
             ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "CreatePresetFromInferenceResponse": {
+        "description": "Response containing the created preset with its designated version.",
+        "example": {
+          "data": {
+            "created_at": "2026-04-20T10:00:00Z",
+            "creator_user_id": "user_2dHFtVWx2n56w6HkM0000000000",
+            "description": null,
+            "designated_version": {
+              "config": {
+                "model": "openai/gpt-4o",
+                "temperature": 0.7
+              },
+              "created_at": "2026-04-20T10:00:00Z",
+              "creator_id": "user_2dHFtVWx2n56w6HkM0000000000",
+              "id": "550e8400-e29b-41d4-a716-446655440000",
+              "preset_id": "650e8400-e29b-41d4-a716-446655440001",
+              "system_prompt": "You are a helpful assistant.",
+              "updated_at": "2026-04-20T10:00:00Z",
+              "version": 1
+            },
+            "designated_version_id": "550e8400-e29b-41d4-a716-446655440000",
+            "id": "650e8400-e29b-41d4-a716-446655440001",
+            "name": "my-preset",
+            "slug": "my-preset",
+            "status": "active",
+            "status_updated_at": null,
+            "updated_at": "2026-04-20T10:00:00Z",
+            "workspace_id": "750e8400-e29b-41d4-a716-446655440002"
+          }
+        },
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PresetWithDesignatedVersion"
           }
         },
         "required": [
@@ -9917,6 +10101,11 @@
             "minItems": 1,
             "type": "array"
           },
+          "max_completion_tokens": {
+            "description": "Maximum number of output tokens (including reasoning tokens) each panelist and the judge model may produce per inner call. Controls the total output budget so reasoning-heavy models like GPT-5.5 do not exhaust their token allowance before producing visible text. When omitted, the provider's default applies.",
+            "example": 16384,
+            "type": "integer"
+          },
           "max_tool_calls": {
             "description": "Maximum number of tool-calling steps each panelist (analysis model) and the judge model may take during their agentic web-research loop. Models with web_search/web_fetch enabled iterate until they produce a text response or hit this ceiling. Defaults to 8. Capped at 16.",
             "example": 12,
@@ -9928,6 +10117,35 @@
             "description": "Slug of the judge model that produces the structured analysis JSON. Defaults to the model used in the outer API request.",
             "example": "~anthropic/claude-opus-latest",
             "type": "string"
+          },
+          "reasoning": {
+            "description": "Reasoning configuration forwarded to panelist and judge inner calls. Use this to control reasoning effort and token budget for models that support extended thinking.",
+            "properties": {
+              "effort": {
+                "description": "Reasoning effort level for panelist and judge inner calls.",
+                "enum": [
+                  "xhigh",
+                  "high",
+                  "medium",
+                  "low",
+                  "minimal",
+                  "none"
+                ],
+                "type": "string",
+                "x-speakeasy-unknown-values": "allow"
+              },
+              "max_tokens": {
+                "description": "Maximum number of reasoning tokens each panelist and judge model may use. Helps bound cost when models allocate too much budget to chain-of-thought.",
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          },
+          "temperature": {
+            "description": "Sampling temperature forwarded to panelist and judge inner calls. When omitted, the provider's default applies.",
+            "example": 0.7,
+            "format": "double",
+            "type": "number"
           }
         },
         "type": "object"
@@ -10128,6 +10346,7 @@
                   "tts",
                   "stt",
                   "video",
+                  "image",
                   null
                 ],
                 "nullable": true,
@@ -10282,6 +10501,12 @@
                 "example": "https://openrouter.ai/",
                 "type": "string"
               },
+              "preset_id": {
+                "description": "ID of the preset used for this generation, null if no preset was used",
+                "example": "a9e8d400-592a-494f-908c-375efa66cafd",
+                "nullable": true,
+                "type": "string"
+              },
               "provider_name": {
                 "description": "Name of the provider that served the request",
                 "example": "Infermatic",
@@ -10415,6 +10640,7 @@
               "native_finish_reason",
               "external_user",
               "api_type",
+              "preset_id",
               "router",
               "provider_responses",
               "user_agent",
@@ -10473,9 +10699,9 @@
             ],
             "content_filter_builtins": [
               {
-                "action": "block",
-                "label": "[PROMPT_INJECTION]",
-                "slug": "regex-prompt-injection"
+                "action": "redact",
+                "label": "[EMAIL]",
+                "slug": "email"
               }
             ],
             "content_filters": null,
@@ -10654,9 +10880,9 @@
           ],
           "content_filter_builtins": [
             {
-              "action": "block",
-              "label": "[PROMPT_INJECTION]",
-              "slug": "regex-prompt-injection"
+              "action": "redact",
+              "label": "[EMAIL]",
+              "slug": "email"
             }
           ],
           "content_filters": null,
@@ -10707,9 +10933,9 @@
             "description": "Builtin content filters applied to requests. Includes PII detectors and the regex-based prompt injection detector.",
             "example": [
               {
-                "action": "block",
-                "label": "[PROMPT_INJECTION]",
-                "slug": "regex-prompt-injection"
+                "action": "redact",
+                "label": "[EMAIL]",
+                "slug": "email"
               }
             ],
             "items": {
@@ -11087,7 +11313,7 @@
         "description": "OpenRouter built-in server tool: generates images from text prompts using an image generation model",
         "example": {
           "parameters": {
-            "model": "openai/gpt-image-1",
+            "model": "openai/gpt-5-image",
             "quality": "high",
             "size": "1024x1024"
           },
@@ -12160,9 +12386,9 @@
               ],
               "content_filter_builtins": [
                 {
-                  "action": "block",
-                  "label": "[PROMPT_INJECTION]",
-                  "slug": "regex-prompt-injection"
+                  "action": "redact",
+                  "label": "[EMAIL]",
+                  "slug": "email"
                 }
               ],
               "content_filters": null,
@@ -13247,6 +13473,9 @@
               "output_tokens": {
                 "type": "integer"
               },
+              "output_tokens_details": {
+                "$ref": "#/components/schemas/AnthropicOutputTokensDetails"
+              },
               "server_tool_use": {
                 "nullable": true,
                 "properties": {
@@ -13267,6 +13496,7 @@
             "required": [
               "input_tokens",
               "output_tokens",
+              "output_tokens_details",
               "cache_creation_input_tokens",
               "cache_read_input_tokens",
               "server_tool_use"
@@ -13646,7 +13876,8 @@
           "role": {
             "enum": [
               "user",
-              "assistant"
+              "assistant",
+              "system"
             ],
             "type": "string",
             "x-speakeasy-unknown-values": "allow"
@@ -13964,7 +14195,8 @@
                   "moderation": "#/components/schemas/ModerationPlugin",
                   "pareto-router": "#/components/schemas/ParetoRouterPlugin",
                   "response-healing": "#/components/schemas/ResponseHealingPlugin",
-                  "web": "#/components/schemas/WebSearchPlugin"
+                  "web": "#/components/schemas/WebSearchPlugin",
+                  "web-fetch": "#/components/schemas/WebFetchPlugin"
                 },
                 "propertyName": "id"
               },
@@ -13977,6 +14209,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/WebSearchPlugin"
+                },
+                {
+                  "$ref": "#/components/schemas/WebFetchPlugin"
                 },
                 {
                   "$ref": "#/components/schemas/FileParserPlugin"
@@ -14007,7 +14242,7 @@
             "type": "string"
           },
           "session_id": {
-            "description": "A unique identifier for grouping related requests (e.g., a conversation or agent workflow) for observability. If provided in both the request body and the x-session-id header, the body value takes precedence. Maximum of 256 characters.",
+            "description": "A unique identifier for grouping related requests (e.g., a conversation or agent workflow). When provided, OpenRouter uses it as the sticky routing key, routing all requests in the session to the same provider to maximize prompt cache hits. Also used for observability grouping. If provided in both the request body and the x-session-id header, the body value takes precedence. Maximum of 256 characters.",
             "maxLength": 256,
             "type": "string"
           },
@@ -14027,6 +14262,9 @@
               "type": "string"
             },
             "type": "array"
+          },
+          "stop_server_tools_when": {
+            "$ref": "#/components/schemas/StopServerToolsWhen"
           },
           "stream": {
             "type": "boolean"
@@ -14551,7 +14789,7 @@
                   "input_tokens": 100,
                   "output_tokens": 50,
                   "server_tool_use": null,
-                  "service_tier": "standard"
+                  "service_tier": "default"
                 }
               }
             },
@@ -14583,7 +14821,7 @@
             "input_tokens": 12,
             "output_tokens": 15,
             "server_tool_use": null,
-            "service_tier": "standard"
+            "service_tier": "default"
           }
         }
       },
@@ -14633,6 +14871,7 @@
                   "Enfer",
                   "GoPomelo",
                   "HuggingFace",
+                  "Hyperbolic",
                   "Hyperbolic 2",
                   "InoCloud",
                   "Kluster",
@@ -14678,9 +14917,11 @@
                   "Cohere",
                   "Crucible",
                   "Crusoe",
+                  "Darkbloom",
                   "DeepInfra",
                   "DeepSeek",
                   "DekaLLM",
+                  "DigitalOcean",
                   "Featherless",
                   "Fireworks",
                   "Friendli",
@@ -14688,7 +14929,6 @@
                   "Google",
                   "Google AI Studio",
                   "Groq",
-                  "Hyperbolic",
                   "Inception",
                   "Inceptron",
                   "InferenceNet",
@@ -14790,7 +15030,7 @@
                   "input_tokens": 100,
                   "output_tokens": 50,
                   "server_tool_use": null,
-                  "service_tier": "standard"
+                  "service_tier": "default"
                 }
               }
             },
@@ -15677,7 +15917,7 @@
             "type": "boolean"
           },
           "sampling_rate": {
-            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "description": "Sampling rate for events sent to this destination, between 0.0001 and 1 (1 = 100%).",
             "example": 1,
             "format": "double",
             "type": "number"
@@ -15804,7 +16044,7 @@
             "type": "boolean"
           },
           "sampling_rate": {
-            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "description": "Sampling rate for events sent to this destination, between 0.0001 and 1 (1 = 100%).",
             "example": 1,
             "format": "double",
             "type": "number"
@@ -15944,7 +16184,7 @@
             "type": "boolean"
           },
           "sampling_rate": {
-            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "description": "Sampling rate for events sent to this destination, between 0.0001 and 1 (1 = 100%).",
             "example": 1,
             "format": "double",
             "type": "number"
@@ -16074,7 +16314,7 @@
             "type": "boolean"
           },
           "sampling_rate": {
-            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "description": "Sampling rate for events sent to this destination, between 0.0001 and 1 (1 = 100%).",
             "example": 1,
             "format": "double",
             "type": "number"
@@ -16390,7 +16630,7 @@
             "type": "boolean"
           },
           "sampling_rate": {
-            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "description": "Sampling rate for events sent to this destination, between 0.0001 and 1 (1 = 100%).",
             "example": 1,
             "format": "double",
             "type": "number"
@@ -16517,7 +16757,7 @@
             "type": "boolean"
           },
           "sampling_rate": {
-            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "description": "Sampling rate for events sent to this destination, between 0.0001 and 1 (1 = 100%).",
             "example": 1,
             "format": "double",
             "type": "number"
@@ -16649,7 +16889,7 @@
             "type": "boolean"
           },
           "sampling_rate": {
-            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "description": "Sampling rate for events sent to this destination, between 0.0001 and 1 (1 = 100%).",
             "example": 1,
             "format": "double",
             "type": "number"
@@ -16775,7 +17015,7 @@
             "type": "boolean"
           },
           "sampling_rate": {
-            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "description": "Sampling rate for events sent to this destination, between 0.0001 and 1 (1 = 100%).",
             "example": 1,
             "format": "double",
             "type": "number"
@@ -16903,7 +17143,7 @@
             "type": "boolean"
           },
           "sampling_rate": {
-            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "description": "Sampling rate for events sent to this destination, between 0.0001 and 1 (1 = 100%).",
             "example": 1,
             "format": "double",
             "type": "number"
@@ -17018,7 +17258,7 @@
             "type": "boolean"
           },
           "sampling_rate": {
-            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "description": "Sampling rate for events sent to this destination, between 0.0001 and 1 (1 = 100%).",
             "example": 1,
             "format": "double",
             "type": "number"
@@ -17139,7 +17379,7 @@
             "type": "boolean"
           },
           "sampling_rate": {
-            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "description": "Sampling rate for events sent to this destination, between 0.0001 and 1 (1 = 100%).",
             "example": 1,
             "format": "double",
             "type": "number"
@@ -17261,7 +17501,7 @@
             "type": "boolean"
           },
           "sampling_rate": {
-            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "description": "Sampling rate for events sent to this destination, between 0.0001 and 1 (1 = 100%).",
             "example": 1,
             "format": "double",
             "type": "number"
@@ -17409,7 +17649,7 @@
             "type": "boolean"
           },
           "sampling_rate": {
-            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "description": "Sampling rate for events sent to this destination, between 0.0001 and 1 (1 = 100%).",
             "example": 1,
             "format": "double",
             "type": "number"
@@ -17530,7 +17770,7 @@
             "type": "boolean"
           },
           "sampling_rate": {
-            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "description": "Sampling rate for events sent to this destination, between 0.0001 and 1 (1 = 100%).",
             "example": 1,
             "format": "double",
             "type": "number"
@@ -17668,7 +17908,7 @@
             "type": "boolean"
           },
           "sampling_rate": {
-            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "description": "Sampling rate for events sent to this destination, between 0.0001 and 1 (1 = 100%).",
             "example": 1,
             "format": "double",
             "type": "number"
@@ -17801,7 +18041,7 @@
             "type": "boolean"
           },
           "sampling_rate": {
-            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "description": "Sampling rate for events sent to this destination, between 0.0001 and 1 (1 = 100%).",
             "example": 1,
             "format": "double",
             "type": "number"
@@ -17924,7 +18164,7 @@
             "type": "boolean"
           },
           "sampling_rate": {
-            "description": "Sampling rate for events sent to this destination, between 0 and 1 (1 = 100%).",
+            "description": "Sampling rate for events sent to this destination, between 0.0001 and 1 (1 = 100%).",
             "example": 1,
             "format": "double",
             "type": "number"
@@ -19578,6 +19818,10 @@
                 "model": {
                   "description": "Slug of the analysis model that failed.",
                   "type": "string"
+                },
+                "status_code": {
+                  "description": "HTTP status code from the upstream response, when available (e.g. 402, 429).",
+                  "type": "integer"
                 }
               },
               "required": [
@@ -19587,6 +19831,10 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "failure_reason": {
+            "description": "Typed failure reason when the fusion run failed. Possible values include: all_panels_failed, insufficient_credits, rate_limited, judge_not_valid_json, judge_schema_mismatch, judge_upstream_error, judge_empty_completion.",
+            "type": "string"
           },
           "id": {
             "type": "string"
@@ -19700,6 +19948,7 @@
           "item": {
             "discriminator": {
               "mapping": {
+                "apply_patch_call": "#/components/schemas/OutputItemApplyPatchCall",
                 "custom_tool_call": "#/components/schemas/OutputItemCustomToolCall",
                 "file_search_call": "#/components/schemas/OutputItemFileSearchCall",
                 "function_call": "#/components/schemas/OutputItemFunctionCall",
@@ -19731,6 +19980,9 @@
               },
               {
                 "$ref": "#/components/schemas/OutputItemImageGenerationCall"
+              },
+              {
+                "$ref": "#/components/schemas/OutputItemApplyPatchCall"
               }
             ]
           },
@@ -19752,6 +20004,73 @@
           "output_index",
           "item",
           "sequence_number"
+        ],
+        "type": "object"
+      },
+      "OutputItemApplyPatchCall": {
+        "example": {
+          "call_id": "call_abc123",
+          "id": "apc_abc123",
+          "operation": {
+            "diff": "@@ function main() {\n+  console.log(\"hi\");\n }",
+            "path": "/src/main.ts",
+            "type": "update_file"
+          },
+          "status": "completed",
+          "type": "apply_patch_call"
+        },
+        "properties": {
+          "call_id": {
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "operation": {
+            "discriminator": {
+              "mapping": {
+                "create_file": "#/components/schemas/ApplyPatchCreateFileOperation",
+                "delete_file": "#/components/schemas/ApplyPatchDeleteFileOperation",
+                "update_file": "#/components/schemas/ApplyPatchUpdateFileOperation"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ApplyPatchCreateFileOperation"
+              },
+              {
+                "$ref": "#/components/schemas/ApplyPatchUpdateFileOperation"
+              },
+              {
+                "$ref": "#/components/schemas/ApplyPatchDeleteFileOperation"
+              }
+            ]
+          },
+          "status": {
+            "enum": [
+              "in_progress",
+              "completed"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "type": {
+            "enum": [
+              "apply_patch_call"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "id",
+          "call_id",
+          "operation",
+          "status"
         ],
         "type": "object"
       },
@@ -19819,6 +20138,7 @@
           "item": {
             "discriminator": {
               "mapping": {
+                "apply_patch_call": "#/components/schemas/OutputItemApplyPatchCall",
                 "custom_tool_call": "#/components/schemas/OutputItemCustomToolCall",
                 "file_search_call": "#/components/schemas/OutputItemFileSearchCall",
                 "function_call": "#/components/schemas/OutputItemFunctionCall",
@@ -19850,6 +20170,9 @@
               },
               {
                 "$ref": "#/components/schemas/OutputItemImageGenerationCall"
+              },
+              {
+                "$ref": "#/components/schemas/OutputItemApplyPatchCall"
               }
             ]
           },
@@ -21254,6 +21577,157 @@
         "description": "Preferred minimum throughput (in tokens per second). Can be a number (applies to p50) or an object with percentile-specific cutoffs. Endpoints below the threshold(s) may still be used, but are deprioritized in routing. When using fallback models, this may cause a fallback model to be used instead of the primary model if it meets the threshold.",
         "example": 100
       },
+      "PresetDesignatedVersion": {
+        "description": "A specific version of a preset, containing config and optional system prompt.",
+        "example": {
+          "config": {
+            "model": "openai/gpt-4o",
+            "temperature": 0.7
+          },
+          "created_at": "2026-04-20T10:00:00Z",
+          "creator_id": "user_2dHFtVWx2n56w6HkM0000000000",
+          "id": "550e8400-e29b-41d4-a716-446655440000",
+          "preset_id": "650e8400-e29b-41d4-a716-446655440001",
+          "system_prompt": "You are a helpful assistant.",
+          "updated_at": "2026-04-20T10:00:00Z",
+          "version": 1
+        },
+        "nullable": true,
+        "properties": {
+          "config": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "type": "object"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "creator_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "preset_id": {
+            "type": "string"
+          },
+          "system_prompt": {
+            "nullable": true,
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "preset_id",
+          "creator_id",
+          "version",
+          "system_prompt",
+          "config",
+          "created_at",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "PresetWithDesignatedVersion": {
+        "description": "A preset with its currently designated version.",
+        "example": {
+          "created_at": "2026-04-20T10:00:00Z",
+          "creator_user_id": "user_2dHFtVWx2n56w6HkM0000000000",
+          "description": null,
+          "designated_version": {
+            "config": {
+              "model": "openai/gpt-4o",
+              "temperature": 0.7
+            },
+            "created_at": "2026-04-20T10:00:00Z",
+            "creator_id": "user_2dHFtVWx2n56w6HkM0000000000",
+            "id": "550e8400-e29b-41d4-a716-446655440000",
+            "preset_id": "650e8400-e29b-41d4-a716-446655440001",
+            "system_prompt": "You are a helpful assistant.",
+            "updated_at": "2026-04-20T10:00:00Z",
+            "version": 1
+          },
+          "designated_version_id": "550e8400-e29b-41d4-a716-446655440000",
+          "id": "650e8400-e29b-41d4-a716-446655440001",
+          "name": "my-preset",
+          "slug": "my-preset",
+          "status": "active",
+          "status_updated_at": null,
+          "updated_at": "2026-04-20T10:00:00Z",
+          "workspace_id": "750e8400-e29b-41d4-a716-446655440002"
+        },
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "creator_user_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "designated_version": {
+            "$ref": "#/components/schemas/PresetDesignatedVersion"
+          },
+          "designated_version_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "disabled",
+              "archived"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "status_updated_at": {
+            "nullable": true,
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "creator_user_id",
+          "workspace_id",
+          "name",
+          "slug",
+          "description",
+          "status",
+          "designated_version_id",
+          "created_at",
+          "updated_at",
+          "status_updated_at",
+          "designated_version"
+        ],
+        "type": "object"
+      },
       "Preview_20250311_WebSearchServerTool": {
         "description": "Web search preview tool configuration (2025-03-11 version)",
         "example": {
@@ -21362,6 +21836,16 @@
         ],
         "type": "object"
       },
+      "PromptInjectionScanScope": {
+        "description": "Which message roles to scan for prompt injection. Only applies to the regex-prompt-injection builtin. Defaults to all_messages.",
+        "enum": [
+          "user_only",
+          "all_messages"
+        ],
+        "example": "user_only",
+        "type": "string",
+        "x-speakeasy-unknown-values": "allow"
+      },
       "ProviderName": {
         "enum": [
           "AkashML",
@@ -21388,9 +21872,11 @@
           "Cohere",
           "Crucible",
           "Crusoe",
+          "Darkbloom",
           "DeepInfra",
           "DeepSeek",
           "DekaLLM",
+          "DigitalOcean",
           "Featherless",
           "Fireworks",
           "Friendli",
@@ -21398,7 +21884,6 @@
           "Google",
           "Google AI Studio",
           "Groq",
-          "Hyperbolic",
           "Inception",
           "Inceptron",
           "InferenceNet",
@@ -21634,6 +22119,12 @@
             },
             "type": "object"
           },
+          "darkbloom": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "type": "object"
+          },
           "deepinfra": {
             "additionalProperties": {
               "nullable": true
@@ -21647,6 +22138,12 @@
             "type": "object"
           },
           "dekallm": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "type": "object"
+          },
+          "digitalocean": {
             "additionalProperties": {
               "nullable": true
             },
@@ -22412,6 +22909,7 @@
               "Enfer",
               "GoPomelo",
               "HuggingFace",
+              "Hyperbolic",
               "Hyperbolic 2",
               "InoCloud",
               "Kluster",
@@ -22457,9 +22955,11 @@
               "Cohere",
               "Crucible",
               "Crusoe",
+              "Darkbloom",
               "DeepInfra",
               "DeepSeek",
               "DekaLLM",
+              "DigitalOcean",
               "Featherless",
               "Fireworks",
               "Friendli",
@@ -22467,7 +22967,6 @@
               "Google",
               "Google AI Studio",
               "Groq",
-              "Hyperbolic",
               "Inception",
               "Inceptron",
               "InferenceNet",
@@ -23031,6 +23530,114 @@
         "example": "fp16",
         "type": "string",
         "x-speakeasy-unknown-values": "allow"
+      },
+      "RankingsDailyItem": {
+        "example": {
+          "date": "2026-05-11",
+          "model_permaslug": "openai/gpt-4o-2024-05-13",
+          "total_tokens": "12345678"
+        },
+        "properties": {
+          "date": {
+            "description": "UTC calendar date the row is aggregated over (YYYY-MM-DD).",
+            "example": "2026-05-11",
+            "type": "string"
+          },
+          "model_permaslug": {
+            "description": "Model variant permaslug (e.g. `openai/gpt-4o-2024-05-13`, `openai/gpt-4o-2024-05-13:free`). Non-default variants include a `:variant` suffix and are ranked as their own entry. The reserved value `other` denotes the aggregated row covering every model outside the daily top 50 for that date \u2014 always sorted last within its date.",
+            "example": "openai/gpt-4o-2024-05-13",
+            "type": "string"
+          },
+          "total_tokens": {
+            "description": "Sum of `prompt_tokens + completion_tokens` for the day, returned as a decimal string so 64-bit values are not truncated.",
+            "example": "12345678",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "model_permaslug",
+          "total_tokens"
+        ],
+        "type": "object"
+      },
+      "RankingsDailyMeta": {
+        "example": {
+          "as_of": "2026-05-12T02:00:00Z",
+          "end_date": "2026-05-11",
+          "start_date": "2026-04-12",
+          "version": "v1"
+        },
+        "properties": {
+          "as_of": {
+            "description": "ISO-8601 timestamp of when the response was generated. Reflects data-freshness because the underlying materialized view continuously ingests upstream events.",
+            "example": "2026-05-12T02:00:00Z",
+            "type": "string"
+          },
+          "end_date": {
+            "description": "Resolved end of the date window (UTC, inclusive).",
+            "example": "2026-05-11",
+            "type": "string"
+          },
+          "start_date": {
+            "description": "Resolved start of the date window (UTC, inclusive).",
+            "example": "2026-04-12",
+            "type": "string"
+          },
+          "version": {
+            "description": "Dataset version. Field names and grain are stable for the life of `v1`.",
+            "enum": [
+              "v1"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "as_of",
+          "version",
+          "start_date",
+          "end_date"
+        ],
+        "type": "object"
+      },
+      "RankingsDailyResponse": {
+        "example": {
+          "data": [
+            {
+              "date": "2026-05-11",
+              "model_permaslug": "openai/gpt-4o-2024-05-13",
+              "total_tokens": "12345678"
+            },
+            {
+              "date": "2026-05-11",
+              "model_permaslug": "anthropic/claude-3.5-sonnet-20241022",
+              "total_tokens": "9876543"
+            }
+          ],
+          "meta": {
+            "as_of": "2026-05-12T02:00:00Z",
+            "end_date": "2026-05-11",
+            "start_date": "2026-04-12",
+            "version": "v1"
+          }
+        },
+        "properties": {
+          "data": {
+            "description": "Up to 51 rows per day \u2014 the top 50 public models by `total_tokens` for each UTC calendar date in the window, plus one aggregated `other` row summing every model outside that top 50 (omitted when the long tail is empty). Rows are sorted by `date` ascending, then by `total_tokens` descending, with `other` pinned last within its date. Ties between real models break alphabetically on `model_permaslug` so the order is stable across requests.",
+            "items": {
+              "$ref": "#/components/schemas/RankingsDailyItem"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/RankingsDailyMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
       },
       "ReasoningConfig": {
         "allOf": [
@@ -23818,7 +24425,8 @@
                   "moderation": "#/components/schemas/ModerationPlugin",
                   "pareto-router": "#/components/schemas/ParetoRouterPlugin",
                   "response-healing": "#/components/schemas/ResponseHealingPlugin",
-                  "web": "#/components/schemas/WebSearchPlugin"
+                  "web": "#/components/schemas/WebSearchPlugin",
+                  "web-fetch": "#/components/schemas/WebFetchPlugin"
                 },
                 "propertyName": "id"
               },
@@ -23831,6 +24439,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/WebSearchPlugin"
+                },
+                {
+                  "$ref": "#/components/schemas/WebFetchPlugin"
                 },
                 {
                   "$ref": "#/components/schemas/FileParserPlugin"
@@ -23895,9 +24506,12 @@
             "x-speakeasy-unknown-values": "allow"
           },
           "session_id": {
-            "description": "A unique identifier for grouping related requests (e.g., a conversation or agent workflow) for observability. If provided in both the request body and the x-session-id header, the body value takes precedence. Maximum of 256 characters.",
+            "description": "A unique identifier for grouping related requests (e.g., a conversation or agent workflow). When provided, OpenRouter uses it as the sticky routing key, routing all requests in the session to the same provider to maximize prompt cache hits. Also used for observability grouping. If provided in both the request body and the x-session-id header, the body value takes precedence. Maximum of 256 characters.",
             "maxLength": 256,
             "type": "string"
+          },
+          "stop_server_tools_when": {
+            "$ref": "#/components/schemas/StopServerToolsWhen"
           },
           "store": {
             "const": false,
@@ -24588,6 +25202,176 @@
           "model",
           "input",
           "voice"
+        ],
+        "type": "object"
+      },
+      "StopServerToolsWhen": {
+        "description": "Stop conditions for the server-tool agent loop. Any condition firing halts the loop (OR logic). When set, this overrides `max_tool_calls`.",
+        "example": [
+          {
+            "step_count": 5,
+            "type": "step_count_is"
+          },
+          {
+            "max_cost_in_dollars": 0.5,
+            "type": "max_cost"
+          }
+        ],
+        "items": {
+          "$ref": "#/components/schemas/StopServerToolsWhenCondition"
+        },
+        "minItems": 1,
+        "type": "array"
+      },
+      "StopServerToolsWhenCondition": {
+        "description": "A single condition that, when met, halts the server-tool agent loop.",
+        "discriminator": {
+          "mapping": {
+            "finish_reason_is": "#/components/schemas/StopServerToolsWhenFinishReasonIs",
+            "has_tool_call": "#/components/schemas/StopServerToolsWhenHasToolCall",
+            "max_cost": "#/components/schemas/StopServerToolsWhenMaxCost",
+            "max_tokens_used": "#/components/schemas/StopServerToolsWhenMaxTokensUsed",
+            "step_count_is": "#/components/schemas/StopServerToolsWhenStepCountIs"
+          },
+          "propertyName": "type"
+        },
+        "example": {
+          "step_count": 5,
+          "type": "step_count_is"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/StopServerToolsWhenStepCountIs"
+          },
+          {
+            "$ref": "#/components/schemas/StopServerToolsWhenHasToolCall"
+          },
+          {
+            "$ref": "#/components/schemas/StopServerToolsWhenMaxTokensUsed"
+          },
+          {
+            "$ref": "#/components/schemas/StopServerToolsWhenMaxCost"
+          },
+          {
+            "$ref": "#/components/schemas/StopServerToolsWhenFinishReasonIs"
+          }
+        ]
+      },
+      "StopServerToolsWhenFinishReasonIs": {
+        "description": "Stop when the upstream model emits this finish reason (e.g. `length`).",
+        "example": {
+          "reason": "length",
+          "type": "finish_reason_is"
+        },
+        "properties": {
+          "reason": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "finish_reason_is"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "StopServerToolsWhenHasToolCall": {
+        "description": "Stop after a tool with this name has been called.",
+        "example": {
+          "tool_name": "finalize",
+          "type": "has_tool_call"
+        },
+        "properties": {
+          "tool_name": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "has_tool_call"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "tool_name"
+        ],
+        "type": "object"
+      },
+      "StopServerToolsWhenMaxCost": {
+        "description": "Stop once cumulative cost across the loop exceeds this dollar threshold.",
+        "example": {
+          "max_cost_in_dollars": 0.5,
+          "type": "max_cost"
+        },
+        "properties": {
+          "max_cost_in_dollars": {
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "max_cost"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "max_cost_in_dollars"
+        ],
+        "type": "object"
+      },
+      "StopServerToolsWhenMaxTokensUsed": {
+        "description": "Stop once cumulative token usage across the loop exceeds this threshold.",
+        "example": {
+          "max_tokens": 10000,
+          "type": "max_tokens_used"
+        },
+        "properties": {
+          "max_tokens": {
+            "type": "integer"
+          },
+          "type": {
+            "enum": [
+              "max_tokens_used"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "max_tokens"
+        ],
+        "type": "object"
+      },
+      "StopServerToolsWhenStepCountIs": {
+        "description": "Stop after the agent loop has executed this many steps.",
+        "example": {
+          "step_count": 5,
+          "type": "step_count_is"
+        },
+        "properties": {
+          "step_count": {
+            "type": "integer"
+          },
+          "type": {
+            "enum": [
+              "step_count_is"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "step_count"
         ],
         "type": "object"
       },
@@ -25606,7 +26390,7 @@
               }
             ],
             "items": {
-              "$ref": "#/components/schemas/ContentFilterBuiltinEntry"
+              "$ref": "#/components/schemas/ContentFilterBuiltinEntryInput"
             },
             "nullable": true,
             "type": "array"
@@ -25711,9 +26495,9 @@
             ],
             "content_filter_builtins": [
               {
-                "action": "block",
-                "label": "[PROMPT_INJECTION]",
-                "slug": "regex-prompt-injection"
+                "action": "redact",
+                "label": "[EMAIL]",
+                "slug": "email"
               }
             ],
             "content_filters": null,
@@ -25805,7 +26589,7 @@
             "type": "boolean"
           },
           "sampling_rate": {
-            "description": "Sampling rate between 0 and 1 (1 = 100%).",
+            "description": "Sampling rate between 0.0001 and 1 (1 = 100%).",
             "example": 1,
             "format": "double",
             "type": "number"
@@ -26470,17 +27254,58 @@
         "type": "object"
       },
       "WebFetchEngineEnum": {
-        "description": "Which fetch engine to use. \"auto\" (default) uses native if the provider supports it, otherwise Exa. \"native\" forces the provider's built-in fetch. \"exa\" uses Exa Contents API. \"openrouter\" uses direct HTTP fetch. \"firecrawl\" uses Firecrawl scrape (requires BYOK).",
+        "description": "Which fetch engine to use. \"auto\" (default) uses native if the provider supports it, otherwise Exa. \"native\" forces the provider's built-in fetch. \"exa\" uses Exa Contents API. \"openrouter\" uses direct HTTP fetch. \"firecrawl\" uses Firecrawl scrape (requires BYOK). \"parallel\" uses the Parallel extract API.",
         "enum": [
           "auto",
           "native",
           "openrouter",
-          "firecrawl",
-          "exa"
+          "exa",
+          "parallel",
+          "firecrawl"
         ],
         "example": "auto",
         "type": "string",
         "x-speakeasy-unknown-values": "allow"
+      },
+      "WebFetchPlugin": {
+        "example": {
+          "id": "web-fetch",
+          "max_uses": 10
+        },
+        "properties": {
+          "allowed_domains": {
+            "description": "Only fetch from these domains.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "blocked_domains": {
+            "description": "Never fetch from these domains.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "enum": [
+              "web-fetch"
+            ],
+            "type": "string"
+          },
+          "max_content_tokens": {
+            "description": "Maximum content length in approximate tokens. Content exceeding this limit is truncated.",
+            "type": "integer"
+          },
+          "max_uses": {
+            "description": "Maximum number of web fetches per request. Once exceeded, the tool returns an error.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
       },
       "WebFetchServerTool": {
         "description": "OpenRouter built-in server tool: fetches full content from a URL (web page or PDF)",
@@ -26685,8 +27510,8 @@
           "auto",
           "native",
           "exa",
-          "firecrawl",
-          "parallel"
+          "parallel",
+          "firecrawl"
         ],
         "example": "auto",
         "type": "string",
@@ -28206,9 +29031,11 @@
                 "cloudflare",
                 "cohere",
                 "crusoe",
+                "darkbloom",
                 "deepinfra",
                 "deepseek",
                 "dekallm",
+                "digitalocean",
                 "featherless",
                 "fireworks",
                 "friendli",
@@ -28216,7 +29043,6 @@
                 "google-ai-studio",
                 "google-vertex",
                 "groq",
-                "hyperbolic",
                 "inception",
                 "inceptron",
                 "inference-net",
@@ -29325,6 +30151,143 @@
         "x-fern-ignore": true,
         "x-speakeasy-ignore": true,
         "x-speakeasy-name-override": "createCoinbaseCharge"
+      }
+    },
+    "/datasets/rankings-daily": {
+      "get": {
+        "description": "Returns the top 50 public models per day by total token usage on OpenRouter, plus a\nsingle aggregated `other` row per day that sums every model outside that top 50.\nToken totals are `prompt_tokens + completion_tokens`, matching the public rankings\nchart on openrouter.ai/rankings.\n\nEach row is a distinct `(date, model_permaslug)` pair. The `other` row uses the\nreserved permaslug `other` and is always returned last within its date, so callers\ncan compute `top-50 traffic / total daily traffic` without a second request.\n\nAuthenticate with any valid OpenRouter API key (same key used for inference).\nRate-limited to 30 requests/minute per key and 500 requests/day per account.\n\nWhen republishing or quoting this dataset, OpenRouter must be cited as:\n\"Source: OpenRouter (openrouter.ai/rankings), as of {as_of}.\"\n\nToken counts come from each upstream provider's own tokenizer (Anthropic counts\nare as reported by Anthropic, OpenAI counts are as reported by OpenAI, etc.), so\na token in one row is not directly comparable to a token in another row from a\ndifferent provider.",
+        "operationId": "getRankingsDaily",
+        "parameters": [
+          {
+            "description": "Start of the date window in YYYY-MM-DD (UTC), inclusive. Defaults to 30 days before `end_date`. The dataset begins at 2025-01-01; earlier values are clamped forward to that floor and the resolved value is echoed in `meta.start_date`.",
+            "in": "query",
+            "name": "start_date",
+            "required": false,
+            "schema": {
+              "description": "Start of the date window in YYYY-MM-DD (UTC), inclusive. Defaults to 30 days before `end_date`. The dataset begins at 2025-01-01; earlier values are clamped forward to that floor and the resolved value is echoed in `meta.start_date`.",
+              "example": "2026-04-12",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "End of the date window in YYYY-MM-DD (UTC), inclusive. Defaults to the most recent completed UTC day. Must be on or after 2025-01-01; earlier values are rejected with a 400.",
+            "in": "query",
+            "name": "end_date",
+            "required": false,
+            "schema": {
+              "description": "End of the date window in YYYY-MM-DD (UTC), inclusive. Defaults to the most recent completed UTC day. Must be on or after 2025-01-01; earlier values are rejected with a 400.",
+              "example": "2026-05-11",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": [
+                    {
+                      "date": "2026-05-11",
+                      "model_permaslug": "openai/gpt-4o-2024-05-13",
+                      "total_tokens": "12345678"
+                    },
+                    {
+                      "date": "2026-05-11",
+                      "model_permaslug": "anthropic/claude-3.5-sonnet-20241022",
+                      "total_tokens": "9876543"
+                    },
+                    {
+                      "date": "2026-05-11",
+                      "model_permaslug": "other",
+                      "total_tokens": "4321098"
+                    }
+                  ],
+                  "meta": {
+                    "as_of": "2026-05-12T02:00:00Z",
+                    "end_date": "2026-05-11",
+                    "start_date": "2026-04-12",
+                    "version": "v1"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/RankingsDailyResponse"
+                }
+              }
+            },
+            "description": "Up to 51 rows per day \u2014 the top 50 public models by `total_tokens` plus a single aggregated `other` row covering every model outside that top 50. Sorted by `date` ascending, then by `total_tokens` descending, with `other` pinned last within its date."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 400,
+                    "message": "Invalid request parameters"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            },
+            "description": "Bad Request - Invalid request parameters or malformed input"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 429,
+                    "message": "Rate limit exceeded"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests - Rate limit exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "summary": "Daily token totals for top 50 models",
+        "tags": [
+          "Datasets"
+        ]
       }
     },
     "/embeddings": {
@@ -35567,6 +36530,560 @@
         }
       }
     },
+    "/presets/{slug}/chat/completions": {
+      "post": {
+        "description": "Creates a preset (or a new version of an existing one) from an inference request body. Only fields that overlap with the preset config are persisted; other fields (e.g. `messages`, `stream`, `prompt`) are silently ignored.",
+        "operationId": "createPresetsChatCompletions",
+        "parameters": [
+          {
+            "description": "URL-safe slug identifying the preset. Created if it does not exist.",
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "description": "URL-safe slug identifying the preset. Created if it does not exist.",
+              "example": "my-preset",
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "messages": [
+                  {
+                    "content": "You are a helpful assistant.",
+                    "role": "system"
+                  },
+                  {
+                    "content": "Hello!",
+                    "role": "user"
+                  }
+                ],
+                "model": "openai/gpt-5.4",
+                "temperature": 0.7
+              },
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": {
+                    "created_at": "2026-04-20T10:00:00Z",
+                    "creator_user_id": "user_2dHFtVWx2n56w6HkM0000000000",
+                    "description": null,
+                    "designated_version": {
+                      "config": {
+                        "model": "openai/gpt-5.4",
+                        "temperature": 0.7
+                      },
+                      "created_at": "2026-04-20T10:00:00Z",
+                      "creator_id": "user_2dHFtVWx2n56w6HkM0000000000",
+                      "id": "550e8400-e29b-41d4-a716-446655440000",
+                      "preset_id": "650e8400-e29b-41d4-a716-446655440001",
+                      "system_prompt": "You are a helpful assistant.",
+                      "updated_at": "2026-04-20T10:00:00Z",
+                      "version": 1
+                    },
+                    "designated_version_id": "550e8400-e29b-41d4-a716-446655440000",
+                    "id": "650e8400-e29b-41d4-a716-446655440001",
+                    "name": "my-preset",
+                    "slug": "my-preset",
+                    "status": "active",
+                    "status_updated_at": null,
+                    "updated_at": "2026-04-20T10:00:00Z",
+                    "workspace_id": "750e8400-e29b-41d4-a716-446655440002"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/CreatePresetFromInferenceResponse"
+                }
+              }
+            },
+            "description": "Preset created or updated successfully."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 400,
+                    "message": "Invalid request parameters"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            },
+            "description": "Bad Request - Invalid request parameters or malformed input"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 403,
+                    "message": "Only management keys can perform this operation"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            },
+            "description": "Forbidden - Authentication successful but insufficient permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 404,
+                    "message": "Resource not found"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundResponse"
+                }
+              }
+            },
+            "description": "Not Found - Resource does not exist"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 409,
+                    "message": "Resource conflict. Please try again later."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictResponse"
+                }
+              }
+            },
+            "description": "Conflict - Resource conflict or concurrent modification"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Create a preset from a chat-completions request body",
+        "tags": [
+          "Presets"
+        ]
+      }
+    },
+    "/presets/{slug}/messages": {
+      "post": {
+        "description": "Creates a preset (or a new version of an existing one) from an inference request body. Only fields that overlap with the preset config are persisted; other fields (e.g. `messages`, `stream`, `prompt`) are silently ignored.",
+        "operationId": "createPresetsMessages",
+        "parameters": [
+          {
+            "description": "URL-safe slug identifying the preset. Created if it does not exist.",
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "description": "URL-safe slug identifying the preset. Created if it does not exist.",
+              "example": "my-preset",
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "max_tokens": 1024,
+                "messages": [
+                  {
+                    "content": "Hello!",
+                    "role": "user"
+                  }
+                ],
+                "model": "anthropic/claude-4.6-sonnet",
+                "system": "You are a helpful assistant."
+              },
+              "schema": {
+                "$ref": "#/components/schemas/MessagesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": {
+                    "created_at": "2026-04-20T10:00:00Z",
+                    "creator_user_id": "user_2dHFtVWx2n56w6HkM0000000000",
+                    "description": null,
+                    "designated_version": {
+                      "config": {
+                        "max_tokens": 1024,
+                        "model": "anthropic/claude-4.6-sonnet"
+                      },
+                      "created_at": "2026-04-20T10:00:00Z",
+                      "creator_id": "user_2dHFtVWx2n56w6HkM0000000000",
+                      "id": "550e8400-e29b-41d4-a716-446655440000",
+                      "preset_id": "650e8400-e29b-41d4-a716-446655440001",
+                      "system_prompt": "You are a helpful assistant.",
+                      "updated_at": "2026-04-20T10:00:00Z",
+                      "version": 1
+                    },
+                    "designated_version_id": "550e8400-e29b-41d4-a716-446655440000",
+                    "id": "650e8400-e29b-41d4-a716-446655440001",
+                    "name": "my-preset",
+                    "slug": "my-preset",
+                    "status": "active",
+                    "status_updated_at": null,
+                    "updated_at": "2026-04-20T10:00:00Z",
+                    "workspace_id": "750e8400-e29b-41d4-a716-446655440002"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/CreatePresetFromInferenceResponse"
+                }
+              }
+            },
+            "description": "Preset created or updated successfully."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 400,
+                    "message": "Invalid request parameters"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            },
+            "description": "Bad Request - Invalid request parameters or malformed input"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 403,
+                    "message": "Only management keys can perform this operation"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            },
+            "description": "Forbidden - Authentication successful but insufficient permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 404,
+                    "message": "Resource not found"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundResponse"
+                }
+              }
+            },
+            "description": "Not Found - Resource does not exist"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 409,
+                    "message": "Resource conflict. Please try again later."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictResponse"
+                }
+              }
+            },
+            "description": "Conflict - Resource conflict or concurrent modification"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Create a preset from a messages request body",
+        "tags": [
+          "Presets"
+        ]
+      }
+    },
+    "/presets/{slug}/responses": {
+      "post": {
+        "description": "Creates a preset (or a new version of an existing one) from an inference request body. Only fields that overlap with the preset config are persisted; other fields (e.g. `messages`, `stream`, `prompt`) are silently ignored.",
+        "operationId": "createPresetsResponses",
+        "parameters": [
+          {
+            "description": "URL-safe slug identifying the preset. Created if it does not exist.",
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "description": "URL-safe slug identifying the preset. Created if it does not exist.",
+              "example": "my-preset",
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "input": "Hello!",
+                "instructions": "You are a helpful assistant.",
+                "model": "openai/gpt-5.4"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/ResponsesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": {
+                    "created_at": "2026-04-20T10:00:00Z",
+                    "creator_user_id": "user_2dHFtVWx2n56w6HkM0000000000",
+                    "description": null,
+                    "designated_version": {
+                      "config": {
+                        "model": "openai/gpt-5.4"
+                      },
+                      "created_at": "2026-04-20T10:00:00Z",
+                      "creator_id": "user_2dHFtVWx2n56w6HkM0000000000",
+                      "id": "550e8400-e29b-41d4-a716-446655440000",
+                      "preset_id": "650e8400-e29b-41d4-a716-446655440001",
+                      "system_prompt": "You are a helpful assistant.",
+                      "updated_at": "2026-04-20T10:00:00Z",
+                      "version": 1
+                    },
+                    "designated_version_id": "550e8400-e29b-41d4-a716-446655440000",
+                    "id": "650e8400-e29b-41d4-a716-446655440001",
+                    "name": "my-preset",
+                    "slug": "my-preset",
+                    "status": "active",
+                    "status_updated_at": null,
+                    "updated_at": "2026-04-20T10:00:00Z",
+                    "workspace_id": "750e8400-e29b-41d4-a716-446655440002"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/CreatePresetFromInferenceResponse"
+                }
+              }
+            },
+            "description": "Preset created or updated successfully."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 400,
+                    "message": "Invalid request parameters"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            },
+            "description": "Bad Request - Invalid request parameters or malformed input"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 403,
+                    "message": "Only management keys can perform this operation"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            },
+            "description": "Forbidden - Authentication successful but insufficient permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 404,
+                    "message": "Resource not found"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundResponse"
+                }
+              }
+            },
+            "description": "Not Found - Resource does not exist"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 409,
+                    "message": "Resource conflict. Please try again later."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictResponse"
+                }
+              }
+            },
+            "description": "Conflict - Resource conflict or concurrent modification"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Create a preset from a responses request body",
+        "tags": [
+          "Presets"
+        ]
+      }
+    },
     "/providers": {
       "get": {
         "operationId": "listProviders",
@@ -38347,6 +39864,10 @@
       "name": "Credits"
     },
     {
+      "description": "Datasets endpoints",
+      "name": "Datasets"
+    },
+    {
       "description": "Text embedding endpoints",
       "name": "Embeddings"
     },
@@ -38377,6 +39898,10 @@
     {
       "description": "Organization endpoints",
       "name": "Organization"
+    },
+    {
+      "description": "Presets endpoints",
+      "name": "Presets"
     },
     {
       "description": "Provider information endpoints",

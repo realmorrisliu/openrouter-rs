@@ -24,6 +24,7 @@ use crate::{
 pub enum AnthropicRole {
     User,
     Assistant,
+    System,
 }
 
 /// Text block for `system` prompts.
@@ -265,6 +266,10 @@ impl AnthropicMessage {
 
     pub fn assistant(content: impl Into<AnthropicMessageContent>) -> Self {
         Self::new(AnthropicRole::Assistant, content)
+    }
+
+    pub fn system(content: impl Into<AnthropicMessageContent>) -> Self {
+        Self::new(AnthropicRole::System, content)
     }
 
     pub fn with_parts(role: AnthropicRole, parts: Vec<AnthropicContentPart>) -> Self {
