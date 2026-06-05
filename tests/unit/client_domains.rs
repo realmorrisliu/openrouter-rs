@@ -311,6 +311,9 @@ async fn test_models_domain_renamed_methods_require_api_key() {
         Err(OpenRouterError::KeyNotConfigured)
     ));
 
+    let rankings = client.models().get_rankings_daily(None, None).await;
+    assert!(matches!(rankings, Err(OpenRouterError::KeyNotConfigured)));
+
     let by_category = client
         .models()
         .list_by_category(ModelCategory::Programming)
@@ -523,9 +526,46 @@ async fn test_management_domain_remaining_methods_require_configured_key() {
             .name("Updated Langfuse")
             .build()
             .expect("update observability request should build");
+    let chat_preset_request = chat::ChatCompletionRequest::builder()
+        .model("openai/gpt-5")
+        .messages(vec![chat::Message::new(Role::User, "hello")])
+        .build()
+        .expect("chat preset request should build");
+    let response_preset_request = responses::ResponsesRequest::builder()
+        .model("openai/gpt-5")
+        .input(serde_json::json!("hello"))
+        .build()
+        .expect("response preset request should build");
+    let message_preset_request = messages::AnthropicMessagesRequest::builder()
+        .model("anthropic/claude-sonnet-4")
+        .max_tokens(128)
+        .messages(vec![messages::AnthropicMessage::user("hello")])
+        .build()
+        .expect("message preset request should build");
 
     assert!(matches!(
         client.management().get_current_api_key_info().await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .management()
+            .create_chat_completion_preset("my-preset", &chat_preset_request)
+            .await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .management()
+            .create_response_preset("my-preset", &response_preset_request)
+            .await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .management()
+            .create_message_preset("my-preset", &message_preset_request)
+            .await,
         Err(OpenRouterError::KeyNotConfigured)
     ));
     assert!(matches!(

@@ -200,6 +200,37 @@ pub struct ActivityItem {
     pub extra: HashMap<String, serde_json::Value>,
 }
 
+/// One daily model-ranking row returned by `GET /datasets/rankings-daily`.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct RankingsDailyItem {
+    pub date: String,
+    pub model_permaslug: String,
+    pub total_tokens: String,
+    #[serde(flatten)]
+    pub extra: HashMap<String, serde_json::Value>,
+}
+
+/// Metadata for a daily rankings dataset response.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct RankingsDailyMeta {
+    pub as_of: String,
+    pub version: String,
+    pub start_date: String,
+    pub end_date: String,
+    #[serde(flatten)]
+    pub extra: HashMap<String, serde_json::Value>,
+}
+
+/// Daily token totals for top public models plus an aggregated `other` row.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct RankingsDailyResponse {
+    pub data: Vec<RankingsDailyItem>,
+    pub meta: RankingsDailyMeta,
+}
+
 /// List all providers (`GET /providers`).
 pub async fn list_providers(
     base_url: &str,
@@ -284,6 +315,53 @@ pub(crate) async fn count_models_with_client(
         let parsed: ApiResponse<ModelsCountData> =
             transport_response::parse_json_response(response, "model count").await?;
         Ok(parsed.data)
+    } else {
+        transport_response::handle_error(response).await?;
+        unreachable!()
+    }
+}
+
+/// Return daily token totals for top public models (`GET /datasets/rankings-daily`).
+pub async fn get_rankings_daily(
+    base_url: &str,
+    api_key: &str,
+    start_date: Option<&str>,
+    end_date: Option<&str>,
+) -> Result<RankingsDailyResponse, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    get_rankings_daily_with_client(&http_client, base_url, api_key, start_date, end_date).await
+}
+
+pub(crate) async fn get_rankings_daily_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    start_date: Option<&str>,
+    end_date: Option<&str>,
+) -> Result<RankingsDailyResponse, OpenRouterError> {
+    #[derive(Serialize)]
+    struct RankingsDailyQuery<'a> {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        start_date: Option<&'a str>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        end_date: Option<&'a str>,
+    }
+
+    let url = format!("{base_url}/datasets/rankings-daily");
+    let query = RankingsDailyQuery {
+        start_date,
+        end_date,
+    };
+    let req =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
+    let response = if query.start_date.is_none() && query.end_date.is_none() {
+        req.send().await?
+    } else {
+        req.query(&query).send().await?
+    };
+
+    if response.status().is_success() {
+        transport_response::parse_json_response(response, "rankings daily").await
     } else {
         transport_response::handle_error(response).await?;
         unreachable!()

@@ -12,7 +12,7 @@
 //! - `client.audio().speech()` / `client.audio().transcriptions()` -> [`audio`]
 //! - `client.videos()` -> [`videos`]
 //! - `client.models()` -> [`models`], [`embeddings`], [`discovery`]
-//! - `client.management()` -> [`api_keys`], [`auth`], [`byok`], [`credits`], [`generation`], [`guardrails`], [`observability`], [`organization`], [`workspaces`]
+//! - `client.management()` -> [`api_keys`], [`auth`], [`byok`], [`credits`], [`generation`], [`guardrails`], [`observability`], [`organization`], [`presets`], [`workspaces`]
 //! - `client.legacy()` -> [`legacy`] (feature `legacy-completions`)
 //!
 //! Endpoint families currently implemented here:
@@ -23,12 +23,13 @@
 //! - rerank
 //! - audio speech generation and transcription
 //! - video generation and polling
-//! - model discovery, providers, user model filters, model counts, and ZDR endpoints
+//! - model discovery, providers, user model filters, model counts, rankings, and ZDR endpoints
 //! - embeddings
 //! - API-key and auth-code flows
 //! - credits, Coinbase charge creation, generation lookup/content, and activity
 //! - BYOK provider credential management
 //! - observability destination management
+//! - preset creation from inference request bodies
 //! - guardrails and guardrail assignments
 //! - organization member listing
 //! - workspace CRUD and membership management
@@ -130,6 +131,7 @@ pub mod messages;
 pub mod models;
 pub mod observability;
 pub mod organization;
+pub mod presets;
 pub mod rerank;
 pub mod responses;
 #[deprecated(note = "use api::audio for the canonical /audio/speech surface")]

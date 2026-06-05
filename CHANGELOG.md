@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added typed SDK support for `GET /datasets/rankings-daily`, including `api::discovery::RankingsDailyResponse` and the canonical `client.models().get_rankings_daily(...)` surface.
+- Added management-key SDK support for creating or updating presets from inference request bodies via `POST /presets/{slug}/chat/completions`, `POST /presets/{slug}/responses`, and `POST /presets/{slug}/messages`.
+- Added `AnthropicRole::System` and `AnthropicMessage::system(...)` for the refreshed `/messages` role schema.
+- Added typed `GenerationData::preset_id` support on `GET /generation` metadata responses.
+
+### Changed
+- Accepted the 2026-06-01 OpenAPI drift review, including daily rankings datasets, preset creation endpoints, generation metadata additions, and provider taxonomy refreshes, restoring the repository snapshot to `66 / 66` official OpenAPI endpoint coverage.
+
 ## [0.10.0] - 2026-05-20
 
 ### Added

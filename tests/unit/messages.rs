@@ -138,6 +138,18 @@ fn test_anthropic_messages_response_deserialization() {
 }
 
 #[test]
+fn test_anthropic_messages_system_role_roundtrip() {
+    let message = AnthropicMessage::system("Follow the policy.");
+    let value = serde_json::to_value(&message).expect("system message should serialize");
+    assert_eq!(value["role"], "system");
+    assert_eq!(value["content"], "Follow the policy.");
+
+    let parsed: AnthropicMessage =
+        serde_json::from_value(value).expect("system message should deserialize");
+    assert_eq!(parsed.role, AnthropicRole::System);
+}
+
+#[test]
 fn test_anthropic_messages_stream_event_deserialization() {
     let raw = r#"{
         "type": "content_block_delta",

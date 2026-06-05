@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-05-19T11:09:59+00:00",
+  "captured_at": "2026-06-05T06:33:03+00:00",
   "info": {
     "contact": {
       "email": "support@openrouter.ai",
@@ -14,7 +14,7 @@
     "title": "OpenRouter API",
     "version": "1.0.0"
   },
-  "operation_count": 62,
+  "operation_count": 66,
   "operations": [
     {
       "deprecated": false,
@@ -84,7 +84,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "4107b67b850306f3",
+      "fingerprint": "b5a2e4bad2c286d2",
       "id": "GET /byok",
       "method": "GET",
       "operation_id": "listBYOKKeys",
@@ -95,7 +95,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "44df7c172632e2d0",
+      "fingerprint": "c3ad5385094e5317",
       "id": "GET /byok/{id}",
       "method": "GET",
       "operation_id": "getBYOKKey",
@@ -117,6 +117,17 @@
     },
     {
       "deprecated": false,
+      "fingerprint": "32a5aa933d91ab37",
+      "id": "GET /datasets/rankings-daily",
+      "method": "GET",
+      "operation_id": "getRankingsDaily",
+      "path": "/datasets/rankings-daily",
+      "tags": [
+        "Datasets"
+      ]
+    },
+    {
+      "deprecated": false,
       "fingerprint": "c83853c4260db3c5",
       "id": "GET /embeddings/models",
       "method": "GET",
@@ -128,7 +139,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b2e4d7f17e7ec2b1",
+      "fingerprint": "f159f2f6d6b1ad93",
       "id": "GET /endpoints/zdr",
       "method": "GET",
       "operation_id": "listEndpointsZdr",
@@ -139,7 +150,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "1fb2cd7855c02223",
+      "fingerprint": "de4301db9bed6040",
       "id": "GET /generation",
       "method": "GET",
       "operation_id": "getGeneration",
@@ -161,7 +172,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "264aa20a1d9cbc98",
+      "fingerprint": "c971fe86ab8e6f1e",
       "id": "GET /guardrails",
       "method": "GET",
       "operation_id": "listGuardrails",
@@ -194,7 +205,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b9eb37561bc9cf3e",
+      "fingerprint": "7e90108dc4db6649",
       "id": "GET /guardrails/{id}",
       "method": "GET",
       "operation_id": "getGuardrail",
@@ -293,7 +304,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "a33d2e3dc88d6365",
+      "fingerprint": "ebbf719d1b1de4f9",
       "id": "GET /models/{author}/{slug}/endpoints",
       "method": "GET",
       "operation_id": "listEndpoints",
@@ -403,7 +414,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "dad0322285e3ec9d",
+      "fingerprint": "7d6f5c7e477dc7e0",
       "id": "PATCH /byok/{id}",
       "method": "PATCH",
       "operation_id": "updateBYOKKey",
@@ -414,7 +425,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "e927a97f82d97c98",
+      "fingerprint": "4f57a8b8f08fbbee",
       "id": "PATCH /guardrails/{id}",
       "method": "PATCH",
       "operation_id": "updateGuardrail",
@@ -458,7 +469,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "e9f162d1133bac67",
+      "fingerprint": "e866e241015fc95b",
       "id": "POST /audio/speech",
       "method": "POST",
       "operation_id": "createAudioSpeech",
@@ -469,7 +480,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "7b7b1e3ef6e95379",
+      "fingerprint": "cec87f5a232cd68d",
       "id": "POST /audio/transcriptions",
       "method": "POST",
       "operation_id": "createAudioTranscriptions",
@@ -502,7 +513,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "ae1842cd453f2aa0",
+      "fingerprint": "a3fe8792a450affe",
       "id": "POST /byok",
       "method": "POST",
       "operation_id": "createBYOKKey",
@@ -513,7 +524,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "5363f5b6080a61b7",
+      "fingerprint": "78840a08479a8674",
       "id": "POST /chat/completions",
       "method": "POST",
       "operation_id": "sendChatCompletionRequest",
@@ -535,7 +546,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "6df7b43bc216e7c0",
+      "fingerprint": "cb013d3338781561",
       "id": "POST /embeddings",
       "method": "POST",
       "operation_id": "createEmbeddings",
@@ -546,7 +557,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "ad2b9ec1db9c46f1",
+      "fingerprint": "1fce35e980af57e9",
       "id": "POST /guardrails",
       "method": "POST",
       "operation_id": "createGuardrail",
@@ -612,7 +623,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "d7754357f9e76ce2",
+      "fingerprint": "9aa4cf34ec7c5ecf",
       "id": "POST /messages",
       "method": "POST",
       "operation_id": "createMessages",
@@ -634,7 +645,40 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "62c81bdf62f2b7b7",
+      "fingerprint": "c0bc5853e1ed88e7",
+      "id": "POST /presets/{slug}/chat/completions",
+      "method": "POST",
+      "operation_id": "createPresetsChatCompletions",
+      "path": "/presets/{slug}/chat/completions",
+      "tags": [
+        "Presets"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "2b036bf52bcd2b20",
+      "id": "POST /presets/{slug}/messages",
+      "method": "POST",
+      "operation_id": "createPresetsMessages",
+      "path": "/presets/{slug}/messages",
+      "tags": [
+        "Presets"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "89e8fdd07288bffc",
+      "id": "POST /presets/{slug}/responses",
+      "method": "POST",
+      "operation_id": "createPresetsResponses",
+      "path": "/presets/{slug}/responses",
+      "tags": [
+        "Presets"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "f993967db2d45188",
       "id": "POST /rerank",
       "method": "POST",
       "operation_id": "createRerank",
@@ -645,7 +689,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "d07149e2fe298988",
+      "fingerprint": "a6984cef3488a0af",
       "id": "POST /responses",
       "method": "POST",
       "operation_id": "createResponses",
@@ -656,7 +700,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "c9db226fcb6c90df",
+      "fingerprint": "fbc874edb0776005",
       "id": "POST /videos",
       "method": "POST",
       "operation_id": "createVideos",
