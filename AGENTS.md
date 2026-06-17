@@ -6,22 +6,36 @@
   - `chat()`
   - `responses()`
   - `messages()`
+  - `rerank()`
+  - `audio()`
+  - `videos()`
+  - `files()`
   - `models()`
   - `management()`
   - `legacy()` behind `legacy-completions`
 - `src/api/` contains endpoint modules:
-  - `chat`
-  - `responses`
-  - `messages`
-  - `models`
-  - `embeddings`
-  - `discovery`
+  - `analytics`
   - `api_keys`
-  - `credits`
+  - `audio`
   - `auth`
+  - `byok`
+  - `chat`
+  - `credits`
+  - `discovery`
+  - `embeddings`
+  - `files`
   - `generation`
   - `guardrails`
   - `legacy/completion`
+  - `messages`
+  - `models`
+  - `observability`
+  - `organization`
+  - `presets`
+  - `rerank`
+  - `responses`
+  - `videos`
+  - `workspaces`
 - `src/types/` contains shared request/response, streaming, pagination, tool, and typed-tool types.
 - `crates/openrouter-cli/` contains the workspace CLI companion, including file/profile config resolution.
 - `tests/unit/` contains fast serde/config/domain tests.
@@ -74,15 +88,26 @@ Direct cargo entrypoints:
 - Management smoke requires `OPENROUTER_MANAGEMENT_KEY` and `OPENROUTER_RUN_MANAGEMENT_TESTS=1`.
 - CLI live smoke uses `OPENROUTER_CLI_RUN_LIVE=1`; write smoke also requires `OPENROUTER_CLI_RUN_LIVE_WRITE=1`.
 - If you touch migration docs or canonical naming guidance, run `just check-migration-docs` and `cargo test --test migration_smoke --all-features`.
+- If you change public SDK request/response types, domain client surfaces, CLI behavior, migration docs, or CI-aligned release/test surfaces, run `just quality-ci` before opening or updating a PR.
+
+## OpenAPI Drift Workflow
+
+- For OpenAPI drift issues, inspect the issue/drift report first, implement accepted SDK surface changes, then run `just openapi-refresh-baseline`.
+- Always finish drift work with `just openapi-drift-check`; the expected final state is `added=0, removed=0, changed=0`.
+- If upstream OpenAPI changes again before PR checks run, refresh the tracked baseline again only after confirming no new SDK/API work is required.
+- Update `README.md`, `CHANGELOG.md`, and `docs/operations/official-endpoint-test-matrix.md` when accepted endpoint coverage or public API surface changes.
+- When upstream schema drift changes public SDK field types or default serialization, audit `crates/openrouter-cli/` call sites and snapshot tests that consume those SDK types.
 
 ## Commit And Pull Request Guidelines
 
 - Follow the existing commit style: `feat:`, `fix:`, `docs:`, `chore:`.
+- PR titles must use the same conventional prefix style (`feat:`, `fix:`, `docs:`, etc.); do not prefix titles with `[codex]`.
 - Keep PRs focused and include rationale plus behavior changes.
 - Do not close pull requests automatically unless the user explicitly asks for that action.
 - When API surface changes, update `README.md`, relevant example(s), and `CHANGELOG.md` in the same change.
 - Before opening a PR, run `just quality`.
-- If you touched CLI behavior, migration docs, or CI-aligned release/test surfaces, also run `just quality-ci`.
+- If you touched CLI behavior, public SDK request/response types, migration docs, or CI-aligned release/test surfaces, also run `just quality-ci`.
+- After opening or updating a PR, run `gh pr checks <pr>` and inspect failing Actions logs before assuming local validation is enough.
 
 ## Security And Configuration Tips
 
