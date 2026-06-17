@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Accepted the 2026-06-16 OpenAPI drift review, including analytics, files, app rankings, benchmark datasets, singular model lookup, preset read/version endpoints, model filter/schema refreshes, rerank multimodal documents, and video input reference refreshes, restoring the repository snapshot to `81 / 81` official OpenAPI endpoint coverage.
 - Changed the opt-in OpenRouter metadata request header sent by chat, Responses, and Messages requests from `X-OpenRouter-Experimental-Metadata` to the upstream `X-OpenRouter-Metadata` spelling while preserving the existing request-builder method names.
 - Refreshed model and generation metadata deserialization for nullable model context lengths, model links/benchmarks, default parameters, generation `data_region`, floating-point latency, and integer status values.
+- Refreshed rerank response document echoes so successful image-only multimodal rerank results deserialize with optional `text` and `image` fields.
 - Accepted the 2026-06-01 OpenAPI drift review, including daily rankings datasets, preset creation endpoints, generation metadata additions, and provider taxonomy refreshes, restoring the repository snapshot to `66 / 66` official OpenAPI endpoint coverage.
 
 ## [0.10.0] - 2026-05-20

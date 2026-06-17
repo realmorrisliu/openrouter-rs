@@ -80,12 +80,34 @@ fn test_rerank_response_deserialization() {
     assert_eq!(parsed.model, "cohere/rerank-v3.5");
     assert_eq!(parsed.results.len(), 1);
     assert_eq!(
-        parsed.results[0].document.text,
-        "Paris is the capital of France."
+        parsed.results[0].document.text.as_deref(),
+        Some("Paris is the capital of France.")
     );
     assert_eq!(
         parsed.usage.expect("usage should be present").search_units,
         Some(1)
+    );
+}
+
+#[test]
+fn test_rerank_response_deserializes_image_only_document_echo() {
+    let raw = r#"{
+        "id": "gen-rerank-123",
+        "model": "cohere/rerank-v3.5",
+        "results": [{
+            "index": 0,
+            "relevance_score": 0.91,
+            "document": {"image": "https://example.com/image.png"}
+        }]
+    }"#;
+
+    let parsed: RerankResponse =
+        serde_json::from_str(raw).expect("image-only rerank response should deserialize");
+    assert_eq!(parsed.results.len(), 1);
+    assert_eq!(parsed.results[0].document.text, None);
+    assert_eq!(
+        parsed.results[0].document.image.as_deref(),
+        Some("https://example.com/image.png")
     );
 }
 
