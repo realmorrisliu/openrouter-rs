@@ -280,6 +280,12 @@ fn resolve_enforce_zdr_flag(enforce_zdr: bool, no_enforce_zdr: bool) -> Option<b
     }
 }
 
+fn display_optional<T: ToString>(value: Option<T>) -> String {
+    value
+        .map(|value| value.to_string())
+        .unwrap_or_else(|| "-".to_string())
+}
+
 fn print_models(models: &[models::Model], output: OutputFormat) -> Result<()> {
     match output {
         OutputFormat::Json => print_json(models)?,
@@ -290,7 +296,7 @@ fn print_models(models: &[models::Model], output: OutputFormat) -> Result<()> {
                     vec![
                         model.id.clone(),
                         model.name.clone(),
-                        model.context_length.to_string(),
+                        display_optional(model.context_length),
                         model.pricing.prompt.clone(),
                         model.pricing.completion.clone(),
                     ]
@@ -318,10 +324,16 @@ fn print_model(model: &models::Model, output: OutputFormat) -> Result<()> {
             println!("id: {}", model.id);
             println!("name: {}", model.name);
             println!("created: {}", model.created);
-            println!("context_length: {}", model.context_length);
+            println!("context_length: {}", display_optional(model.context_length));
             println!("description: {}", model.description);
-            println!("modality: {}", model.architecture.modality);
-            println!("tokenizer: {}", model.architecture.tokenizer);
+            println!(
+                "modality: {}",
+                display_optional(model.architecture.modality.as_deref())
+            );
+            println!(
+                "tokenizer: {}",
+                display_optional(model.architecture.tokenizer.as_deref())
+            );
             println!("prompt_price: {}", model.pricing.prompt);
             println!("completion_price: {}", model.pricing.completion);
         }

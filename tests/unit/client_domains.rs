@@ -9,8 +9,8 @@ use std::{
 use openrouter_rs::{
     OpenRouterClient,
     api::{
-        audio, auth, byok, chat, credits, embeddings, guardrails, messages, observability, rerank,
-        responses, videos, workspaces,
+        analytics, audio, auth, byok, chat, credits, embeddings, files, guardrails, messages,
+        observability, rerank, responses, videos, workspaces,
     },
     error::OpenRouterError,
     types::{ModelCategory, PaginationOptions, Role, SupportedParameters},
@@ -314,6 +314,30 @@ async fn test_models_domain_renamed_methods_require_api_key() {
     let rankings = client.models().get_rankings_daily(None, None).await;
     assert!(matches!(rankings, Err(OpenRouterError::KeyNotConfigured)));
 
+    let filtered = client.models().list_filtered(None).await;
+    assert!(matches!(filtered, Err(OpenRouterError::KeyNotConfigured)));
+
+    let model = client.models().get("openai", "gpt-4").await;
+    assert!(matches!(model, Err(OpenRouterError::KeyNotConfigured)));
+
+    let app_rankings = client.models().get_app_rankings(None).await;
+    assert!(matches!(
+        app_rankings,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+
+    let aa = client
+        .models()
+        .get_benchmarks_artificial_analysis(Some(10))
+        .await;
+    assert!(matches!(aa, Err(OpenRouterError::KeyNotConfigured)));
+
+    let da = client
+        .models()
+        .get_benchmarks_design_arena(Some("models"), None, Some(10))
+        .await;
+    assert!(matches!(da, Err(OpenRouterError::KeyNotConfigured)));
+
     let by_category = client
         .models()
         .list_by_category(ModelCategory::Programming)
@@ -355,6 +379,39 @@ async fn test_models_domain_renamed_methods_require_api_key() {
     let embedding_models = client.models().list_embedding_models().await;
     assert!(matches!(
         embedding_models,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+}
+
+#[tokio::test]
+async fn test_files_domain_requires_api_key() {
+    let client = OpenRouterClient::builder()
+        .build()
+        .expect("client should build");
+    let upload = files::UploadFileRequest::builder()
+        .filename("note.txt")
+        .content(b"hello".to_vec())
+        .build()
+        .expect("upload request should build");
+
+    assert!(matches!(
+        client.files().list(None, None, None).await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client.files().upload(&upload, None).await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client.files().get_metadata("file_123", None).await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client.files().download_content("file_123", None).await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client.files().delete("file_123", None).await,
         Err(OpenRouterError::KeyNotConfigured)
     ));
 }
@@ -542,6 +599,10 @@ async fn test_management_domain_remaining_methods_require_configured_key() {
         .messages(vec![messages::AnthropicMessage::user("hello")])
         .build()
         .expect("message preset request should build");
+    let analytics_request = analytics::AnalyticsQueryRequest::builder()
+        .metrics(vec!["request_count".to_string()])
+        .build()
+        .expect("analytics request should build");
 
     assert!(matches!(
         client.management().get_current_api_key_info().await,
@@ -565,6 +626,28 @@ async fn test_management_domain_remaining_methods_require_configured_key() {
         client
             .management()
             .create_message_preset("my-preset", &message_preset_request)
+            .await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client.management().list_presets(None).await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client.management().get_preset("my-preset").await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .management()
+            .list_preset_versions("my-preset", None)
+            .await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .management()
+            .get_preset_version("my-preset", "1")
             .await,
         Err(OpenRouterError::KeyNotConfigured)
     ));
@@ -635,6 +718,17 @@ async fn test_management_domain_remaining_methods_require_configured_key() {
     ));
     assert!(matches!(
         client.management().get_activity(Some("2026-03-11")).await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client.management().get_analytics_meta().await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .management()
+            .query_analytics(&analytics_request)
+            .await,
         Err(OpenRouterError::KeyNotConfigured)
     ));
     assert!(matches!(

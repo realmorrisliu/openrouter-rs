@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-06-05T06:33:03+00:00",
+  "captured_at": "2026-06-17T02:31:05+00:00",
   "info": {
     "contact": {
       "email": "support@openrouter.ai",
@@ -14,11 +14,11 @@
     "title": "OpenRouter API",
     "version": "1.0.0"
   },
-  "operation_count": 66,
+  "operation_count": 81,
   "operations": [
     {
       "deprecated": false,
-      "fingerprint": "54fa253a00ac5c42",
+      "fingerprint": "6f91deb041a1b1fa",
       "id": "DELETE /byok/{id}",
       "method": "DELETE",
       "operation_id": "deleteBYOKKey",
@@ -29,7 +29,18 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "2fb8480286edd199",
+      "fingerprint": "4ca18f79ffb216d8",
+      "id": "DELETE /files/{file_id}",
+      "method": "DELETE",
+      "operation_id": "deleteFile",
+      "path": "/files/{file_id}",
+      "tags": [
+        "Files"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "8004f3e140aff889",
       "id": "DELETE /guardrails/{id}",
       "method": "DELETE",
       "operation_id": "deleteGuardrail",
@@ -40,7 +51,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "1745c85b0992ea6e",
+      "fingerprint": "733cf850bfa8a450",
       "id": "DELETE /keys/{hash}",
       "method": "DELETE",
       "operation_id": "deleteKeys",
@@ -51,7 +62,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "7af9e020afb4c928",
+      "fingerprint": "8291a7a0a00636a7",
       "id": "DELETE /observability/destinations/{id}",
       "method": "DELETE",
       "operation_id": "deleteObservabilityDestination",
@@ -62,7 +73,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "4cc4b797882b36d3",
+      "fingerprint": "2e01d56dde1346eb",
       "id": "DELETE /workspaces/{id}",
       "method": "DELETE",
       "operation_id": "deleteWorkspace",
@@ -73,7 +84,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "d9c39756fe253cfc",
+      "fingerprint": "ae78503d01b50758",
       "id": "GET /activity",
       "method": "GET",
       "operation_id": "getUserActivity",
@@ -84,7 +95,18 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b5a2e4bad2c286d2",
+      "fingerprint": "b69b2e0455fcf869",
+      "id": "GET /analytics/meta",
+      "method": "GET",
+      "operation_id": "getAnalyticsMeta",
+      "path": "/analytics/meta",
+      "tags": [
+        "beta.Analytics"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "7bc33c69e1541f31",
       "id": "GET /byok",
       "method": "GET",
       "operation_id": "listBYOKKeys",
@@ -95,7 +117,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "c3ad5385094e5317",
+      "fingerprint": "5c642e0bbe88b2b0",
       "id": "GET /byok/{id}",
       "method": "GET",
       "operation_id": "getBYOKKey",
@@ -106,7 +128,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "3c98257b3b15ba09",
+      "fingerprint": "a8de6e34f937d228",
       "id": "GET /credits",
       "method": "GET",
       "operation_id": "getCredits",
@@ -117,7 +139,40 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "32a5aa933d91ab37",
+      "fingerprint": "536e2f01051821eb",
+      "id": "GET /datasets/app-rankings",
+      "method": "GET",
+      "operation_id": "getAppRankings",
+      "path": "/datasets/app-rankings",
+      "tags": [
+        "Datasets"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "f34604bdd9969376",
+      "id": "GET /datasets/benchmarks/artificial-analysis",
+      "method": "GET",
+      "operation_id": "getBenchmarksArtificialAnalysis",
+      "path": "/datasets/benchmarks/artificial-analysis",
+      "tags": [
+        "Datasets"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "77e54da40f262c74",
+      "id": "GET /datasets/benchmarks/design-arena",
+      "method": "GET",
+      "operation_id": "getBenchmarksDesignArena",
+      "path": "/datasets/benchmarks/design-arena",
+      "tags": [
+        "Datasets"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "83504c0454c4196d",
       "id": "GET /datasets/rankings-daily",
       "method": "GET",
       "operation_id": "getRankingsDaily",
@@ -128,7 +183,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "c83853c4260db3c5",
+      "fingerprint": "98678d41300bf2ac",
       "id": "GET /embeddings/models",
       "method": "GET",
       "operation_id": "listEmbeddingsModels",
@@ -139,7 +194,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f159f2f6d6b1ad93",
+      "fingerprint": "973c39a6f4957df4",
       "id": "GET /endpoints/zdr",
       "method": "GET",
       "operation_id": "listEndpointsZdr",
@@ -150,7 +205,40 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "de4301db9bed6040",
+      "fingerprint": "52e3f38ade280a25",
+      "id": "GET /files",
+      "method": "GET",
+      "operation_id": "listFiles",
+      "path": "/files",
+      "tags": [
+        "Files"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "21192490b76d7137",
+      "id": "GET /files/{file_id}",
+      "method": "GET",
+      "operation_id": "getFileMetadata",
+      "path": "/files/{file_id}",
+      "tags": [
+        "Files"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "75e30dae37e11592",
+      "id": "GET /files/{file_id}/content",
+      "method": "GET",
+      "operation_id": "downloadFileContent",
+      "path": "/files/{file_id}/content",
+      "tags": [
+        "Files"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "c95fd1f97e3baaa6",
       "id": "GET /generation",
       "method": "GET",
       "operation_id": "getGeneration",
@@ -161,7 +249,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "1deaadf338b00e36",
+      "fingerprint": "51f1c957e6966d83",
       "id": "GET /generation/content",
       "method": "GET",
       "operation_id": "listGenerationContent",
@@ -172,7 +260,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "c971fe86ab8e6f1e",
+      "fingerprint": "ef509670a9999d44",
       "id": "GET /guardrails",
       "method": "GET",
       "operation_id": "listGuardrails",
@@ -183,7 +271,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "35e6f73bb468cb70",
+      "fingerprint": "4bfed3ae865133d0",
       "id": "GET /guardrails/assignments/keys",
       "method": "GET",
       "operation_id": "listKeyAssignments",
@@ -194,7 +282,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "03bb4f3b9c8e6c2e",
+      "fingerprint": "f593364bb80429da",
       "id": "GET /guardrails/assignments/members",
       "method": "GET",
       "operation_id": "listMemberAssignments",
@@ -205,7 +293,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "7e90108dc4db6649",
+      "fingerprint": "d504d0be2f9c3b1a",
       "id": "GET /guardrails/{id}",
       "method": "GET",
       "operation_id": "getGuardrail",
@@ -216,7 +304,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "a9e5751ca222eb49",
+      "fingerprint": "df9126ac57b2e8a6",
       "id": "GET /guardrails/{id}/assignments/keys",
       "method": "GET",
       "operation_id": "listGuardrailKeyAssignments",
@@ -227,7 +315,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "bdcbd251388c2a9f",
+      "fingerprint": "3f4a4fd0be15d281",
       "id": "GET /guardrails/{id}/assignments/members",
       "method": "GET",
       "operation_id": "listGuardrailMemberAssignments",
@@ -238,7 +326,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "98111f144a36687a",
+      "fingerprint": "5e74c6f64f3895ab",
       "id": "GET /key",
       "method": "GET",
       "operation_id": "getCurrentKey",
@@ -249,7 +337,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "de272d5aefee14f8",
+      "fingerprint": "9fda652a77216fb3",
       "id": "GET /keys",
       "method": "GET",
       "operation_id": "list",
@@ -260,7 +348,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "4c7015c8e6d592b1",
+      "fingerprint": "d47719cebfea6fce",
       "id": "GET /keys/{hash}",
       "method": "GET",
       "operation_id": "getKey",
@@ -271,7 +359,18 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "c6a3e2527d06fa7e",
+      "fingerprint": "6481d488d719de61",
+      "id": "GET /model/{author}/{slug}",
+      "method": "GET",
+      "operation_id": "getModel",
+      "path": "/model/{author}/{slug}",
+      "tags": [
+        "Models"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "7c12e55fa2ed959c",
       "id": "GET /models",
       "method": "GET",
       "operation_id": "getModels",
@@ -282,7 +381,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "da4869e1fabb1f97",
+      "fingerprint": "62cf82894c93d8a5",
       "id": "GET /models/count",
       "method": "GET",
       "operation_id": "listModelsCount",
@@ -293,7 +392,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "424f3a218e16b0c8",
+      "fingerprint": "993f9ab6be27f052",
       "id": "GET /models/user",
       "method": "GET",
       "operation_id": "listModelsUser",
@@ -304,7 +403,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "ebbf719d1b1de4f9",
+      "fingerprint": "8d587ed916bfa2ac",
       "id": "GET /models/{author}/{slug}/endpoints",
       "method": "GET",
       "operation_id": "listEndpoints",
@@ -315,7 +414,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "4684d46d3e9ed4ba",
+      "fingerprint": "e6b60e663bdeb4b5",
       "id": "GET /observability/destinations",
       "method": "GET",
       "operation_id": "listObservabilityDestinations",
@@ -326,7 +425,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f6a02d96a127d2fb",
+      "fingerprint": "510a50aa20bc478d",
       "id": "GET /observability/destinations/{id}",
       "method": "GET",
       "operation_id": "getObservabilityDestination",
@@ -337,7 +436,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "9312fc5514215fa6",
+      "fingerprint": "1688e70dc78a6d2e",
       "id": "GET /organization/members",
       "method": "GET",
       "operation_id": "listOrganizationMembers",
@@ -348,7 +447,51 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "0190e638a75a742c",
+      "fingerprint": "64b8b887344334a0",
+      "id": "GET /presets",
+      "method": "GET",
+      "operation_id": "listPresets",
+      "path": "/presets",
+      "tags": [
+        "Presets"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "2f401e04bbdce18c",
+      "id": "GET /presets/{slug}",
+      "method": "GET",
+      "operation_id": "getPreset",
+      "path": "/presets/{slug}",
+      "tags": [
+        "Presets"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "0e2ac7a69da8f49b",
+      "id": "GET /presets/{slug}/versions",
+      "method": "GET",
+      "operation_id": "listPresetVersions",
+      "path": "/presets/{slug}/versions",
+      "tags": [
+        "Presets"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "b40dbfe8a12b0060",
+      "id": "GET /presets/{slug}/versions/{version}",
+      "method": "GET",
+      "operation_id": "getPresetVersion",
+      "path": "/presets/{slug}/versions/{version}",
+      "tags": [
+        "Presets"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "8ff8eb8b38fdeadd",
       "id": "GET /providers",
       "method": "GET",
       "operation_id": "listProviders",
@@ -359,7 +502,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b0430f4a6ffa4c65",
+      "fingerprint": "280fb5424a4592c1",
       "id": "GET /videos/models",
       "method": "GET",
       "operation_id": "listVideosModels",
@@ -370,7 +513,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "fb1755e343f1ad00",
+      "fingerprint": "d362ff6551959875",
       "id": "GET /videos/{jobId}",
       "method": "GET",
       "operation_id": "getVideos",
@@ -381,7 +524,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "800226a4045deb52",
+      "fingerprint": "f32cade2ff8a4051",
       "id": "GET /videos/{jobId}/content",
       "method": "GET",
       "operation_id": "listVideosContent",
@@ -392,7 +535,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f620e15efc87f708",
+      "fingerprint": "634565e76efca746",
       "id": "GET /workspaces",
       "method": "GET",
       "operation_id": "listWorkspaces",
@@ -403,7 +546,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "5e91b64f55580e2e",
+      "fingerprint": "04c5ff4b21a5f2d8",
       "id": "GET /workspaces/{id}",
       "method": "GET",
       "operation_id": "getWorkspace",
@@ -414,7 +557,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "7d6f5c7e477dc7e0",
+      "fingerprint": "a9afaca77f1d96b2",
       "id": "PATCH /byok/{id}",
       "method": "PATCH",
       "operation_id": "updateBYOKKey",
@@ -425,7 +568,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "4f57a8b8f08fbbee",
+      "fingerprint": "4eef56f24cf213b9",
       "id": "PATCH /guardrails/{id}",
       "method": "PATCH",
       "operation_id": "updateGuardrail",
@@ -436,7 +579,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "ebfe6f0d6437a64d",
+      "fingerprint": "0fbc8d8c7c39be05",
       "id": "PATCH /keys/{hash}",
       "method": "PATCH",
       "operation_id": "updateKeys",
@@ -447,7 +590,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f131c45a71b39858",
+      "fingerprint": "43f31fd2d1723823",
       "id": "PATCH /observability/destinations/{id}",
       "method": "PATCH",
       "operation_id": "updateObservabilityDestination",
@@ -458,7 +601,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "649393331ddf22fa",
+      "fingerprint": "63b7e147e7befdae",
       "id": "PATCH /workspaces/{id}",
       "method": "PATCH",
       "operation_id": "updateWorkspace",
@@ -469,7 +612,18 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "e866e241015fc95b",
+      "fingerprint": "d66f5f405b714b43",
+      "id": "POST /analytics/query",
+      "method": "POST",
+      "operation_id": "queryAnalytics",
+      "path": "/analytics/query",
+      "tags": [
+        "beta.Analytics"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "e08a32f59a79d92d",
       "id": "POST /audio/speech",
       "method": "POST",
       "operation_id": "createAudioSpeech",
@@ -480,7 +634,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "cec87f5a232cd68d",
+      "fingerprint": "804f6d6fffd86bc3",
       "id": "POST /audio/transcriptions",
       "method": "POST",
       "operation_id": "createAudioTranscriptions",
@@ -491,7 +645,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "c424a5da1b3397d0",
+      "fingerprint": "d493aa172fcebce7",
       "id": "POST /auth/keys",
       "method": "POST",
       "operation_id": "exchangeAuthCodeForAPIKey",
@@ -502,7 +656,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "61976fd06ab1a0db",
+      "fingerprint": "ceb109a1b4b0ff2c",
       "id": "POST /auth/keys/code",
       "method": "POST",
       "operation_id": "createAuthKeysCode",
@@ -513,7 +667,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "a3fe8792a450affe",
+      "fingerprint": "d986df71a15038aa",
       "id": "POST /byok",
       "method": "POST",
       "operation_id": "createBYOKKey",
@@ -524,7 +678,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "78840a08479a8674",
+      "fingerprint": "242ef7374f80f5b8",
       "id": "POST /chat/completions",
       "method": "POST",
       "operation_id": "sendChatCompletionRequest",
@@ -535,7 +689,7 @@
     },
     {
       "deprecated": true,
-      "fingerprint": "460f78d19065c975",
+      "fingerprint": "b01e3928aa482584",
       "id": "POST /credits/coinbase",
       "method": "POST",
       "operation_id": "createCoinbaseCharge",
@@ -546,7 +700,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "cb013d3338781561",
+      "fingerprint": "2c3bf36d941e5e40",
       "id": "POST /embeddings",
       "method": "POST",
       "operation_id": "createEmbeddings",
@@ -557,7 +711,18 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "1fce35e980af57e9",
+      "fingerprint": "6bc0405724ba1da1",
+      "id": "POST /files",
+      "method": "POST",
+      "operation_id": "uploadFile",
+      "path": "/files",
+      "tags": [
+        "Files"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "fa02a19eae7e5167",
       "id": "POST /guardrails",
       "method": "POST",
       "operation_id": "createGuardrail",
@@ -568,7 +733,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "1e173c303b2ff6ba",
+      "fingerprint": "d3bf39f02a393587",
       "id": "POST /guardrails/{id}/assignments/keys",
       "method": "POST",
       "operation_id": "bulkAssignKeysToGuardrail",
@@ -579,7 +744,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "7b9cda7b1e3ce55f",
+      "fingerprint": "3a6c0c7a7694c7eb",
       "id": "POST /guardrails/{id}/assignments/keys/remove",
       "method": "POST",
       "operation_id": "bulkUnassignKeysFromGuardrail",
@@ -590,7 +755,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "64055d638a961139",
+      "fingerprint": "2f024097c594b765",
       "id": "POST /guardrails/{id}/assignments/members",
       "method": "POST",
       "operation_id": "bulkAssignMembersToGuardrail",
@@ -601,7 +766,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "642759fa50e0f210",
+      "fingerprint": "c13b770c0e4a29da",
       "id": "POST /guardrails/{id}/assignments/members/remove",
       "method": "POST",
       "operation_id": "bulkUnassignMembersFromGuardrail",
@@ -612,7 +777,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "dc02bce8d250dcc5",
+      "fingerprint": "56e0a2b04ddc58dd",
       "id": "POST /keys",
       "method": "POST",
       "operation_id": "createKeys",
@@ -623,7 +788,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "9aa4cf34ec7c5ecf",
+      "fingerprint": "7c1b6348992c9c42",
       "id": "POST /messages",
       "method": "POST",
       "operation_id": "createMessages",
@@ -634,7 +799,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "5086e3ca90802aa9",
+      "fingerprint": "aabc5a92b0ef0a7f",
       "id": "POST /observability/destinations",
       "method": "POST",
       "operation_id": "createObservabilityDestination",
@@ -645,7 +810,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "c0bc5853e1ed88e7",
+      "fingerprint": "0f65e8f433079357",
       "id": "POST /presets/{slug}/chat/completions",
       "method": "POST",
       "operation_id": "createPresetsChatCompletions",
@@ -656,7 +821,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "2b036bf52bcd2b20",
+      "fingerprint": "72c70404cdff22b3",
       "id": "POST /presets/{slug}/messages",
       "method": "POST",
       "operation_id": "createPresetsMessages",
@@ -667,7 +832,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "89e8fdd07288bffc",
+      "fingerprint": "7494e4885f2cd5c8",
       "id": "POST /presets/{slug}/responses",
       "method": "POST",
       "operation_id": "createPresetsResponses",
@@ -678,7 +843,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f993967db2d45188",
+      "fingerprint": "ef5d825e75e81780",
       "id": "POST /rerank",
       "method": "POST",
       "operation_id": "createRerank",
@@ -689,7 +854,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "a6984cef3488a0af",
+      "fingerprint": "2e102463943fe255",
       "id": "POST /responses",
       "method": "POST",
       "operation_id": "createResponses",
@@ -700,7 +865,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "fbc874edb0776005",
+      "fingerprint": "09ecbcc519124a17",
       "id": "POST /videos",
       "method": "POST",
       "operation_id": "createVideos",
@@ -711,7 +876,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "397a8a2e22c940f0",
+      "fingerprint": "bd9843e05ec237fb",
       "id": "POST /workspaces",
       "method": "POST",
       "operation_id": "createWorkspace",
@@ -722,7 +887,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "bcd57c55024b39f7",
+      "fingerprint": "2556147014e762fc",
       "id": "POST /workspaces/{id}/members/add",
       "method": "POST",
       "operation_id": "bulkAddWorkspaceMembers",
@@ -733,7 +898,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "d3a2a804cb7e2d88",
+      "fingerprint": "921b0ff6f318c0df",
       "id": "POST /workspaces/{id}/members/remove",
       "method": "POST",
       "operation_id": "bulkRemoveWorkspaceMembers",

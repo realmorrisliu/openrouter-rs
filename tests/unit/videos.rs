@@ -36,9 +36,11 @@ fn test_video_generation_request_serialization() {
             "https://example.com/first.png",
             "first_frame",
         )])
-        .input_references(vec![VideoInputReference::new(
-            "https://example.com/reference.png",
-        )])
+        .input_references(vec![
+            VideoInputReference::image("https://example.com/reference.png"),
+            VideoInputReference::audio("https://example.com/reference.wav"),
+            VideoInputReference::video("https://example.com/reference.mp4"),
+        ])
         .provider(VideoProviderOptions::new(provider_options))
         .build()
         .expect("video generation request should build");
@@ -52,6 +54,14 @@ fn test_video_generation_request_serialization() {
     assert_eq!(
         value["input_references"][0]["image_url"]["url"],
         "https://example.com/reference.png"
+    );
+    assert_eq!(
+        value["input_references"][1]["audio_url"]["url"],
+        "https://example.com/reference.wav"
+    );
+    assert_eq!(
+        value["input_references"][2]["video_url"]["url"],
+        "https://example.com/reference.mp4"
     );
     assert_eq!(
         value["provider"]["options"]["google-vertex"]["output_config"]["effort"],

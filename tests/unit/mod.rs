@@ -3,6 +3,7 @@ fn dummy_test() {
     // This is a placeholder test
 }
 
+pub mod analytics;
 pub mod api_keys;
 pub mod audio;
 pub mod auth;
@@ -20,6 +21,7 @@ pub mod default_headers;
 pub mod discovery;
 pub mod embeddings;
 pub mod error_model;
+pub mod files;
 pub mod generation;
 pub mod guardrails;
 pub mod messages;

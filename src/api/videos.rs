@@ -23,20 +23,49 @@ impl VideoImageUrl {
     }
 }
 
-/// Reference image used to guide video generation.
+/// Reference media used to guide video generation.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
 pub struct VideoInputReference {
     #[serde(rename = "type")]
     pub content_type: String,
-    pub image_url: VideoImageUrl,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub image_url: Option<VideoImageUrl>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub audio_url: Option<VideoImageUrl>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub video_url: Option<VideoImageUrl>,
 }
 
 impl VideoInputReference {
     pub fn new(url: impl Into<String>) -> Self {
+        Self::image(url)
+    }
+
+    pub fn image(url: impl Into<String>) -> Self {
         Self {
             content_type: "image_url".to_string(),
-            image_url: VideoImageUrl::new(url),
+            image_url: Some(VideoImageUrl::new(url)),
+            audio_url: None,
+            video_url: None,
+        }
+    }
+
+    pub fn audio(url: impl Into<String>) -> Self {
+        Self {
+            content_type: "audio_url".to_string(),
+            image_url: None,
+            audio_url: Some(VideoImageUrl::new(url)),
+            video_url: None,
+        }
+    }
+
+    pub fn video(url: impl Into<String>) -> Self {
+        Self {
+            content_type: "video_url".to_string(),
+            image_url: None,
+            audio_url: None,
+            video_url: Some(VideoImageUrl::new(url)),
         }
     }
 }

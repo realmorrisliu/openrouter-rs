@@ -141,6 +141,7 @@ fn test_models_list_json_snapshot() {
         "created": 1710000000.0,
         "description": "Test model",
         "context_length": 128000.0,
+        "supported_parameters": [],
         "architecture": {
             "modality": "text->text",
             "tokenizer": "GPT",

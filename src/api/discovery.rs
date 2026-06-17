@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use derive_builder::Builder;
 use reqwest::Client as HttpClient;
 use serde::{Deserialize, Serialize};
 use urlencoding::encode;
@@ -231,6 +232,182 @@ pub struct RankingsDailyResponse {
     pub meta: RankingsDailyMeta,
 }
 
+/// Query parameters for `GET /datasets/app-rankings`.
+#[derive(Serialize, Deserialize, Debug, Clone, Default, Builder)]
+#[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
+pub struct AppRankingsParams {
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub category: Option<String>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subcategory: Option<String>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sort: Option<String>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub start_date: Option<String>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end_date: Option<String>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u32>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub offset: Option<u32>,
+}
+
+impl AppRankingsParams {
+    pub fn builder() -> AppRankingsParamsBuilder {
+        AppRankingsParamsBuilder::default()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.category.is_none()
+            && self.subcategory.is_none()
+            && self.sort.is_none()
+            && self.start_date.is_none()
+            && self.end_date.is_none()
+            && self.limit.is_none()
+            && self.offset.is_none()
+    }
+}
+
+/// One application ranking row returned by `GET /datasets/app-rankings`.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct AppRankingsItem {
+    pub rank: u64,
+    pub app_id: u64,
+    pub app_name: String,
+    pub total_tokens: String,
+    pub total_requests: u64,
+    #[serde(flatten)]
+    pub extra: HashMap<String, serde_json::Value>,
+}
+
+/// App rankings dataset response.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct AppRankingsResponse {
+    pub data: Vec<AppRankingsItem>,
+    pub meta: RankingsDailyMeta,
+}
+
+/// OpenRouter benchmark pricing payload.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct BenchmarkPricing {
+    pub prompt: String,
+    pub completion: String,
+    #[serde(flatten)]
+    pub extra: HashMap<String, serde_json::Value>,
+}
+
+/// One Artificial Analysis benchmark row.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct BenchmarksAAItem {
+    pub model_permaslug: String,
+    pub aa_name: String,
+    pub intelligence_index: Option<f64>,
+    pub coding_index: Option<f64>,
+    pub agentic_index: Option<f64>,
+    pub pricing: Option<BenchmarkPricing>,
+    #[serde(flatten)]
+    pub extra: HashMap<String, serde_json::Value>,
+}
+
+/// Metadata for Artificial Analysis benchmark rows.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct BenchmarksAAMeta {
+    pub as_of: String,
+    pub version: String,
+    pub source: String,
+    pub source_url: String,
+    pub citation: String,
+    pub model_count: u64,
+    #[serde(flatten)]
+    pub extra: HashMap<String, serde_json::Value>,
+}
+
+/// Artificial Analysis benchmark dataset response.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct BenchmarksAAResponse {
+    pub data: Vec<BenchmarksAAItem>,
+    pub meta: BenchmarksAAMeta,
+}
+
+/// Placement distribution from Design Arena tournament matches.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct DesignArenaTournamentStats {
+    pub first_place: Option<u64>,
+    pub second_place: Option<u64>,
+    pub third_place: Option<u64>,
+    pub fourth_place: Option<u64>,
+    pub total: Option<u64>,
+    #[serde(flatten)]
+    pub extra: HashMap<String, serde_json::Value>,
+}
+
+/// One Design Arena benchmark row.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct BenchmarksDAItem {
+    pub model_permaslug: String,
+    pub display_name: String,
+    pub arena: String,
+    pub category: String,
+    pub elo: f64,
+    pub win_rate: f64,
+    pub avg_generation_time_ms: Option<f64>,
+    pub tournament_stats: DesignArenaTournamentStats,
+    pub pricing: Option<BenchmarkPricing>,
+    #[serde(flatten)]
+    pub extra: HashMap<String, serde_json::Value>,
+}
+
+/// ELO bounds for a Design Arena response.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct DesignArenaEloBounds {
+    pub min: f64,
+    pub max: f64,
+    #[serde(flatten)]
+    pub extra: HashMap<String, serde_json::Value>,
+}
+
+/// Metadata for Design Arena benchmark rows.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct BenchmarksDAMeta {
+    pub as_of: String,
+    pub version: String,
+    pub source: String,
+    pub source_url: String,
+    pub citation: String,
+    pub model_count: u64,
+    pub arena: String,
+    pub category: Option<String>,
+    pub elo_bounds: DesignArenaEloBounds,
+    #[serde(flatten)]
+    pub extra: HashMap<String, serde_json::Value>,
+}
+
+/// Design Arena benchmark dataset response.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct BenchmarksDAResponse {
+    pub data: Vec<BenchmarksDAItem>,
+    pub meta: BenchmarksDAMeta,
+}
+
 /// List all providers (`GET /providers`).
 pub async fn list_providers(
     base_url: &str,
@@ -362,6 +539,140 @@ pub(crate) async fn get_rankings_daily_with_client(
 
     if response.status().is_success() {
         transport_response::parse_json_response(response, "rankings daily").await
+    } else {
+        transport_response::handle_error(response).await?;
+        unreachable!()
+    }
+}
+
+/// Return app rankings over a date window (`GET /datasets/app-rankings`).
+pub async fn get_app_rankings(
+    base_url: &str,
+    api_key: &str,
+    params: Option<&AppRankingsParams>,
+) -> Result<AppRankingsResponse, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    get_app_rankings_with_client(&http_client, base_url, api_key, params).await
+}
+
+pub(crate) async fn get_app_rankings_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    params: Option<&AppRankingsParams>,
+) -> Result<AppRankingsResponse, OpenRouterError> {
+    let url = format!("{base_url}/datasets/app-rankings");
+    let req =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
+    let response = match params {
+        Some(params) if !params.is_empty() => req.query(params).send().await?,
+        _ => req.send().await?,
+    };
+
+    if response.status().is_success() {
+        transport_response::parse_json_response(response, "app rankings").await
+    } else {
+        transport_response::handle_error(response).await?;
+        unreachable!()
+    }
+}
+
+#[derive(Serialize)]
+struct BenchmarkMaxResultsQuery {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    max_results: Option<u32>,
+}
+
+/// Return Artificial Analysis benchmark rows.
+pub async fn get_benchmarks_artificial_analysis(
+    base_url: &str,
+    api_key: &str,
+    max_results: Option<u32>,
+) -> Result<BenchmarksAAResponse, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    get_benchmarks_artificial_analysis_with_client(&http_client, base_url, api_key, max_results)
+        .await
+}
+
+pub(crate) async fn get_benchmarks_artificial_analysis_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    max_results: Option<u32>,
+) -> Result<BenchmarksAAResponse, OpenRouterError> {
+    let url = format!("{base_url}/datasets/benchmarks/artificial-analysis");
+    let query = BenchmarkMaxResultsQuery { max_results };
+    let req =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
+    let response = if query.max_results.is_none() {
+        req.send().await?
+    } else {
+        req.query(&query).send().await?
+    };
+
+    if response.status().is_success() {
+        transport_response::parse_json_response(response, "Artificial Analysis benchmarks").await
+    } else {
+        transport_response::handle_error(response).await?;
+        unreachable!()
+    }
+}
+
+#[derive(Serialize)]
+struct DesignArenaQuery<'a> {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    arena: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    category: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    max_results: Option<u32>,
+}
+
+/// Return Design Arena benchmark rows.
+pub async fn get_benchmarks_design_arena(
+    base_url: &str,
+    api_key: &str,
+    arena: Option<&str>,
+    category: Option<&str>,
+    max_results: Option<u32>,
+) -> Result<BenchmarksDAResponse, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    get_benchmarks_design_arena_with_client(
+        &http_client,
+        base_url,
+        api_key,
+        arena,
+        category,
+        max_results,
+    )
+    .await
+}
+
+pub(crate) async fn get_benchmarks_design_arena_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    arena: Option<&str>,
+    category: Option<&str>,
+    max_results: Option<u32>,
+) -> Result<BenchmarksDAResponse, OpenRouterError> {
+    let url = format!("{base_url}/datasets/benchmarks/design-arena");
+    let query = DesignArenaQuery {
+        arena,
+        category,
+        max_results,
+    };
+    let req =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
+    let response =
+        if query.arena.is_none() && query.category.is_none() && query.max_results.is_none() {
+            req.send().await?
+        } else {
+            req.query(&query).send().await?
+        };
+
+    if response.status().is_success() {
+        transport_response::parse_json_response(response, "Design Arena benchmarks").await
     } else {
         transport_response::handle_error(response).await?;
         unreachable!()

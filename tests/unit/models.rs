@@ -7,7 +7,7 @@ use std::{
 };
 
 use openrouter_rs::{
-    api::models::{self, EndpointData},
+    api::models::{self, EndpointData, ListModelsParams},
     types::{ApiResponse, ModelCategory, SupportedParameters},
 };
 
@@ -153,6 +153,82 @@ fn test_model_response_deserializes_supported_voices() {
     );
 }
 
+#[test]
+fn test_model_response_deserializes_links_and_benchmarks() {
+    let raw = r#"{
+        "data": {
+            "id": "openai/gpt-4",
+            "canonical_slug": "openai/gpt-4",
+            "name": "GPT-4",
+            "created": 1692901234,
+            "description": "Test model data",
+            "context_length": null,
+            "architecture": {
+                "modality": "text->text",
+                "input_modalities": ["text"],
+                "output_modalities": ["text"],
+                "tokenizer": "GPT",
+                "instruct_type": "chatml"
+            },
+            "top_provider": {
+                "context_length": null,
+                "max_completion_tokens": null,
+                "is_moderated": true
+            },
+            "pricing": {
+                "prompt": "0.00003",
+                "completion": "0.00006",
+                "request": "0"
+            },
+            "per_request_limits": null,
+            "supported_parameters": ["temperature", "top_p"],
+            "default_parameters": null,
+            "supported_voices": null,
+            "links": {
+                "details": "/api/v1/models/openai/gpt-4/endpoints"
+            },
+            "benchmarks": {
+                "artificial_analysis": {
+                    "intelligence_index": 71.4,
+                    "coding_index": 63.2,
+                    "agentic_index": 55.8
+                },
+                "design_arena": [{
+                    "arena": "models",
+                    "category": "website",
+                    "elo": 1385.2,
+                    "win_rate": 62.5,
+                    "rank": 5
+                }]
+            }
+        }
+    }"#;
+
+    let parsed: ApiResponse<models::Model> =
+        serde_json::from_str(raw).expect("single model response should deserialize");
+    assert_eq!(parsed.data.canonical_slug.as_deref(), Some("openai/gpt-4"));
+    assert!(parsed.data.context_length.is_none());
+    assert_eq!(
+        parsed
+            .data
+            .links
+            .as_ref()
+            .expect("links should be present")
+            .details,
+        "/api/v1/models/openai/gpt-4/endpoints"
+    );
+    assert_eq!(
+        parsed
+            .data
+            .benchmarks
+            .as_ref()
+            .expect("benchmarks should be present")
+            .design_arena[0]
+            .rank,
+        5
+    );
+}
+
 #[tokio::test]
 async fn test_list_model_endpoints_encodes_author_slug_and_auth_header() {
     let listener = TcpListener::bind("127.0.0.1:0").expect("listener should bind");
@@ -229,6 +305,66 @@ async fn test_list_model_endpoints_encodes_author_slug_and_auth_header() {
             || request_lower.contains("authorization:bearer api-key"),
         "authorization header should include API key, request:\n{}",
         request_text
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_get_model_encodes_author_slug_and_auth_header() {
+    let response = r#"{
+        "data": {
+            "id": "team/model-alpha",
+            "canonical_slug": "team/model-alpha",
+            "name": "Model Alpha",
+            "created": 1735689600,
+            "description": "Test model data",
+            "context_length": 8192,
+            "architecture": {
+                "modality": "text->text",
+                "input_modalities": ["text"],
+                "output_modalities": ["text"],
+                "tokenizer": "Other",
+                "instruct_type": null
+            },
+            "top_provider": {
+                "context_length": 8192,
+                "max_completion_tokens": 4096,
+                "is_moderated": false
+            },
+            "pricing": {
+                "prompt": "0",
+                "completion": "0"
+            },
+            "per_request_limits": null,
+            "supported_parameters": [],
+            "default_parameters": null,
+            "supported_voices": null,
+            "links": {
+                "details": "/api/v1/models/team/model-alpha/endpoints"
+            }
+        }
+    }"#;
+    let (base_url, rx, server) = spawn_json_server(response);
+
+    let model = models::get_model(&base_url, "api-key", "team/prod", "model alpha")
+        .await
+        .expect("get model should succeed");
+    assert_eq!(model.id, "team/model-alpha");
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/model/team%2Fprod/model%20alpha HTTP/1.1"
+    );
+    let request_lower = captured.request_text.to_ascii_lowercase();
+    assert!(
+        request_lower.contains("authorization: bearer api-key")
+            || request_lower.contains("authorization:bearer api-key"),
+        "authorization header should include API key, request:\n{}",
+        captured.request_text
     );
 
     server.join().expect("server thread should finish");
@@ -318,6 +454,44 @@ async fn test_list_models_with_both_filters_query() {
     assert_eq!(
         captured.request_line,
         "GET /api/v1/models?category=programming&supported_parameters=top_p HTTP/1.1"
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_list_models_with_extended_filter_params() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"data":[]}"#);
+    let params = ListModelsParams::builder()
+        .category(ModelCategory::Programming)
+        .supported_parameters(SupportedParameters::TopP)
+        .output_modalities("text,image")
+        .sort("newest")
+        .q("gpt")
+        .input_modalities("text")
+        .context(128000)
+        .min_price(0.0)
+        .max_price(1.0)
+        .arch("transformer")
+        .model_authors("openai")
+        .providers("openai,anthropic")
+        .distillable(true)
+        .zdr(true)
+        .region("eu")
+        .build()
+        .expect("list model params should build");
+
+    let models = models::list_models_with_params(&base_url, "api-key", Some(&params))
+        .await
+        .expect("filtered model list should succeed");
+    assert!(models.is_empty());
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/models?category=programming&supported_parameters=top_p&output_modalities=text%2Cimage&sort=newest&q=gpt&input_modalities=text&context=128000&min_price=0.0&max_price=1.0&arch=transformer&model_authors=openai&providers=openai%2Canthropic&distillable=true&zdr=true&region=eu HTTP/1.1"
     );
 
     server.join().expect("server thread should finish");

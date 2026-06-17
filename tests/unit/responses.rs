@@ -315,8 +315,8 @@ async fn test_create_response_sets_stream_false_and_headers() {
         captured.header_text
     );
     assert!(
-        headers_lower.contains("x-openrouter-experimental-metadata: enabled")
-            || headers_lower.contains("x-openrouter-experimental-metadata:enabled"),
+        headers_lower.contains("x-openrouter-metadata: enabled")
+            || headers_lower.contains("x-openrouter-metadata:enabled"),
         "experimental metadata header should be present, headers:\n{}",
         captured.header_text
     );

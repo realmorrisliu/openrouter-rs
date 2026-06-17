@@ -8,6 +8,49 @@ use crate::{
     types::ProviderPreferences,
 };
 
+/// One document input accepted by rerank requests.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(untagged)]
+#[non_exhaustive]
+pub enum RerankDocumentInput {
+    Text(String),
+    Multimodal {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        text: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        image: Option<String>,
+    },
+}
+
+impl RerankDocumentInput {
+    pub fn text(value: impl Into<String>) -> Self {
+        Self::Text(value.into())
+    }
+
+    pub fn multimodal<T, U>(text: Option<T>, image: Option<U>) -> Self
+    where
+        T: Into<String>,
+        U: Into<String>,
+    {
+        Self::Multimodal {
+            text: text.map(Into::into),
+            image: image.map(Into::into),
+        }
+    }
+}
+
+impl From<String> for RerankDocumentInput {
+    fn from(value: String) -> Self {
+        Self::Text(value)
+    }
+}
+
+impl From<&str> for RerankDocumentInput {
+    fn from(value: &str) -> Self {
+        Self::Text(value.to_string())
+    }
+}
+
 /// Request payload for `POST /rerank`.
 #[derive(Serialize, Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
@@ -17,7 +60,8 @@ pub struct RerankRequest {
     pub model: String,
     #[builder(setter(into))]
     pub query: String,
-    pub documents: Vec<String>,
+    #[builder(setter(custom))]
+    pub documents: Vec<RerankDocumentInput>,
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub top_n: Option<u32>,
@@ -29,6 +73,17 @@ pub struct RerankRequest {
 impl RerankRequest {
     pub fn builder() -> RerankRequestBuilder {
         RerankRequestBuilder::default()
+    }
+}
+
+impl RerankRequestBuilder {
+    pub fn documents<T, S>(&mut self, items: T) -> &mut Self
+    where
+        T: IntoIterator<Item = S>,
+        S: Into<RerankDocumentInput>,
+    {
+        self.documents = Some(items.into_iter().map(Into::into).collect());
+        self
     }
 }
 

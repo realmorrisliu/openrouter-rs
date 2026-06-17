@@ -7,7 +7,7 @@ use std::{
 };
 
 use openrouter_rs::{
-    api::rerank::{self, RerankRequest, RerankResponse},
+    api::rerank::{self, RerankDocumentInput, RerankRequest, RerankResponse},
     types::ProviderPreferences,
 };
 
@@ -34,6 +34,27 @@ fn test_rerank_request_serialization() {
     assert_eq!(value["documents"][0], "Paris is the capital of France.");
     assert_eq!(value["top_n"], 1);
     assert_eq!(value["provider"]["allow_fallbacks"], true);
+}
+
+#[test]
+fn test_rerank_request_serializes_multimodal_documents() {
+    let request = RerankRequest::builder()
+        .model("cohere/rerank-v3.5")
+        .query("find the matching image")
+        .documents(vec![
+            RerankDocumentInput::text("plain document"),
+            RerankDocumentInput::multimodal(Some("caption"), Some("https://example.com/image.png")),
+        ])
+        .build()
+        .expect("rerank request should build");
+
+    let value = serde_json::to_value(&request).expect("rerank request should serialize");
+    assert_eq!(value["documents"][0], "plain document");
+    assert_eq!(value["documents"][1]["text"], "caption");
+    assert_eq!(
+        value["documents"][1]["image"],
+        "https://example.com/image.png"
+    );
 }
 
 #[test]

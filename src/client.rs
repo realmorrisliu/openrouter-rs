@@ -5,9 +5,9 @@ use futures_util::stream::BoxStream;
 use crate::api::legacy::completion;
 use crate::{
     api::{
-        api_keys, audio, auth, byok, chat, credits, discovery, embeddings, generation, guardrails,
-        messages, models, observability, organization, presets, rerank, responses, videos,
-        workspaces,
+        analytics, api_keys, audio, auth, byok, chat, credits, discovery, embeddings, files,
+        generation, guardrails, messages, models, observability, organization, presets, rerank,
+        responses, videos, workspaces,
     },
     error::OpenRouterError,
     strip_option_vec_setter,
@@ -150,6 +150,11 @@ impl OpenRouterClient {
     /// Domain client for video generation operations.
     pub fn videos(&self) -> VideosClient<'_> {
         VideosClient { client: self }
+    }
+
+    /// Domain client for file upload, metadata, content, and deletion operations.
+    pub fn files(&self) -> FilesClient<'_> {
+        FilesClient { client: self }
     }
 
     /// Domain client for model/discovery/embedding operations.
@@ -1130,6 +1135,82 @@ impl OpenRouterClient {
         }
     }
 
+    /// List presets for the configured management key.
+    pub async fn list_presets(
+        &self,
+        pagination: Option<PaginationOptions>,
+    ) -> Result<presets::ListPresetsResponse, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            presets::list_presets_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                pagination,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Get one preset with its designated version.
+    pub async fn get_preset(
+        &self,
+        slug: &str,
+    ) -> Result<presets::PresetWithDesignatedVersion, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            presets::get_preset_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                slug,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// List versions for one preset.
+    pub async fn list_preset_versions(
+        &self,
+        slug: &str,
+        pagination: Option<PaginationOptions>,
+    ) -> Result<presets::ListPresetVersionsResponse, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            presets::list_preset_versions_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                slug,
+                pagination,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Get a specific preset version.
+    pub async fn get_preset_version(
+        &self,
+        slug: &str,
+        version: &str,
+    ) -> Result<presets::PresetDesignatedVersion, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            presets::get_preset_version_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                slug,
+                version,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
     /// Submit an embeddings request.
     ///
     /// # Arguments
@@ -1292,6 +1373,108 @@ impl OpenRouterClient {
                 api_key,
                 job_id,
                 index,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// List files in the default or selected workspace.
+    pub async fn list_files(
+        &self,
+        limit: Option<u32>,
+        cursor: Option<&str>,
+        workspace_id: Option<&str>,
+    ) -> Result<files::FileListResponse, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            files::list_files_with_client(
+                self.http_client(),
+                &self.base_url,
+                api_key,
+                limit,
+                cursor,
+                workspace_id,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Upload a file into the default or selected workspace.
+    pub async fn upload_file(
+        &self,
+        request: &files::UploadFileRequest,
+        workspace_id: Option<&str>,
+    ) -> Result<files::FileMetadata, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            files::upload_file_with_client(
+                self.http_client(),
+                &self.base_url,
+                api_key,
+                request,
+                workspace_id,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Get metadata for one file.
+    pub async fn get_file_metadata(
+        &self,
+        file_id: &str,
+        workspace_id: Option<&str>,
+    ) -> Result<files::FileMetadata, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            files::get_file_metadata_with_client(
+                self.http_client(),
+                &self.base_url,
+                api_key,
+                file_id,
+                workspace_id,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Download raw content for one file.
+    pub async fn download_file_content(
+        &self,
+        file_id: &str,
+        workspace_id: Option<&str>,
+    ) -> Result<Vec<u8>, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            files::download_file_content_with_client(
+                self.http_client(),
+                &self.base_url,
+                api_key,
+                file_id,
+                workspace_id,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Delete one file.
+    pub async fn delete_file(
+        &self,
+        file_id: &str,
+        workspace_id: Option<&str>,
+    ) -> Result<files::FileDeleteResponse, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            files::delete_file_with_client(
+                self.http_client(),
+                &self.base_url,
+                api_key,
+                file_id,
+                workspace_id,
             )
             .await
         } else {
@@ -1474,6 +1657,38 @@ impl OpenRouterClient {
         }
     }
 
+    /// Returns a list of models using the extended OpenAPI filter surface.
+    pub async fn list_models_filtered(
+        &self,
+        params: Option<&models::ListModelsParams>,
+    ) -> Result<Vec<models::Model>, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            models::list_models_with_params_and_client(
+                self.http_client(),
+                &self.base_url,
+                api_key,
+                params,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Returns metadata about one model.
+    pub async fn get_model(
+        &self,
+        author: &str,
+        slug: &str,
+    ) -> Result<models::Model, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            models::get_model_with_client(self.http_client(), &self.base_url, api_key, author, slug)
+                .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
     /// Returns a list of models available through the API by category.
     ///
     /// # Arguments
@@ -1650,6 +1865,64 @@ impl OpenRouterClient {
         }
     }
 
+    /// Return ranked applications over a date window.
+    pub async fn get_app_rankings(
+        &self,
+        params: Option<&discovery::AppRankingsParams>,
+    ) -> Result<discovery::AppRankingsResponse, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            discovery::get_app_rankings_with_client(
+                self.http_client(),
+                &self.base_url,
+                api_key,
+                params,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Return Artificial Analysis benchmark rows.
+    pub async fn get_benchmarks_artificial_analysis(
+        &self,
+        max_results: Option<u32>,
+    ) -> Result<discovery::BenchmarksAAResponse, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            discovery::get_benchmarks_artificial_analysis_with_client(
+                self.http_client(),
+                &self.base_url,
+                api_key,
+                max_results,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Return Design Arena benchmark rows.
+    pub async fn get_benchmarks_design_arena(
+        &self,
+        arena: Option<&str>,
+        category: Option<&str>,
+        max_results: Option<u32>,
+    ) -> Result<discovery::BenchmarksDAResponse, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            discovery::get_benchmarks_design_arena_with_client(
+                self.http_client(),
+                &self.base_url,
+                api_key,
+                arena,
+                category,
+                max_results,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
     /// Preview ZDR-compatible endpoints.
     ///
     /// Equivalent to `GET /endpoints/zdr`.
@@ -1682,6 +1955,38 @@ impl OpenRouterClient {
                 &self.base_url,
                 management_key,
                 date,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Get analytics metadata (`GET /analytics/meta`).
+    pub async fn get_analytics_meta(&self) -> Result<analytics::AnalyticsMeta, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            analytics::get_analytics_meta_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Query analytics (`POST /analytics/query`).
+    pub async fn query_analytics(
+        &self,
+        request: &analytics::AnalyticsQueryRequest,
+    ) -> Result<analytics::AnalyticsQueryResponse, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            analytics::query_analytics_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                request,
             )
             .await
         } else {
@@ -2252,6 +2557,62 @@ impl<'a> VideosClient<'a> {
     }
 }
 
+/// Domain client for file endpoints.
+#[derive(Debug, Clone, Copy)]
+pub struct FilesClient<'a> {
+    client: &'a OpenRouterClient,
+}
+
+impl<'a> FilesClient<'a> {
+    /// List files (`GET /files`).
+    pub async fn list(
+        &self,
+        limit: Option<u32>,
+        cursor: Option<&str>,
+        workspace_id: Option<&str>,
+    ) -> Result<files::FileListResponse, OpenRouterError> {
+        self.client.list_files(limit, cursor, workspace_id).await
+    }
+
+    /// Upload a file (`POST /files`).
+    pub async fn upload(
+        &self,
+        request: &files::UploadFileRequest,
+        workspace_id: Option<&str>,
+    ) -> Result<files::FileMetadata, OpenRouterError> {
+        self.client.upload_file(request, workspace_id).await
+    }
+
+    /// Get file metadata (`GET /files/{file_id}`).
+    pub async fn get_metadata(
+        &self,
+        file_id: &str,
+        workspace_id: Option<&str>,
+    ) -> Result<files::FileMetadata, OpenRouterError> {
+        self.client.get_file_metadata(file_id, workspace_id).await
+    }
+
+    /// Download file content (`GET /files/{file_id}/content`).
+    pub async fn download_content(
+        &self,
+        file_id: &str,
+        workspace_id: Option<&str>,
+    ) -> Result<Vec<u8>, OpenRouterError> {
+        self.client
+            .download_file_content(file_id, workspace_id)
+            .await
+    }
+
+    /// Delete a file (`DELETE /files/{file_id}`).
+    pub async fn delete(
+        &self,
+        file_id: &str,
+        workspace_id: Option<&str>,
+    ) -> Result<files::FileDeleteResponse, OpenRouterError> {
+        self.client.delete_file(file_id, workspace_id).await
+    }
+}
+
 /// Domain client for model/discovery/embedding endpoints.
 #[derive(Debug, Clone, Copy)]
 pub struct ModelsClient<'a> {
@@ -2262,6 +2623,14 @@ impl<'a> ModelsClient<'a> {
     /// List all models (`GET /models`).
     pub async fn list(&self) -> Result<Vec<models::Model>, OpenRouterError> {
         self.client.list_models().await
+    }
+
+    /// List models with the extended filter surface (`GET /models?...`).
+    pub async fn list_filtered(
+        &self,
+        params: Option<&models::ListModelsParams>,
+    ) -> Result<Vec<models::Model>, OpenRouterError> {
+        self.client.list_models_filtered(params).await
     }
 
     /// List models by category (`GET /models?category=...`).
@@ -2291,6 +2660,11 @@ impl<'a> ModelsClient<'a> {
         self.client.list_model_endpoints(author, slug).await
     }
 
+    /// Get metadata about one model (`GET /model/{author}/{slug}`).
+    pub async fn get(&self, author: &str, slug: &str) -> Result<models::Model, OpenRouterError> {
+        self.client.get_model(author, slug).await
+    }
+
     /// List providers (`GET /providers`).
     pub async fn list_providers(&self) -> Result<Vec<discovery::Provider>, OpenRouterError> {
         self.client.list_providers().await
@@ -2313,6 +2687,36 @@ impl<'a> ModelsClient<'a> {
         end_date: Option<&str>,
     ) -> Result<discovery::RankingsDailyResponse, OpenRouterError> {
         self.client.get_rankings_daily(start_date, end_date).await
+    }
+
+    /// Return ranked applications (`GET /datasets/app-rankings`).
+    pub async fn get_app_rankings(
+        &self,
+        params: Option<&discovery::AppRankingsParams>,
+    ) -> Result<discovery::AppRankingsResponse, OpenRouterError> {
+        self.client.get_app_rankings(params).await
+    }
+
+    /// Return Artificial Analysis benchmark rows.
+    pub async fn get_benchmarks_artificial_analysis(
+        &self,
+        max_results: Option<u32>,
+    ) -> Result<discovery::BenchmarksAAResponse, OpenRouterError> {
+        self.client
+            .get_benchmarks_artificial_analysis(max_results)
+            .await
+    }
+
+    /// Return Design Arena benchmark rows.
+    pub async fn get_benchmarks_design_arena(
+        &self,
+        arena: Option<&str>,
+        category: Option<&str>,
+        max_results: Option<u32>,
+    ) -> Result<discovery::BenchmarksDAResponse, OpenRouterError> {
+        self.client
+            .get_benchmarks_design_arena(arena, category, max_results)
+            .await
     }
 
     /// List ZDR-compatible endpoints (`GET /endpoints/zdr`).
@@ -2398,6 +2802,40 @@ impl<'a> ManagementClient<'a> {
         request: &messages::AnthropicMessagesRequest,
     ) -> Result<presets::PresetWithDesignatedVersion, OpenRouterError> {
         self.client.create_message_preset(slug, request).await
+    }
+
+    /// List presets (`GET /presets`).
+    pub async fn list_presets(
+        &self,
+        pagination: Option<PaginationOptions>,
+    ) -> Result<presets::ListPresetsResponse, OpenRouterError> {
+        self.client.list_presets(pagination).await
+    }
+
+    /// Get one preset (`GET /presets/{slug}`).
+    pub async fn get_preset(
+        &self,
+        slug: &str,
+    ) -> Result<presets::PresetWithDesignatedVersion, OpenRouterError> {
+        self.client.get_preset(slug).await
+    }
+
+    /// List preset versions (`GET /presets/{slug}/versions`).
+    pub async fn list_preset_versions(
+        &self,
+        slug: &str,
+        pagination: Option<PaginationOptions>,
+    ) -> Result<presets::ListPresetVersionsResponse, OpenRouterError> {
+        self.client.list_preset_versions(slug, pagination).await
+    }
+
+    /// Get a preset version (`GET /presets/{slug}/versions/{version}`).
+    pub async fn get_preset_version(
+        &self,
+        slug: &str,
+        version: &str,
+    ) -> Result<presets::PresetDesignatedVersion, OpenRouterError> {
+        self.client.get_preset_version(slug, version).await
     }
 
     /// Delete an API key (`DELETE /keys/{hash}`).
@@ -2501,6 +2939,19 @@ impl<'a> ManagementClient<'a> {
         date: Option<&str>,
     ) -> Result<Vec<discovery::ActivityItem>, OpenRouterError> {
         self.client.get_activity(date).await
+    }
+
+    /// Get analytics metadata (`GET /analytics/meta`).
+    pub async fn get_analytics_meta(&self) -> Result<analytics::AnalyticsMeta, OpenRouterError> {
+        self.client.get_analytics_meta().await
+    }
+
+    /// Query analytics (`POST /analytics/query`).
+    pub async fn query_analytics(
+        &self,
+        request: &analytics::AnalyticsQueryRequest,
+    ) -> Result<analytics::AnalyticsQueryResponse, OpenRouterError> {
+        self.client.query_analytics(request).await
     }
 
     /// List BYOK provider credentials (`GET /byok`).

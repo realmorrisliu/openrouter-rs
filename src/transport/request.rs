@@ -69,10 +69,7 @@ pub(crate) fn with_experimental_metadata_header(
     experimental_metadata: &Option<OpenRouterExperimentalMetadata>,
 ) -> RequestBuilder {
     if let Some(level) = experimental_metadata {
-        req.header(
-            "X-OpenRouter-Experimental-Metadata",
-            level.as_header_value(),
-        )
+        req.header("X-OpenRouter-Metadata", level.as_header_value())
     } else {
         req
     }
@@ -209,7 +206,7 @@ mod tests {
         assert_eq!(
             request
                 .headers()
-                .get("X-OpenRouter-Experimental-Metadata")
+                .get("X-OpenRouter-Metadata")
                 .expect("experimental metadata header should exist"),
             "enabled"
         );

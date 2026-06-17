@@ -8,7 +8,8 @@ use std::{
 
 use openrouter_rs::{
     api::discovery::{
-        self, ActivityItem, BigNumber, ModelsCountData, Provider, PublicEndpoint,
+        self, ActivityItem, AppRankingsParams, AppRankingsResponse, BenchmarksAAResponse,
+        BenchmarksDAResponse, BigNumber, ModelsCountData, Provider, PublicEndpoint,
         RankingsDailyResponse, UserModel,
     },
     types::ApiResponse,
@@ -248,6 +249,105 @@ fn test_rankings_daily_response_deserialization() {
     assert_eq!(parsed.meta.version, "v1");
 }
 
+#[test]
+fn test_app_rankings_response_deserialization() {
+    let raw = r#"{
+        "data": [{
+            "rank": 1,
+            "app_id": 12345,
+            "app_name": "Cline",
+            "total_tokens": "12345678",
+            "total_requests": 4321
+        }],
+        "meta": {
+            "as_of": "2026-05-12T02:00:00Z",
+            "version": "v1",
+            "start_date": "2026-04-12",
+            "end_date": "2026-05-11"
+        }
+    }"#;
+
+    let parsed: AppRankingsResponse =
+        serde_json::from_str(raw).expect("app rankings response should deserialize");
+    assert_eq!(parsed.data[0].app_name, "Cline");
+    assert_eq!(parsed.data[0].total_tokens, "12345678");
+    assert_eq!(parsed.meta.start_date, "2026-04-12");
+}
+
+#[test]
+fn test_benchmark_dataset_responses_deserialize() {
+    let artificial_raw = r#"{
+        "data": [{
+            "model_permaslug": "openai/gpt-4o",
+            "aa_name": "GPT-4o",
+            "intelligence_index": 71.2,
+            "coding_index": 65.8,
+            "agentic_index": 58.3,
+            "pricing": {
+                "prompt": "0.0000025",
+                "completion": "0.00001"
+            }
+        }],
+        "meta": {
+            "as_of": "2026-06-03T12:00:00Z",
+            "version": "v1",
+            "source": "artificial-analysis",
+            "source_url": "https://artificialanalysis.ai",
+            "citation": "Source: Artificial Analysis via OpenRouter.",
+            "model_count": 1
+        }
+    }"#;
+    let artificial: BenchmarksAAResponse =
+        serde_json::from_str(artificial_raw).expect("AA benchmark response should deserialize");
+    assert_eq!(artificial.data[0].aa_name, "GPT-4o");
+    assert_eq!(
+        artificial.data[0]
+            .pricing
+            .as_ref()
+            .expect("pricing should be present")
+            .prompt,
+        "0.0000025"
+    );
+
+    let design_raw = r#"{
+        "data": [{
+            "model_permaslug": "anthropic/claude-sonnet-4",
+            "display_name": "Claude Sonnet 4",
+            "arena": "models",
+            "category": "codecategories",
+            "elo": 1423,
+            "win_rate": 72,
+            "avg_generation_time_ms": 3200,
+            "tournament_stats": {
+                "first_place": 12,
+                "second_place": 8,
+                "third_place": 5,
+                "fourth_place": 2,
+                "total": 27
+            },
+            "pricing": null
+        }],
+        "meta": {
+            "as_of": "2026-06-03T12:00:00Z",
+            "version": "v1",
+            "source": "design-arena",
+            "source_url": "https://www.designarena.ai",
+            "citation": "Source: Design Arena via OpenRouter.",
+            "model_count": 1,
+            "arena": "models",
+            "category": null,
+            "elo_bounds": {
+                "min": 900,
+                "max": 1600
+            }
+        }
+    }"#;
+    let design: BenchmarksDAResponse =
+        serde_json::from_str(design_raw).expect("Design Arena response should deserialize");
+    assert_eq!(design.data[0].display_name, "Claude Sonnet 4");
+    assert_eq!(design.meta.elo_bounds.max, 1600.0);
+}
+
 #[tokio::test]
 async fn test_list_models_for_user_request_path() {
     let listener = TcpListener::bind("127.0.0.1:0").expect("listener should bind");
@@ -478,6 +578,88 @@ async fn test_get_rankings_daily_with_date_query_and_auth_header() {
     );
 
     server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_get_app_rankings_path_query_and_auth_header() {
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":[],"meta":{"as_of":"2026-05-12T02:00:00Z","version":"v1","start_date":"2026-04-12","end_date":"2026-05-11"}}"#,
+    );
+    let params = AppRankingsParams::builder()
+        .category("coding")
+        .subcategory("cli-agent")
+        .sort("trending")
+        .start_date("2026-04-12")
+        .end_date("2026-05-11")
+        .limit(10)
+        .offset(2)
+        .build()
+        .expect("app rankings params should build");
+
+    let rankings = discovery::get_app_rankings(&base_url, "api-key", Some(&params))
+        .await
+        .expect("app rankings request should succeed");
+    assert!(rankings.data.is_empty());
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/datasets/app-rankings?category=coding&subcategory=cli-agent&sort=trending&start_date=2026-04-12&end_date=2026-05-11&limit=10&offset=2 HTTP/1.1"
+    );
+    let request_lower = captured.request_text.to_ascii_lowercase();
+    assert!(
+        request_lower.contains("authorization: bearer api-key")
+            || request_lower.contains("authorization:bearer api-key"),
+        "authorization header should include API key, request:\n{}",
+        captured.request_text
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_get_benchmark_dataset_paths_and_queries() {
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":[],"meta":{"as_of":"2026-06-03T12:00:00Z","version":"v1","source":"artificial-analysis","source_url":"https://artificialanalysis.ai","citation":"Source","model_count":0}}"#,
+    );
+    let aa = discovery::get_benchmarks_artificial_analysis(&base_url, "api-key", Some(25))
+        .await
+        .expect("AA benchmark request should succeed");
+    assert!(aa.data.is_empty());
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture AA request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/datasets/benchmarks/artificial-analysis?max_results=25 HTTP/1.1"
+    );
+    server.join().expect("AA server thread should finish");
+
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":[],"meta":{"as_of":"2026-06-03T12:00:00Z","version":"v1","source":"design-arena","source_url":"https://www.designarena.ai","citation":"Source","model_count":0,"arena":"models","category":"codecategories","elo_bounds":{"min":0,"max":0}}}"#,
+    );
+    let da = discovery::get_benchmarks_design_arena(
+        &base_url,
+        "api-key",
+        Some("models"),
+        Some("codecategories"),
+        Some(20),
+    )
+    .await
+    .expect("Design Arena benchmark request should succeed");
+    assert!(da.data.is_empty());
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture Design Arena request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/datasets/benchmarks/design-arena?arena=models&category=codecategories&max_results=20 HTTP/1.1"
+    );
+    server
+        .join()
+        .expect("Design Arena server thread should finish");
 }
 
 #[tokio::test]
