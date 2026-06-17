@@ -16,6 +16,8 @@ pub struct GenerationData {
     pub id: String,
     pub total_cost: f64,
     pub created_at: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub data_region: Option<String>,
     pub model: String,
     pub origin: String,
     pub usage: f64,
@@ -26,7 +28,7 @@ pub struct GenerationData {
     pub streamed: Option<bool>,
     pub cancelled: Option<bool>,
     pub provider_name: Option<String>,
-    pub latency: Option<u32>,
+    pub latency: Option<f64>,
     pub moderation_latency: Option<u32>,
     pub generation_time: Option<u32>,
     pub finish_reason: Option<String>,
@@ -43,6 +45,8 @@ pub struct GenerationData {
     pub preset_id: Option<String>,
     pub response_cache_source_id: Option<String>,
     pub service_tier: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<i32>,
 }
 
 /// Stored prompt/input and completion/output content returned by `GET /generation/content`.

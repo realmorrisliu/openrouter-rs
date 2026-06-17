@@ -7,7 +7,7 @@ use std::{
 };
 
 use openrouter_rs::{
-    api::rerank::{self, RerankRequest, RerankResponse},
+    api::rerank::{self, RerankDocumentInput, RerankRequest, RerankResponse},
     types::ProviderPreferences,
 };
 
@@ -37,6 +37,27 @@ fn test_rerank_request_serialization() {
 }
 
 #[test]
+fn test_rerank_request_serializes_multimodal_documents() {
+    let request = RerankRequest::builder()
+        .model("cohere/rerank-v3.5")
+        .query("find the matching image")
+        .documents(vec![
+            RerankDocumentInput::text("plain document"),
+            RerankDocumentInput::multimodal(Some("caption"), Some("https://example.com/image.png")),
+        ])
+        .build()
+        .expect("rerank request should build");
+
+    let value = serde_json::to_value(&request).expect("rerank request should serialize");
+    assert_eq!(value["documents"][0], "plain document");
+    assert_eq!(value["documents"][1]["text"], "caption");
+    assert_eq!(
+        value["documents"][1]["image"],
+        "https://example.com/image.png"
+    );
+}
+
+#[test]
 fn test_rerank_response_deserialization() {
     let raw = r#"{
         "id": "gen-rerank-123",
@@ -59,12 +80,34 @@ fn test_rerank_response_deserialization() {
     assert_eq!(parsed.model, "cohere/rerank-v3.5");
     assert_eq!(parsed.results.len(), 1);
     assert_eq!(
-        parsed.results[0].document.text,
-        "Paris is the capital of France."
+        parsed.results[0].document.text.as_deref(),
+        Some("Paris is the capital of France.")
     );
     assert_eq!(
         parsed.usage.expect("usage should be present").search_units,
         Some(1)
+    );
+}
+
+#[test]
+fn test_rerank_response_deserializes_image_only_document_echo() {
+    let raw = r#"{
+        "id": "gen-rerank-123",
+        "model": "cohere/rerank-v3.5",
+        "results": [{
+            "index": 0,
+            "relevance_score": 0.91,
+            "document": {"image": "https://example.com/image.png"}
+        }]
+    }"#;
+
+    let parsed: RerankResponse =
+        serde_json::from_str(raw).expect("image-only rerank response should deserialize");
+    assert_eq!(parsed.results.len(), 1);
+    assert_eq!(parsed.results[0].document.text, None);
+    assert_eq!(
+        parsed.results[0].document.image.as_deref(),
+        Some("https://example.com/image.png")
     );
 }
 

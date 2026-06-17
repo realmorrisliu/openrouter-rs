@@ -1,15 +1,15 @@
 # Official Endpoint Test Matrix
 
-Snapshot date: 2026-06-05
+Snapshot date: 2026-06-16
 Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)  
 Tracked baseline: `specs/openrouter/openapi-baseline.json`  
 Weekly drift workflow: `.github/workflows/openapi-drift.yml`
 
 ## Coverage Summary
 
-- Official OpenAPI endpoints: `66` method+path entries.
-- SDK implementation coverage (`src/api` + domain client): `66 / 66` (`100.0%`).
-- Live integration coverage (`tests/integration`): `24 / 66` endpoints currently exercised.
+- Official OpenAPI endpoints: `81` method+path entries.
+- SDK implementation coverage (`src/api` + domain client): `81 / 81` (`100.0%`).
+- Live integration coverage (`tests/integration`): `24 / 81` endpoints currently exercised.
   - Covered live now: `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `POST /rerank`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`, `GET /organization/members`
 
 Drift review note:
@@ -32,11 +32,13 @@ Drift review note:
 - Upstream refreshed Responses schemas including image detail `original` and response status shapes. The SDK already carries these through flexible `Value` and `String` fields, so no public API migration is required.
 - Upstream added `GET /datasets/rankings-daily` and preset creation endpoints for chat-completions, Responses, and Anthropic-compatible Messages request bodies. The SDK now exposes rankings through `client.models().get_rankings_daily(...)` and preset creation through `client.management().create_*_preset(...)`.
 - Upstream refreshed generation metadata, provider taxonomy values, plugin payload shapes, and Messages role variants. Existing flexible `String`, `Value`, `HashMap`, and `Option` fields carry those schema details without a public API migration.
+- Upstream added analytics metadata/query endpoints, the Files API, app rankings and benchmark datasets, singular model lookup, and preset list/read/version endpoints. The SDK now exposes files through `client.files()`, the new datasets and singular lookup through `client.models()`, and analytics plus preset read/version workflows through `client.management()`.
+- Upstream expanded model list filters, nullable model metadata, generation metadata fields, rerank document input shapes, video input references, auth-code workspace IDs, and the request metadata header spelling. The SDK now exposes typed builders/fields for those surfaces and sends `X-OpenRouter-Metadata` for opt-in metadata.
 
 Legend:
 
 - `SDK`: endpoint implemented in `openrouter-rs`.
-- Canonical surface note: docs and examples prefer domain clients (`chat()`, `responses()`, `messages()`, `rerank()`, `audio().speech()`, `audio().transcriptions()`, `videos()`, `models()`, `management()`). Some rows still mention retained flat `OpenRouterClient::*` wrappers when they exist.
+- Canonical surface note: docs and examples prefer domain clients (`chat()`, `responses()`, `messages()`, `rerank()`, `audio().speech()`, `audio().transcriptions()`, `videos()`, `files()`, `models()`, `management()`). Some rows still mention retained flat `OpenRouterClient::*` wrappers when they exist.
 - `Unit`: unit coverage depth.
   - `Path` = test asserts HTTP method/path (often with header/body checks).
   - `Contract` = serde/request-shape/parser coverage only.
@@ -49,6 +51,8 @@ Legend:
 | Official endpoint | SDK surface | SDK | Unit | Live | Priority |
 | --- | --- | --- | --- | --- | --- |
 | `GET /activity` | `client.management().get_activity(...)` | Yes | Path | No | P1 |
+| `GET /analytics/meta` | `client.management().get_analytics_meta()` | Yes | Path | No | P1 |
+| `POST /analytics/query` | `client.management().query_analytics(...)` | Yes | Path | No | P1 |
 | `POST /auth/keys` | `client.management().create_api_key_from_auth_code(...)` | Yes | Path | No | P2 |
 | `POST /auth/keys/code` | `client.management().create_auth_code(...)` | Yes | Path | No | P2 |
 | `GET /byok` | `client.management().list_byok_keys(...)` | Yes | Path | No | P1 |
@@ -59,10 +63,18 @@ Legend:
 | `POST /chat/completions` | `client.chat().create(...)` / `client.chat().stream(...)` | Yes | Contract | Yes | Keep |
 | `GET /credits` | `client.get_credits()` / `client.management().get_credits()` | Yes | Path | No | P2 |
 | `POST /credits/coinbase` | `client.create_coinbase_charge(...)` / `client.management().create_coinbase_charge(...)` | Yes | Path | No | P2 |
+| `GET /datasets/app-rankings` | `client.models().get_app_rankings(...)` | Yes | Path | No | P2 |
+| `GET /datasets/benchmarks/artificial-analysis` | `client.models().get_benchmarks_artificial_analysis(...)` | Yes | Path | No | P2 |
+| `GET /datasets/benchmarks/design-arena` | `client.models().get_benchmarks_design_arena(...)` | Yes | Path | No | P2 |
 | `GET /datasets/rankings-daily` | `client.models().get_rankings_daily(...)` | Yes | Path | No | P2 |
 | `POST /embeddings` | `client.create_embedding(...)` / `client.models().create_embedding(...)` | Yes | Contract | Yes | Keep |
 | `GET /embeddings/models` | `client.list_embedding_models()` / `client.models().list_embedding_models()` | Yes | Path | Yes | Keep |
 | `GET /endpoints/zdr` | `client.models().list_zdr_endpoints(...)` | Yes | Contract | Yes | Keep |
+| `GET /files` | `client.files().list(...)` | Yes | Path | No | P1 |
+| `POST /files` | `client.files().upload(...)` | Yes | Path | No | P1 |
+| `GET /files/{file_id}` | `client.files().get_metadata(...)` | Yes | Path | No | P1 |
+| `DELETE /files/{file_id}` | `client.files().delete(...)` | Yes | Path | No | P1 |
+| `GET /files/{file_id}/content` | `client.files().download_content(...)` | Yes | Path | No | P1 |
 | `GET /generation` | `client.get_generation(...)` / `client.management().get_generation(...)` | Yes | Path | No | P2 |
 | `GET /generation/content` | `client.get_generation_content(...)` / `client.management().get_generation_content(...)` | Yes | Path | No | P2 |
 | `GET /guardrails` | `client.management().list_guardrails(...)` / `client.management().list_guardrails_in_workspace(...)` | Yes | Path | Yes | Keep |
@@ -84,6 +96,7 @@ Legend:
 | `GET /keys/{hash}` | `client.get_api_key(...)` / `client.management().get_api_key(...)` | Yes | Path | Yes | Keep |
 | `PATCH /keys/{hash}` | `client.update_api_key(...)` / `client.management().update_api_key(...)` | Yes | Path | Yes | Keep |
 | `DELETE /keys/{hash}` | `client.delete_api_key(...)` / `client.management().delete_api_key(...)` | Yes | Path | Yes | Keep |
+| `GET /model/{author}/{slug}` | `client.models().get(...)` | Yes | Path | No | P2 |
 | `GET /models` | `client.list_models()` / `client.models().list()` | Yes | Contract | Yes | Keep |
 | `GET /models/{author}/{slug}/endpoints` | `client.list_model_endpoints(...)` / `client.models().list_endpoints(...)` | Yes | Path | Yes | Keep |
 | `GET /models/count` | `client.count_models()` / `client.models().get_model_count()` | Yes | Contract | Yes | Keep |
@@ -94,9 +107,13 @@ Legend:
 | `PATCH /observability/destinations/{id}` | `client.management().update_observability_destination(...)` | Yes | Path | No | P1 |
 | `DELETE /observability/destinations/{id}` | `client.management().delete_observability_destination(...)` | Yes | Path | No | P1 |
 | `GET /organization/members` | `client.management().list_organization_members(...)` | Yes | Path | Yes | Keep |
+| `GET /presets` | `client.management().list_presets(...)` | Yes | Path | No | P2 |
+| `GET /presets/{slug}` | `client.management().get_preset(...)` | Yes | Path | No | P2 |
 | `POST /presets/{slug}/chat/completions` | `client.management().create_chat_completion_preset(...)` | Yes | Path | No | P2 |
 | `POST /presets/{slug}/messages` | `client.management().create_message_preset(...)` | Yes | Path | No | P2 |
 | `POST /presets/{slug}/responses` | `client.management().create_response_preset(...)` | Yes | Path | No | P2 |
+| `GET /presets/{slug}/versions` | `client.management().list_preset_versions(...)` | Yes | Path | No | P2 |
+| `GET /presets/{slug}/versions/{version}` | `client.management().get_preset_version(...)` | Yes | Path | No | P2 |
 | `GET /providers` | `client.list_providers()` / `client.models().list_providers()` | Yes | Contract | Yes | Keep |
 | `GET /workspaces` | `client.management().list_workspaces(...)` | Yes | Path | No | P1 |
 | `GET /workspaces/{id}` | `client.management().get_workspace(...)` | Yes | Path | No | P1 |
@@ -127,11 +144,12 @@ The endpoint below is intentionally kept as legacy compatibility and is not part
 ## Incremental Test Plan
 
 1. P1: add management-key live coverage for assignment endpoints (`/guardrails/*/assignments/*` and `/guardrails/assignments/*`).
-2. P1: add management-key live smoke coverage for `/activity`.
-3. P2: keep `/credits`, `/credits/coinbase`, `/generation`, `/generation/content`, `/datasets/rankings-daily`, `/presets*`, and `/auth/keys*` as controlled scenarios (manual or mocked contract-first) due rate limits, cost, or side effects.
-4. P1/P2: add low-cost live or smoke coverage for `/audio/speech`, `/audio/transcriptions`, and `/videos*` once stable fixtures and cost controls are defined.
-5. P1: add management-key live validation for `/workspaces*`, plus targeted workspace-scoped read/write coverage for `/keys` and `/guardrails`.
-6. P1: add management-key live validation for `/byok*` and `/observability/destinations*` once safe test credentials and destination fixtures are defined.
+2. P1: add management-key live smoke coverage for `/activity` and `/analytics*`.
+3. P1: add controlled file lifecycle live coverage for `/files*` once upload/download fixtures and cleanup guarantees are defined.
+4. P2: keep `/credits`, `/credits/coinbase`, `/generation`, `/generation/content`, `/datasets*`, `/model/{author}/{slug}`, `/presets*`, and `/auth/keys*` as controlled scenarios (manual or mocked contract-first) due rate limits, cost, or side effects.
+5. P1/P2: add low-cost live or smoke coverage for `/audio/speech`, `/audio/transcriptions`, and `/videos*` once stable fixtures and cost controls are defined.
+6. P1: add management-key live validation for `/workspaces*`, plus targeted workspace-scoped read/write coverage for `/keys` and `/guardrails`.
+7. P1: add management-key live validation for `/byok*` and `/observability/destinations*` once safe test credentials and destination fixtures are defined.
 
 ## Reproduce Snapshot
 

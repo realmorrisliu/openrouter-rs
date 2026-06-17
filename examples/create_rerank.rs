@@ -19,8 +19,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let response = client.rerank().create(&request).await?;
     for result in response.results {
         println!(
-            "index={} score={} text={}",
-            result.index, result.relevance_score, result.document.text
+            "index={} score={} text={} image={}",
+            result.index,
+            result.relevance_score,
+            result.document.text.as_deref().unwrap_or("-"),
+            result.document.image.as_deref().unwrap_or("-")
         );
     }
 

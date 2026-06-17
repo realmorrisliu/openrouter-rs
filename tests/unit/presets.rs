@@ -155,6 +155,47 @@ fn test_preset_response_deserializes() {
     );
 }
 
+#[test]
+fn test_list_presets_and_versions_deserialize() {
+    let presets_raw = r#"{
+        "data": [{
+            "id": "preset_1",
+            "creator_user_id": "user_1",
+            "workspace_id": "ws_1",
+            "name": "my preset",
+            "slug": "my-preset",
+            "description": null,
+            "status": "active",
+            "designated_version_id": "version_1",
+            "created_at": "2026-04-20T10:00:00Z",
+            "updated_at": "2026-04-20T10:00:00Z",
+            "status_updated_at": null
+        }],
+        "total_count": 1
+    }"#;
+    let presets: presets::ListPresetsResponse =
+        serde_json::from_str(presets_raw).expect("preset list should deserialize");
+    assert_eq!(presets.total_count, 1);
+    assert_eq!(presets.data[0].slug, "my-preset");
+
+    let versions_raw = r#"{
+        "data": [{
+            "id": "version_1",
+            "preset_id": "preset_1",
+            "creator_id": "user_1",
+            "version": 1,
+            "system_prompt": null,
+            "config": {"model":"openai/gpt-5"},
+            "created_at": "2026-04-20T10:00:00Z",
+            "updated_at": "2026-04-20T10:00:00Z"
+        }],
+        "total_count": 1
+    }"#;
+    let versions: presets::ListPresetVersionsResponse =
+        serde_json::from_str(versions_raw).expect("preset version list should deserialize");
+    assert_eq!(versions.data[0].version, 1);
+}
+
 #[tokio::test]
 async fn test_create_chat_completion_preset_path_body_and_auth_header() {
     let (base_url, rx, server) = spawn_json_server(preset_response_body());
@@ -281,4 +322,89 @@ async fn test_create_message_preset_path_body_and_auth_header() {
     assert_eq!(body["max_tokens"], 128);
 
     server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_list_and_get_presets_paths_and_auth_header() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
+    let presets = presets::list_presets(
+        &base_url,
+        "management-key",
+        Some(openrouter_rs::types::PaginationOptions::with_offset_and_limit(5, 10)),
+    )
+    .await
+    .expect("list presets should succeed");
+    assert_eq!(presets.total_count, 0);
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture list request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/presets?offset=5&limit=10 HTTP/1.1"
+    );
+    assert!(
+        captured
+            .request_text
+            .to_ascii_lowercase()
+            .contains("authorization: bearer management-key")
+            || captured
+                .request_text
+                .to_ascii_lowercase()
+                .contains("authorization:bearer management-key"),
+        "authorization header should include management key, request:\n{}",
+        captured.request_text
+    );
+    server.join().expect("list server thread should finish");
+
+    let (base_url, rx, server) = spawn_json_server(preset_response_body());
+    let preset = presets::get_preset(&base_url, "management-key", "my preset")
+        .await
+        .expect("get preset should succeed");
+    assert_eq!(preset.id, "preset_1");
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture get request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/presets/my%20preset HTTP/1.1"
+    );
+    server.join().expect("get server thread should finish");
+}
+
+#[tokio::test]
+async fn test_list_and_get_preset_versions_paths() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
+    let versions = presets::list_preset_versions(
+        &base_url,
+        "management-key",
+        "my preset",
+        Some(openrouter_rs::types::PaginationOptions::with_limit(25)),
+    )
+    .await
+    .expect("list preset versions should succeed");
+    assert_eq!(versions.total_count, 0);
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture versions request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/presets/my%20preset/versions?limit=25 HTTP/1.1"
+    );
+    server.join().expect("versions server thread should finish");
+
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":{"id":"version_1","preset_id":"preset_1","creator_id":"user_1","version":1,"system_prompt":null,"config":{"model":"openai/gpt-5"},"created_at":"2026-04-20T10:00:00Z","updated_at":"2026-04-20T10:00:00Z"}}"#,
+    );
+    let version = presets::get_preset_version(&base_url, "management-key", "my preset", "1")
+        .await
+        .expect("get preset version should succeed");
+    assert_eq!(version.version, 1);
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture version request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/presets/my%20preset/versions/1 HTTP/1.1"
+    );
+    server.join().expect("version server thread should finish");
 }

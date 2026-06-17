@@ -142,6 +142,8 @@ fn test_generation_response_deserializes_num_fetches() {
             "origin": "chat",
             "usage": 42.0,
             "is_byok": false,
+            "data_region": "global",
+            "latency": 12.5,
             "native_tokens_reasoning": 8,
             "num_fetches": 3,
             "preset_id": "preset_123",
@@ -155,6 +157,8 @@ fn test_generation_response_deserializes_num_fetches() {
 
     assert_eq!(parsed.data.id, "gen_123");
     assert_eq!(parsed.data.native_tokens_reasoning, Some(8));
+    assert_eq!(parsed.data.data_region.as_deref(), Some("global"));
+    assert_eq!(parsed.data.latency, Some(12.5));
     assert_eq!(parsed.data.num_fetches, Some(3));
     assert_eq!(parsed.data.preset_id.as_deref(), Some("preset_123"));
     assert_eq!(

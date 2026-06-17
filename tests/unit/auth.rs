@@ -21,6 +21,7 @@ fn test_create_auth_code_request_serialization() {
         .usage_limit_type(UsageLimitType::Monthly)
         .spawn_agent("sdk")
         .spawn_cloud("aws")
+        .workspace_id("ws_123")
         .build()
         .expect("request should build");
 
@@ -32,6 +33,7 @@ fn test_create_auth_code_request_serialization() {
     assert_eq!(value["usage_limit_type"], "monthly");
     assert_eq!(value["spawn_agent"], "sdk");
     assert_eq!(value["spawn_cloud"], "aws");
+    assert_eq!(value["workspace_id"], "ws_123");
 }
 
 #[test]
