@@ -143,7 +143,8 @@ fn test_analytics_query_response_deserializes() {
                 "query_time_ms": 42,
                 "row_count": 1,
                 "truncated": false
-            }
+            },
+            "warnings": ["unresolved api_key_id hash"]
         }
     }"#;
 
@@ -151,6 +152,10 @@ fn test_analytics_query_response_deserializes() {
         serde_json::from_str(raw).expect("analytics query response should deserialize");
     assert_eq!(parsed.data.metadata.row_count, 1);
     assert_eq!(parsed.data.data[0]["request_count"], json!(1500));
+    assert_eq!(
+        parsed.data.warnings.as_deref(),
+        Some(["unresolved api_key_id hash".to_string()].as_slice())
+    );
 }
 
 #[tokio::test]

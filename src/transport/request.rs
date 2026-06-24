@@ -14,6 +14,10 @@ pub(crate) fn post(client: &Client, url: &str) -> RequestBuilder {
     request(client, Method::POST, url)
 }
 
+pub(crate) fn put(client: &Client, url: &str) -> RequestBuilder {
+    request(client, Method::PUT, url)
+}
+
 pub(crate) fn patch(client: &Client, url: &str) -> RequestBuilder {
     request(client, Method::PATCH, url)
 }

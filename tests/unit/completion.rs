@@ -264,7 +264,12 @@ fn test_usage_deserializes_openrouter_cost_fields() {
                 "upstream_inference_completions_cost": 0.00015,
                 "upstream_inference_cost": null
             },
-            "is_byok": false
+            "is_byok": false,
+            "server_tool_use_details": {
+                "tool_calls_requested": 2,
+                "tool_calls_executed": 1,
+                "web_search_requests": 1
+            }
         }
     }"#;
 
@@ -278,6 +283,12 @@ fn test_usage_deserializes_openrouter_cost_fields() {
     assert_eq!(cost_details.upstream_inference_prompt_cost, 0.0001);
     assert_eq!(cost_details.upstream_inference_completions_cost, 0.00015);
     assert_eq!(cost_details.upstream_inference_cost, None);
+    let server_tool_use = usage
+        .server_tool_use_details
+        .expect("server tool details should be present");
+    assert_eq!(server_tool_use.tool_calls_requested, Some(2));
+    assert_eq!(server_tool_use.tool_calls_executed, Some(1));
+    assert_eq!(server_tool_use.web_search_requests, Some(1));
 }
 
 /// Test deserialization of multimodal assistant content parts

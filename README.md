@@ -107,8 +107,8 @@ The canonical public surface is domain-oriented:
 | `audio().transcriptions()` | `create` | `/audio/transcriptions` | API key |
 | `videos()` | `create`, `list_models`, `get_generation`, `get_content` | `/videos*` | API key |
 | `files()` | `list`, `upload`, `get_metadata`, `download_content`, `delete` | `/files*` | API key |
-| `models()` | `list`, `list_filtered`, `list_by_category`, `list_by_parameters`, `get`, `list_endpoints`, `list_providers`, `list_user_models`, `get_model_count`, `get_rankings_daily`, `get_app_rankings`, `get_benchmarks_artificial_analysis`, `get_benchmarks_design_arena`, `list_zdr_endpoints`, `create_embedding`, `list_embedding_models` | `/model*`, `/models*`, `/providers`, `/datasets/*`, `/endpoints/zdr`, `/embeddings*` | API key |
-| `management()` | `create_api_key`, `create_api_key_in_workspace`, `list_api_keys`, `list_api_keys_in_workspace`, `list_presets`, `get_preset`, `list_preset_versions`, `get_preset_version`, `create_chat_completion_preset`, `create_response_preset`, `create_message_preset`, `get_analytics_meta`, `query_analytics`, `list_byok_keys`, `create_byok_key`, `get_byok_key`, `update_byok_key`, `delete_byok_key`, `list_observability_destinations`, `create_observability_destination`, `get_observability_destination`, `update_observability_destination`, `delete_observability_destination`, `create_auth_code`, `create_api_key_from_auth_code`, `list_guardrails`, `list_guardrails_in_workspace`, `create_guardrail`, `list_organization_members`, `list_workspaces`, `create_workspace`, `get_workspace`, `update_workspace`, `delete_workspace`, `add_workspace_members`, `remove_workspace_members`, `get_activity`, `get_credits`, `create_coinbase_charge`, `get_generation`, `get_generation_content` | `/keys*`, `/presets*`, `/analytics*`, `/byok*`, `/observability/destinations*`, `/auth/keys*`, `/guardrails*`, `/organization/members`, `/workspaces*`, `/activity`, `/credits*`, `/generation*`, `/key` | Governed endpoints require a management key; billing/session endpoints still use the normal API key because that is how OpenRouter authenticates them |
+| `models()` | `list`, `list_filtered`, `list_by_category`, `list_by_parameters`, `get`, `list_endpoints`, `list_providers`, `list_user_models`, `get_model_count`, `get_rankings_daily`, `get_app_rankings`, `get_benchmarks`, `list_zdr_endpoints`, `create_embedding`, `list_embedding_models` | `/model*`, `/models*`, `/providers`, `/datasets/*`, `/benchmarks`, `/endpoints/zdr`, `/embeddings*` | API key |
+| `management()` | `create_api_key`, `create_api_key_in_workspace`, `list_api_keys`, `list_api_keys_in_workspace`, `list_presets`, `get_preset`, `list_preset_versions`, `get_preset_version`, `create_chat_completion_preset`, `create_response_preset`, `create_message_preset`, `get_analytics_meta`, `query_analytics`, `list_byok_keys`, `create_byok_key`, `get_byok_key`, `update_byok_key`, `delete_byok_key`, `list_observability_destinations`, `create_observability_destination`, `get_observability_destination`, `update_observability_destination`, `delete_observability_destination`, `create_auth_code`, `create_api_key_from_auth_code`, `list_guardrails`, `list_guardrails_in_workspace`, `create_guardrail`, `list_organization_members`, `list_workspaces`, `create_workspace`, `get_workspace`, `update_workspace`, `delete_workspace`, `list_workspace_budgets`, `upsert_workspace_budget`, `delete_workspace_budget`, `add_workspace_members`, `remove_workspace_members`, `get_activity`, `get_credits`, `create_coinbase_charge`, `get_generation`, `get_generation_content` | `/keys*`, `/presets*`, `/analytics*`, `/byok*`, `/observability/destinations*`, `/auth/keys*`, `/guardrails*`, `/organization/members`, `/workspaces*`, `/activity`, `/credits*`, `/generation*`, `/key` | Governed endpoints require a management key; billing/session endpoints still use the normal API key because that is how OpenRouter authenticates them |
 | `legacy()` | `completions().create` | `/completions` | `legacy-completions` feature + API key |
 
 At runtime, the builder/client exposes the values the SDK directly consumes:
@@ -132,9 +132,9 @@ Chat, Responses API, and Anthropic-compatible Messages request builders also exp
 - unified streaming across chat, responses, and messages
 - manual tools and typed tools backed by `schemars`
 - multimodal chat content, including image, audio, video, and file parts
-- model discovery, provider discovery, app rankings, benchmark datasets, embeddings, and ZDR endpoints
+- model discovery, provider discovery, app rankings, unified benchmarks, embeddings, and ZDR endpoints
 - typed generation metadata, model voice/benchmark/link metadata, workspace I/O logging controls, video callback URL support, and file upload/download workflows
-- management-key workflows for keys, workspace-scoped keys, preset reads/writes, analytics, BYOK provider credentials, observability destinations, auth codes, organization members, workspaces, workspace membership, guardrails, guardrail content filters, workspace-scoped guardrails, and activity, plus API-key-authenticated credits and generation metadata/content endpoints
+- management-key workflows for keys, workspace-scoped keys, preset reads/writes, analytics, BYOK provider credentials, observability destinations, auth codes, organization members, workspaces, workspace budgets, workspace membership, guardrails, guardrail content filters, workspace-scoped guardrails, and activity, plus API-key-authenticated credits and generation metadata/content endpoints
 
 For deeper examples, prefer the runnable examples in [`examples/`](examples) over long README snippets.
 
@@ -329,8 +329,8 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 ### Unreleased
 
-- Added typed SDK coverage for files, analytics, app rankings, benchmark datasets, singular model lookup, preset listing/readback/versioning, extended model filters, multimodal rerank documents, and richer video input references.
-- Accepted OpenAPI drift through the 2026-06-16 review and restored the tracked endpoint snapshot to `81 / 81`.
+- Added typed SDK coverage for files, analytics, app rankings, unified benchmarks, singular model lookup, preset listing/readback/versioning, workspace budgets, extended model filters, multimodal rerank documents, and richer video input references.
+- Accepted OpenAPI drift through the 2026-06-22 review and restored the tracked endpoint snapshot to `83 / 83`.
 
 ### Version 0.10.0 *(Latest)*
 

@@ -218,6 +218,19 @@ impl AnthropicContentPart {
         }
     }
 
+    pub fn document_file_id(file_id: impl Into<String>) -> Self {
+        Self::Document {
+            source: json!({
+                "type": "file",
+                "file_id": file_id.into()
+            }),
+            title: None,
+            context: None,
+            citations: None,
+            cache_control: None,
+        }
+    }
+
     pub fn tool_use(
         id: impl Into<String>,
         name: impl Into<String>,

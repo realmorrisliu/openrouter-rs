@@ -138,6 +138,21 @@ fn test_anthropic_messages_response_deserialization() {
 }
 
 #[test]
+fn test_anthropic_document_file_id_part_serializes() {
+    let message = AnthropicMessage::user(vec![AnthropicContentPart::document_file_id(
+        "file_011CNha8iCJcU1wXNR6q4V8w",
+    )]);
+    let value = serde_json::to_value(&message).expect("message should serialize");
+
+    assert_eq!(value["content"][0]["type"], "document");
+    assert_eq!(value["content"][0]["source"]["type"], "file");
+    assert_eq!(
+        value["content"][0]["source"]["file_id"],
+        "file_011CNha8iCJcU1wXNR6q4V8w"
+    );
+}
+
+#[test]
 fn test_anthropic_messages_system_role_roundtrip() {
     let message = AnthropicMessage::system("Follow the policy.");
     let value = serde_json::to_value(&message).expect("system message should serialize");

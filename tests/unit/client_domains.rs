@@ -9,8 +9,8 @@ use std::{
 use openrouter_rs::{
     OpenRouterClient,
     api::{
-        analytics, audio, auth, byok, chat, credits, embeddings, files, guardrails, messages,
-        observability, rerank, responses, videos, workspaces,
+        analytics, audio, auth, byok, chat, credits, discovery, embeddings, files, guardrails,
+        messages, observability, rerank, responses, videos, workspaces,
     },
     error::OpenRouterError,
     types::{ModelCategory, PaginationOptions, Role, SupportedParameters},
@@ -326,17 +326,9 @@ async fn test_models_domain_renamed_methods_require_api_key() {
         Err(OpenRouterError::KeyNotConfigured)
     ));
 
-    let aa = client
-        .models()
-        .get_benchmarks_artificial_analysis(Some(10))
-        .await;
-    assert!(matches!(aa, Err(OpenRouterError::KeyNotConfigured)));
-
-    let da = client
-        .models()
-        .get_benchmarks_design_arena(Some("models"), None, Some(10))
-        .await;
-    assert!(matches!(da, Err(OpenRouterError::KeyNotConfigured)));
+    let benchmark_params = discovery::UnifiedBenchmarksParams::artificial_analysis();
+    let benchmarks = client.models().get_benchmarks(&benchmark_params).await;
+    assert!(matches!(benchmarks, Err(OpenRouterError::KeyNotConfigured)));
 
     let by_category = client
         .models()
@@ -558,6 +550,10 @@ async fn test_management_domain_remaining_methods_require_configured_key() {
         .name("Updated")
         .build()
         .expect("update workspace request should build");
+    let budget_request = workspaces::UpsertWorkspaceBudgetRequest::builder()
+        .limit_usd(100.0)
+        .build()
+        .expect("budget request should build");
     let workspace_members_request = workspaces::WorkspaceMembersRequest::builder()
         .user_ids(vec!["user_1".to_string()])
         .build()
@@ -916,6 +912,24 @@ async fn test_management_domain_remaining_methods_require_configured_key() {
     ));
     assert!(matches!(
         client.management().delete_workspace("ws_123").await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client.management().list_workspace_budgets("ws_123").await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .management()
+            .upsert_workspace_budget("ws_123", "monthly", &budget_request)
+            .await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .management()
+            .delete_workspace_budget("ws_123", "monthly")
+            .await,
         Err(OpenRouterError::KeyNotConfigured)
     ));
     assert!(matches!(

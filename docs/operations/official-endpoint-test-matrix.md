@@ -1,19 +1,21 @@
 # Official Endpoint Test Matrix
 
-Snapshot date: 2026-06-16
+Snapshot date: 2026-06-22
 Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)  
 Tracked baseline: `specs/openrouter/openapi-baseline.json`  
 Weekly drift workflow: `.github/workflows/openapi-drift.yml`
 
 ## Coverage Summary
 
-- Official OpenAPI endpoints: `81` method+path entries.
-- SDK implementation coverage (`src/api` + domain client): `81 / 81` (`100.0%`).
-- Live integration coverage (`tests/integration`): `24 / 81` endpoints currently exercised.
+- Official OpenAPI endpoints: `83` method+path entries.
+- SDK implementation coverage (`src/api` + domain client): `83 / 83` (`100.0%`).
+- Live integration coverage (`tests/integration`): `24 / 83` endpoints currently exercised.
   - Covered live now: `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `POST /rerank`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`, `GET /organization/members`
 
 Drift review note:
 
+- Upstream replaced the two per-source benchmark dataset endpoints with unified `GET /benchmarks` and added workspace budget management. The SDK now exposes `client.models().get_benchmarks(...)` and `client.management().list_workspace_budgets(...)` / `upsert_workspace_budget(...)` / `delete_workspace_budget(...)`. The old per-source benchmark methods remain deprecated compatibility wrappers.
+- Upstream added model reasoning metadata, analytics warnings, chat server-tool usage metadata, embedding cost details, and Anthropic file document sources. The SDK now exposes typed fields/helpers for these stable surfaces while preserving flexible `Value` and `HashMap` escape hatches for high-churn payloads.
 - Official audio speech routing is now `POST /audio/speech`. The SDK keeps the canonical `client.audio().speech().create(...)` surface and retries legacy `POST /tts` only as a compatibility fallback.
 - Upstream added `GET /generation/content`, now exposed as `client.get_generation_content(...)` / `client.management().get_generation_content(...)`.
 - Upstream added official workspace-management endpoints and workspace-aware management fields. The SDK and CLI now expose them; live management-key validation remains pending.
@@ -60,12 +62,11 @@ Legend:
 | `GET /byok/{id}` | `client.management().get_byok_key(...)` | Yes | Path | No | P1 |
 | `PATCH /byok/{id}` | `client.management().update_byok_key(...)` | Yes | Path | No | P1 |
 | `DELETE /byok/{id}` | `client.management().delete_byok_key(...)` | Yes | Path | No | P1 |
+| `GET /benchmarks` | `client.models().get_benchmarks(...)` | Yes | Path | No | P2 |
 | `POST /chat/completions` | `client.chat().create(...)` / `client.chat().stream(...)` | Yes | Contract | Yes | Keep |
 | `GET /credits` | `client.get_credits()` / `client.management().get_credits()` | Yes | Path | No | P2 |
 | `POST /credits/coinbase` | `client.create_coinbase_charge(...)` / `client.management().create_coinbase_charge(...)` | Yes | Path | No | P2 |
 | `GET /datasets/app-rankings` | `client.models().get_app_rankings(...)` | Yes | Path | No | P2 |
-| `GET /datasets/benchmarks/artificial-analysis` | `client.models().get_benchmarks_artificial_analysis(...)` | Yes | Path | No | P2 |
-| `GET /datasets/benchmarks/design-arena` | `client.models().get_benchmarks_design_arena(...)` | Yes | Path | No | P2 |
 | `GET /datasets/rankings-daily` | `client.models().get_rankings_daily(...)` | Yes | Path | No | P2 |
 | `POST /embeddings` | `client.create_embedding(...)` / `client.models().create_embedding(...)` | Yes | Contract | Yes | Keep |
 | `GET /embeddings/models` | `client.list_embedding_models()` / `client.models().list_embedding_models()` | Yes | Path | Yes | Keep |
@@ -117,6 +118,7 @@ Legend:
 | `GET /providers` | `client.list_providers()` / `client.models().list_providers()` | Yes | Contract | Yes | Keep |
 | `GET /workspaces` | `client.management().list_workspaces(...)` | Yes | Path | No | P1 |
 | `GET /workspaces/{id}` | `client.management().get_workspace(...)` | Yes | Path | No | P1 |
+| `GET /workspaces/{id}/budgets` | `client.management().list_workspace_budgets(...)` | Yes | Path | No | P1 |
 | `POST /messages` | `client.messages().create(...)` / `client.messages().stream(...)` | Yes | Path | Yes | Keep |
 | `POST /rerank` | `client.rerank().create(...)` | Yes | Path | Yes | Keep |
 | `POST /responses` | `client.responses().create(...)` / `client.responses().stream(...)` | Yes | Contract | Yes | Keep |
@@ -131,22 +133,26 @@ Legend:
 | `GET /videos/{jobId}/content` | `client.videos().get_content(...)` | Yes | Path | No | P2 |
 | `PATCH /workspaces/{id}` | `client.management().update_workspace(...)` | Yes | Path | No | P1 |
 | `DELETE /workspaces/{id}` | `client.management().delete_workspace(...)` | Yes | Path | No | P1 |
+| `PUT /workspaces/{id}/budgets/{interval}` | `client.management().upsert_workspace_budget(...)` | Yes | Path | No | P1 |
+| `DELETE /workspaces/{id}/budgets/{interval}` | `client.management().delete_workspace_budget(...)` | Yes | Path | No | P1 |
 
 ## Supplemental (Legacy)
 
-The endpoint below is intentionally kept as legacy compatibility and is not part of current OpenAPI:
+The endpoints below are intentionally kept as legacy compatibility and are not part of current OpenAPI:
 
 | Endpoint | SDK surface | Notes |
 | --- | --- | --- |
 | `POST /completions` | `client.legacy().completions().create(...)` (feature `legacy-completions`) | Migration-only surface toward `chat`/`responses` |
 | `POST /tts` | `client.audio().speech().create(...)` | Compatibility fallback while upstream rolls out `POST /audio/speech` everywhere |
+| `GET /datasets/benchmarks/artificial-analysis` | `client.models().get_benchmarks_artificial_analysis(...)` | Deprecated compatibility surface; prefer `client.models().get_benchmarks(...)` |
+| `GET /datasets/benchmarks/design-arena` | `client.models().get_benchmarks_design_arena(...)` | Deprecated compatibility surface; prefer `client.models().get_benchmarks(...)` |
 
 ## Incremental Test Plan
 
 1. P1: add management-key live coverage for assignment endpoints (`/guardrails/*/assignments/*` and `/guardrails/assignments/*`).
 2. P1: add management-key live smoke coverage for `/activity` and `/analytics*`.
 3. P1: add controlled file lifecycle live coverage for `/files*` once upload/download fixtures and cleanup guarantees are defined.
-4. P2: keep `/credits`, `/credits/coinbase`, `/generation`, `/generation/content`, `/datasets*`, `/model/{author}/{slug}`, `/presets*`, and `/auth/keys*` as controlled scenarios (manual or mocked contract-first) due rate limits, cost, or side effects.
+4. P2: keep `/credits`, `/credits/coinbase`, `/generation`, `/generation/content`, `/datasets*`, `/benchmarks`, `/model/{author}/{slug}`, `/presets*`, and `/auth/keys*` as controlled scenarios (manual or mocked contract-first) due rate limits, cost, or side effects.
 5. P1/P2: add low-cost live or smoke coverage for `/audio/speech`, `/audio/transcriptions`, and `/videos*` once stable fixtures and cost controls are defined.
 6. P1: add management-key live validation for `/workspaces*`, plus targeted workspace-scoped read/write coverage for `/keys` and `/guardrails`.
 7. P1: add management-key live validation for `/byok*` and `/observability/destinations*` once safe test credentials and destination fixtures are defined.
