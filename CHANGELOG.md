@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added top-level `cache_control` support to chat completion and Responses API request builders for automatic prompt caching.
 - Added typed SDK support for the Files API (`GET|POST /files`, `GET|DELETE /files/{file_id}`, and `GET /files/{file_id}/content`) via `api::files` and the canonical `client.files()` surface.
 - Added typed management-key SDK support for analytics metadata and query endpoints (`GET /analytics/meta`, `POST /analytics/query`) via `api::analytics` and `client.management().get_analytics_meta(...)` / `query_analytics(...)`.
 - Added typed SDK support for `GET /datasets/app-rankings`, `GET /datasets/benchmarks/artificial-analysis`, and `GET /datasets/benchmarks/design-arena` through the `models()` domain client.
