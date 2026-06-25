@@ -53,6 +53,20 @@ pub struct ResponseCostDetails {
     pub upstream_inference_cost: Option<f64>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct ServerToolUseDetails {
+    /// Number of OpenRouter server tool calls that executed and produced a result.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_calls_executed: Option<u32>,
+    /// Number of OpenRouter server-orchestrated tool calls requested by the model.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_calls_requested: Option<u32>,
+    /// Number of web searches performed by server-side tools.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub web_search_requests: Option<u32>,
+}
+
 /// Token and billing usage reported for chat completion responses.
 ///
 /// Response payloads are intentionally constructed by deserialization rather than
@@ -89,6 +103,9 @@ pub struct ResponseUsage {
     /// Whether the request was billed through BYOK provider credentials.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub is_byok: Option<bool>,
+    /// Server-side tool execution usage when returned by OpenRouter.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub server_tool_use_details: Option<ServerToolUseDetails>,
 }
 
 impl ResponseUsage {
@@ -100,6 +117,7 @@ impl ResponseUsage {
             cost: None,
             cost_details: None,
             is_byok: None,
+            server_tool_use_details: None,
         }
     }
 }

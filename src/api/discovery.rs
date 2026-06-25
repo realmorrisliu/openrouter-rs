@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use urlencoding::encode;
 
 use crate::{
+    api::models::ModelReasoning,
     error::OpenRouterError,
     transport::{request as transport_request, response as transport_response},
     types::ApiResponse,
@@ -129,6 +130,8 @@ pub struct UserModel {
     pub default_parameters: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expiration_date: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reasoning: Option<ModelReasoning>,
     #[serde(flatten)]
     pub extra: HashMap<String, serde_json::Value>,
 }
@@ -408,6 +411,119 @@ pub struct BenchmarksDAResponse {
     pub meta: BenchmarksDAMeta,
 }
 
+/// Query parameters for the unified benchmarks endpoint.
+#[derive(Serialize, Deserialize, Debug, Clone, Builder)]
+#[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
+pub struct UnifiedBenchmarksParams {
+    #[builder(setter(into))]
+    pub source: String,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub task_type: Option<String>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub arena: Option<String>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub category: Option<String>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_results: Option<u32>,
+}
+
+impl UnifiedBenchmarksParams {
+    pub fn builder() -> UnifiedBenchmarksParamsBuilder {
+        UnifiedBenchmarksParamsBuilder::default()
+    }
+
+    pub fn artificial_analysis() -> Self {
+        Self {
+            source: "artificial-analysis".to_string(),
+            task_type: None,
+            arena: None,
+            category: None,
+            max_results: None,
+        }
+    }
+
+    pub fn design_arena() -> Self {
+        Self {
+            source: "design-arena".to_string(),
+            task_type: None,
+            arena: None,
+            category: None,
+            max_results: None,
+        }
+    }
+}
+
+/// One Artificial Analysis row returned by `GET /benchmarks`.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct UnifiedBenchmarksAAItem {
+    pub source: String,
+    pub model_permaslug: String,
+    pub display_name: String,
+    pub intelligence_index: Option<f64>,
+    pub coding_index: Option<f64>,
+    pub agentic_index: Option<f64>,
+    pub pricing: Option<BenchmarkPricing>,
+    #[serde(flatten)]
+    pub extra: HashMap<String, serde_json::Value>,
+}
+
+/// One Design Arena row returned by `GET /benchmarks`.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct UnifiedBenchmarksDAItem {
+    pub source: String,
+    pub model_permaslug: String,
+    pub display_name: String,
+    pub arena: String,
+    pub category: String,
+    pub elo: f64,
+    pub win_rate: f64,
+    pub avg_generation_time_ms: Option<f64>,
+    pub tournament_stats: DesignArenaTournamentStats,
+    pub pricing: Option<BenchmarkPricing>,
+    #[serde(flatten)]
+    pub extra: HashMap<String, serde_json::Value>,
+}
+
+/// One benchmark row returned by `GET /benchmarks`.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
+#[non_exhaustive]
+pub enum UnifiedBenchmarkItem {
+    DesignArena(UnifiedBenchmarksDAItem),
+    ArtificialAnalysis(UnifiedBenchmarksAAItem),
+    Other(HashMap<String, serde_json::Value>),
+}
+
+/// Metadata for the unified benchmarks endpoint.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct UnifiedBenchmarksMeta {
+    pub as_of: String,
+    pub version: String,
+    pub source: String,
+    pub source_url: String,
+    pub citation: String,
+    pub model_count: u64,
+    pub task_type: Option<String>,
+    #[serde(flatten)]
+    pub extra: HashMap<String, serde_json::Value>,
+}
+
+/// Unified benchmark response returned by `GET /benchmarks`.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct UnifiedBenchmarksResponse {
+    pub data: Vec<UnifiedBenchmarkItem>,
+    pub meta: UnifiedBenchmarksMeta,
+}
+
 /// List all providers (`GET /providers`).
 pub async fn list_providers(
     base_url: &str,
@@ -577,6 +693,37 @@ pub(crate) async fn get_app_rankings_with_client(
     }
 }
 
+/// Return benchmark rows from a selected benchmark source (`GET /benchmarks`).
+pub async fn get_benchmarks(
+    base_url: &str,
+    api_key: &str,
+    params: &UnifiedBenchmarksParams,
+) -> Result<UnifiedBenchmarksResponse, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    get_benchmarks_with_client(&http_client, base_url, api_key, params).await
+}
+
+pub(crate) async fn get_benchmarks_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    params: &UnifiedBenchmarksParams,
+) -> Result<UnifiedBenchmarksResponse, OpenRouterError> {
+    let url = format!("{base_url}/benchmarks");
+    let response =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
+            .query(params)
+            .send()
+            .await?;
+
+    if response.status().is_success() {
+        transport_response::parse_json_response(response, "benchmarks").await
+    } else {
+        transport_response::handle_error(response).await?;
+        unreachable!()
+    }
+}
+
 #[derive(Serialize)]
 struct BenchmarkMaxResultsQuery {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -584,6 +731,7 @@ struct BenchmarkMaxResultsQuery {
 }
 
 /// Return Artificial Analysis benchmark rows.
+#[deprecated(note = "use get_benchmarks with source `artificial-analysis`")]
 pub async fn get_benchmarks_artificial_analysis(
     base_url: &str,
     api_key: &str,
@@ -629,6 +777,7 @@ struct DesignArenaQuery<'a> {
 }
 
 /// Return Design Arena benchmark rows.
+#[deprecated(note = "use get_benchmarks with source `design-arena`")]
 pub async fn get_benchmarks_design_arena(
     base_url: &str,
     api_key: &str,

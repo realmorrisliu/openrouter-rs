@@ -194,6 +194,8 @@ pub struct AnalyticsQueryResponse {
     pub cached_at: Option<f64>,
     pub data: Vec<HashMap<String, Value>>,
     pub metadata: AnalyticsQueryMetadata,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub warnings: Option<Vec<String>>,
     #[serde(flatten)]
     pub extra: HashMap<String, Value>,
 }

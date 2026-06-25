@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added typed SDK support for the Files API (`GET|POST /files`, `GET|DELETE /files/{file_id}`, and `GET /files/{file_id}/content`) via `api::files` and the canonical `client.files()` surface.
 - Added typed management-key SDK support for analytics metadata and query endpoints (`GET /analytics/meta`, `POST /analytics/query`) via `api::analytics` and `client.management().get_analytics_meta(...)` / `query_analytics(...)`.
 - Added typed SDK support for `GET /datasets/app-rankings`, `GET /datasets/benchmarks/artificial-analysis`, and `GET /datasets/benchmarks/design-arena` through the `models()` domain client.
+- Added typed SDK support for unified benchmark discovery via `GET /benchmarks`, `api::discovery::UnifiedBenchmarksParams`, and `client.models().get_benchmarks(...)`.
+- Added typed management-key SDK support for workspace budgets (`GET /workspaces/{id}/budgets`, `PUT|DELETE /workspaces/{id}/budgets/{interval}`) via `api::workspaces` and `client.management().*_workspace_budget(...)`.
 - Added typed SDK support for `GET /model/{author}/{slug}` and expanded `GET /models` filtering through `ListModelsParams`.
 - Added management-key SDK support for listing, reading, and versioning presets via `GET /presets`, `GET /presets/{slug}`, `GET /presets/{slug}/versions`, and `GET /presets/{slug}/versions/{version}`.
 - Added typed SDK support for `GET /datasets/rankings-daily`, including `api::discovery::RankingsDailyResponse` and the canonical `client.models().get_rankings_daily(...)` surface.
@@ -20,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added typed `GenerationData::preset_id` support on `GET /generation` metadata responses.
 
 ### Changed
+- Accepted the 2026-06-22 OpenAPI drift review, including unified benchmarks, workspace budget management, model reasoning metadata, analytics warnings, server-tool usage metadata, embedding cost details, and Anthropic file document helpers, restoring the repository snapshot to `83 / 83` official OpenAPI endpoint coverage.
+- Deprecated the legacy `get_benchmarks_artificial_analysis(...)` and `get_benchmarks_design_arena(...)` compatibility methods in favor of `get_benchmarks(...)`.
 - Accepted the 2026-06-16 OpenAPI drift review, including analytics, files, app rankings, benchmark datasets, singular model lookup, preset read/version endpoints, model filter/schema refreshes, rerank multimodal documents, and video input reference refreshes, restoring the repository snapshot to `81 / 81` official OpenAPI endpoint coverage.
 - Changed the opt-in OpenRouter metadata request header sent by chat, Responses, and Messages requests from `X-OpenRouter-Experimental-Metadata` to the upstream `X-OpenRouter-Metadata` spelling while preserving the existing request-builder method names.
 - Refreshed model and generation metadata deserialization for nullable model context lengths, model links/benchmarks, default parameters, generation `data_region`, floating-point latency, and integer status values.

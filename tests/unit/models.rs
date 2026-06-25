@@ -200,6 +200,13 @@ fn test_model_response_deserializes_links_and_benchmarks() {
                     "win_rate": 62.5,
                     "rank": 5
                 }]
+            },
+            "reasoning": {
+                "default_effort": "high",
+                "default_enabled": true,
+                "mandatory": false,
+                "supported_efforts": ["high", "medium", "low", "minimal"],
+                "supports_max_tokens": true
             }
         }
     }"#;
@@ -227,6 +234,16 @@ fn test_model_response_deserializes_links_and_benchmarks() {
             .rank,
         5
     );
+    let reasoning = parsed
+        .data
+        .reasoning
+        .as_ref()
+        .expect("reasoning metadata should be present");
+    assert!(matches!(
+        reasoning.default_effort.as_ref(),
+        Some(openrouter_rs::types::Effort::High)
+    ));
+    assert_eq!(reasoning.supports_max_tokens, Some(true));
 }
 
 #[tokio::test]

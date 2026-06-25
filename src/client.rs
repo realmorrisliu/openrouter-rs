@@ -1883,7 +1883,29 @@ impl OpenRouterClient {
         }
     }
 
+    /// Return benchmark rows from a selected source.
+    ///
+    /// Equivalent to `GET /benchmarks`.
+    pub async fn get_benchmarks(
+        &self,
+        params: &discovery::UnifiedBenchmarksParams,
+    ) -> Result<discovery::UnifiedBenchmarksResponse, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            discovery::get_benchmarks_with_client(
+                self.http_client(),
+                &self.base_url,
+                api_key,
+                params,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
     /// Return Artificial Analysis benchmark rows.
+    #[deprecated(note = "use get_benchmarks with source `artificial-analysis`")]
+    #[allow(deprecated)]
     pub async fn get_benchmarks_artificial_analysis(
         &self,
         max_results: Option<u32>,
@@ -1902,6 +1924,8 @@ impl OpenRouterClient {
     }
 
     /// Return Design Arena benchmark rows.
+    #[deprecated(note = "use get_benchmarks with source `design-arena`")]
+    #[allow(deprecated)]
     pub async fn get_benchmarks_design_arena(
         &self,
         arena: Option<&str>,
@@ -2290,6 +2314,66 @@ impl OpenRouterClient {
                 &self.base_url,
                 management_key,
                 id,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// List budgets configured for a workspace (`GET /workspaces/{id}/budgets`).
+    pub async fn list_workspace_budgets(
+        &self,
+        id: &str,
+    ) -> Result<workspaces::ListWorkspaceBudgetsResponse, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            workspaces::list_workspace_budgets_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                id,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Create or update a workspace budget (`PUT /workspaces/{id}/budgets/{interval}`).
+    pub async fn upsert_workspace_budget(
+        &self,
+        id: &str,
+        interval: &str,
+        request: &workspaces::UpsertWorkspaceBudgetRequest,
+    ) -> Result<workspaces::WorkspaceBudget, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            workspaces::upsert_workspace_budget_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                id,
+                interval,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Delete a workspace budget (`DELETE /workspaces/{id}/budgets/{interval}`).
+    pub async fn delete_workspace_budget(
+        &self,
+        id: &str,
+        interval: &str,
+    ) -> Result<bool, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            workspaces::delete_workspace_budget_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                id,
+                interval,
             )
             .await
         } else {
@@ -2697,7 +2781,17 @@ impl<'a> ModelsClient<'a> {
         self.client.get_app_rankings(params).await
     }
 
+    /// Return benchmark rows from a selected source (`GET /benchmarks`).
+    pub async fn get_benchmarks(
+        &self,
+        params: &discovery::UnifiedBenchmarksParams,
+    ) -> Result<discovery::UnifiedBenchmarksResponse, OpenRouterError> {
+        self.client.get_benchmarks(params).await
+    }
+
     /// Return Artificial Analysis benchmark rows.
+    #[deprecated(note = "use get_benchmarks with source `artificial-analysis`")]
+    #[allow(deprecated)]
     pub async fn get_benchmarks_artificial_analysis(
         &self,
         max_results: Option<u32>,
@@ -2708,6 +2802,8 @@ impl<'a> ModelsClient<'a> {
     }
 
     /// Return Design Arena benchmark rows.
+    #[deprecated(note = "use get_benchmarks with source `design-arena`")]
+    #[allow(deprecated)]
     pub async fn get_benchmarks_design_arena(
         &self,
         arena: Option<&str>,
@@ -3217,6 +3313,35 @@ impl<'a> ManagementClient<'a> {
     /// Delete a workspace (`DELETE /workspaces/{id}`).
     pub async fn delete_workspace(&self, id: &str) -> Result<bool, OpenRouterError> {
         self.client.delete_workspace(id).await
+    }
+
+    /// List budgets for a workspace (`GET /workspaces/{id}/budgets`).
+    pub async fn list_workspace_budgets(
+        &self,
+        id: &str,
+    ) -> Result<workspaces::ListWorkspaceBudgetsResponse, OpenRouterError> {
+        self.client.list_workspace_budgets(id).await
+    }
+
+    /// Create or update a workspace budget (`PUT /workspaces/{id}/budgets/{interval}`).
+    pub async fn upsert_workspace_budget(
+        &self,
+        id: &str,
+        interval: &str,
+        request: &workspaces::UpsertWorkspaceBudgetRequest,
+    ) -> Result<workspaces::WorkspaceBudget, OpenRouterError> {
+        self.client
+            .upsert_workspace_budget(id, interval, request)
+            .await
+    }
+
+    /// Delete a workspace budget (`DELETE /workspaces/{id}/budgets/{interval}`).
+    pub async fn delete_workspace_budget(
+        &self,
+        id: &str,
+        interval: &str,
+    ) -> Result<bool, OpenRouterError> {
+        self.client.delete_workspace_budget(id, interval).await
     }
 
     /// Add workspace members (`POST /workspaces/{id}/members/add`).

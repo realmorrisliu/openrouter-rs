@@ -90,13 +90,30 @@ fn test_embedding_response_float_deserialization() {
             {"object":"embedding","embedding":[0.1,0.2,0.3],"index":0}
         ],
         "model": "openai/text-embedding-3-large",
-        "usage": {"prompt_tokens": 8, "total_tokens": 8, "cost": 0.00001}
+        "usage": {
+            "prompt_tokens": 8,
+            "total_tokens": 8,
+            "cost": 0.00001,
+            "cost_details": {
+                "upstream_inference_prompt_cost": 0.000006,
+                "upstream_inference_completions_cost": 0.0,
+                "upstream_inference_cost": null
+            }
+        }
     }"#;
 
     let response: EmbeddingResponse =
         serde_json::from_str(raw).expect("embedding response should deserialize");
     assert_eq!(response.object, "list");
     assert_eq!(response.data.len(), 1);
+    let cost_details = response
+        .usage
+        .as_ref()
+        .and_then(|usage| usage.cost_details.as_ref())
+        .expect("embedding cost details should deserialize");
+    assert_eq!(cost_details.upstream_inference_prompt_cost, 0.000006);
+    assert_eq!(cost_details.upstream_inference_completions_cost, 0.0);
+    assert_eq!(cost_details.upstream_inference_cost, None);
 
     match &response.data[0].embedding {
         EmbeddingVector::Float(values) => assert_eq!(values.len(), 3),

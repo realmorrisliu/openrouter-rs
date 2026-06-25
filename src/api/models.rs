@@ -9,7 +9,7 @@ use urlencoding::encode;
 use crate::{
     error::OpenRouterError,
     transport::{request as transport_request, response as transport_response},
-    types::{ApiResponse, ModelCategory, SupportedParameters},
+    types::{ApiResponse, Effort, ModelCategory, SupportedParameters},
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -44,6 +44,8 @@ pub struct Model {
     pub links: Option<ModelLinks>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub benchmarks: Option<ModelBenchmarks>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reasoning: Option<ModelReasoning>,
     #[serde(flatten)]
     pub extra: HashMap<String, Value>,
 }
@@ -127,6 +129,22 @@ pub struct ModelBenchmarks {
     pub artificial_analysis: Option<AABenchmarkEntry>,
     #[serde(default)]
     pub design_arena: Vec<DABenchmarkEntry>,
+    #[serde(flatten)]
+    pub extra: HashMap<String, Value>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct ModelReasoning {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default_effort: Option<Effort>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default_enabled: Option<bool>,
+    pub mandatory: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub supported_efforts: Option<Vec<Effort>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub supports_max_tokens: Option<bool>,
     #[serde(flatten)]
     pub extra: HashMap<String, Value>,
 }

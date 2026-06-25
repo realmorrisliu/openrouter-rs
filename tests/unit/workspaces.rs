@@ -8,8 +8,9 @@ use std::{
 
 use openrouter_rs::{
     api::workspaces::{
-        self, CreateWorkspaceRequest, UpdateWorkspaceRequest, Workspace, WorkspaceListResponse,
-        WorkspaceMembersAddResponse, WorkspaceMembersRemoveResponse, WorkspaceMembersRequest,
+        self, CreateWorkspaceRequest, UpdateWorkspaceRequest, UpsertWorkspaceBudgetRequest,
+        Workspace, WorkspaceBudget, WorkspaceListResponse, WorkspaceMembersAddResponse,
+        WorkspaceMembersRemoveResponse, WorkspaceMembersRequest,
     },
     types::{ApiResponse, PaginationOptions},
 };
@@ -299,6 +300,38 @@ fn test_workspace_list_and_member_response_deserialization() {
     assert_eq!(remove.removed_count, 2.0);
 }
 
+#[test]
+fn test_workspace_budget_response_deserialization() {
+    let raw = r#"{
+        "data": [{
+            "id": "770e8400-e29b-41d4-a716-446655440000",
+            "workspace_id": "550e8400-e29b-41d4-a716-446655440000",
+            "limit_usd": 100,
+            "reset_interval": "monthly",
+            "created_at": "2025-08-24T10:30:00Z",
+            "updated_at": "2025-08-24T15:45:00Z"
+        }]
+    }"#;
+
+    let parsed: workspaces::ListWorkspaceBudgetsResponse =
+        serde_json::from_str(raw).expect("workspace budget list should deserialize");
+    assert_eq!(parsed.data.len(), 1);
+    assert_eq!(parsed.data[0].limit_usd, 100.0);
+    assert_eq!(parsed.data[0].reset_interval.as_deref(), Some("monthly"));
+
+    let lifetime_raw = r#"{
+        "id": "770e8400-e29b-41d4-a716-446655440000",
+        "workspace_id": "550e8400-e29b-41d4-a716-446655440000",
+        "limit_usd": 1000,
+        "reset_interval": null,
+        "created_at": "2025-08-24T10:30:00Z",
+        "updated_at": "2025-08-24T15:45:00Z"
+    }"#;
+    let lifetime: WorkspaceBudget =
+        serde_json::from_str(lifetime_raw).expect("lifetime workspace budget should deserialize");
+    assert_eq!(lifetime.reset_interval, None);
+}
+
 #[tokio::test]
 async fn test_list_workspaces_path_pagination_and_auth_header() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
@@ -463,6 +496,82 @@ async fn test_delete_workspace_encodes_id_path() {
     assert_eq!(
         captured.request_line,
         "DELETE /api/v1/workspaces/team%2Fprod%201 HTTP/1.1"
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_list_workspace_budgets_encodes_id_path() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"data":[]}"#);
+
+    let budgets = workspaces::list_workspace_budgets(&base_url, "mgmt-key", "team/prod 1")
+        .await
+        .expect("list workspace budgets should succeed");
+    assert!(budgets.data.is_empty());
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/workspaces/team%2Fprod%201/budgets HTTP/1.1"
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_upsert_workspace_budget_encodes_path_and_body() {
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":{"id":"770e8400-e29b-41d4-a716-446655440000","workspace_id":"550e8400-e29b-41d4-a716-446655440000","limit_usd":100,"reset_interval":"monthly","created_at":"2025-08-24T10:30:00Z","updated_at":"2025-08-24T15:45:00Z"}}"#,
+    );
+    let request = UpsertWorkspaceBudgetRequest::builder()
+        .limit_usd(100.0)
+        .build()
+        .expect("budget request should build");
+
+    let budget = workspaces::upsert_workspace_budget(
+        &base_url,
+        "mgmt-key",
+        "team/prod 1",
+        "monthly",
+        &request,
+    )
+    .await
+    .expect("upsert workspace budget should succeed");
+    assert_eq!(budget.limit_usd, 100.0);
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "PUT /api/v1/workspaces/team%2Fprod%201/budgets/monthly HTTP/1.1"
+    );
+    let body: serde_json::Value =
+        serde_json::from_str(&captured.body_text).expect("body should be valid json");
+    assert_eq!(body["limit_usd"], 100.0);
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_delete_workspace_budget_encodes_path() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"deleted":true}"#);
+
+    let deleted =
+        workspaces::delete_workspace_budget(&base_url, "mgmt-key", "team/prod 1", "lifetime")
+            .await
+            .expect("delete workspace budget should succeed");
+    assert!(deleted);
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "DELETE /api/v1/workspaces/team%2Fprod%201/budgets/lifetime HTTP/1.1"
     );
 
     server.join().expect("server thread should finish");

@@ -241,6 +241,16 @@ pub struct EmbeddingPromptTokensDetails {
     pub video_tokens: Option<u32>,
 }
 
+/// Provider-level cost breakdown for embedding requests.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct EmbeddingCostDetails {
+    pub upstream_inference_completions_cost: f64,
+    pub upstream_inference_prompt_cost: f64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub upstream_inference_cost: Option<f64>,
+}
+
 /// Token/cost usage for embedding request.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
@@ -251,6 +261,8 @@ pub struct EmbeddingUsage {
     pub prompt_tokens_details: Option<EmbeddingPromptTokensDetails>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cost: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cost_details: Option<EmbeddingCostDetails>,
 }
 
 /// Response body for `POST /embeddings`.

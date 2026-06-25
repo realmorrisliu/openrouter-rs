@@ -1,6 +1,9 @@
+use std::collections::HashMap;
+
 use derive_builder::Builder;
 use reqwest::Client as HttpClient;
 use serde::{Deserialize, Serialize, Serializer, ser::SerializeMap};
+use serde_json::Value;
 use urlencoding::encode;
 
 use crate::{
@@ -233,6 +236,43 @@ pub struct WorkspaceMembersRemoveResponse {
     pub removed_count: f64,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct WorkspaceBudget {
+    pub id: String,
+    pub workspace_id: String,
+    pub limit_usd: f64,
+    pub reset_interval: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+    #[serde(flatten)]
+    pub extra: HashMap<String, Value>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct ListWorkspaceBudgetsResponse {
+    pub data: Vec<WorkspaceBudget>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Builder)]
+#[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
+pub struct UpsertWorkspaceBudgetRequest {
+    pub limit_usd: f64,
+}
+
+impl UpsertWorkspaceBudgetRequest {
+    pub fn builder() -> UpsertWorkspaceBudgetRequestBuilder {
+        UpsertWorkspaceBudgetRequestBuilder::default()
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct DeleteWorkspaceBudgetResponse {
+    deleted: bool,
+}
+
 pub async fn list_workspaces(
     base_url: &str,
     management_key: &str,
@@ -438,6 +478,126 @@ pub(crate) async fn delete_workspace_with_client(
     if response.status().is_success() {
         let payload: DeleteWorkspaceResponse =
             transport_response::parse_json_response(response, "workspace deletion").await?;
+        Ok(payload.deleted)
+    } else {
+        transport_response::handle_error(response).await?;
+        unreachable!()
+    }
+}
+
+pub async fn list_workspace_budgets(
+    base_url: &str,
+    management_key: &str,
+    id: &str,
+) -> Result<ListWorkspaceBudgetsResponse, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    list_workspace_budgets_with_client(&http_client, base_url, management_key, id).await
+}
+
+pub(crate) async fn list_workspace_budgets_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    management_key: &str,
+    id: &str,
+) -> Result<ListWorkspaceBudgetsResponse, OpenRouterError> {
+    let url = format!("{base_url}/workspaces/{}/budgets", encode(id));
+    let response = transport_request::with_bearer_auth(
+        transport_request::get(http_client, &url),
+        management_key,
+    )
+    .send()
+    .await?;
+
+    if response.status().is_success() {
+        transport_response::parse_json_response(response, "workspace budget list").await
+    } else {
+        transport_response::handle_error(response).await?;
+        unreachable!()
+    }
+}
+
+pub async fn upsert_workspace_budget(
+    base_url: &str,
+    management_key: &str,
+    id: &str,
+    interval: &str,
+    request: &UpsertWorkspaceBudgetRequest,
+) -> Result<WorkspaceBudget, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    upsert_workspace_budget_with_client(
+        &http_client,
+        base_url,
+        management_key,
+        id,
+        interval,
+        request,
+    )
+    .await
+}
+
+pub(crate) async fn upsert_workspace_budget_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    management_key: &str,
+    id: &str,
+    interval: &str,
+    request: &UpsertWorkspaceBudgetRequest,
+) -> Result<WorkspaceBudget, OpenRouterError> {
+    let url = format!(
+        "{base_url}/workspaces/{}/budgets/{}",
+        encode(id),
+        encode(interval)
+    );
+    let response = transport_request::with_bearer_auth(
+        transport_request::put(http_client, &url),
+        management_key,
+    )
+    .json(request)
+    .send()
+    .await?;
+
+    if response.status().is_success() {
+        let payload: ApiResponse<WorkspaceBudget> =
+            transport_response::parse_json_response(response, "workspace budget upsert").await?;
+        Ok(payload.data)
+    } else {
+        transport_response::handle_error(response).await?;
+        unreachable!()
+    }
+}
+
+pub async fn delete_workspace_budget(
+    base_url: &str,
+    management_key: &str,
+    id: &str,
+    interval: &str,
+) -> Result<bool, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    delete_workspace_budget_with_client(&http_client, base_url, management_key, id, interval).await
+}
+
+pub(crate) async fn delete_workspace_budget_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    management_key: &str,
+    id: &str,
+    interval: &str,
+) -> Result<bool, OpenRouterError> {
+    let url = format!(
+        "{base_url}/workspaces/{}/budgets/{}",
+        encode(id),
+        encode(interval)
+    );
+    let response = transport_request::with_bearer_auth(
+        transport_request::delete(http_client, &url),
+        management_key,
+    )
+    .send()
+    .await?;
+
+    if response.status().is_success() {
+        let payload: DeleteWorkspaceBudgetResponse =
+            transport_response::parse_json_response(response, "workspace budget deletion").await?;
         Ok(payload.deleted)
     } else {
         transport_response::handle_error(response).await?;
