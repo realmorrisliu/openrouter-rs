@@ -565,6 +565,10 @@ pub struct ChatCompletionRequest {
 
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
+    cache_control: Option<CacheControl>,
+
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     trace: Option<TraceOptions>,
 
     #[builder(setter(strip_option), default)]

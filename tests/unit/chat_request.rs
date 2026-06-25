@@ -174,6 +174,7 @@ fn test_chat_request_extended_control_fields_serialize() {
         .messages(vec![Message::new(Role::User, "ping")])
         .user("user-123")
         .session_id("session-abc")
+        .cache_control(CacheControl::ephemeral_with_ttl("1h"))
         .metadata([("env", "test"), ("feature", "chat-parity")])
         .trace(trace)
         .stop(StopSequence::Multiple(vec![
@@ -187,6 +188,8 @@ fn test_chat_request_extended_control_fields_serialize() {
 
     assert_eq!(json["user"], "user-123");
     assert_eq!(json["session_id"], "session-abc");
+    assert_eq!(json["cache_control"]["type"], "ephemeral");
+    assert_eq!(json["cache_control"]["ttl"], "1h");
     assert_eq!(json["metadata"]["env"], "test");
     assert_eq!(json["metadata"]["feature"], "chat-parity");
     assert_eq!(json["trace"]["trace_id"], "trace-1");

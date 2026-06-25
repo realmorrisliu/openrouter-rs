@@ -8,7 +8,7 @@ use std::{
 
 use futures_util::StreamExt;
 use openrouter_rs::api::{
-    chat::{Plugin, TraceOptions},
+    chat::{CacheControl, Plugin, TraceOptions},
     responses::{
         ResponsesRequest, ResponsesResponse, ResponsesStreamEvent, create_response, stream_response,
     },
@@ -146,6 +146,7 @@ fn test_responses_request_serialization() {
         .truncation("auto")
         .user("user-123")
         .session_id("session-abc")
+        .cache_control(CacheControl::ephemeral())
         .trace({
             let mut trace = TraceOptions::default();
             trace.trace_id = Some("trace-1".to_string());
@@ -165,6 +166,8 @@ fn test_responses_request_serialization() {
     assert_eq!(value["max_output_tokens"], 256);
     assert_eq!(value["modalities"][1], "image");
     assert_eq!(value["plugins"][0]["id"], "web");
+    assert_eq!(value["cache_control"]["type"], "ephemeral");
+    assert!(value["cache_control"].get("ttl").is_none());
     assert_eq!(value["trace"]["trace_id"], "trace-1");
     assert_eq!(value["trace"]["span_name"], "responses.unit");
 }
