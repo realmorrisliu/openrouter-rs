@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.11.0] - 2026-06-30
+## [0.11.0] - 2026-06-29
 
 ### Added
 - Added typed SDK support for image generation (`POST /images`, `GET /images/models`, and `GET /images/models/{author}/{slug}/endpoints`) via `api::images` and the canonical `client.images()` surface.
