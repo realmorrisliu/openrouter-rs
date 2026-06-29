@@ -10,7 +10,8 @@ use openrouter_rs::{
     api::discovery::{
         self, ActivityItem, AppRankingsParams, AppRankingsResponse, BenchmarksAAResponse,
         BenchmarksDAResponse, BigNumber, ModelsCountData, Provider, PublicEndpoint,
-        RankingsDailyResponse, UnifiedBenchmarkItem, UnifiedBenchmarksParams, UserModel,
+        RankingsDailyResponse, TaskClassificationsResponse, UnifiedBenchmarkItem,
+        UnifiedBenchmarksParams, UserModel,
     },
     types::{ApiResponse, Effort},
 };
@@ -289,6 +290,46 @@ fn test_app_rankings_response_deserialization() {
     assert_eq!(parsed.data[0].app_name, "Cline");
     assert_eq!(parsed.data[0].total_tokens, "12345678");
     assert_eq!(parsed.meta.start_date, "2026-04-12");
+}
+
+#[test]
+fn test_task_classifications_response_deserialization() {
+    let raw = r#"{
+        "data": {
+            "window_days": 7,
+            "as_of": "2026-06-17",
+            "classifications": [{
+                "tag": "code:general_impl",
+                "display_name": "Code Generation",
+                "macro_category": "code",
+                "usage_share": 0.23,
+                "token_share": 0.31,
+                "category_usage_share": 0.51,
+                "category_token_share": 0.48,
+                "models": [{
+                    "id": "openai/gpt-4.1-mini",
+                    "tag_usage_share": 0.55,
+                    "tag_token_share": 0.75
+                }]
+            }],
+            "macro_categories": [{
+                "key": "code",
+                "label": "Code",
+                "usage_share": 0.45,
+                "token_share": 0.52
+            }]
+        }
+    }"#;
+
+    let parsed: TaskClassificationsResponse =
+        serde_json::from_str(raw).expect("task classifications should deserialize");
+    assert_eq!(parsed.data.window_days, 7);
+    assert_eq!(parsed.data.classifications[0].tag, "code:general_impl");
+    assert_eq!(
+        parsed.data.classifications[0].models[0].id,
+        "openai/gpt-4.1-mini"
+    );
+    assert_eq!(parsed.data.macro_categories[0].key, "code");
 }
 
 #[test]
@@ -637,6 +678,35 @@ async fn test_get_app_rankings_path_query_and_auth_header() {
 }
 
 #[tokio::test]
+async fn test_get_task_classifications_path_query_and_auth_header() {
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":{"window_days":7,"as_of":"2026-06-17","classifications":[],"macro_categories":[]}}"#,
+    );
+
+    let response = discovery::get_task_classifications(&base_url, "api-key", Some("7d"))
+        .await
+        .expect("task classifications request should succeed");
+    assert_eq!(response.data.window_days, 7);
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/classifications/task?window=7d HTTP/1.1"
+    );
+    let request_lower = captured.request_text.to_ascii_lowercase();
+    assert!(
+        request_lower.contains("authorization: bearer api-key")
+            || request_lower.contains("authorization:bearer api-key"),
+        "authorization header should include API key, request:\n{}",
+        captured.request_text
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
 async fn test_get_benchmarks_path_queries_and_auth_header() {
     let (base_url, rx, server) = spawn_json_server(
         r#"{"data":[{"source":"artificial-analysis","model_permaslug":"openai/gpt-4o","display_name":"GPT-4o","intelligence_index":71.2,"coding_index":65.8,"agentic_index":58.3,"pricing":{"prompt":"0.0000025","completion":"0.00001"}}],"meta":{"as_of":"2026-06-03T12:00:00Z","version":"v1","source":"artificial-analysis","source_url":"https://artificialanalysis.ai","citation":"Source","model_count":1,"task_type":"coding"}}"#,
@@ -650,7 +720,7 @@ async fn test_get_benchmarks_path_queries_and_auth_header() {
     let aa = discovery::get_benchmarks(&base_url, "api-key", &params)
         .await
         .expect("benchmark request should succeed");
-    assert_eq!(aa.meta.source, "artificial-analysis");
+    assert_eq!(aa.meta.source.as_deref(), Some("artificial-analysis"));
     assert!(matches!(
         &aa.data[0],
         UnifiedBenchmarkItem::ArtificialAnalysis(item) if item.display_name == "GPT-4o"
@@ -691,6 +761,27 @@ async fn test_get_benchmarks_path_queries_and_auth_header() {
     server
         .join()
         .expect("Design Arena server thread should finish");
+}
+
+#[tokio::test]
+async fn test_get_benchmarks_all_sources_omits_source_query() {
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":[],"meta":{"as_of":"2026-06-03T12:00:00Z","version":"v1","source":null,"source_url":null,"citation":null,"model_count":0,"task_type":null}}"#,
+    );
+    let params = UnifiedBenchmarksParams::default();
+    let benchmarks = discovery::get_benchmarks(&base_url, "api-key", &params)
+        .await
+        .expect("benchmark request should succeed");
+    assert!(benchmarks.data.is_empty());
+    assert_eq!(benchmarks.meta.source, None);
+    assert_eq!(benchmarks.meta.citation, None);
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(captured.request_line, "GET /api/v1/benchmarks HTTP/1.1");
+
+    server.join().expect("server thread should finish");
 }
 
 #[tokio::test]

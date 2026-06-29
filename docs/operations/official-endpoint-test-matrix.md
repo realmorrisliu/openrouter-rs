@@ -1,19 +1,20 @@
 # Official Endpoint Test Matrix
 
-Snapshot date: 2026-06-22
+Snapshot date: 2026-06-29
 Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)  
 Tracked baseline: `specs/openrouter/openapi-baseline.json`  
 Weekly drift workflow: `.github/workflows/openapi-drift.yml`
 
 ## Coverage Summary
 
-- Official OpenAPI endpoints: `83` method+path entries.
-- SDK implementation coverage (`src/api` + domain client): `83 / 83` (`100.0%`).
-- Live integration coverage (`tests/integration`): `24 / 83` endpoints currently exercised.
+- Official OpenAPI endpoints: `87` method+path entries.
+- SDK implementation coverage (`src/api` + domain client): `87 / 87` (`100.0%`).
+- Live integration coverage (`tests/integration`): `24 / 87` endpoints currently exercised.
   - Covered live now: `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `POST /rerank`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`, `GET /organization/members`
 
 Drift review note:
 
+- Upstream added task classification discovery and image generation endpoints. The SDK now exposes task classifications through `client.models().get_task_classifications(...)` and images through `client.images().create(...)`, `stream(...)`, `list_models()`, and `list_model_endpoints(...)`. The unified benchmarks endpoint now allows an omitted `source`, and nullable benchmark metadata is reflected in the typed response.
 - Upstream replaced the two per-source benchmark dataset endpoints with unified `GET /benchmarks` and added workspace budget management. The SDK now exposes `client.models().get_benchmarks(...)` and `client.management().list_workspace_budgets(...)` / `upsert_workspace_budget(...)` / `delete_workspace_budget(...)`. The old per-source benchmark methods remain deprecated compatibility wrappers.
 - Upstream added model reasoning metadata, analytics warnings, chat server-tool usage metadata, embedding cost details, and Anthropic file document sources. The SDK now exposes typed fields/helpers for these stable surfaces while preserving flexible `Value` and `HashMap` escape hatches for high-churn payloads.
 - Official audio speech routing is now `POST /audio/speech`. The SDK keeps the canonical `client.audio().speech().create(...)` surface and retries legacy `POST /tts` only as a compatibility fallback.
@@ -40,7 +41,7 @@ Drift review note:
 Legend:
 
 - `SDK`: endpoint implemented in `openrouter-rs`.
-- Canonical surface note: docs and examples prefer domain clients (`chat()`, `responses()`, `messages()`, `rerank()`, `audio().speech()`, `audio().transcriptions()`, `videos()`, `files()`, `models()`, `management()`). Some rows still mention retained flat `OpenRouterClient::*` wrappers when they exist.
+- Canonical surface note: docs and examples prefer domain clients (`chat()`, `responses()`, `messages()`, `rerank()`, `audio().speech()`, `audio().transcriptions()`, `images()`, `videos()`, `files()`, `models()`, `management()`). Some rows still mention retained flat `OpenRouterClient::*` wrappers when they exist.
 - `Unit`: unit coverage depth.
   - `Path` = test asserts HTTP method/path (often with header/body checks).
   - `Contract` = serde/request-shape/parser coverage only.
@@ -64,6 +65,7 @@ Legend:
 | `DELETE /byok/{id}` | `client.management().delete_byok_key(...)` | Yes | Path | No | P1 |
 | `GET /benchmarks` | `client.models().get_benchmarks(...)` | Yes | Path | No | P2 |
 | `POST /chat/completions` | `client.chat().create(...)` / `client.chat().stream(...)` | Yes | Contract | Yes | Keep |
+| `GET /classifications/task` | `client.models().get_task_classifications(...)` | Yes | Path | No | P2 |
 | `GET /credits` | `client.get_credits()` / `client.management().get_credits()` | Yes | Path | No | P2 |
 | `POST /credits/coinbase` | `client.create_coinbase_charge(...)` / `client.management().create_coinbase_charge(...)` | Yes | Path | No | P2 |
 | `GET /datasets/app-rankings` | `client.models().get_app_rankings(...)` | Yes | Path | No | P2 |
@@ -91,6 +93,9 @@ Legend:
 | `POST /guardrails/{id}/assignments/members/remove` | `client.management().delete_guardrail_member_assignments(...)` | Yes | Path | No | P1 |
 | `GET /guardrails/assignments/keys` | `client.management().list_key_assignments(...)` | Yes | Path | No | P1 |
 | `GET /guardrails/assignments/members` | `client.management().list_member_assignments(...)` | Yes | Path | No | P1 |
+| `POST /images` | `client.images().create(...)` / `client.images().stream(...)` | Yes | Path | No | P2 |
+| `GET /images/models` | `client.images().list_models()` | Yes | Path | No | P2 |
+| `GET /images/models/{author}/{slug}/endpoints` | `client.images().list_model_endpoints(...)` | Yes | Path | No | P2 |
 | `GET /key` | `client.get_current_api_key_info()` / `client.management().get_current_api_key_info()` | Yes | Contract | Yes | Keep |
 | `GET /keys` | `client.management().list_api_keys(...)` / `client.management().list_api_keys_in_workspace(...)` | Yes | Path | Yes | Keep |
 | `POST /keys` | `client.create_api_key(...)` / `client.create_api_key_in_workspace(...)` / `client.management().create_api_key(...)` / `client.management().create_api_key_in_workspace(...)` | Yes | Path | Yes | Keep |
@@ -153,7 +158,7 @@ The endpoints below are intentionally kept as legacy compatibility and are not p
 2. P1: add management-key live smoke coverage for `/activity` and `/analytics*`.
 3. P1: add controlled file lifecycle live coverage for `/files*` once upload/download fixtures and cleanup guarantees are defined.
 4. P2: keep `/credits`, `/credits/coinbase`, `/generation`, `/generation/content`, `/datasets*`, `/benchmarks`, `/model/{author}/{slug}`, `/presets*`, and `/auth/keys*` as controlled scenarios (manual or mocked contract-first) due rate limits, cost, or side effects.
-5. P1/P2: add low-cost live or smoke coverage for `/audio/speech`, `/audio/transcriptions`, and `/videos*` once stable fixtures and cost controls are defined.
+5. P1/P2: add low-cost live or smoke coverage for `/audio/speech`, `/audio/transcriptions`, `/images*`, and `/videos*` once stable fixtures and cost controls are defined.
 6. P1: add management-key live validation for `/workspaces*`, plus targeted workspace-scoped read/write coverage for `/keys` and `/guardrails`.
 7. P1: add management-key live validation for `/byok*` and `/observability/destinations*` once safe test credentials and destination fixtures are defined.
 

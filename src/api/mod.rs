@@ -10,6 +10,7 @@
 //! - `client.messages()` -> [`messages`]
 //! - `client.rerank()` -> [`rerank`]
 //! - `client.audio().speech()` / `client.audio().transcriptions()` -> [`audio`]
+//! - `client.images()` -> [`images`]
 //! - `client.videos()` -> [`videos`]
 //! - `client.models()` -> [`models`], [`embeddings`], [`discovery`]
 //! - `client.management()` -> [`api_keys`], [`auth`], [`byok`], [`credits`], [`generation`], [`guardrails`], [`observability`], [`organization`], [`presets`], [`workspaces`]
@@ -22,6 +23,8 @@
 //! - Anthropic-compatible Messages API
 //! - rerank
 //! - audio speech generation and transcription
+//! - image generation and streaming
+//! - image generation and streaming
 //! - video generation and polling
 //! - model discovery, providers, user model filters, model counts, rankings, and ZDR endpoints
 //! - embeddings
@@ -129,6 +132,7 @@ pub mod errors;
 pub mod files;
 pub mod generation;
 pub mod guardrails;
+pub mod images;
 pub mod messages;
 pub mod models;
 pub mod observability;

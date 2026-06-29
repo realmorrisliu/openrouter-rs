@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added typed SDK support for image generation (`POST /images`, `GET /images/models`, and `GET /images/models/{author}/{slug}/endpoints`) via `api::images` and the canonical `client.images()` surface.
+- Added typed SDK support for task classification discovery via `GET /classifications/task` and `client.models().get_task_classifications(...)`.
 - Added top-level `cache_control` support to chat completion and Responses API request builders for automatic prompt caching.
 - Added typed SDK support for the Files API (`GET|POST /files`, `GET|DELETE /files/{file_id}`, and `GET /files/{file_id}/content`) via `api::files` and the canonical `client.files()` surface.
 - Added typed management-key SDK support for analytics metadata and query endpoints (`GET /analytics/meta`, `POST /analytics/query`) via `api::analytics` and `client.management().get_analytics_meta(...)` / `query_analytics(...)`.
@@ -22,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added typed `GenerationData::preset_id` support on `GET /generation` metadata responses.
 
 ### Changed
+- Accepted the 2026-06-29 OpenAPI drift review, including image generation endpoints, task classification discovery, optional unified benchmark source filters, nullable benchmark citation metadata, and Responses debug options, restoring the repository snapshot to `87 / 87` official OpenAPI endpoint coverage.
 - Accepted the 2026-06-22 OpenAPI drift review, including unified benchmarks, workspace budget management, model reasoning metadata, analytics warnings, server-tool usage metadata, embedding cost details, and Anthropic file document helpers, restoring the repository snapshot to `83 / 83` official OpenAPI endpoint coverage.
 - Deprecated the legacy `get_benchmarks_artificial_analysis(...)` and `get_benchmarks_design_arena(...)` compatibility methods in favor of `get_benchmarks(...)`.
 - Accepted the 2026-06-16 OpenAPI drift review, including analytics, files, app rankings, benchmark datasets, singular model lookup, preset read/version endpoints, model filter/schema refreshes, rerank multimodal documents, and video input reference refreshes, restoring the repository snapshot to `81 / 81` official OpenAPI endpoint coverage.

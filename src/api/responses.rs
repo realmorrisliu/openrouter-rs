@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::{
-    api::chat::{CacheControl, Plugin, TraceOptions},
+    api::chat::{CacheControl, DebugOptions, Plugin, TraceOptions},
     error::OpenRouterError,
     strip_option_map_setter, strip_option_vec_setter,
     transport::{
@@ -173,6 +173,10 @@ pub struct ResponsesRequest {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     trace: Option<TraceOptions>,
+
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    debug: Option<DebugOptions>,
 }
 
 impl ResponsesRequestBuilder {

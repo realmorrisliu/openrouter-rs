@@ -6,8 +6,8 @@ use crate::api::legacy::completion;
 use crate::{
     api::{
         analytics, api_keys, audio, auth, byok, chat, credits, discovery, embeddings, files,
-        generation, guardrails, messages, models, observability, organization, presets, rerank,
-        responses, videos, workspaces,
+        generation, guardrails, images, messages, models, observability, organization, presets,
+        rerank, responses, videos, workspaces,
     },
     error::OpenRouterError,
     strip_option_vec_setter,
@@ -139,6 +139,11 @@ impl OpenRouterClient {
     /// Domain client for audio operations.
     pub fn audio(&self) -> AudioClient<'_> {
         AudioClient { client: self }
+    }
+
+    /// Domain client for image generation operations.
+    pub fn images(&self) -> ImagesClient<'_> {
+        ImagesClient { client: self }
     }
 
     /// Domain client for text-to-speech operations.
@@ -1312,6 +1317,80 @@ impl OpenRouterClient {
         self.create_speech(request).await
     }
 
+    /// Submit an image generation request.
+    pub async fn create_image_generation(
+        &self,
+        request: &images::ImageGenerationRequest,
+    ) -> Result<images::ImageGenerationResponse, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            images::create_image_generation_with_client(
+                self.http_client(),
+                &self.base_url,
+                api_key,
+                &self.x_title,
+                &self.http_referer,
+                &self.app_categories,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Stream image generation events.
+    pub async fn stream_image_generation(
+        &self,
+        request: &images::ImageGenerationRequest,
+    ) -> Result<
+        BoxStream<'static, Result<images::ImageStreamingResponse, OpenRouterError>>,
+        OpenRouterError,
+    > {
+        if let Some(api_key) = &self.api_key {
+            images::stream_image_generation_with_client(
+                self.http_client(),
+                &self.base_url,
+                api_key,
+                &self.x_title,
+                &self.http_referer,
+                &self.app_categories,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// List all available image generation models.
+    pub async fn list_image_models(&self) -> Result<Vec<images::ImageModel>, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            images::list_image_models_with_client(self.http_client(), &self.base_url, api_key).await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// List provider endpoints for one image generation model.
+    pub async fn list_image_model_endpoints(
+        &self,
+        author: &str,
+        slug: &str,
+    ) -> Result<images::ImageModelEndpointsResponse, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            images::list_image_model_endpoints_with_client(
+                self.http_client(),
+                &self.base_url,
+                api_key,
+                author,
+                slug,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
     /// Submit a video generation request.
     pub async fn create_video_generation(
         &self,
@@ -1876,6 +1955,26 @@ impl OpenRouterClient {
                 &self.base_url,
                 api_key,
                 params,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Return task classification market-share data.
+    ///
+    /// Equivalent to `GET /classifications/task`.
+    pub async fn get_task_classifications(
+        &self,
+        window: Option<&str>,
+    ) -> Result<discovery::TaskClassificationsResponse, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            discovery::get_task_classifications_with_client(
+                self.http_client(),
+                &self.base_url,
+                api_key,
+                window,
             )
             .await
         } else {
@@ -2603,6 +2702,47 @@ impl<'a> TranscriptionsClient<'a> {
     }
 }
 
+/// Domain client for image generation endpoints.
+#[derive(Debug, Clone, Copy)]
+pub struct ImagesClient<'a> {
+    client: &'a OpenRouterClient,
+}
+
+impl<'a> ImagesClient<'a> {
+    /// Submit an image generation request (`POST /images`).
+    pub async fn create(
+        &self,
+        request: &images::ImageGenerationRequest,
+    ) -> Result<images::ImageGenerationResponse, OpenRouterError> {
+        self.client.create_image_generation(request).await
+    }
+
+    /// Stream image generation events (`POST /images`, `stream=true`).
+    pub async fn stream(
+        &self,
+        request: &images::ImageGenerationRequest,
+    ) -> Result<
+        BoxStream<'static, Result<images::ImageStreamingResponse, OpenRouterError>>,
+        OpenRouterError,
+    > {
+        self.client.stream_image_generation(request).await
+    }
+
+    /// List available image generation models (`GET /images/models`).
+    pub async fn list_models(&self) -> Result<Vec<images::ImageModel>, OpenRouterError> {
+        self.client.list_image_models().await
+    }
+
+    /// List provider endpoints for one image generation model.
+    pub async fn list_model_endpoints(
+        &self,
+        author: &str,
+        slug: &str,
+    ) -> Result<images::ImageModelEndpointsResponse, OpenRouterError> {
+        self.client.list_image_model_endpoints(author, slug).await
+    }
+}
+
 /// Domain client for video generation endpoints.
 #[derive(Debug, Clone, Copy)]
 pub struct VideosClient<'a> {
@@ -2779,6 +2919,14 @@ impl<'a> ModelsClient<'a> {
         params: Option<&discovery::AppRankingsParams>,
     ) -> Result<discovery::AppRankingsResponse, OpenRouterError> {
         self.client.get_app_rankings(params).await
+    }
+
+    /// Return task classification market-share data (`GET /classifications/task`).
+    pub async fn get_task_classifications(
+        &self,
+        window: Option<&str>,
+    ) -> Result<discovery::TaskClassificationsResponse, OpenRouterError> {
+        self.client.get_task_classifications(window).await
     }
 
     /// Return benchmark rows from a selected source (`GET /benchmarks`).
