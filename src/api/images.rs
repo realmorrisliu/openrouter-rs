@@ -468,7 +468,7 @@ fn buffered_image_response_stream(
 ) -> BoxStream<'static, Result<ImageStreamingResponse, OpenRouterError>> {
     let created = response.created;
     let data = response.data;
-    let usage = response.usage;
+    let mut usage = response.usage;
     let response_extra = response.extra;
 
     stream::iter(data.into_iter().map(move |image| {
@@ -478,7 +478,7 @@ fn buffered_image_response_stream(
                 b64_json: image.b64_json,
                 created,
                 media_type: image.media_type,
-                usage: usage.clone(),
+                usage: usage.take(),
                 extra: image.extra,
             }),
             extra: response_extra.clone(),

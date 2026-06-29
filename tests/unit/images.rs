@@ -355,6 +355,9 @@ async fn test_stream_image_generation_handles_buffered_json_fallback() {
         "data": [{
             "b64_json": "aW1hZ2U=",
             "media_type": "image/png"
+        }, {
+            "b64_json": "aW1hZ2Uy",
+            "media_type": "image/webp"
         }],
         "usage": {
             "prompt_tokens": 0,
@@ -387,6 +390,22 @@ async fn test_stream_image_generation_handles_buffered_json_fallback() {
             assert_eq!(
                 event.usage.expect("usage should be present").cost,
                 Some(0.04)
+            );
+        }
+        other => panic!("expected completed image event, got {other:?}"),
+    }
+    let event = stream
+        .next()
+        .await
+        .expect("buffered response should yield each image")
+        .expect("event should deserialize");
+    match event.data {
+        ImageStreamEvent::Completed(event) => {
+            assert_eq!(event.b64_json, "aW1hZ2Uy");
+            assert_eq!(event.media_type.as_deref(), Some("image/webp"));
+            assert!(
+                event.usage.is_none(),
+                "aggregate usage should only be emitted once"
             );
         }
         other => panic!("expected completed image event, got {other:?}"),
