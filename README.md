@@ -39,7 +39,7 @@ The current repo snapshot implements `87 / 87` official OpenAPI method/path entr
 
 ```toml
 [dependencies]
-openrouter-rs = "0.10.0"
+openrouter-rs = "0.11.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -47,7 +47,7 @@ Legacy text completions are opt-in:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.10.0", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.11.0", features = ["legacy-completions"] }
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -332,10 +332,16 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 ### Unreleased
 
-- Added typed SDK coverage for images, task classifications, files, analytics, app rankings, unified benchmarks, singular model lookup, preset listing/readback/versioning, workspace budgets, extended model filters, multimodal rerank documents, and richer video input references.
+- No unreleased changes.
+
+### Version 0.11.0 *(Latest)*
+
+- Added typed SDK coverage for image generation, files, analytics, app rankings, task classifications, unified benchmarks, singular model lookup, rankings-daily, preset listing/readback/versioning, workspace budgets, and expanded model filters.
+- Added automatic prompt caching request support through top-level `cache_control` builders for chat completions and Responses API requests.
+- Refreshed multimodal and metadata schemas, including rerank image-only document echoes, nullable model/generation metadata, Responses debug options, and Anthropic Messages system-role helpers.
 - Accepted OpenAPI drift through the 2026-06-29 review and restored the tracked endpoint snapshot to `87 / 87`.
 
-### Version 0.10.0 *(Latest)*
+### Version 0.10.0
 
 - Marked high-churn public SDK request, response, metadata, usage, pricing, discovery, streaming, and upstream taxonomy types as `#[non_exhaustive]`; use builders, constructors, helpers, serde deserialization, or wildcard enum arms when migrating from `0.9.x`.
 - Added typed SDK coverage for audio transcriptions, BYOK provider credentials, observability destinations, multimodal embedding media parts, experimental response metadata, and model/generation metadata refreshes.
