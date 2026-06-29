@@ -300,6 +300,64 @@ pub struct AppRankingsResponse {
     pub meta: RankingsDailyMeta,
 }
 
+/// Top model share for one task classification.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct TaskClassificationModel {
+    pub id: String,
+    pub tag_usage_share: f64,
+    pub tag_token_share: f64,
+    #[serde(flatten)]
+    pub extra: HashMap<String, serde_json::Value>,
+}
+
+/// One task classification row returned by `GET /classifications/task`.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct TaskClassificationItem {
+    pub tag: String,
+    pub display_name: String,
+    pub macro_category: String,
+    pub usage_share: f64,
+    pub token_share: f64,
+    pub category_usage_share: f64,
+    pub category_token_share: f64,
+    pub models: Vec<TaskClassificationModel>,
+    #[serde(flatten)]
+    pub extra: HashMap<String, serde_json::Value>,
+}
+
+/// Aggregate market-share data for one task macro-category.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct TaskClassificationMacroCategory {
+    pub key: String,
+    pub label: String,
+    pub usage_share: f64,
+    pub token_share: f64,
+    #[serde(flatten)]
+    pub extra: HashMap<String, serde_json::Value>,
+}
+
+/// Data payload returned by `GET /classifications/task`.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct TaskClassificationsData {
+    pub window_days: u64,
+    pub as_of: String,
+    pub classifications: Vec<TaskClassificationItem>,
+    pub macro_categories: Vec<TaskClassificationMacroCategory>,
+    #[serde(flatten)]
+    pub extra: HashMap<String, serde_json::Value>,
+}
+
+/// Task classification response returned by `GET /classifications/task`.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct TaskClassificationsResponse {
+    pub data: TaskClassificationsData,
+}
+
 /// OpenRouter benchmark pricing payload.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
@@ -412,12 +470,13 @@ pub struct BenchmarksDAResponse {
 }
 
 /// Query parameters for the unified benchmarks endpoint.
-#[derive(Serialize, Deserialize, Debug, Clone, Builder)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
 pub struct UnifiedBenchmarksParams {
-    #[builder(setter(into))]
-    pub source: String,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
     #[builder(setter(into, strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub task_type: Option<String>,
@@ -439,7 +498,7 @@ impl UnifiedBenchmarksParams {
 
     pub fn artificial_analysis() -> Self {
         Self {
-            source: "artificial-analysis".to_string(),
+            source: Some("artificial-analysis".to_string()),
             task_type: None,
             arena: None,
             category: None,
@@ -449,7 +508,7 @@ impl UnifiedBenchmarksParams {
 
     pub fn design_arena() -> Self {
         Self {
-            source: "design-arena".to_string(),
+            source: Some("design-arena".to_string()),
             task_type: None,
             arena: None,
             category: None,
@@ -507,9 +566,9 @@ pub enum UnifiedBenchmarkItem {
 pub struct UnifiedBenchmarksMeta {
     pub as_of: String,
     pub version: String,
-    pub source: String,
-    pub source_url: String,
-    pub citation: String,
+    pub source: Option<String>,
+    pub source_url: Option<String>,
+    pub citation: Option<String>,
     pub model_count: u64,
     pub task_type: Option<String>,
     #[serde(flatten)]
@@ -687,6 +746,38 @@ pub(crate) async fn get_app_rankings_with_client(
 
     if response.status().is_success() {
         transport_response::parse_json_response(response, "app rankings").await
+    } else {
+        transport_response::handle_error(response).await?;
+        unreachable!()
+    }
+}
+
+/// Return task classification market-share data (`GET /classifications/task`).
+pub async fn get_task_classifications(
+    base_url: &str,
+    api_key: &str,
+    window: Option<&str>,
+) -> Result<TaskClassificationsResponse, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    get_task_classifications_with_client(&http_client, base_url, api_key, window).await
+}
+
+pub(crate) async fn get_task_classifications_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    window: Option<&str>,
+) -> Result<TaskClassificationsResponse, OpenRouterError> {
+    let url = format!("{base_url}/classifications/task");
+    let req =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
+    let response = match window {
+        Some(window) => req.query(&[("window", window)]).send().await?,
+        None => req.send().await?,
+    };
+
+    if response.status().is_success() {
+        transport_response::parse_json_response(response, "task classifications").await
     } else {
         transport_response::handle_error(response).await?;
         unreachable!()

@@ -1,13 +1,23 @@
 {
   "components": {
     "parameters": {
+      "AppCategories": {
+        "description": "Comma-separated list of app categories (e.g. \"cli-agent,cloud-agent\"). Used for marketplace rankings.\n",
+        "in": "header",
+        "name": "X-OpenRouter-Categories",
+        "schema": {
+          "type": "string"
+        },
+        "x-speakeasy-name-override": "appCategories"
+      },
       "AppDisplayName": {
         "description": "The app display name allows you to customize how your app appears in OpenRouter's dashboard.\n",
         "in": "header",
-        "name": "X-Title",
+        "name": "X-OpenRouter-Title",
         "schema": {
           "type": "string"
-        }
+        },
+        "x-speakeasy-name-override": "appTitle"
       },
       "AppIdentifier": {
         "description": "The app identifier should be your app's URL and is used as the primary identifier for rankings.\nThis is used to track API usage per application.\n",
@@ -209,6 +219,7 @@
           "effort": {
             "description": "Reasoning effort level for the advisor call.",
             "enum": [
+              "max",
               "xhigh",
               "high",
               "medium",
@@ -3105,6 +3116,41 @@
         ],
         "type": "object"
       },
+      "ApiErrorType": {
+        "description": "Canonical OpenRouter error type, stable across all API formats",
+        "enum": [
+          "context_length_exceeded",
+          "max_tokens_exceeded",
+          "token_limit_exceeded",
+          "string_too_long",
+          "authentication",
+          "permission_denied",
+          "payment_required",
+          "rate_limit_exceeded",
+          "provider_overloaded",
+          "provider_unavailable",
+          "invalid_request",
+          "invalid_prompt",
+          "not_found",
+          "precondition_failed",
+          "payload_too_large",
+          "unprocessable",
+          "content_policy_violation",
+          "refusal",
+          "invalid_image",
+          "image_too_large",
+          "image_too_small",
+          "unsupported_image_format",
+          "image_not_found",
+          "image_download_failed",
+          "server",
+          "timeout",
+          "unmapped"
+        ],
+        "example": "rate_limit_exceeded",
+        "type": "string",
+        "x-speakeasy-unknown-values": "allow"
+      },
       "AppRankingsItem": {
         "example": {
           "app_id": 12345,
@@ -3725,8 +3771,10 @@
           "google-ai-studio",
           "google-vertex",
           "groq",
+          "heygen",
           "inception",
           "inceptron",
+          "inferact-vllm",
           "inference-net",
           "infermatic",
           "inflection",
@@ -3754,9 +3802,11 @@
           "perplexity",
           "phala",
           "poolside",
+          "quiver",
           "recraft",
           "reka",
           "relace",
+          "sakana-ai",
           "sambanova",
           "seed",
           "siliconflow",
@@ -3764,6 +3814,7 @@
           "stepfun",
           "streamlake",
           "switchpoint",
+          "tenstorrent",
           "together",
           "upstage",
           "venice",
@@ -4904,7 +4955,8 @@
             "type": "integer"
           },
           "error": {
-            "$ref": "#/components/schemas/ResponsesErrorField"
+            "$ref": "#/components/schemas/ResponsesErrorField",
+            "nullable": true
           },
           "frequency_penalty": {
             "format": "double",
@@ -4915,10 +4967,12 @@
             "type": "string"
           },
           "incomplete_details": {
-            "$ref": "#/components/schemas/IncompleteDetails"
+            "$ref": "#/components/schemas/IncompleteDetails",
+            "nullable": true
           },
           "instructions": {
-            "$ref": "#/components/schemas/BaseInputs"
+            "$ref": "#/components/schemas/BaseInputs",
+            "nullable": true
           },
           "max_output_tokens": {
             "nullable": true,
@@ -5007,7 +5061,8 @@
             "type": "string"
           },
           "reasoning": {
-            "$ref": "#/components/schemas/BaseReasoningConfig"
+            "$ref": "#/components/schemas/BaseReasoningConfig",
+            "nullable": true
           },
           "safety_identifier": {
             "nullable": true,
@@ -5028,7 +5083,8 @@
             "type": "number"
           },
           "text": {
-            "$ref": "#/components/schemas/TextConfig"
+            "$ref": "#/components/schemas/TextConfig",
+            "nullable": true
           },
           "tool_choice": {
             "$ref": "#/components/schemas/OpenAIResponsesToolChoice"
@@ -5117,6 +5173,7 @@
             "type": "array"
           },
           "top_logprobs": {
+            "nullable": true,
             "type": "integer"
           },
           "top_p": {
@@ -5125,7 +5182,8 @@
             "type": "number"
           },
           "truncation": {
-            "$ref": "#/components/schemas/Truncation"
+            "$ref": "#/components/schemas/Truncation",
+            "nullable": true
           },
           "usage": {
             "$ref": "#/components/schemas/OpenAIResponsesUsage"
@@ -5337,10 +5395,23 @@
           }
         ]
       },
-      "BigNumberUnion": {
-        "description": "Price per million prompt tokens",
-        "example": 1000,
-        "type": "string"
+      "BooleanCapability": {
+        "description": "A supported-or-not flag. Present means the parameter is accepted.",
+        "example": {
+          "type": "boolean"
+        },
+        "properties": {
+          "type": {
+            "enum": [
+              "boolean"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
       },
       "BulkAddWorkspaceMembersRequest": {
         "example": {
@@ -5613,6 +5684,37 @@
         ],
         "type": "object"
       },
+      "CapabilityDescriptor": {
+        "description": "A typed descriptor for one supported request parameter.",
+        "discriminator": {
+          "mapping": {
+            "boolean": "#/components/schemas/BooleanCapability",
+            "enum": "#/components/schemas/EnumCapability",
+            "range": "#/components/schemas/RangeCapability",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "propertyName": "type"
+        },
+        "example": {
+          "type": "enum",
+          "values": [
+            "1K",
+            "2K",
+            "4K"
+          ]
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/EnumCapability"
+          },
+          {
+            "$ref": "#/components/schemas/RangeCapability"
+          },
+          {
+            "$ref": "#/components/schemas/BooleanCapability"
+          }
+        ]
+      },
       "ChatAssistantImages": {
         "description": "Generated images from image generation models",
         "example": [
@@ -5881,11 +5983,12 @@
           "image_url": {
             "properties": {
               "detail": {
-                "description": "Image detail level for vision models",
+                "description": "Image detail level for vision models. `original` is an OpenRouter extension (not in the OpenAI Chat Completions spec) requesting true original-resolution media; it is downgraded to `high` for providers that lack an original-resolution tier.",
                 "enum": [
                   "auto",
                   "low",
-                  "high"
+                  "high",
+                  "original"
                 ],
                 "type": "string",
                 "x-speakeasy-unknown-values": "allow"
@@ -6272,6 +6375,9 @@
           },
           {
             "$ref": "#/components/schemas/DatetimeServerTool"
+          },
+          {
+            "$ref": "#/components/schemas/FusionServerTool_OpenRouter"
           },
           {
             "$ref": "#/components/schemas/ImageGenerationServerTool_OpenRouter"
@@ -6687,6 +6793,7 @@
               "effort": {
                 "description": "Constrains effort on reasoning for reasoning models",
                 "enum": [
+                  "max",
                   "xhigh",
                   "high",
                   "medium",
@@ -6709,6 +6816,7 @@
           "reasoning_effort": {
             "description": "Shorthand for setting reasoning effort. Equivalent to setting reasoning.effort. Cannot be used simultaneously with reasoning.effort if they differ.",
             "enum": [
+              "max",
               "xhigh",
               "high",
               "medium",
@@ -7080,7 +7188,10 @@
             "description": "Error information",
             "example": {
               "code": 429,
-              "message": "Rate limit exceeded"
+              "message": "Rate limit exceeded",
+              "metadata": {
+                "error_type": "rate_limit_exceeded"
+              }
             },
             "properties": {
               "code": {
@@ -7093,6 +7204,22 @@
                 "description": "Error message",
                 "example": "Rate limit exceeded",
                 "type": "string"
+              },
+              "metadata": {
+                "description": "Structured error metadata",
+                "properties": {
+                  "error_type": {
+                    "$ref": "#/components/schemas/ApiErrorType"
+                  },
+                  "provider_code": {
+                    "description": "Upstream provider-specific error code, when available",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "error_type"
+                ],
+                "type": "object"
               }
             },
             "required": [
@@ -9641,6 +9768,73 @@
         },
         "type": "object"
       },
+      "DebugEvent": {
+        "description": "Debug event emitted when debug.echo_upstream_body is true. Contains the transformed upstream request body or timing milestones.",
+        "example": {
+          "debug": {
+            "echo_upstream_body": {
+              "messages": [],
+              "model": "anthropic/claude-sonnet-4"
+            }
+          },
+          "sequence_number": 1,
+          "type": "response.debug"
+        },
+        "properties": {
+          "debug": {
+            "properties": {
+              "echo_upstream_body": {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              "timings": {
+                "properties": {
+                  "epoch_ms": {
+                    "type": "integer"
+                  },
+                  "event": {
+                    "enum": [
+                      "adapter_request",
+                      "upstream_headers_received",
+                      "first_token_received",
+                      "upstream_body_ended"
+                    ],
+                    "type": "string",
+                    "x-speakeasy-unknown-values": "allow"
+                  },
+                  "start_ms": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "start_ms",
+                  "event",
+                  "epoch_ms"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          },
+          "sequence_number": {
+            "type": "integer"
+          },
+          "type": {
+            "enum": [
+              "response.debug"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "debug",
+          "sequence_number"
+        ],
+        "type": "object"
+      },
       "DefaultParameters": {
         "additionalProperties": false,
         "description": "Default parameters for this model",
@@ -10017,6 +10211,36 @@
         "required": [
           "total",
           "available"
+        ],
+        "type": "object"
+      },
+      "EnumCapability": {
+        "description": "A parameter that accepts one of a discrete set of string values.",
+        "example": {
+          "type": "enum",
+          "values": [
+            "1K",
+            "2K",
+            "4K"
+          ]
+        },
+        "properties": {
+          "type": {
+            "enum": [
+              "enum"
+            ],
+            "type": "string"
+          },
+          "values": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "type",
+          "values"
         ],
         "type": "object"
       },
@@ -11324,7 +11548,8 @@
             "description": "A curated OpenRouter fusion preset (slugs follow `<task>-<tier>`, e.g. `general-high`). Expands server-side into the preset's analysis_models panel and judge model, so callers never name individual models. Explicitly provided `analysis_models` / `model` take precedence.",
             "enum": [
               "general-high",
-              "general-budget"
+              "general-budget",
+              "general-fast"
             ],
             "example": "general-high",
             "type": "string",
@@ -11460,6 +11685,9 @@
             "minItems": 1,
             "type": "array"
           },
+          "cache_control": {
+            "$ref": "#/components/schemas/AnthropicCacheControlDirective"
+          },
           "max_completion_tokens": {
             "description": "Maximum number of output tokens (including reasoning tokens) each panelist and the judge model may produce per inner call. Controls the total output budget so reasoning-heavy models like GPT-5.5 do not exhaust their token allowance before producing visible text. When omitted, the provider's default applies.",
             "example": 16384,
@@ -11483,6 +11711,7 @@
               "effort": {
                 "description": "Reasoning effort level for panelist and judge inner calls.",
                 "enum": [
+                  "max",
                   "xhigh",
                   "high",
                   "medium",
@@ -11501,7 +11730,7 @@
             "type": "object"
           },
           "temperature": {
-            "description": "Sampling temperature forwarded to panelist and judge inner calls. When omitted, the provider's default applies.",
+            "description": "Temperature forwarded to panelist inner calls. The judge always runs at temperature 0 regardless of this value. When omitted, the provider's default applies.",
             "example": 0.7,
             "format": "double",
             "type": "number"
@@ -11570,6 +11799,28 @@
         },
         "required": [
           "type"
+        ],
+        "type": "object"
+      },
+      "FusionSource": {
+        "description": "A web page retrieved via web search during a fusion run.",
+        "example": {
+          "title": "Example article title",
+          "url": "https://example.com/article"
+        },
+        "properties": {
+          "title": {
+            "description": "Title of the retrieved web page.",
+            "type": "string"
+          },
+          "url": {
+            "description": "URL of the web page a panel or the judge retrieved during the run.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "title"
         ],
         "type": "object"
       },
@@ -12576,6 +12827,101 @@
         },
         "type": "object"
       },
+      "ImageEndpoint": {
+        "description": "An endpoint that serves a given image model.",
+        "example": {
+          "allowed_passthrough_parameters": [],
+          "pricing": [
+            {
+              "billable": "output_image",
+              "cost_usd": 0.05,
+              "unit": "image"
+            }
+          ],
+          "provider_name": "Bytedance",
+          "provider_slug": "bytedance",
+          "provider_tag": "bytedance",
+          "supported_parameters": {
+            "resolution": {
+              "type": "enum",
+              "values": [
+                "1K",
+                "2K",
+                "4K"
+              ]
+            },
+            "seed": {
+              "type": "boolean"
+            }
+          },
+          "supports_streaming": false
+        },
+        "properties": {
+          "allowed_passthrough_parameters": {
+            "description": "Provider-specific options accepted under provider.options[provider_slug].",
+            "example": [],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "pricing": {
+            "description": "Billable pricing lines for this endpoint.",
+            "example": [
+              {
+                "billable": "output_image",
+                "cost_usd": 0.05,
+                "unit": "image"
+              }
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ImagePricingEntry"
+            },
+            "type": "array"
+          },
+          "provider_name": {
+            "description": "Provider display name",
+            "example": "Bytedance",
+            "type": "string"
+          },
+          "provider_slug": {
+            "description": "Provider slug",
+            "example": "bytedance",
+            "type": "string"
+          },
+          "provider_tag": {
+            "description": "Provider tag for request-side selection",
+            "example": "bytedance",
+            "nullable": true,
+            "type": "string"
+          },
+          "supported_parameters": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SupportedParameters"
+              },
+              {
+                "description": "The definitive set of parameters this endpoint accepts for this model."
+              }
+            ]
+          },
+          "supports_streaming": {
+            "description": "Whether this endpoint supports native SSE streaming (`stream: true` in the request).",
+            "example": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "provider_name",
+          "provider_slug",
+          "provider_tag",
+          "supported_parameters",
+          "allowed_passthrough_parameters",
+          "supports_streaming",
+          "pricing"
+        ],
+        "type": "object"
+      },
       "ImageGenCallCompletedEvent": {
         "allOf": [
           {
@@ -12649,6 +12995,343 @@
           "sequence_number": 3,
           "type": "response.image_generation_call.partial_image"
         }
+      },
+      "ImageGenCompletedEvent": {
+        "description": "Emitted when generation completes and the final image is available",
+        "example": {
+          "b64_json": "<base64-encoded-final-image>",
+          "created": 1748372400,
+          "type": "image_generation.completed",
+          "usage": {
+            "completion_tokens": 4175,
+            "cost": 0.04,
+            "prompt_tokens": 0,
+            "total_tokens": 4175
+          }
+        },
+        "properties": {
+          "b64_json": {
+            "description": "Base64-encoded final image data",
+            "type": "string"
+          },
+          "created": {
+            "description": "Unix timestamp (seconds) when the image was generated",
+            "type": "integer"
+          },
+          "media_type": {
+            "description": "Media type (MIME type) of the image. Omitted when the output is a standard raster format (PNG). Present for non-raster outputs such as SVG (`image/svg+xml`).",
+            "example": "image/svg+xml",
+            "type": "string"
+          },
+          "type": {
+            "description": "The event type",
+            "enum": [
+              "image_generation.completed"
+            ],
+            "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/ImageGenerationUsage"
+          }
+        },
+        "required": [
+          "type",
+          "b64_json",
+          "created"
+        ],
+        "type": "object"
+      },
+      "ImageGenPartialImageEvent": {
+        "description": "Emitted when a partial image becomes available during streaming generation",
+        "example": {
+          "b64_json": "<base64-encoded-partial-image>",
+          "partial_image_index": 0,
+          "type": "image_generation.partial_image"
+        },
+        "properties": {
+          "b64_json": {
+            "description": "Base64-encoded partial image data",
+            "type": "string"
+          },
+          "partial_image_index": {
+            "description": "0-based index indicating which partial image this is in the sequence",
+            "type": "integer"
+          },
+          "type": {
+            "description": "The event type",
+            "enum": [
+              "image_generation.partial_image"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "partial_image_index",
+          "b64_json"
+        ],
+        "type": "object"
+      },
+      "ImageGenStreamErrorEvent": {
+        "description": "Emitted when streaming generation fails after the SSE response starts",
+        "example": {
+          "error": {
+            "code": "upstream_error",
+            "message": "The upstream provider returned an error",
+            "param": null,
+            "type": "provider_error"
+          },
+          "type": "error"
+        },
+        "properties": {
+          "error": {
+            "description": "Provider error details",
+            "properties": {
+              "code": {
+                "description": "Provider error code, when supplied",
+                "nullable": true,
+                "type": "string"
+              },
+              "message": {
+                "description": "Provider error message",
+                "type": "string"
+              },
+              "param": {
+                "description": "Request parameter associated with the error, when supplied",
+                "nullable": true,
+                "type": "string"
+              },
+              "type": {
+                "description": "Provider error type, when supplied",
+                "nullable": true,
+                "type": "string"
+              }
+            },
+            "required": [
+              "message"
+            ],
+            "type": "object"
+          },
+          "type": {
+            "description": "The event type",
+            "enum": [
+              "error"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "error"
+        ],
+        "type": "object"
+      },
+      "ImageGenerationRequest": {
+        "description": "Image generation request input",
+        "example": {
+          "model": "bytedance-seed/seedream-4.5",
+          "prompt": "a red panda astronaut floating in space, studio lighting"
+        },
+        "properties": {
+          "aspect_ratio": {
+            "description": "Normalized aspect ratio of the generated image. Providers clamp to their supported subset.",
+            "enum": [
+              "1:1",
+              "1:2",
+              "1:4",
+              "1:8",
+              "2:1",
+              "2:3",
+              "3:2",
+              "3:4",
+              "4:1",
+              "4:3",
+              "4:5",
+              "5:4",
+              "8:1",
+              "9:16",
+              "16:9",
+              "9:19.5",
+              "19.5:9",
+              "9:20",
+              "20:9",
+              "9:21",
+              "21:9",
+              "auto"
+            ],
+            "example": "16:9",
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "background": {
+            "description": "Background treatment. `transparent` requires an output_format that supports alpha (png or webp).",
+            "enum": [
+              "auto",
+              "transparent",
+              "opaque"
+            ],
+            "example": "auto",
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "input_references": {
+            "description": "Reference images to guide image-to-image generation, as base64 data URLs or HTTP(S) URLs.",
+            "items": {
+              "$ref": "#/components/schemas/ContentPartImage"
+            },
+            "maxItems": 16,
+            "type": "array"
+          },
+          "model": {
+            "description": "The image generation model to use",
+            "example": "bytedance-seed/seedream-4.5",
+            "type": "string"
+          },
+          "n": {
+            "description": "Number of images to generate (1-10). Providers that only support single-image generation reject n > 1.",
+            "example": 1,
+            "type": "integer"
+          },
+          "output_compression": {
+            "description": "Compression level (0-100) for webp/jpeg output. Ignored for png and by providers without a compression knob.",
+            "example": 100,
+            "type": "integer"
+          },
+          "output_format": {
+            "description": "Encoding of the returned image bytes. Most models produce raster formats (png, jpeg, webp). SVG is supported by vectorization models (e.g. Quiver) \u2014 the SVG markup is UTF-8 base64-encoded in `b64_json`.",
+            "enum": [
+              "png",
+              "jpeg",
+              "webp",
+              "svg"
+            ],
+            "example": "png",
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "prompt": {
+            "description": "Text description of the desired image",
+            "example": "a red panda astronaut floating in space, studio lighting",
+            "minLength": 1,
+            "type": "string"
+          },
+          "provider": {
+            "description": "Provider-specific passthrough configuration",
+            "properties": {
+              "options": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ProviderOptions"
+                  },
+                  {
+                    "example": {
+                      "black-forest-labs": {
+                        "guidance": 3,
+                        "steps": 40
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "type": "object"
+          },
+          "quality": {
+            "description": "Rendering quality. Providers without a quality knob ignore this.",
+            "enum": [
+              "auto",
+              "low",
+              "medium",
+              "high"
+            ],
+            "example": "high",
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "resolution": {
+            "description": "Normalized resolution tier of the generated image. Concrete pixel dimensions are derived per-provider.",
+            "enum": [
+              "512",
+              "1K",
+              "2K",
+              "4K"
+            ],
+            "example": "2K",
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "seed": {
+            "description": "If specified, the generation will sample deterministically, such that repeated requests with the same seed and parameters should return the same result. Determinism is not guaranteed for all providers.",
+            "type": "integer"
+          },
+          "size": {
+            "description": "Optional. A convenience shorthand for output dimensions \u2014 pass a tier (\"2K\", \"4K\") or explicit pixels (\"2048x2048\") and we normalize it to the right dimensions for the chosen provider. Interchangeable with resolution + aspect_ratio; use those directly for enumerated, per-model discoverable values. Conflicting size + resolution/aspect_ratio is rejected.",
+            "example": "2K",
+            "type": "string"
+          },
+          "stream": {
+            "description": "If true, partial images are streamed as SSE events as they become available. Only supported by providers with native streaming (currently OpenAI). Non-streaming providers ignore this flag and return a buffered response.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "model",
+          "prompt"
+        ],
+        "type": "object"
+      },
+      "ImageGenerationResponse": {
+        "description": "Image generation response",
+        "example": {
+          "created": 1748372400,
+          "data": [
+            {
+              "b64_json": "<base64-encoded-image>"
+            }
+          ],
+          "usage": {
+            "completion_tokens": 4175,
+            "cost": 0.04,
+            "prompt_tokens": 0,
+            "total_tokens": 4175
+          }
+        },
+        "properties": {
+          "created": {
+            "description": "Unix timestamp (seconds) when the image was generated",
+            "example": 1748372400,
+            "type": "integer"
+          },
+          "data": {
+            "description": "Generated images",
+            "items": {
+              "properties": {
+                "b64_json": {
+                  "description": "Base64-encoded image bytes",
+                  "type": "string"
+                },
+                "media_type": {
+                  "description": "Media type (MIME type) of the image. Omitted when the output is a standard raster format (PNG). Present for non-raster outputs such as SVG (`image/svg+xml`).",
+                  "example": "image/svg+xml",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "b64_json"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/ImageGenerationUsage"
+          }
+        },
+        "required": [
+          "created",
+          "data"
+        ],
+        "type": "object"
       },
       "ImageGenerationServerTool": {
         "description": "Image generation tool configuration",
@@ -12819,6 +13502,432 @@
         "example": "completed",
         "type": "string",
         "x-speakeasy-unknown-values": "allow"
+      },
+      "ImageGenerationUsage": {
+        "description": "Token and cost usage for the image generation request, when available",
+        "example": {
+          "completion_tokens": 4175,
+          "cost": 0.04,
+          "prompt_tokens": 0,
+          "total_tokens": 4175
+        },
+        "properties": {
+          "completion_tokens": {
+            "description": "The tokens generated",
+            "type": "integer"
+          },
+          "completion_tokens_details": {
+            "nullable": true,
+            "properties": {
+              "audio_tokens": {
+                "description": "Tokens generated by the model for audio output.",
+                "nullable": true,
+                "type": "integer"
+              },
+              "image_tokens": {
+                "description": "Tokens generated by the model for image output.",
+                "nullable": true,
+                "type": "integer"
+              },
+              "reasoning_tokens": {
+                "description": "Tokens generated by the model for reasoning.",
+                "nullable": true,
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          },
+          "cost": {
+            "description": "Cost of the completion",
+            "format": "double",
+            "nullable": true,
+            "type": "number"
+          },
+          "cost_details": {
+            "$ref": "#/components/schemas/CostDetails"
+          },
+          "is_byok": {
+            "description": "Whether a request was made using a Bring Your Own Key configuration",
+            "type": "boolean"
+          },
+          "iterations": {
+            "items": {
+              "$ref": "#/components/schemas/AnthropicUsageIteration"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "prompt_tokens": {
+            "description": "Including images, input audio, and tools if any",
+            "type": "integer"
+          },
+          "prompt_tokens_details": {
+            "description": "Breakdown of tokens used in the prompt.",
+            "nullable": true,
+            "properties": {
+              "audio_tokens": {
+                "description": "Tokens used for input audio.",
+                "nullable": true,
+                "type": "integer"
+              },
+              "cache_write_tokens": {
+                "description": "Tokens written to cache. Only returned for models with explicit caching and cache write pricing.",
+                "nullable": true,
+                "type": "integer"
+              },
+              "cached_tokens": {
+                "description": "Tokens cached by the endpoint.",
+                "nullable": true,
+                "type": "integer"
+              },
+              "file_tokens": {
+                "description": "Tokens used for input files/documents.",
+                "nullable": true,
+                "type": "integer"
+              },
+              "video_tokens": {
+                "description": "Tokens used for input video.",
+                "nullable": true,
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          },
+          "server_tool_use": {
+            "description": "Usage for server-side tool execution (e.g., web search)",
+            "nullable": true,
+            "properties": {
+              "tool_calls_executed": {
+                "description": "Number of OpenRouter server tool calls that executed and produced a result.",
+                "nullable": true,
+                "type": "integer"
+              },
+              "tool_calls_requested": {
+                "description": "Total number of OpenRouter server-orchestrated tool calls the model requested, across all tool types. Provider-native tools (e.g. native web search) are not counted here.",
+                "nullable": true,
+                "type": "integer"
+              },
+              "web_search_requests": {
+                "description": "Number of web searches performed by server-side tools. For server-orchestrated tool calls a web search is also counted in tool_calls_requested; provider-native web search may report web_search_requests only. Do not sum the two.",
+                "nullable": true,
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          },
+          "service_tier": {
+            "description": "The service tier used by the upstream provider for this request",
+            "nullable": true,
+            "type": "string"
+          },
+          "speed": {
+            "$ref": "#/components/schemas/AnthropicSpeed"
+          },
+          "total_tokens": {
+            "description": "Sum of the above two fields",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "prompt_tokens",
+          "completion_tokens",
+          "total_tokens"
+        ],
+        "type": "object"
+      },
+      "ImageModelArchitecture": {
+        "example": {
+          "input_modalities": [
+            "text",
+            "image"
+          ],
+          "output_modalities": [
+            "image"
+          ]
+        },
+        "properties": {
+          "input_modalities": {
+            "description": "Supported input modalities",
+            "items": {
+              "$ref": "#/components/schemas/InputModality"
+            },
+            "type": "array"
+          },
+          "output_modalities": {
+            "description": "Supported output modalities",
+            "items": {
+              "$ref": "#/components/schemas/ImageOutputModality"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "input_modalities",
+          "output_modalities"
+        ],
+        "type": "object"
+      },
+      "ImageModelEndpointsResponse": {
+        "description": "The full per-endpoint records for an image model.",
+        "example": {
+          "endpoints": [
+            {
+              "allowed_passthrough_parameters": [],
+              "pricing": [
+                {
+                  "billable": "output_image",
+                  "cost_usd": 0.05,
+                  "unit": "image"
+                }
+              ],
+              "provider_name": "Bytedance",
+              "provider_slug": "bytedance",
+              "provider_tag": "bytedance",
+              "supported_parameters": {
+                "resolution": {
+                  "type": "enum",
+                  "values": [
+                    "1K",
+                    "2K",
+                    "4K"
+                  ]
+                }
+              },
+              "supports_streaming": false
+            }
+          ],
+          "id": "bytedance-seed/seedream-4.5"
+        },
+        "properties": {
+          "endpoints": {
+            "items": {
+              "$ref": "#/components/schemas/ImageEndpoint"
+            },
+            "type": "array"
+          },
+          "id": {
+            "description": "Model slug",
+            "example": "bytedance-seed/seedream-4.5",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "endpoints"
+        ],
+        "type": "object"
+      },
+      "ImageModelListItem": {
+        "description": "A single image model in the discovery listing.",
+        "example": {
+          "architecture": {
+            "input_modalities": [
+              "text",
+              "image"
+            ],
+            "output_modalities": [
+              "image"
+            ]
+          },
+          "created": 1692901234,
+          "description": "A text-to-image model.",
+          "endpoints": "/api/v1/images/models/bytedance-seed/seedream-4.5/endpoints",
+          "id": "bytedance-seed/seedream-4.5",
+          "name": "Seedream 4.5",
+          "supported_parameters": {
+            "resolution": {
+              "type": "enum",
+              "values": [
+                "1K",
+                "2K",
+                "4K"
+              ]
+            },
+            "seed": {
+              "type": "boolean"
+            }
+          },
+          "supports_streaming": false
+        },
+        "properties": {
+          "architecture": {
+            "$ref": "#/components/schemas/ImageModelArchitecture"
+          },
+          "created": {
+            "description": "Unix timestamp (seconds) of when the model was created",
+            "example": 1692901234,
+            "type": "integer"
+          },
+          "description": {
+            "example": "A text-to-image model.",
+            "type": "string"
+          },
+          "endpoints": {
+            "description": "Relative URL to the full per-endpoint records for this model",
+            "example": "/api/v1/images/models/bytedance-seed/seedream-4.5/endpoints",
+            "type": "string"
+          },
+          "id": {
+            "description": "Model slug",
+            "example": "bytedance-seed/seedream-4.5",
+            "type": "string"
+          },
+          "name": {
+            "description": "Display name",
+            "example": "Seedream 4.5",
+            "type": "string"
+          },
+          "supported_parameters": {
+            "$ref": "#/components/schemas/SupportedParameters"
+          },
+          "supports_streaming": {
+            "description": "Whether any endpoint of this model supports native SSE streaming on the dedicated Image API (i.e. `stream: true` in the request). OR across endpoints.",
+            "example": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "created",
+          "architecture",
+          "supported_parameters",
+          "supports_streaming",
+          "endpoints"
+        ],
+        "type": "object"
+      },
+      "ImageModelsListResponse": {
+        "description": "List of image generation models.",
+        "example": {
+          "data": [
+            {
+              "architecture": {
+                "input_modalities": [
+                  "text"
+                ],
+                "output_modalities": [
+                  "image"
+                ]
+              },
+              "created": 1692901234,
+              "description": "A text-to-image model.",
+              "endpoints": "/api/v1/images/models/bytedance-seed/seedream-4.5/endpoints",
+              "id": "bytedance-seed/seedream-4.5",
+              "name": "Seedream 4.5",
+              "supported_parameters": {
+                "resolution": {
+                  "type": "enum",
+                  "values": [
+                    "1K",
+                    "2K",
+                    "4K"
+                  ]
+                }
+              },
+              "supports_streaming": false
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ImageModelListItem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "ImageOutputModality": {
+        "enum": [
+          "text",
+          "image",
+          "embeddings",
+          "audio",
+          "video",
+          "rerank",
+          "speech",
+          "transcription"
+        ],
+        "example": "image",
+        "type": "string",
+        "x-speakeasy-unknown-values": "allow"
+      },
+      "ImagePricingEntry": {
+        "description": "One billable pricing line for an image provider.",
+        "example": {
+          "billable": "output_image",
+          "cost_usd": 0.05,
+          "unit": "image"
+        },
+        "properties": {
+          "billable": {
+            "enum": [
+              "output_image",
+              "input_image",
+              "input_font",
+              "input_reference",
+              "input_text"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "cost_usd": {
+            "format": "double",
+            "type": "number"
+          },
+          "unit": {
+            "enum": [
+              "image",
+              "megapixel",
+              "token"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "variant": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "billable",
+          "unit",
+          "cost_usd"
+        ],
+        "type": "object"
+      },
+      "ImageStreamingResponse": {
+        "example": {
+          "data": {
+            "b64_json": "<base64-encoded-partial-image>",
+            "partial_image_index": 0,
+            "type": "image_generation.partial_image"
+          }
+        },
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImageGenPartialImageEvent"
+              },
+              {
+                "$ref": "#/components/schemas/ImageGenCompletedEvent"
+              },
+              {
+                "$ref": "#/components/schemas/ImageGenStreamErrorEvent"
+              }
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
       },
       "InProgressEvent": {
         "description": "Event emitted when a response is in progress",
@@ -15125,10 +16234,14 @@
       },
       "MessagesErrorDetail": {
         "example": {
+          "error_type": "invalid_request",
           "message": "Invalid request parameters",
           "type": "invalid_request_error"
         },
         "properties": {
+          "error_type": {
+            "$ref": "#/components/schemas/ApiErrorType"
+          },
           "message": {
             "type": "string"
           },
@@ -15146,6 +16259,7 @@
         "description": "Error event in the stream",
         "example": {
           "error": {
+            "error_type": "provider_overloaded",
             "message": "Overloaded",
             "type": "overloaded_error"
           },
@@ -15154,6 +16268,9 @@
         "properties": {
           "error": {
             "properties": {
+              "error_type": {
+                "$ref": "#/components/schemas/ApiErrorType"
+              },
               "message": {
                 "type": "string"
               },
@@ -15166,6 +16283,9 @@
               "message"
             ],
             "type": "object"
+          },
+          "openrouter_metadata": {
+            "$ref": "#/components/schemas/OpenRouterMetadata"
           },
           "type": {
             "enum": [
@@ -16576,12 +17696,14 @@
                   "Google",
                   "Google AI Studio",
                   "Groq",
+                  "HeyGen",
                   "Inception",
                   "Inceptron",
                   "InferenceNet",
                   "Ionstream",
                   "Infermatic",
                   "Io Net",
+                  "Inferact vLLM",
                   "Inflection",
                   "Liquid",
                   "Mara",
@@ -16608,6 +17730,7 @@
                   "Recraft",
                   "Reka",
                   "Relace",
+                  "Sakana AI",
                   "SambaNova",
                   "Seed",
                   "SiliconFlow",
@@ -16616,11 +17739,13 @@
                   "Stealth",
                   "StreamLake",
                   "Switchpoint",
+                  "Tenstorrent",
                   "Together",
                   "Upstage",
                   "Venice",
                   "Wafer",
                   "WandB",
+                  "Quiver",
                   "Xiaomi",
                   "xAI",
                   "Z.AI",
@@ -17679,6 +18804,7 @@
                 "type": "object"
               },
               "modelId": {
+                "description": "The name of the tracing project in Arize AX",
                 "minLength": 1,
                 "type": "string"
               },
@@ -20873,6 +21999,9 @@
           },
           {
             "properties": {
+              "error_type": {
+                "$ref": "#/components/schemas/ApiErrorType"
+              },
               "openrouter_metadata": {
                 "$ref": "#/components/schemas/OpenRouterMetadata"
               },
@@ -21616,6 +22745,13 @@
                 "model"
               ],
               "type": "object"
+            },
+            "type": "array"
+          },
+          "sources": {
+            "description": "Web pages the analysis panels and judge retrieved via web search during this fusion run, deduplicated by URL across the whole run. Present when at least one model cited a source.",
+            "items": {
+              "$ref": "#/components/schemas/FusionSource"
             },
             "type": "array"
           },
@@ -23912,12 +25048,14 @@
           "Google",
           "Google AI Studio",
           "Groq",
+          "HeyGen",
           "Inception",
           "Inceptron",
           "InferenceNet",
           "Ionstream",
           "Infermatic",
           "Io Net",
+          "Inferact vLLM",
           "Inflection",
           "Liquid",
           "Mara",
@@ -23944,6 +25082,7 @@
           "Recraft",
           "Reka",
           "Relace",
+          "Sakana AI",
           "SambaNova",
           "Seed",
           "SiliconFlow",
@@ -23952,11 +25091,13 @@
           "Stealth",
           "StreamLake",
           "Switchpoint",
+          "Tenstorrent",
           "Together",
           "Upstage",
           "Venice",
           "Wafer",
           "WandB",
+          "Quiver",
           "Xiaomi",
           "xAI",
           "Z.AI",
@@ -24244,6 +25385,12 @@
             },
             "type": "object"
           },
+          "heygen": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "type": "object"
+          },
           "huggingface": {
             "additionalProperties": {
               "nullable": true
@@ -24269,6 +25416,12 @@
             "type": "object"
           },
           "inceptron": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "type": "object"
+          },
+          "inferact-vllm": {
             "additionalProperties": {
               "nullable": true
             },
@@ -24502,6 +25655,12 @@
             },
             "type": "object"
           },
+          "quiver": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "type": "object"
+          },
           "recraft": {
             "additionalProperties": {
               "nullable": true
@@ -24533,6 +25692,12 @@
             "type": "object"
           },
           "replicate": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "type": "object"
+          },
+          "sakana-ai": {
             "additionalProperties": {
               "nullable": true
             },
@@ -24599,6 +25764,12 @@
             "type": "object"
           },
           "targon": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "type": "object"
+          },
+          "tenstorrent": {
             "additionalProperties": {
               "nullable": true
             },
@@ -24777,47 +25948,24 @@
             "description": "The object specifying the maximum price you want to pay for this request. USD price per million tokens, for prompt and completion.",
             "properties": {
               "audio": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/BigNumberUnion"
-                  },
-                  {
-                    "description": "Price per audio unit"
-                  }
-                ]
+                "description": "Maximum price in USD per audio unit",
+                "type": "string"
               },
               "completion": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/BigNumberUnion"
-                  },
-                  {
-                    "description": "Price per million completion tokens"
-                  }
-                ]
+                "description": "Maximum price in USD per million completion tokens",
+                "type": "string"
               },
               "image": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/BigNumberUnion"
-                  },
-                  {
-                    "description": "Price per image"
-                  }
-                ]
+                "description": "Maximum price in USD per image",
+                "type": "string"
               },
               "prompt": {
-                "$ref": "#/components/schemas/BigNumberUnion"
+                "description": "Maximum price in USD per million prompt tokens",
+                "type": "string"
               },
               "request": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/BigNumberUnion"
-                  },
-                  {
-                    "description": "Price per request"
-                  }
-                ]
+                "description": "Maximum price in USD per request",
+                "type": "string"
               }
             },
             "type": "object"
@@ -25010,12 +26158,14 @@
               "Google",
               "Google AI Studio",
               "Groq",
+              "HeyGen",
               "Inception",
               "Inceptron",
               "InferenceNet",
               "Ionstream",
               "Infermatic",
               "Io Net",
+              "Inferact vLLM",
               "Inflection",
               "Liquid",
               "Mara",
@@ -25042,6 +26192,7 @@
               "Recraft",
               "Reka",
               "Relace",
+              "Sakana AI",
               "SambaNova",
               "Seed",
               "SiliconFlow",
@@ -25050,11 +26201,13 @@
               "Stealth",
               "StreamLake",
               "Switchpoint",
+              "Tenstorrent",
               "Together",
               "Upstage",
               "Venice",
               "Wafer",
               "WandB",
+              "Quiver",
               "Xiaomi",
               "xAI",
               "Z.AI",
@@ -25194,138 +26347,65 @@
           "pricing": {
             "properties": {
               "audio": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/BigNumberUnion"
-                  },
-                  {
-                    "description": "A number or string value representing a large number"
-                  }
-                ]
+                "description": "Price in USD per audio input token",
+                "type": "string"
               },
               "audio_output": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/BigNumberUnion"
-                  },
-                  {
-                    "description": "A number or string value representing a large number"
-                  }
-                ]
+                "description": "Price in USD per audio output token",
+                "type": "string"
               },
               "completion": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/BigNumberUnion"
-                  },
-                  {
-                    "description": "A number or string value representing a large number"
-                  }
-                ]
+                "description": "Price in USD per token for completion (output) generation",
+                "type": "string"
               },
               "discount": {
+                "description": "Fractional discount applied to this endpoint's pricing; the price is multiplied by (1 - discount) (0 = no discount, 1 = free)",
                 "format": "double",
                 "type": "number"
               },
               "image": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/BigNumberUnion"
-                  },
-                  {
-                    "description": "A number or string value representing a large number"
-                  }
-                ]
+                "description": "Price in USD per input image",
+                "type": "string"
               },
               "image_output": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/BigNumberUnion"
-                  },
-                  {
-                    "description": "A number or string value representing a large number"
-                  }
-                ]
+                "description": "Price in USD per output image",
+                "type": "string"
               },
               "image_token": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/BigNumberUnion"
-                  },
-                  {
-                    "description": "A number or string value representing a large number"
-                  }
-                ]
+                "description": "Price in USD per image token",
+                "type": "string"
               },
               "input_audio_cache": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/BigNumberUnion"
-                  },
-                  {
-                    "description": "A number or string value representing a large number"
-                  }
-                ]
+                "description": "Price in USD per cached audio input token",
+                "type": "string"
               },
               "input_cache_read": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/BigNumberUnion"
-                  },
-                  {
-                    "description": "A number or string value representing a large number"
-                  }
-                ]
+                "description": "Price in USD per cached input token (read)",
+                "type": "string"
               },
               "input_cache_write": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/BigNumberUnion"
-                  },
-                  {
-                    "description": "A number or string value representing a large number"
-                  }
-                ]
+                "description": "Price per cache-write token, in USD per token. For providers with multiple cache TTLs (e.g. Anthropic), this is the default (5-minute) cache-write rate.",
+                "type": "string"
+              },
+              "input_cache_write_1h": {
+                "description": "Price per 1-hour cache-write token, in USD per token. Only present for providers that price an extended (1-hour) cache TTL separately, such as Anthropic.",
+                "type": "string"
               },
               "internal_reasoning": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/BigNumberUnion"
-                  },
-                  {
-                    "description": "A number or string value representing a large number"
-                  }
-                ]
+                "description": "Price in USD per internal reasoning token",
+                "type": "string"
               },
               "prompt": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/BigNumberUnion"
-                  },
-                  {
-                    "description": "A number or string value representing a large number"
-                  }
-                ]
+                "description": "Price in USD per token for prompt (input) processing",
+                "type": "string"
               },
               "request": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/BigNumberUnion"
-                  },
-                  {
-                    "description": "A number or string value representing a large number"
-                  }
-                ]
+                "description": "Price in USD per request",
+                "type": "string"
               },
               "web_search": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/BigNumberUnion"
-                  },
-                  {
-                    "description": "A number or string value representing a large number"
-                  }
-                ]
+                "description": "Price in USD per web search",
+                "type": "string"
               }
             },
             "required": [
@@ -25421,138 +26501,65 @@
         },
         "properties": {
           "audio": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/BigNumberUnion"
-              },
-              {
-                "description": "A number or string value representing a large number"
-              }
-            ]
+            "description": "Price in USD per audio input token",
+            "type": "string"
           },
           "audio_output": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/BigNumberUnion"
-              },
-              {
-                "description": "A number or string value representing a large number"
-              }
-            ]
+            "description": "Price in USD per audio output token",
+            "type": "string"
           },
           "completion": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/BigNumberUnion"
-              },
-              {
-                "description": "A number or string value representing a large number"
-              }
-            ]
+            "description": "Price in USD per token for completion (output) generation",
+            "type": "string"
           },
           "discount": {
+            "description": "Fractional discount applied to this endpoint's pricing; the price is multiplied by (1 - discount) (0 = no discount, 1 = free)",
             "format": "double",
             "type": "number"
           },
           "image": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/BigNumberUnion"
-              },
-              {
-                "description": "A number or string value representing a large number"
-              }
-            ]
+            "description": "Price in USD per input image",
+            "type": "string"
           },
           "image_output": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/BigNumberUnion"
-              },
-              {
-                "description": "A number or string value representing a large number"
-              }
-            ]
+            "description": "Price in USD per output image",
+            "type": "string"
           },
           "image_token": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/BigNumberUnion"
-              },
-              {
-                "description": "A number or string value representing a large number"
-              }
-            ]
+            "description": "Price in USD per image token",
+            "type": "string"
           },
           "input_audio_cache": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/BigNumberUnion"
-              },
-              {
-                "description": "A number or string value representing a large number"
-              }
-            ]
+            "description": "Price in USD per cached audio input token",
+            "type": "string"
           },
           "input_cache_read": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/BigNumberUnion"
-              },
-              {
-                "description": "A number or string value representing a large number"
-              }
-            ]
+            "description": "Price in USD per cached input token (read)",
+            "type": "string"
           },
           "input_cache_write": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/BigNumberUnion"
-              },
-              {
-                "description": "A number or string value representing a large number"
-              }
-            ]
+            "description": "Price per cache-write token, in USD per token. For providers with multiple cache TTLs (e.g. Anthropic), this is the default (5-minute) cache-write rate.",
+            "type": "string"
+          },
+          "input_cache_write_1h": {
+            "description": "Price per 1-hour cache-write token, in USD per token. Only present for providers that price an extended (1-hour) cache TTL separately, such as Anthropic.",
+            "type": "string"
           },
           "internal_reasoning": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/BigNumberUnion"
-              },
-              {
-                "description": "A number or string value representing a large number"
-              }
-            ]
+            "description": "Price in USD per internal reasoning token",
+            "type": "string"
           },
           "prompt": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/BigNumberUnion"
-              },
-              {
-                "description": "A number or string value representing a large number"
-              }
-            ]
+            "description": "Price in USD per token for prompt (input) processing",
+            "type": "string"
           },
           "request": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/BigNumberUnion"
-              },
-              {
-                "description": "A number or string value representing a large number"
-              }
-            ]
+            "description": "Price in USD per request",
+            "type": "string"
           },
           "web_search": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/BigNumberUnion"
-              },
-              {
-                "description": "A number or string value representing a large number"
-              }
-            ]
+            "description": "Price in USD per web search",
+            "type": "string"
           }
         },
         "required": [
@@ -25576,6 +26583,34 @@
         "example": "fp16",
         "type": "string",
         "x-speakeasy-unknown-values": "allow"
+      },
+      "RangeCapability": {
+        "description": "A parameter that accepts any value within an inclusive numeric range.",
+        "example": {
+          "max": 100,
+          "min": 0,
+          "type": "range"
+        },
+        "properties": {
+          "max": {
+            "type": "number"
+          },
+          "min": {
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "range"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "min",
+          "max"
+        ],
+        "type": "object"
       },
       "RankingsDailyItem": {
         "example": {
@@ -25883,6 +26918,7 @@
       },
       "ReasoningEffort": {
         "enum": [
+          "max",
           "xhigh",
           "high",
           "medium",
@@ -26401,6 +27437,9 @@
           },
           "cache_control": {
             "$ref": "#/components/schemas/AnthropicCacheControlDirective"
+          },
+          "debug": {
+            "$ref": "#/components/schemas/ChatDebugOptions"
           },
           "frequency_penalty": {
             "format": "double",
@@ -27579,6 +28618,7 @@
             "response.created": "#/components/schemas/OpenResponsesCreatedEvent",
             "response.custom_tool_call_input.delta": "#/components/schemas/CustomToolCallInputDeltaEvent",
             "response.custom_tool_call_input.done": "#/components/schemas/CustomToolCallInputDoneEvent",
+            "response.debug": "#/components/schemas/DebugEvent",
             "response.failed": "#/components/schemas/StreamEventsResponseFailed",
             "response.function_call_arguments.delta": "#/components/schemas/FunctionCallArgsDeltaEvent",
             "response.function_call_arguments.done": "#/components/schemas/FunctionCallArgsDoneEvent",
@@ -27767,6 +28807,9 @@
           },
           {
             "$ref": "#/components/schemas/FusionCallCompletedEvent"
+          },
+          {
+            "$ref": "#/components/schemas/DebugEvent"
           }
         ]
       },
@@ -28033,6 +29076,7 @@
           "effort": {
             "description": "Reasoning effort level for the subagent call.",
             "enum": [
+              "max",
               "xhigh",
               "high",
               "medium",
@@ -28118,6 +29162,259 @@
         },
         "required": [
           "type"
+        ],
+        "type": "object"
+      },
+      "SupportedParameters": {
+        "additionalProperties": {
+          "$ref": "#/components/schemas/CapabilityDescriptor"
+        },
+        "description": "Union of supported parameters across every endpoint of this model. Coarse discovery aid; the definitive per-endpoint set is behind the endpoints URL.",
+        "example": {
+          "output_compression": {
+            "max": 100,
+            "min": 0,
+            "type": "range"
+          },
+          "resolution": {
+            "type": "enum",
+            "values": [
+              "1K",
+              "2K",
+              "4K"
+            ]
+          },
+          "seed": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "TaskClassificationItem": {
+        "example": {
+          "category_token_share": 0.48,
+          "category_usage_share": 0.51,
+          "display_name": "Code Generation",
+          "macro_category": "code",
+          "models": [
+            {
+              "id": "openai/gpt-4.1-mini",
+              "tag_token_share": 0.75,
+              "tag_usage_share": 0.55
+            },
+            {
+              "id": "anthropic/claude-sonnet-4",
+              "tag_token_share": 0.12,
+              "tag_usage_share": 0.2
+            }
+          ],
+          "tag": "code:general_impl",
+          "token_share": 0.31,
+          "usage_share": 0.23
+        },
+        "properties": {
+          "category_token_share": {
+            "description": "Fraction of this classification's token volume within its macro-category (0\u20131). Sums to 1 across all classifications sharing the same `macro_category`.",
+            "example": 0.48,
+            "format": "double",
+            "type": "number"
+          },
+          "category_usage_share": {
+            "description": "Fraction of this classification's usage within its macro-category (0\u20131). Sums to 1 across all classifications sharing the same `macro_category`.",
+            "example": 0.51,
+            "format": "double",
+            "type": "number"
+          },
+          "display_name": {
+            "description": "Human-readable label for the classification.",
+            "example": "Code Generation",
+            "type": "string"
+          },
+          "macro_category": {
+            "description": "Coarse grouping derived from the tag prefix: `code`, `data`, `agent`, or `general`.",
+            "example": "code",
+            "type": "string"
+          },
+          "models": {
+            "description": "Top models for this classification by request volume, sorted descending. Each entry reports the model's share of this classification's requests and tokens.",
+            "items": {
+              "$ref": "#/components/schemas/TaskClassificationModel"
+            },
+            "type": "array"
+          },
+          "tag": {
+            "description": "Classification tag identifier (e.g. `code:general_impl`, `agent:web_search`).",
+            "example": "code:general_impl",
+            "type": "string"
+          },
+          "token_share": {
+            "description": "Fraction of classified sampled token volume (prompt + completion) attributed to this classification (0\u20131). The unclassified `other` bucket is excluded from the denominator.",
+            "example": 0.31,
+            "format": "double",
+            "type": "number"
+          },
+          "usage_share": {
+            "description": "Fraction of classified sampled requests attributed to this classification (0\u20131). The unclassified `other` bucket is excluded from the denominator.",
+            "example": 0.23,
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "tag",
+          "display_name",
+          "macro_category",
+          "usage_share",
+          "token_share",
+          "category_usage_share",
+          "category_token_share",
+          "models"
+        ],
+        "type": "object"
+      },
+      "TaskClassificationMacroCategory": {
+        "example": {
+          "key": "code",
+          "label": "Code",
+          "token_share": 0.52,
+          "usage_share": 0.45
+        },
+        "properties": {
+          "key": {
+            "description": "Macro-category identifier.",
+            "example": "code",
+            "type": "string"
+          },
+          "label": {
+            "description": "Human-readable label for the macro-category.",
+            "example": "Code",
+            "type": "string"
+          },
+          "token_share": {
+            "description": "Combined token share of all classifications in this macro-category (0\u20131).",
+            "example": 0.52,
+            "format": "double",
+            "type": "number"
+          },
+          "usage_share": {
+            "description": "Combined usage share of all classifications in this macro-category (0\u20131).",
+            "example": 0.45,
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "usage_share",
+          "token_share"
+        ],
+        "type": "object"
+      },
+      "TaskClassificationModel": {
+        "example": {
+          "id": "openai/gpt-4.1-mini",
+          "tag_token_share": 0.75,
+          "tag_usage_share": 0.55
+        },
+        "properties": {
+          "id": {
+            "description": "Model identifier (permaslug).",
+            "example": "openai/gpt-4.1-mini",
+            "type": "string"
+          },
+          "tag_token_share": {
+            "description": "Fraction of this classification's sampled token volume attributed to this model (0\u20131). Sums to \u22641 across the returned models (only top-N are included and unattributed requests are excluded).",
+            "example": 0.75,
+            "format": "double",
+            "type": "number"
+          },
+          "tag_usage_share": {
+            "description": "Fraction of this classification's sampled requests attributed to this model (0\u20131). Sums to \u22641 across the returned models (only top-N are included and unattributed requests are excluded).",
+            "example": 0.55,
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "tag_usage_share",
+          "tag_token_share"
+        ],
+        "type": "object"
+      },
+      "TaskClassificationResponse": {
+        "example": {
+          "data": {
+            "as_of": "2026-06-17",
+            "classifications": [
+              {
+                "category_token_share": 0.48,
+                "category_usage_share": 0.51,
+                "display_name": "Code Generation",
+                "macro_category": "code",
+                "models": [
+                  {
+                    "id": "openai/gpt-4.1-mini",
+                    "tag_token_share": 0.75,
+                    "tag_usage_share": 0.55
+                  }
+                ],
+                "tag": "code:general_impl",
+                "token_share": 0.31,
+                "usage_share": 0.23
+              }
+            ],
+            "macro_categories": [
+              {
+                "key": "code",
+                "label": "Code",
+                "token_share": 0.52,
+                "usage_share": 0.45
+              }
+            ],
+            "window_days": 7
+          }
+        },
+        "properties": {
+          "data": {
+            "properties": {
+              "as_of": {
+                "description": "UTC date (YYYY-MM-DD) of the window upper bound (yesterday). Data is exclusive of the current incomplete UTC day. This is the expected latest date in the snapshot; it does not confirm data presence for that date.",
+                "example": "2026-06-17",
+                "type": "string"
+              },
+              "classifications": {
+                "description": "Per-task classification market-share data, sorted by usage_share descending.",
+                "items": {
+                  "$ref": "#/components/schemas/TaskClassificationItem"
+                },
+                "type": "array"
+              },
+              "macro_categories": {
+                "description": "Aggregate market-share data per macro-category (code, data, agent, general).",
+                "items": {
+                  "$ref": "#/components/schemas/TaskClassificationMacroCategory"
+                },
+                "type": "array"
+              },
+              "window_days": {
+                "description": "Number of trailing days covered by this snapshot.",
+                "example": 7,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "window_days",
+              "as_of",
+              "classifications",
+              "macro_categories"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "data"
         ],
         "type": "object"
       },
@@ -28748,8 +30045,9 @@
             "type": "string"
           },
           "citation": {
-            "description": "Required attribution when republishing this data.",
+            "description": "Required attribution when republishing this data, or null when results span multiple sources (attribute each item individually by its `source` discriminator).",
             "example": "Source: Artificial Analysis (artificialanalysis.ai) via OpenRouter (openrouter.ai/rankings).",
+            "nullable": true,
             "type": "string"
           },
           "model_count": {
@@ -28757,18 +30055,21 @@
             "type": "integer"
           },
           "source": {
-            "description": "The source filter applied.",
+            "description": "The source filter applied, or null when all sources are returned.",
             "enum": [
               "artificial-analysis",
-              "design-arena"
+              "design-arena",
+              null
             ],
             "example": "artificial-analysis",
+            "nullable": true,
             "type": "string",
             "x-speakeasy-unknown-values": "allow"
           },
           "source_url": {
-            "description": "URL of the upstream data source.",
+            "description": "URL of the upstream data source, or null when results span multiple sources.",
             "example": "https://artificialanalysis.ai",
+            "nullable": true,
             "type": "string"
           },
           "task_type": {
@@ -28813,10 +30114,10 @@
           ],
           "meta": {
             "as_of": "2026-06-03T12:00:00Z",
-            "citation": "Source: Artificial Analysis (artificialanalysis.ai) via OpenRouter (openrouter.ai/rankings).",
+            "citation": null,
             "model_count": 1,
-            "source": "artificial-analysis",
-            "source_url": "https://artificialanalysis.ai",
+            "source": null,
+            "source_url": null,
             "task_type": null,
             "version": "v1"
           }
@@ -30946,7 +32247,18 @@
         "tags": [
           "Analytics"
         ]
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/analytics/meta": {
       "get": {
@@ -31192,9 +32504,31 @@
         "tags": [
           "beta.Analytics"
         ]
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/analytics/query": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "post": {
         "description": "Execute an analytics query with specified metrics, dimensions, filters, and time range. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "queryAnalytics",
@@ -31514,6 +32848,17 @@
       }
     },
     "/audio/speech": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "post": {
         "description": "Synthesizes audio from the input text. Returns a raw audio bytestream in the requested format (e.g. mp3, pcm, wav).",
         "operationId": "createAudioSpeech",
@@ -31718,6 +33063,17 @@
       }
     },
     "/audio/transcriptions": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "post": {
         "description": "Transcribes audio into text. Accepts base64-encoded audio input and returns the transcribed text.",
         "operationId": "createAudioTranscriptions",
@@ -31930,6 +33286,17 @@
       }
     },
     "/auth/keys": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "post": {
         "description": "Exchange an authorization code from the PKCE flow for a user-controlled API key",
         "operationId": "exchangeAuthCodeForAPIKey",
@@ -32072,6 +33439,17 @@
       }
     },
     "/auth/keys/code": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "post": {
         "description": "Create an authorization code for the PKCE flow to generate a user-controlled API key",
         "operationId": "createAuthKeysCode",
@@ -32327,12 +33705,12 @@
         "operationId": "getBenchmarks",
         "parameters": [
           {
-            "description": "Benchmark source to query. Determines the shape of the returned items.",
+            "description": "Benchmark source to query. Determines the shape of the returned items. When omitted, returns results from all sources.",
             "in": "query",
             "name": "source",
-            "required": true,
+            "required": false,
             "schema": {
-              "description": "Benchmark source to query. Determines the shape of the returned items.",
+              "description": "Benchmark source to query. Determines the shape of the returned items. When omitted, returns results from all sources.",
               "enum": [
                 "artificial-analysis",
                 "design-arena"
@@ -32388,15 +33766,13 @@
             }
           },
           {
-            "description": "Max results to return (1\u2013100, default 50).",
+            "description": "Maximum number of items to return. When omitted, all matching results are returned.",
             "in": "query",
             "name": "max_results",
             "required": false,
             "schema": {
-              "default": 50,
-              "description": "Max results to return (1\u2013100, default 50).",
-              "example": 20,
-              "maximum": 100,
+              "description": "Maximum number of items to return. When omitted, all matching results are returned.",
+              "example": 50,
               "minimum": 1,
               "type": "integer"
             }
@@ -32423,10 +33799,10 @@
                   ],
                   "meta": {
                     "as_of": "2026-06-03T12:00:00Z",
-                    "citation": "Source: Artificial Analysis (artificialanalysis.ai) via OpenRouter (openrouter.ai/rankings).",
+                    "citation": null,
                     "model_count": 1,
-                    "source": "artificial-analysis",
-                    "source_url": "https://artificialanalysis.ai",
+                    "source": null,
+                    "source_url": null,
                     "task_type": null,
                     "version": "v1"
                   }
@@ -32507,7 +33883,18 @@
         "tags": [
           "Benchmarks"
         ]
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/byok": {
       "get": {
@@ -32596,8 +33983,10 @@
                 "google-ai-studio",
                 "google-vertex",
                 "groq",
+                "heygen",
                 "inception",
                 "inceptron",
+                "inferact-vllm",
                 "inference-net",
                 "infermatic",
                 "inflection",
@@ -32625,9 +34014,11 @@
                 "perplexity",
                 "phala",
                 "poolside",
+                "quiver",
                 "recraft",
                 "reka",
                 "relace",
+                "sakana-ai",
                 "sambanova",
                 "seed",
                 "siliconflow",
@@ -32635,6 +34026,7 @@
                 "stepfun",
                 "streamlake",
                 "switchpoint",
+                "tenstorrent",
                 "together",
                 "upstage",
                 "venice",
@@ -32737,8 +34129,19 @@
           "type": "offsetLimit"
         }
       },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "post": {
-        "description": "Create a new bring-your-own-key (BYOK) provider credential. The raw key is encrypted at rest and never returned in API responses. Defaults to the authenticated entity's default workspace; use the `workspace_id` body field to scope to a different workspace. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "description": "Create a new bring-your-own-key (BYOK) provider credential. The raw key is encrypted at rest and never returned in API responses. Defaults to the authenticated entity's default workspace; use the `workspace_id` body field to scope to a different workspace. Treat the raw key as write-only; it is never returned after creation. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "createBYOKKey",
         "requestBody": {
           "content": {
@@ -33040,6 +34443,17 @@
         ],
         "x-speakeasy-name-override": "get"
       },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "patch": {
         "description": "Update an existing bring-your-own-key (BYOK) provider credential by its `id`. Include the `key` field to rotate the raw provider API key in-place (the previous key material is overwritten). [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "updateBYOKKey",
@@ -33171,6 +34585,17 @@
       }
     },
     "/chat/completions": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "post": {
         "description": "Sends a request for a model response for the given chat conversation. Supports both streaming and non-streaming modes.",
         "operationId": "sendChatCompletionRequest",
@@ -33557,6 +34982,152 @@
         "x-speakeasy-stream-request-field": "stream"
       }
     },
+    "/classifications/task": {
+      "get": {
+        "description": "Returns the market-share breakdown of OpenRouter traffic by task classification\n(e.g. code generation, web search, summarization) over a trailing time window.\n\nEach classification reports its share of classified sampled requests (`usage_share`)\nand classified sampled token volume (`token_share`) as fractions between 0 and 1.\nThe unclassified `other` bucket is excluded. Absolute volumes are not exposed\nbecause the underlying data is sampled.\n\nEach classification also includes a `models` array listing the top models by\nrequest volume within that classification, with their within-tag usage and token shares.\n\nClassifications are grouped into macro-categories (Code, Data, Agent, General)\nwith aggregate shares provided for each.\n\nAuthenticate with any valid OpenRouter API key (same key used for inference).\nRate-limited to 30 requests/minute per key and 500 requests/day per account.\n\nWhen republishing or quoting this data, cite as:\n\"Source: OpenRouter (openrouter.ai/rankings), as of {as_of}.\"",
+        "operationId": "getTaskClassifications",
+        "parameters": [
+          {
+            "description": "Trailing time window for the classification data. Currently only `7d` (trailing 7 days) is supported.",
+            "in": "query",
+            "name": "window",
+            "required": false,
+            "schema": {
+              "default": "7d",
+              "description": "Trailing time window for the classification data. Currently only `7d` (trailing 7 days) is supported.",
+              "enum": [
+                "7d"
+              ],
+              "example": "7d",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": {
+                    "as_of": "2026-06-17",
+                    "classifications": [
+                      {
+                        "category_token_share": 0.48,
+                        "category_usage_share": 0.51,
+                        "display_name": "Code Generation",
+                        "macro_category": "code",
+                        "models": [
+                          {
+                            "id": "openai/gpt-4.1-mini",
+                            "tag_token_share": 0.75,
+                            "tag_usage_share": 0.55
+                          }
+                        ],
+                        "tag": "code:general_impl",
+                        "token_share": 0.31,
+                        "usage_share": 0.23
+                      }
+                    ],
+                    "macro_categories": [
+                      {
+                        "key": "code",
+                        "label": "Code",
+                        "token_share": 0.52,
+                        "usage_share": 0.45
+                      }
+                    ],
+                    "window_days": 7
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/TaskClassificationResponse"
+                }
+              }
+            },
+            "description": "Task classification market-share data for the requested trailing window."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 400,
+                    "message": "Invalid request parameters"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            },
+            "description": "Bad Request - Invalid request parameters or malformed input"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 429,
+                    "message": "Rate limit exceeded"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests - Rate limit exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "summary": "Task classification market share",
+        "tags": [
+          "Classifications"
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
+    },
     "/credits": {
       "get": {
         "description": "Get total credits purchased and used for the authenticated user. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
@@ -33669,9 +35240,31 @@
           "Credits"
         ],
         "x-speakeasy-name-override": "getCredits"
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/credits/coinbase": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "post": {
         "deprecated": true,
         "description": "Deprecated. The Coinbase APIs used by this endpoint have been deprecated, so Coinbase Commerce charges have been removed. Use the web credits purchase flow instead.",
@@ -33952,7 +35545,18 @@
           },
           "type": "offsetLimit"
         }
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/datasets/rankings-daily": {
       "get": {
@@ -34089,9 +35693,31 @@
         "tags": [
           "Datasets"
         ]
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/embeddings": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "post": {
         "description": "Submits an embedding request to the embeddings router",
         "operationId": "createEmbeddings",
@@ -34740,7 +36366,18 @@
           "Embeddings"
         ],
         "x-speakeasy-name-override": "listModels"
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/endpoints/zdr": {
       "get": {
@@ -34875,7 +36512,18 @@
           "Endpoints"
         ],
         "x-speakeasy-name-override": "listZdrEndpoints"
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/files": {
       "get": {
@@ -35032,6 +36680,17 @@
           "type": "cursor"
         }
       },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "post": {
         "description": "Uploads a file to be referenced in future API calls. The file is stored under the workspace of the authenticating API key. Maximum file size: 100 MB.",
         "operationId": "uploadFile",
@@ -35424,7 +37083,18 @@
           "Files"
         ],
         "x-speakeasy-name-override": "retrieve"
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/files/{file_id}/content": {
       "get": {
@@ -35552,7 +37222,18 @@
           "Files"
         ],
         "x-speakeasy-name-override": "download"
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/generation": {
       "get": {
@@ -35757,7 +37438,18 @@
         "tags": [
           "Generations"
         ]
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/generation/content": {
       "get": {
@@ -35936,7 +37628,18 @@
         "tags": [
           "Generations"
         ]
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/guardrails": {
       "get": {
@@ -36074,6 +37777,17 @@
           "type": "offsetLimit"
         }
       },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "post": {
         "description": "Create a new guardrail for the authenticated user. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "createGuardrail",
@@ -36326,7 +38040,18 @@
           },
           "type": "offsetLimit"
         }
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/guardrails/assignments/members": {
       "get": {
@@ -36440,7 +38165,18 @@
           },
           "type": "offsetLimit"
         }
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/guardrails/{id}": {
       "delete": {
@@ -36633,8 +38369,19 @@
         ],
         "x-speakeasy-name-override": "get"
       },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "patch": {
-        "description": "Update an existing guardrail. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "description": "Update an existing guardrail. Collection fields use replace semantics: send the full desired set on every update. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "updateGuardrail",
         "parameters": [
           {
@@ -36914,8 +38661,19 @@
           "type": "offsetLimit"
         }
       },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "post": {
-        "description": "Assign multiple API keys to a specific guardrail. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "description": "Assign multiple API keys to a specific guardrail. A key may hold at most one guardrail; assigning replaces any existing assignment. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "bulkAssignKeysToGuardrail",
         "parameters": [
           {
@@ -37033,6 +38791,17 @@
       }
     },
     "/guardrails/{id}/assignments/keys/remove": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "post": {
         "description": "Unassign multiple API keys from a specific guardrail. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "bulkUnassignKeysFromGuardrail",
@@ -37292,6 +39061,17 @@
           "type": "offsetLimit"
         }
       },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "post": {
         "description": "Assign multiple organization members to a specific guardrail. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "bulkAssignMembersToGuardrail",
@@ -37412,6 +39192,17 @@
       }
     },
     "/guardrails/{id}/assignments/members/remove": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "post": {
         "description": "Unassign multiple organization members from a specific guardrail. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "bulkUnassignMembersFromGuardrail",
@@ -37530,6 +39321,440 @@
         ],
         "x-speakeasy-name-override": "bulkUnassignMembers"
       }
+    },
+    "/images": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
+      "post": {
+        "description": "Generates an image from a text prompt via the image generation router",
+        "operationId": "createImages",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "model": "bytedance-seed/seedream-4.5",
+                "prompt": "a red panda astronaut floating in space, studio lighting"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/ImageGenerationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "created": 1748372400,
+                  "data": [
+                    {
+                      "b64_json": "<base64-encoded-image>"
+                    }
+                  ],
+                  "usage": {
+                    "completion_tokens": 4175,
+                    "cost": 0.04,
+                    "prompt_tokens": 0,
+                    "total_tokens": 4175
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ImageGenerationResponse"
+                }
+              },
+              "text/event-stream": {
+                "example": {
+                  "data": {
+                    "b64_json": "<base64-encoded-partial-image>",
+                    "partial_image_index": 0,
+                    "type": "image_generation.partial_image"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ImageStreamingResponse"
+                },
+                "x-speakeasy-sse-sentinel": "[DONE]"
+              }
+            },
+            "description": "Image generation response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 400,
+                    "message": "Invalid request parameters"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            },
+            "description": "Bad Request - Invalid request parameters or malformed input"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 402,
+                    "message": "Insufficient credits. Add more using https://openrouter.ai/credits"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRequiredResponse"
+                }
+              }
+            },
+            "description": "Payment Required - Insufficient credits or quota to complete request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 403,
+                    "message": "Only management keys can perform this operation"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            },
+            "description": "Forbidden - Authentication successful but insufficient permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 404,
+                    "message": "Resource not found"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundResponse"
+                }
+              }
+            },
+            "description": "Not Found - Resource does not exist"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 429,
+                    "message": "Rate limit exceeded"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests - Rate limit exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 502,
+                    "message": "Provider returned error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadGatewayResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway - Provider/upstream API failure"
+          },
+          "524": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 524,
+                    "message": "Request timed out. Please try again later."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/EdgeNetworkTimeoutResponse"
+                }
+              }
+            },
+            "description": "Infrastructure Timeout - Provider request timed out at edge network"
+          },
+          "529": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 529,
+                    "message": "Provider returned error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderOverloadedResponse"
+                }
+              }
+            },
+            "description": "Provider Overloaded - Provider is temporarily overloaded"
+          }
+        },
+        "summary": "Generate an image",
+        "tags": [
+          "Images"
+        ],
+        "x-speakeasy-name-override": "generate"
+      }
+    },
+    "/images/models": {
+      "get": {
+        "description": "Lists every image generation model with its top-level supported-parameter superset and a URL to its full per-endpoint records.",
+        "operationId": "listImageModels",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": [
+                    {
+                      "architecture": {
+                        "input_modalities": [
+                          "text"
+                        ],
+                        "output_modalities": [
+                          "image"
+                        ]
+                      },
+                      "created": 1692901234,
+                      "description": "A text-to-image model.",
+                      "endpoints": "/api/v1/images/models/bytedance-seed/seedream-4.5/endpoints",
+                      "id": "bytedance-seed/seedream-4.5",
+                      "name": "Seedream 4.5",
+                      "supported_parameters": {
+                        "resolution": {
+                          "type": "enum",
+                          "values": [
+                            "1K",
+                            "2K",
+                            "4K"
+                          ]
+                        }
+                      },
+                      "supports_streaming": false
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ImageModelsListResponse"
+                }
+              }
+            },
+            "description": "List of image generation models"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "summary": "List image generation models",
+        "tags": [
+          "Images"
+        ],
+        "x-speakeasy-name-override": "listModels"
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
+    },
+    "/images/models/{author}/{slug}/endpoints": {
+      "get": {
+        "description": "Returns the full per-endpoint records for an image model: each endpoint's definitive supported parameters, pricing, and passthrough allowlist.",
+        "operationId": "listImageModelEndpoints",
+        "parameters": [
+          {
+            "description": "Model author/organization",
+            "in": "path",
+            "name": "author",
+            "required": true,
+            "schema": {
+              "description": "Model author/organization",
+              "example": "bytedance-seed",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Model slug",
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "description": "Model slug",
+              "example": "seedream-4.5",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "endpoints": [
+                    {
+                      "allowed_passthrough_parameters": [],
+                      "pricing": [
+                        {
+                          "billable": "output_image",
+                          "cost_usd": 0.05,
+                          "unit": "image"
+                        }
+                      ],
+                      "provider_name": "Bytedance",
+                      "provider_slug": "bytedance",
+                      "provider_tag": "bytedance",
+                      "supported_parameters": {
+                        "resolution": {
+                          "type": "enum",
+                          "values": [
+                            "1K",
+                            "2K",
+                            "4K"
+                          ]
+                        }
+                      },
+                      "supports_streaming": false
+                    }
+                  ],
+                  "id": "bytedance-seed/seedream-4.5"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ImageModelEndpointsResponse"
+                }
+              }
+            },
+            "description": "The full per-endpoint records for an image model"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 404,
+                    "message": "Resource not found"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundResponse"
+                }
+              }
+            },
+            "description": "Not Found - Resource does not exist"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "summary": "List endpoints for an image model",
+        "tags": [
+          "Images"
+        ],
+        "x-speakeasy-name-override": "listModelEndpoints"
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/key": {
       "get": {
@@ -37833,7 +40058,18 @@
           "API Keys"
         ],
         "x-speakeasy-name-override": "getCurrentKeyMetadata"
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/keys": {
       "get": {
@@ -38179,8 +40415,19 @@
         ],
         "x-speakeasy-name-override": "list"
       },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "post": {
-        "description": "Create a new API key for the authenticated user. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "description": "Create a new API key for the authenticated user. The plaintext `key` is returned only in this response. Treat it as a write-only, sensitive value; it cannot be retrieved later. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "createKeys",
         "requestBody": {
           "content": {
@@ -39039,6 +41286,17 @@
         ],
         "x-speakeasy-name-override": "get"
       },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "patch": {
         "description": "Update an existing API key. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "updateKeys",
@@ -39444,6 +41702,17 @@
       }
     },
     "/messages": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "post": {
         "description": "Creates a message using the Anthropic Messages API format. Supports text, images, PDFs, tools, and extended thinking.",
         "operationId": "createMessages",
@@ -39839,7 +42108,18 @@
           "Models"
         ],
         "x-speakeasy-name-override": "get"
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/models": {
       "get": {
@@ -39894,12 +42174,12 @@
             }
           },
           {
-            "description": "Sort the returned models server-side. Prefer this over fetching the full list and sorting client-side. Options: pricing-low-to-high, pricing-high-to-low (average prompt/completion price), context-high-to-low (context length), throughput-high-to-low, latency-low-to-high (recent median performance), most-popular, top-weekly (tokens processed in the last week), newest (creation date). When omitted, the existing default ordering is preserved.",
+            "description": "Sort the returned models server-side. Prefer this over fetching the full list and sorting client-side. Options: pricing-low-to-high, pricing-high-to-low (average prompt/completion price), context-high-to-low (context length), throughput-high-to-low, latency-low-to-high (recent median performance), most-popular, top-weekly (tokens processed in the last week), newest (creation date), intelligence-high-to-low (Artificial Analysis intelligence index), design-arena-elo-high-to-low (best Design Arena ELO across arenas). Models without a score for the chosen benchmark are placed last. When omitted, the existing default ordering is preserved.",
             "in": "query",
             "name": "sort",
             "required": false,
             "schema": {
-              "description": "Sort the returned models server-side. Prefer this over fetching the full list and sorting client-side. Options: pricing-low-to-high, pricing-high-to-low (average prompt/completion price), context-high-to-low (context length), throughput-high-to-low, latency-low-to-high (recent median performance), most-popular, top-weekly (tokens processed in the last week), newest (creation date). When omitted, the existing default ordering is preserved.",
+              "description": "Sort the returned models server-side. Prefer this over fetching the full list and sorting client-side. Options: pricing-low-to-high, pricing-high-to-low (average prompt/completion price), context-high-to-low (context length), throughput-high-to-low, latency-low-to-high (recent median performance), most-popular, top-weekly (tokens processed in the last week), newest (creation date), intelligence-high-to-low (Artificial Analysis intelligence index), design-arena-elo-high-to-low (best Design Arena ELO across arenas). Models without a score for the chosen benchmark are placed last. When omitted, the existing default ordering is preserved.",
               "enum": [
                 "most-popular",
                 "newest",
@@ -39908,7 +42188,9 @@
                 "pricing-high-to-low",
                 "context-high-to-low",
                 "throughput-high-to-low",
-                "latency-low-to-high"
+                "latency-low-to-high",
+                "intelligence-high-to-low",
+                "design-arena-elo-high-to-low"
               ],
               "example": "newest",
               "type": "string",
@@ -40150,7 +42432,18 @@
           "Models"
         ],
         "x-speakeasy-name-override": "list"
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/models/count": {
       "get": {
@@ -40222,7 +42515,18 @@
           "Models"
         ],
         "x-speakeasy-name-override": "count"
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/models/user": {
       "get": {
@@ -40345,7 +42649,18 @@
           "Models"
         ],
         "x-speakeasy-name-override": "listForUser"
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/models/{author}/{slug}/endpoints": {
       "get": {
@@ -40511,7 +42826,18 @@
           "Endpoints"
         ],
         "x-speakeasy-name-override": "list"
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/observability/destinations": {
       "get": {
@@ -40648,6 +42974,17 @@
           "type": "offsetLimit"
         }
       },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "post": {
         "description": "Create a new observability destination. A maximum of 5 destinations per type is allowed. Defaults to the authenticated entity's default workspace; use the `workspace_id` body field to scope to a different workspace. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "createObservabilityDestination",
@@ -40979,6 +43316,17 @@
         ],
         "x-speakeasy-name-override": "get"
       },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "patch": {
         "description": "Update an existing observability destination. Only the fields provided in the request body are updated. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "updateObservabilityDestination",
@@ -41315,7 +43663,18 @@
           },
           "type": "offsetLimit"
         }
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/presets": {
       "get": {
@@ -41455,7 +43814,18 @@
           },
           "type": "offsetLimit"
         }
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/presets/{slug}": {
       "get": {
@@ -41589,9 +43959,31 @@
           "Presets"
         ],
         "x-speakeasy-name-override": "get"
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/presets/{slug}/chat/completions": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "post": {
         "description": "Creates a preset (or a new version of an existing one) from an inference request body. Only fields that overlap with the preset config are persisted; other fields (e.g. `messages`, `stream`, `prompt`) are silently ignored.",
         "operationId": "createPresetsChatCompletions",
@@ -41781,6 +44173,17 @@
       }
     },
     "/presets/{slug}/messages": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "post": {
         "description": "Creates a preset (or a new version of an existing one) from an inference request body. Only fields that overlap with the preset config are persisted; other fields (e.g. `messages`, `stream`, `prompt`) are silently ignored.",
         "operationId": "createPresetsMessages",
@@ -41967,6 +44370,17 @@
       }
     },
     "/presets/{slug}/responses": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "post": {
         "description": "Creates a preset (or a new version of an existing one) from an inference request body. Only fields that overlap with the preset config are persisted; other fields (e.g. `messages`, `stream`, `prompt`) are silently ignored.",
         "operationId": "createPresetsResponses",
@@ -42311,7 +44725,18 @@
           },
           "type": "offsetLimit"
         }
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/presets/{slug}/versions/{version}": {
       "get": {
@@ -42444,7 +44869,18 @@
           "Presets"
         ],
         "x-speakeasy-name-override": "getVersion"
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/providers": {
       "get": {
@@ -43095,9 +45531,31 @@
           "Providers"
         ],
         "x-speakeasy-name-override": "list"
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/rerank": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "post": {
         "description": "Submits a rerank request to the rerank router",
         "operationId": "createRerank",
@@ -43498,6 +45956,17 @@
       }
     },
     "/responses": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "post": {
         "description": "Creates a streaming or non-streaming response using OpenResponses API format",
         "operationId": "createResponses",
@@ -43864,6 +46333,17 @@
       }
     },
     "/videos": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "post": {
         "description": "Submits a video generation request and returns a polling URL to check status",
         "operationId": "createVideos",
@@ -44089,7 +46569,18 @@
         "tags": [
           "Video Generation"
         ]
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/videos/{jobId}": {
       "get": {
@@ -44184,7 +46675,18 @@
           "Video Generation"
         ],
         "x-speakeasy-name-override": "getGeneration"
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/videos/{jobId}/content": {
       "get": {
@@ -44217,7 +46719,7 @@
         "responses": {
           "200": {
             "content": {
-              "application/octet-stream": {
+              "video/mp4": {
                 "example": "<binary video data>",
                 "schema": {
                   "format": "binary",
@@ -44225,7 +46727,7 @@
                 }
               }
             },
-            "description": "Video content stream"
+            "description": "Video content stream. The body is the raw video bytes proxied from the upstream provider, and the Content-Type reflects the provider media type (video/mp4)."
           },
           "400": {
             "content": {
@@ -44313,7 +46815,18 @@
           "Video Generation"
         ],
         "x-speakeasy-name-override": "getVideoContent"
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/workspaces": {
       "get": {
@@ -44437,6 +46950,17 @@
           "type": "offsetLimit"
         }
       },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "post": {
         "description": "Create a new workspace for the authenticated user. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "createWorkspace",
@@ -44562,7 +47086,7 @@
     },
     "/workspaces/{id}": {
       "delete": {
-        "description": "Delete an existing workspace. The default workspace cannot be deleted. Workspaces with active API keys cannot be deleted. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "description": "Delete an existing workspace. The default workspace cannot be deleted. Workspaces with active API keys cannot be deleted; remove the keys first. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "deleteWorkspace",
         "parameters": [
           {
@@ -44781,6 +47305,17 @@
         ],
         "x-speakeasy-name-override": "get"
       },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "patch": {
         "description": "Update an existing workspace by ID or slug. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "updateWorkspace",
@@ -45025,7 +47560,18 @@
           "Workspaces"
         ],
         "x-speakeasy-name-override": "listBudgets"
-      }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/workspaces/{id}/budgets/{interval}": {
       "delete": {
@@ -45124,6 +47670,17 @@
         ],
         "x-speakeasy-name-override": "deleteBudget"
       },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "put": {
         "description": "Create or update the budget for a given interval. Budget limits must strictly decrease as the interval narrows (lifetime > monthly > weekly > daily). [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "upsertWorkspaceBudget",
@@ -45258,6 +47815,17 @@
       }
     },
     "/workspaces/{id}/members/add": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "post": {
         "description": "Add multiple organization members to a workspace. Members are assigned the same role they hold in the organization. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "bulkAddWorkspaceMembers",
@@ -45403,6 +47971,17 @@
       }
     },
     "/workspaces/{id}/members/remove": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
       "post": {
         "description": "Remove multiple members from a workspace. Members with active API keys in the workspace cannot be removed. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "bulkRemoveWorkspaceMembers",
@@ -45577,6 +48156,10 @@
       "name": "Chat"
     },
     {
+      "description": "Task classification market-share endpoints",
+      "name": "Classifications"
+    },
+    {
       "description": "Credit management endpoints",
       "name": "Credits"
     },
@@ -45603,6 +48186,10 @@
     {
       "description": "Guardrails endpoints",
       "name": "Guardrails"
+    },
+    {
+      "description": "Images endpoints",
+      "name": "Images"
     },
     {
       "description": "Model information endpoints",

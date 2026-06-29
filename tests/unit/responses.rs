@@ -8,7 +8,7 @@ use std::{
 
 use futures_util::StreamExt;
 use openrouter_rs::api::{
-    chat::{CacheControl, Plugin, TraceOptions},
+    chat::{CacheControl, DebugOptions, Plugin, TraceOptions},
     responses::{
         ResponsesRequest, ResponsesResponse, ResponsesStreamEvent, create_response, stream_response,
     },
@@ -153,6 +153,11 @@ fn test_responses_request_serialization() {
             trace.span_name = Some("responses.unit".to_string());
             trace
         })
+        .debug({
+            let mut debug = DebugOptions::default();
+            debug.echo_upstream_body = Some(true);
+            debug
+        })
         .plugins(vec![Plugin::new("web").option("max_results", 3)])
         .build()
         .expect("responses request should build");
@@ -170,6 +175,7 @@ fn test_responses_request_serialization() {
     assert!(value["cache_control"].get("ttl").is_none());
     assert_eq!(value["trace"]["trace_id"], "trace-1");
     assert_eq!(value["trace"]["span_name"], "responses.unit");
+    assert_eq!(value["debug"]["echo_upstream_body"], true);
 }
 
 #[test]

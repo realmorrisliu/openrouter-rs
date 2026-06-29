@@ -1,7 +1,7 @@
 //! # OpenRouter Rust SDK
 //!
 //! `openrouter-rs` is a type-safe, async Rust SDK for the [OpenRouter API](https://openrouter.ai/),
-//! providing typed access to chat, responses, messages, rerank, audio speech/transcription, video generation,
+//! providing typed access to chat, responses, messages, rerank, audio speech/transcription, image generation, video generation,
 //! discovery, embeddings, presets, and management endpoints.
 //!
 //! ## ✨ Key Features
@@ -9,7 +9,7 @@
 //! - **🔒 Type Safety**: Leverages Rust's type system for compile-time error prevention
 //! - **⚡ Async/Await**: Built on `tokio` for high-performance async operations  
 //! - **🏗️ Builder Pattern**: Ergonomic client and request construction
-//! - **🧭 Domain Clients**: Grouped API access via `chat()`, `responses()`, `messages()`, `rerank()`, `audio().speech()`, `audio().transcriptions()`, `videos()`, `models()`, `management()`
+//! - **🧭 Domain Clients**: Grouped API access via `chat()`, `responses()`, `messages()`, `rerank()`, `audio().speech()`, `audio().transcriptions()`, `images()`, `videos()`, `models()`, `management()`
 //! - **📡 Streaming Support**: Real-time response streaming with `futures`
 //! - **🧩 Unified Streaming Events**: Shared stream event model across chat/responses/messages
 //! - **🧠 Reasoning Tokens**: Advanced support for chain-of-thought reasoning
@@ -147,6 +147,7 @@
 //! | Rerank | ✅ | [`api::rerank`] |
 //! | Audio Speech | ✅ | [`api::audio`] |
 //! | Audio Transcription | ✅ | [`api::audio`] |
+//! | Image Generation | ✅ | [`api::images`] |
 //! | Video Generation | ✅ | [`api::videos`] |
 //! | Legacy Text Completions (`legacy-completions`) | ✅ | `api::legacy::completion` |
 //! | Model Information | ✅ | [`api::models`] |

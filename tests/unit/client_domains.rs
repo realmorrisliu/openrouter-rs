@@ -10,7 +10,7 @@ use openrouter_rs::{
     OpenRouterClient,
     api::{
         analytics, audio, auth, byok, chat, credits, discovery, embeddings, files, guardrails,
-        messages, observability, rerank, responses, videos, workspaces,
+        images, messages, observability, rerank, responses, videos, workspaces,
     },
     error::OpenRouterError,
     types::{ModelCategory, PaginationOptions, Role, SupportedParameters},
@@ -326,6 +326,12 @@ async fn test_models_domain_renamed_methods_require_api_key() {
         Err(OpenRouterError::KeyNotConfigured)
     ));
 
+    let task_classifications = client.models().get_task_classifications(Some("7d")).await;
+    assert!(matches!(
+        task_classifications,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+
     let benchmark_params = discovery::UnifiedBenchmarksParams::artificial_analysis();
     let benchmarks = client.models().get_benchmarks(&benchmark_params).await;
     assert!(matches!(benchmarks, Err(OpenRouterError::KeyNotConfigured)));
@@ -453,6 +459,38 @@ async fn test_audio_transcriptions_domain_requires_api_key() {
 
     let result = client.audio().transcriptions().create(&request).await;
     assert!(matches!(result, Err(OpenRouterError::KeyNotConfigured)));
+}
+
+#[tokio::test]
+async fn test_images_domain_requires_api_key() {
+    let client = OpenRouterClient::builder()
+        .build()
+        .expect("client should build");
+    let request = images::ImageGenerationRequest::builder()
+        .model("bytedance-seed/seedream-4.5")
+        .prompt("Generate a clean product render")
+        .build()
+        .expect("image generation request should build");
+
+    assert!(matches!(
+        client.images().create(&request).await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client.images().stream(&request).await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client.images().list_models().await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .images()
+            .list_model_endpoints("bytedance-seed", "seedream-4.5")
+            .await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
 }
 
 #[tokio::test]
@@ -1225,6 +1263,59 @@ async fn test_videos_domain_methods_delegate_to_api_module() {
         .recv_timeout(Duration::from_secs(2))
         .expect("should capture request");
     assert_eq!(captured.request_line, "GET /api/v1/videos/models HTTP/1.1");
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_images_domain_methods_delegate_to_api_module() {
+    let response_body = r#"{"data":[]}"#;
+    let (base_url, rx, server) = spawn_json_server(response_body);
+    let client = OpenRouterClient::builder()
+        .base_url(base_url)
+        .api_key("api-key")
+        .build()
+        .expect("client should build");
+
+    let response = client
+        .images()
+        .list_models()
+        .await
+        .expect("list image models should succeed");
+    assert!(response.is_empty());
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(captured.request_line, "GET /api/v1/images/models HTTP/1.1");
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_models_domain_get_task_classifications_delegates() {
+    let response_body = r#"{"data":{"window_days":7,"as_of":"2026-06-17","classifications":[],"macro_categories":[]}}"#;
+    let (base_url, rx, server) = spawn_json_server(response_body);
+    let client = OpenRouterClient::builder()
+        .base_url(base_url)
+        .api_key("api-key")
+        .build()
+        .expect("client should build");
+
+    let response = client
+        .models()
+        .get_task_classifications(Some("7d"))
+        .await
+        .expect("task classifications should succeed");
+    assert_eq!(response.data.window_days, 7);
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/classifications/task?window=7d HTTP/1.1"
+    );
 
     server.join().expect("server thread should finish");
 }

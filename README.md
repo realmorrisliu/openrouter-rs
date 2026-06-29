@@ -19,20 +19,20 @@ Type-safe, async Rust SDK for the OpenRouter API.
 
 </div>
 
-`openrouter-rs` is a community-maintained Rust SDK for OpenRouter. It exposes a domain-oriented client for chat, responses, messages, rerank, audio speech/transcription, video generation, models, embeddings, files, presets, analytics, and management APIs, plus a companion CLI in the same repository.
+`openrouter-rs` is a community-maintained Rust SDK for OpenRouter. It exposes a domain-oriented client for chat, responses, messages, rerank, audio speech/transcription, image generation, video generation, models, embeddings, files, presets, analytics, and management APIs, plus a companion CLI in the same repository.
 
-The current repo snapshot implements `81 / 81` official OpenAPI method/path entries, with published live integration coverage tracked in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md).
+The current repo snapshot implements `87 / 87` official OpenAPI method/path entries, with published live integration coverage tracked in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md).
 
 ## Why `openrouter-rs`
 
-- Domain-oriented clients: `chat()`, `responses()`, `messages()`, `rerank()`, `audio().speech()`, `audio().transcriptions()`, `videos()`, `files()`, `models()`, `management()`, and opt-in `legacy()`
+- Domain-oriented clients: `chat()`, `responses()`, `messages()`, `rerank()`, `audio().speech()`, `audio().transcriptions()`, `images()`, `videos()`, `files()`, `models()`, `management()`, and opt-in `legacy()`
 - Typed request/response models with builder-style ergonomics
 - Tokio-native `reqwest + rustls` transport with no `surf` / `curl` dependency chain
-- Streaming support for chat, responses, and messages, including a unified stream abstraction
+- Streaming support for chat, responses, messages, and image generation, including a unified stream abstraction
 - Typed tools, manual JSON-schema tools, and multimodal chat content
 - Typed chat usage metadata for token counts, OpenRouter cost, provider cost breakdowns, and BYOK status
 - Opt-in OpenRouter response metadata for chat, Responses API, and Anthropic-compatible Messages requests
-- Discovery, rankings and benchmark datasets, rerank, audio speech/transcription, video generation, files, embeddings, API-key management, preset creation/readback/versioning, analytics, BYOK provider credentials, observability destinations, workspace management, organization members, guardrails, activity, credits, and generation metadata/content coverage
+- Discovery, rankings and benchmark datasets, task classifications, rerank, audio speech/transcription, image generation, video generation, files, embeddings, API-key management, preset creation/readback/versioning, analytics, BYOK provider credentials, observability destinations, workspace management, organization members, guardrails, activity, credits, and generation metadata/content coverage
 - A companion CLI for profile resolution, discovery, management, and billing/usage workflows
 
 ## Installation
@@ -105,9 +105,10 @@ The canonical public surface is domain-oriented:
 | `rerank()` | `create` | `/rerank` | API key |
 | `audio().speech()` | `create` | `/audio/speech` (legacy `/tts` fallback) | API key |
 | `audio().transcriptions()` | `create` | `/audio/transcriptions` | API key |
+| `images()` | `create`, `stream`, `list_models`, `list_model_endpoints` | `/images*` | API key |
 | `videos()` | `create`, `list_models`, `get_generation`, `get_content` | `/videos*` | API key |
 | `files()` | `list`, `upload`, `get_metadata`, `download_content`, `delete` | `/files*` | API key |
-| `models()` | `list`, `list_filtered`, `list_by_category`, `list_by_parameters`, `get`, `list_endpoints`, `list_providers`, `list_user_models`, `get_model_count`, `get_rankings_daily`, `get_app_rankings`, `get_benchmarks`, `list_zdr_endpoints`, `create_embedding`, `list_embedding_models` | `/model*`, `/models*`, `/providers`, `/datasets/*`, `/benchmarks`, `/endpoints/zdr`, `/embeddings*` | API key |
+| `models()` | `list`, `list_filtered`, `list_by_category`, `list_by_parameters`, `get`, `list_endpoints`, `list_providers`, `list_user_models`, `get_model_count`, `get_rankings_daily`, `get_app_rankings`, `get_task_classifications`, `get_benchmarks`, `list_zdr_endpoints`, `create_embedding`, `list_embedding_models` | `/model*`, `/models*`, `/providers`, `/datasets/*`, `/classifications/task`, `/benchmarks`, `/endpoints/zdr`, `/embeddings*` | API key |
 | `management()` | `create_api_key`, `create_api_key_in_workspace`, `list_api_keys`, `list_api_keys_in_workspace`, `list_presets`, `get_preset`, `list_preset_versions`, `get_preset_version`, `create_chat_completion_preset`, `create_response_preset`, `create_message_preset`, `get_analytics_meta`, `query_analytics`, `list_byok_keys`, `create_byok_key`, `get_byok_key`, `update_byok_key`, `delete_byok_key`, `list_observability_destinations`, `create_observability_destination`, `get_observability_destination`, `update_observability_destination`, `delete_observability_destination`, `create_auth_code`, `create_api_key_from_auth_code`, `list_guardrails`, `list_guardrails_in_workspace`, `create_guardrail`, `list_organization_members`, `list_workspaces`, `create_workspace`, `get_workspace`, `update_workspace`, `delete_workspace`, `list_workspace_budgets`, `upsert_workspace_budget`, `delete_workspace_budget`, `add_workspace_members`, `remove_workspace_members`, `get_activity`, `get_credits`, `create_coinbase_charge`, `get_generation`, `get_generation_content` | `/keys*`, `/presets*`, `/analytics*`, `/byok*`, `/observability/destinations*`, `/auth/keys*`, `/guardrails*`, `/organization/members`, `/workspaces*`, `/activity`, `/credits*`, `/generation*`, `/key` | Governed endpoints require a management key; billing/session endpoints still use the normal API key because that is how OpenRouter authenticates them |
 | `legacy()` | `completions().create` | `/completions` | `legacy-completions` feature + API key |
 
@@ -128,11 +129,11 @@ Chat, Responses API, and Anthropic-compatible Messages request builders also exp
 `openrouter-rs` is not just a thin `/chat/completions` wrapper. The repo currently covers:
 
 - chat completions, responses, and Anthropic-compatible messages
-- rerank, audio speech generation, audio transcription, and video generation polling/content retrieval
+- rerank, audio speech generation, audio transcription, image generation, and video generation polling/content retrieval
 - unified streaming across chat, responses, and messages
 - manual tools and typed tools backed by `schemars`
 - multimodal chat content, including image, audio, video, and file parts
-- model discovery, provider discovery, app rankings, unified benchmarks, embeddings, and ZDR endpoints
+- model discovery, provider discovery, app rankings, task classifications, unified benchmarks, embeddings, and ZDR endpoints
 - typed generation metadata, model voice/benchmark/link metadata, workspace I/O logging controls, video callback URL support, and file upload/download workflows
 - management-key workflows for keys, workspace-scoped keys, preset reads/writes, analytics, BYOK provider credentials, observability destinations, auth codes, organization members, workspaces, workspace budgets, workspace membership, guardrails, guardrail content filters, workspace-scoped guardrails, and activity, plus API-key-authenticated credits and generation metadata/content endpoints
 
@@ -171,6 +172,7 @@ The repo includes runnable examples for the highest-value workflows:
 | [`examples/create_rerank.rs`](examples/create_rerank.rs) | `rerank().create(...)` |
 | [`examples/create_speech.rs`](examples/create_speech.rs) | `audio().speech().create(...)` |
 | [`examples/create_transcription.rs`](examples/create_transcription.rs) | `audio().transcriptions().create(...)` |
+| [`examples/create_image_generation.rs`](examples/create_image_generation.rs) | `images().create(...)` |
 | [`examples/create_video_generation.rs`](examples/create_video_generation.rs) | `videos().create(...)` |
 | [`examples/create_embedding.rs`](examples/create_embedding.rs) | `models().create_embedding(...)` |
 | [`examples/domain_management_api_keys.rs`](examples/domain_management_api_keys.rs) | API-key management via `management()` |
@@ -196,6 +198,7 @@ cargo run --example create_message
 cargo run --example create_rerank
 cargo run --example create_speech
 cargo run --example create_transcription
+cargo run --example create_image_generation
 cargo run --example create_embedding
 cargo run --example list_byok_keys
 cargo run --example list_observability_destinations
@@ -226,7 +229,7 @@ For copy-paste shell/CI recipes, see [`docs/operations/cli-automation-workflows.
 
 - Community-maintained third-party SDK; not affiliated with OpenRouter
 - Canonical docs and examples prefer the domain clients over older flat helpers
-- Accepted endpoint coverage is tracked against the current OpenAPI snapshot, and the current baseline is fully implemented at the SDK surface (`81 / 81`)
+- Accepted endpoint coverage is tracked against the current OpenAPI snapshot, and the current baseline is fully implemented at the SDK surface (`87 / 87`)
 - Live integration coverage and gaps are published in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md)
 - Migration guidance for the `0.9.x -> 0.10.0` public-model future-proofing release, the `0.8.x -> 0.9.0` audio speech release, the `0.7.x -> 0.8.0` transport/error-surface release, and the archived `0.5.x -> 0.6.x` naming guide lives in [`MIGRATION.md`](MIGRATION.md)
 - Legacy `POST /completions` support remains available behind the `legacy-completions` feature
@@ -256,7 +259,7 @@ Full migration guide: [`MIGRATION.md`](MIGRATION.md)
 - `OpenRouterError::HttpRequest(surf::Error)` -> `OpenRouterError::HttpRequest(HttpRequestError)`
 - `ApiErrorContext.status: surf::StatusCode` -> `ApiErrorContext.status: http::StatusCode`
 - `openrouter_rs::utils::{with_bearer_auth, with_request_metadata, with_client_request_headers, handle_error}` -> caller-owned transport helpers or direct use of the canonical domain clients
-- No API migration is required if you only use `OpenRouterClient` plus `chat()`, `responses()`, `messages()`, `rerank()`, `videos()`, `files()`, `models()`, `management()`, and `legacy()`
+- No API migration is required if you only use `OpenRouterClient` plus `chat()`, `responses()`, `messages()`, `rerank()`, `audio()`, `images()`, `videos()`, `files()`, `models()`, `management()`, and `legacy()`
 
 ### 🔁 0.6 Naming/Pagination Migration
 
@@ -329,8 +332,8 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 ### Unreleased
 
-- Added typed SDK coverage for files, analytics, app rankings, unified benchmarks, singular model lookup, preset listing/readback/versioning, workspace budgets, extended model filters, multimodal rerank documents, and richer video input references.
-- Accepted OpenAPI drift through the 2026-06-22 review and restored the tracked endpoint snapshot to `83 / 83`.
+- Added typed SDK coverage for images, task classifications, files, analytics, app rankings, unified benchmarks, singular model lookup, preset listing/readback/versioning, workspace budgets, extended model filters, multimodal rerank documents, and richer video input references.
+- Accepted OpenAPI drift through the 2026-06-29 review and restored the tracked endpoint snapshot to `87 / 87`.
 
 ### Version 0.10.0 *(Latest)*
 
