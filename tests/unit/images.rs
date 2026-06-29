@@ -349,6 +349,62 @@ async fn test_stream_image_generation_path_body_and_sse() {
 }
 
 #[tokio::test]
+async fn test_stream_image_generation_handles_buffered_json_fallback() {
+    let response = r#"{
+        "created": 1748372400,
+        "data": [{
+            "b64_json": "aW1hZ2U=",
+            "media_type": "image/png"
+        }],
+        "usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 4175,
+            "total_tokens": 4175,
+            "cost": 0.04
+        }
+    }"#;
+    let (base_url, rx, server) = spawn_server(response, "application/json");
+    let request = ImageGenerationRequest::builder()
+        .model("bytedance-seed/seedream-4.5")
+        .prompt("buffered image")
+        .build()
+        .expect("image request should build");
+
+    let mut stream =
+        images::stream_image_generation(&base_url, "api-key", &None, &None, &None, &request)
+            .await
+            .expect("stream should open");
+    let event = stream
+        .next()
+        .await
+        .expect("buffered response should yield one event")
+        .expect("event should deserialize");
+    match event.data {
+        ImageStreamEvent::Completed(event) => {
+            assert_eq!(event.b64_json, "aW1hZ2U=");
+            assert_eq!(event.created, 1748372400);
+            assert_eq!(event.media_type.as_deref(), Some("image/png"));
+            assert_eq!(
+                event.usage.expect("usage should be present").cost,
+                Some(0.04)
+            );
+        }
+        other => panic!("expected completed image event, got {other:?}"),
+    }
+    assert!(stream.next().await.is_none());
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(captured.request_line, "POST /api/v1/images HTTP/1.1");
+    let body_json: serde_json::Value =
+        serde_json::from_str(&captured.body_text).expect("body should be valid json");
+    assert_eq!(body_json["stream"], true);
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
 async fn test_list_image_models_path_and_auth_header() {
     let (base_url, rx, server) = spawn_server(r#"{"data":[]}"#, "application/json");
     let models = images::list_image_models(&base_url, "api-key")

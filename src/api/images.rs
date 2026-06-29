@@ -1,8 +1,11 @@
 use std::collections::HashMap;
 
 use derive_builder::Builder;
-use futures_util::{StreamExt, stream::BoxStream};
-use reqwest::Client as HttpClient;
+use futures_util::{
+    StreamExt,
+    stream::{self, BoxStream},
+};
+use reqwest::{Client as HttpClient, header::CONTENT_TYPE};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use urlencoding::encode;
@@ -420,22 +423,68 @@ pub(crate) async fn stream_image_generation_with_client(
     .await?;
 
     if response.status().is_success() {
-        let lines = parse_sse_frames(response_lines(response))
-            .filter_map(async |line| match line {
-                Ok(frame) if frame.data == "[DONE]" => None,
-                Ok(frame) => Some(
-                    serde_json::from_str::<ImageStreamingResponse>(&frame.data)
-                        .map_err(OpenRouterError::Serialization),
-                ),
-                Err(error) => Some(Err(error)),
-            })
-            .boxed();
+        if is_sse_response(&response) {
+            let lines = parse_sse_frames(response_lines(response))
+                .filter_map(async |line| match line {
+                    Ok(frame) if frame.data == "[DONE]" => None,
+                    Ok(frame) => Some(
+                        serde_json::from_str::<ImageStreamingResponse>(&frame.data)
+                            .map_err(OpenRouterError::Serialization),
+                    ),
+                    Err(error) => Some(Err(error)),
+                })
+                .boxed();
 
-        Ok(lines)
+            Ok(lines)
+        } else {
+            let response: ImageGenerationResponse =
+                transport_response::parse_json_response(response, "image generation").await?;
+            Ok(buffered_image_response_stream(response))
+        }
     } else {
         transport_response::handle_error(response).await?;
         unreachable!()
     }
+}
+
+fn is_sse_response(response: &reqwest::Response) -> bool {
+    response
+        .headers()
+        .get(CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .map(|value| {
+            value
+                .split(';')
+                .next()
+                .unwrap_or_default()
+                .trim()
+                .eq_ignore_ascii_case("text/event-stream")
+        })
+        .unwrap_or(false)
+}
+
+fn buffered_image_response_stream(
+    response: ImageGenerationResponse,
+) -> BoxStream<'static, Result<ImageStreamingResponse, OpenRouterError>> {
+    let created = response.created;
+    let data = response.data;
+    let usage = response.usage;
+    let response_extra = response.extra;
+
+    stream::iter(data.into_iter().map(move |image| {
+        Ok(ImageStreamingResponse {
+            data: ImageStreamEvent::Completed(ImageCompletedEvent {
+                event_type: "image_generation.completed".to_string(),
+                b64_json: image.b64_json,
+                created,
+                media_type: image.media_type,
+                usage: usage.clone(),
+                extra: image.extra,
+            }),
+            extra: response_extra.clone(),
+        })
+    }))
+    .boxed()
 }
 
 /// List all image generation models.
