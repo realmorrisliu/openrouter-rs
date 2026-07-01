@@ -39,7 +39,7 @@ The current repo snapshot implements `87 / 87` official OpenAPI method/path entr
 
 ```toml
 [dependencies]
-openrouter-rs = "0.11.0"
+openrouter-rs = "0.11.1"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -47,7 +47,7 @@ Legacy text completions are opt-in:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.11.0", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.11.1", features = ["legacy-completions"] }
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -334,7 +334,12 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 - No unreleased changes.
 
-### Version 0.11.0 *(Latest)*
+### Version 0.11.1 *(Latest)*
+
+- Accepted OpenRouter's new `max` reasoning effort and preserved future provider-defined effort strings in model metadata, keeping `/models` deserialization and CLI model listing forward-compatible with upstream taxonomy additions.
+- Hardened scheduled live Responses checks so transient runtime statuses stay service warnings while completed empty outputs, SDK deserialization failures, and non-retryable API errors remain hard failures.
+
+### Version 0.11.0
 
 - Added typed SDK coverage for image generation, files, analytics, app rankings, task classifications, unified benchmarks, singular model lookup, rankings-daily, preset listing/readback/versioning, workspace budgets, and expanded model filters.
 - Added automatic prompt caching request support through top-level `cache_control` builders for chat completions and Responses API requests.

@@ -7,9 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-07-01
+
 ### Fixed
-- Accepted new and future provider-defined reasoning effort strings in model metadata, including OpenRouter's `max` effort value, so `/models` deserialization and CLI model listing remain forward-compatible with upstream taxonomy additions.
-- Reduced scheduled live-test noise by treating per-model Responses hot-sweep runtime statuses such as `incomplete` as service warnings while keeping SDK deserialization/protocol failures as hard failures.
+- Accepted OpenRouter's new `max` reasoning effort and preserved future provider-defined effort strings in model metadata, so `/models` deserialization and CLI model listing remain forward-compatible with upstream taxonomy additions.
+- Hardened scheduled live Responses checks so transient runtime statuses such as `incomplete` remain service warnings while completed empty outputs, SDK deserialization failures, and non-retryable API errors remain hard failures.
 
 ## [0.11.0] - 2026-06-29
 
