@@ -54,6 +54,7 @@
 //! use openrouter_rs::types::Effort;
 //!
 //! let xhigh_effort = Effort::Xhigh;   // Extra high reasoning depth
+//! let max_effort = Effort::Max;       // Maximum reasoning depth
 //! let high_effort = Effort::High;     // High reasoning depth
 //! let medium_effort = Effort::Medium; // Balanced reasoning
 //! let low_effort = Effort::Low;       // Quick reasoning
@@ -148,7 +149,7 @@ pub mod typed_tool;
 
 use std::fmt::Display;
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 pub use {
     completion::*, pagination::*, provider::*, response_format::*, stream::*, tool::*,
@@ -242,13 +243,14 @@ impl Display for Role {
 ///     .build()?;
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
-#[serde(rename_all = "lowercase")]
 pub enum Effort {
     /// Extra high reasoning depth and thoroughness
     Xhigh,
     /// Maximum reasoning depth and thoroughness
+    Max,
+    /// High reasoning depth and thoroughness
     High,
     /// Balanced reasoning effort
     Medium,
@@ -258,18 +260,56 @@ pub enum Effort {
     Minimal,
     /// Disable reasoning effort
     None,
+    /// Provider-defined reasoning effort not yet known by this SDK.
+    Other(String),
+}
+
+impl Effort {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Effort::Xhigh => "xhigh",
+            Effort::Max => "max",
+            Effort::High => "high",
+            Effort::Medium => "medium",
+            Effort::Low => "low",
+            Effort::Minimal => "minimal",
+            Effort::None => "none",
+            Effort::Other(value) => value.as_str(),
+        }
+    }
+}
+
+impl Serialize for Effort {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for Effort {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = String::deserialize(deserializer)?;
+        Ok(match value.as_str() {
+            "xhigh" => Effort::Xhigh,
+            "max" => Effort::Max,
+            "high" => Effort::High,
+            "medium" => Effort::Medium,
+            "low" => Effort::Low,
+            "minimal" => Effort::Minimal,
+            "none" => Effort::None,
+            _ => Effort::Other(value),
+        })
+    }
 }
 
 impl Display for Effort {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Effort::Xhigh => write!(f, "xhigh"),
-            Effort::High => write!(f, "high"),
-            Effort::Medium => write!(f, "medium"),
-            Effort::Low => write!(f, "low"),
-            Effort::Minimal => write!(f, "minimal"),
-            Effort::None => write!(f, "none"),
-        }
+        f.write_str(self.as_str())
     }
 }
 

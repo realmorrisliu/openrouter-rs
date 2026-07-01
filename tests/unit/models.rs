@@ -202,10 +202,10 @@ fn test_model_response_deserializes_links_and_benchmarks() {
                 }]
             },
             "reasoning": {
-                "default_effort": "high",
+                "default_effort": "max",
                 "default_enabled": true,
                 "mandatory": false,
-                "supported_efforts": ["high", "medium", "low", "minimal"],
+                "supported_efforts": ["max", "high", "medium", "provider-custom"],
                 "supports_max_tokens": true
             }
         }
@@ -241,7 +241,14 @@ fn test_model_response_deserializes_links_and_benchmarks() {
         .expect("reasoning metadata should be present");
     assert!(matches!(
         reasoning.default_effort.as_ref(),
-        Some(openrouter_rs::types::Effort::High)
+        Some(openrouter_rs::types::Effort::Max)
+    ));
+    assert!(matches!(
+        reasoning
+            .supported_efforts
+            .as_ref()
+            .and_then(|efforts| efforts.last()),
+        Some(openrouter_rs::types::Effort::Other(value)) if value == "provider-custom"
     ));
     assert_eq!(reasoning.supports_max_tokens, Some(true));
 }
