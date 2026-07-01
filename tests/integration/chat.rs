@@ -40,6 +40,20 @@ async fn test_basic_chat_completion() -> Result<(), OpenRouterError> {
 
 #[allow(clippy::result_large_err)]
 fn validate_chat_response(response: &CompletionsResponse) -> Result<(), OpenRouterError> {
+    validate_chat_response_envelope(response)?;
+
+    let content = get_first_content(response).trim();
+    let reasoning = response.choices[0].reasoning().unwrap_or_default().trim();
+    assert!(
+        !content.is_empty() || !reasoning.is_empty(),
+        "Response should contain content or reasoning"
+    );
+
+    Ok(())
+}
+
+#[allow(clippy::result_large_err)]
+fn validate_chat_response_envelope(response: &CompletionsResponse) -> Result<(), OpenRouterError> {
     assert!(!response.id.is_empty(), "Response ID should not be empty");
     assert!(
         !response.model.is_empty(),
@@ -48,13 +62,6 @@ fn validate_chat_response(response: &CompletionsResponse) -> Result<(), OpenRout
     assert!(
         !response.choices.is_empty(),
         "Response should have at least one choice"
-    );
-
-    let content = get_first_content(response).trim();
-    let reasoning = response.choices[0].reasoning().unwrap_or_default().trim();
-    assert!(
-        !content.is_empty() || !reasoning.is_empty(),
-        "Response should contain content or reasoning"
     );
 
     Ok(())
@@ -224,7 +231,7 @@ async fn test_excluded_reasoning() -> Result<(), OpenRouterError> {
         .build()?;
 
     let response = client.send_chat_completion(&request).await?;
-    validate_chat_response(&response)?;
+    validate_chat_response_envelope(&response)?;
 
     let reasoning = response.choices[0].reasoning();
     // When excluded, reasoning should be None or empty

@@ -11,11 +11,16 @@ use serde_json::json;
 fn test_reasoning_effort_extended_values_serialize() {
     let efforts = vec![
         (Effort::Xhigh, "xhigh"),
+        (Effort::Max, "max"),
         (Effort::High, "high"),
         (Effort::Medium, "medium"),
         (Effort::Low, "low"),
         (Effort::Minimal, "minimal"),
         (Effort::None, "none"),
+        (
+            Effort::Other("provider-custom".to_string()),
+            "provider-custom",
+        ),
     ];
 
     for (effort, expected) in efforts {
@@ -29,6 +34,21 @@ fn test_reasoning_effort_extended_values_serialize() {
         let json = serde_json::to_value(&request).expect("request should serialize");
         assert_eq!(json["reasoning"]["effort"], expected);
     }
+}
+
+#[test]
+fn test_reasoning_effort_deserializes_max_and_unknown_values() {
+    let max: Effort = serde_json::from_value(json!("max")).expect("max should deserialize");
+    assert!(matches!(max, Effort::Max));
+    assert_eq!(max.to_string(), "max");
+
+    let custom: Effort =
+        serde_json::from_value(json!("provider-custom")).expect("unknown values should parse");
+    assert!(matches!(custom, Effort::Other(ref value) if value == "provider-custom"));
+    assert_eq!(
+        serde_json::to_value(custom).expect("unknown effort should serialize"),
+        json!("provider-custom")
+    );
 }
 
 #[test]

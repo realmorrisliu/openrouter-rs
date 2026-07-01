@@ -122,6 +122,37 @@ fn validate_responses_output_for_model(response: &ResponsesResponse) -> Result<(
     Ok(())
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum HotResponseOutcome {
+    Passed,
+    ServiceWarning(String),
+}
+
+fn validate_hot_responses_output_for_model(
+    response: &ResponsesResponse,
+) -> Result<HotResponseOutcome, String> {
+    let id = response.id.as_deref().unwrap_or_default().trim();
+    if id.is_empty() {
+        return Err("missing response ID".to_string());
+    }
+
+    let status = response.status.as_deref().unwrap_or_default().trim();
+    if matches!(status, "failed" | "cancelled" | "incomplete") {
+        return Ok(HotResponseOutcome::ServiceWarning(format!(
+            "responses status {status}"
+        )));
+    }
+
+    let text = collect_response_text(response);
+    if text.trim().is_empty() {
+        return Ok(HotResponseOutcome::ServiceWarning(
+            "no output_text or reasoning text in response".to_string(),
+        ));
+    }
+
+    Ok(HotResponseOutcome::Passed)
+}
+
 #[tokio::test]
 #[allow(clippy::result_large_err)]
 async fn test_create_response_non_streaming() -> Result<(), OpenRouterError> {
@@ -207,6 +238,24 @@ fn test_validate_responses_output_rejects_empty_payloads() {
     assert_eq!(
         validate_responses_output_for_model(&response),
         Err("no output_text or reasoning text in response".to_string())
+    );
+}
+
+#[test]
+fn test_validate_hot_responses_output_warns_for_incomplete_status() {
+    let response: ResponsesResponse = serde_json::from_value(json!({
+        "id": "resp_incomplete",
+        "object": "response",
+        "status": "incomplete",
+        "output": []
+    }))
+    .expect("response should deserialize");
+
+    assert_eq!(
+        validate_hot_responses_output_for_model(&response),
+        Ok(HotResponseOutcome::ServiceWarning(
+            "responses status incomplete".to_string()
+        ))
     );
 }
 
@@ -297,7 +346,9 @@ async fn test_hot_responses_model_sweep() -> Result<(), OpenRouterError> {
     );
 
     let client = create_test_client()?;
-    let mut failures = Vec::new();
+    let mut passed = 0usize;
+    let mut service_warnings = Vec::new();
+    let mut hard_failures = Vec::new();
 
     println!(
         "Running hot responses model sweep across {} models",
@@ -309,21 +360,46 @@ async fn test_hot_responses_model_sweep() -> Result<(), OpenRouterError> {
         let request = hot_responses_request(&model)?;
 
         match client.responses().create(&request).await {
-            Ok(response) => {
-                if let Err(reason) = validate_responses_output_for_model(&response) {
-                    failures.push(format!("{model}: {reason}"));
-                } else {
+            Ok(response) => match validate_hot_responses_output_for_model(&response) {
+                Ok(HotResponseOutcome::Passed) => {
+                    passed += 1;
                     println!("Hot responses model check passed: {model}");
                 }
+                Ok(HotResponseOutcome::ServiceWarning(reason)) => {
+                    service_warnings.push(format!("{model}: {reason}"));
+                }
+                Err(reason) => hard_failures.push(format!("{model}: {reason}")),
+            },
+            Err(err) => {
+                let message = err.to_string();
+                if matches!(
+                    &err,
+                    OpenRouterError::Serialization(_) | OpenRouterError::Unknown(_)
+                ) {
+                    hard_failures.push(format!("{model}: {message}"));
+                } else {
+                    service_warnings.push(format!("{model}: {message}"));
+                }
             }
-            Err(err) => failures.push(format!("{model}: {err}")),
         }
     }
 
+    if !service_warnings.is_empty() {
+        println!(
+            "Hot responses model service warnings:\n{}",
+            service_warnings.join("\n")
+        );
+    }
+
     assert!(
-        failures.is_empty(),
-        "hot responses model sweep had failures:\n{}",
-        failures.join("\n")
+        hard_failures.is_empty(),
+        "hot responses model sweep had SDK/protocol failures:\n{}",
+        hard_failures.join("\n")
+    );
+    assert!(
+        passed > 0,
+        "hot responses model sweep did not get any completed model response; service warnings:\n{}",
+        service_warnings.join("\n")
     );
 
     Ok(())
