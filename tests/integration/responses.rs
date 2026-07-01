@@ -145,9 +145,7 @@ fn validate_hot_responses_output_for_model(
 
     let text = collect_response_text(response);
     if text.trim().is_empty() {
-        return Ok(HotResponseOutcome::ServiceWarning(
-            "no output_text or reasoning text in response".to_string(),
-        ));
+        return Err("no output_text or reasoning text in response".to_string());
     }
 
     Ok(HotResponseOutcome::Passed)
@@ -256,6 +254,22 @@ fn test_validate_hot_responses_output_warns_for_incomplete_status() {
         Ok(HotResponseOutcome::ServiceWarning(
             "responses status incomplete".to_string()
         ))
+    );
+}
+
+#[test]
+fn test_validate_hot_responses_output_rejects_completed_empty_payloads() {
+    let response: ResponsesResponse = serde_json::from_value(json!({
+        "id": "resp_completed_empty",
+        "object": "response",
+        "status": "completed",
+        "output": []
+    }))
+    .expect("response should deserialize");
+
+    assert_eq!(
+        validate_hot_responses_output_for_model(&response),
+        Err("no output_text or reasoning text in response".to_string())
     );
 }
 
