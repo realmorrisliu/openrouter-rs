@@ -1,9 +1,10 @@
 use std::{env, time::Duration};
 
 use futures_util::StreamExt;
+use http::StatusCode;
 use openrouter_rs::{
     api::responses::{ResponsesRequest, ResponsesResponse},
-    error::OpenRouterError,
+    error::{ApiErrorContext, ApiErrorKind, OpenRouterError},
     types::stream::{UnifiedStreamEvent, UnifiedStreamSource},
 };
 use serde_json::{Value, json};
@@ -151,6 +152,14 @@ fn validate_hot_responses_output_for_model(
     Ok(HotResponseOutcome::Passed)
 }
 
+fn is_hot_responses_hard_error(error: &OpenRouterError) -> bool {
+    match error {
+        OpenRouterError::Api(api_error) => !api_error.is_retryable(),
+        OpenRouterError::Serialization(_) | OpenRouterError::Unknown(_) => true,
+        _ => false,
+    }
+}
+
 #[tokio::test]
 #[allow(clippy::result_large_err)]
 async fn test_create_response_non_streaming() -> Result<(), OpenRouterError> {
@@ -273,6 +282,33 @@ fn test_validate_hot_responses_output_rejects_completed_empty_payloads() {
     );
 }
 
+fn api_error(status: StatusCode) -> OpenRouterError {
+    OpenRouterError::Api(Box::new(ApiErrorContext {
+        status,
+        api_code: None,
+        message: format!("test status {status}"),
+        request_id: None,
+        metadata: None,
+        kind: ApiErrorKind::Generic,
+    }))
+}
+
+#[test]
+fn test_hot_responses_error_classification_keeps_client_api_errors_hard() {
+    assert!(is_hot_responses_hard_error(&api_error(
+        StatusCode::BAD_REQUEST
+    )));
+    assert!(is_hot_responses_hard_error(&api_error(
+        StatusCode::UNPROCESSABLE_ENTITY
+    )));
+    assert!(!is_hot_responses_hard_error(&api_error(
+        StatusCode::TOO_MANY_REQUESTS
+    )));
+    assert!(!is_hot_responses_hard_error(&api_error(
+        StatusCode::BAD_GATEWAY
+    )));
+}
+
 #[tokio::test]
 #[allow(clippy::result_large_err)]
 async fn test_stream_response_unified_done_semantics() -> Result<(), OpenRouterError> {
@@ -386,10 +422,7 @@ async fn test_hot_responses_model_sweep() -> Result<(), OpenRouterError> {
             },
             Err(err) => {
                 let message = err.to_string();
-                if matches!(
-                    &err,
-                    OpenRouterError::Serialization(_) | OpenRouterError::Unknown(_)
-                ) {
+                if is_hot_responses_hard_error(&err) {
                     hard_failures.push(format!("{model}: {message}"));
                 } else {
                     service_warnings.push(format!("{model}: {message}"));
