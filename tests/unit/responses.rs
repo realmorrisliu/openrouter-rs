@@ -196,11 +196,18 @@ fn test_responses_request_server_tool_helpers() {
     assert_eq!(value["tools"][0]["parameters"]["max_results"], 2);
     assert_eq!(value["tools"][1]["type"], "openrouter:datetime");
     assert_eq!(value["tools"][1]["parameters"]["timezone"], "UTC");
-    assert_eq!(value["tool_choice"], json!({"type": "web_search_preview"}));
+    assert_eq!(
+        value["tool_choice"],
+        json!({
+            "type": "allowed_tools",
+            "mode": "required",
+            "tools": [{"type": "openrouter:web_search"}]
+        })
+    );
 }
 
 #[test]
-fn test_responses_force_server_tool_maps_openrouter_types_to_response_choices() {
+fn test_responses_force_server_tool_preserves_openrouter_types() {
     let web_search = ResponsesRequest::builder()
         .input(json!("search"))
         .force_server_tool("openrouter:web_search")
@@ -216,6 +223,11 @@ fn test_responses_force_server_tool_maps_openrouter_types_to_response_choices() 
         .force_server_tool("openrouter:shell")
         .build()
         .expect("responses request should build");
+    let bash = ResponsesRequest::builder()
+        .input(json!("bash"))
+        .force_server_tool("openrouter:bash")
+        .build()
+        .expect("responses request should build");
     let datetime = ResponsesRequest::builder()
         .input(json!("datetime"))
         .force_server_tool("openrouter:datetime")
@@ -224,7 +236,81 @@ fn test_responses_force_server_tool_maps_openrouter_types_to_response_choices() 
 
     assert_eq!(
         serde_json::to_value(&web_search).expect("request should serialize")["tool_choice"],
+        json!({
+            "type": "allowed_tools",
+            "mode": "required",
+            "tools": [{"type": "openrouter:web_search"}]
+        })
+    );
+    assert_eq!(
+        serde_json::to_value(&apply_patch).expect("request should serialize")["tool_choice"],
+        json!({
+            "type": "allowed_tools",
+            "mode": "required",
+            "tools": [{"type": "openrouter:apply_patch"}]
+        })
+    );
+    assert_eq!(
+        serde_json::to_value(&shell).expect("request should serialize")["tool_choice"],
+        json!({
+            "type": "allowed_tools",
+            "mode": "required",
+            "tools": [{"type": "openrouter:shell"}]
+        })
+    );
+    assert_eq!(
+        serde_json::to_value(&bash).expect("request should serialize")["tool_choice"],
+        json!({
+            "type": "allowed_tools",
+            "mode": "required",
+            "tools": [{"type": "openrouter:bash"}]
+        })
+    );
+    assert_eq!(
+        serde_json::to_value(&datetime).expect("request should serialize")["tool_choice"],
+        json!({
+            "type": "allowed_tools",
+            "mode": "required",
+            "tools": [{"type": "openrouter:datetime"}]
+        })
+    );
+}
+
+#[test]
+fn test_responses_force_server_tool_uses_direct_native_response_choices() {
+    let preview = ResponsesRequest::builder()
+        .input(json!("search"))
+        .force_server_tool("web_search_preview")
+        .build()
+        .expect("responses request should build");
+    let dated_preview = ResponsesRequest::builder()
+        .input(json!("search"))
+        .force_server_tool("web_search_preview_2025_03_11")
+        .build()
+        .expect("responses request should build");
+    let apply_patch = ResponsesRequest::builder()
+        .input(json!("patch"))
+        .force_server_tool("apply_patch")
+        .build()
+        .expect("responses request should build");
+    let shell = ResponsesRequest::builder()
+        .input(json!("shell"))
+        .force_server_tool("shell")
+        .build()
+        .expect("responses request should build");
+    let web_search_alias = ResponsesRequest::builder()
+        .input(json!("search"))
+        .force_server_tool("web_search")
+        .build()
+        .expect("responses request should build");
+
+    assert_eq!(
+        serde_json::to_value(&preview).expect("request should serialize")["tool_choice"],
         json!({"type": "web_search_preview"})
+    );
+    assert_eq!(
+        serde_json::to_value(&dated_preview).expect("request should serialize")["tool_choice"],
+        json!({"type": "web_search_preview_2025_03_11"})
     );
     assert_eq!(
         serde_json::to_value(&apply_patch).expect("request should serialize")["tool_choice"],
@@ -235,11 +321,11 @@ fn test_responses_force_server_tool_maps_openrouter_types_to_response_choices() 
         json!({"type": "shell"})
     );
     assert_eq!(
-        serde_json::to_value(&datetime).expect("request should serialize")["tool_choice"],
+        serde_json::to_value(&web_search_alias).expect("request should serialize")["tool_choice"],
         json!({
             "type": "allowed_tools",
             "mode": "required",
-            "tools": [{"type": "openrouter:datetime"}]
+            "tools": [{"type": "web_search"}]
         })
     );
 }

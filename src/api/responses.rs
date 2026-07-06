@@ -218,12 +218,9 @@ impl ResponsesRequestBuilder {
 
 fn responses_server_tool_choice(tool_type: String) -> Value {
     match tool_type.as_str() {
-        "openrouter:web_search" | "web_search" | "web_search_2025_08_26" | "web_search_preview" => {
-            json!({"type": "web_search_preview"})
+        "web_search_preview" | "web_search_preview_2025_03_11" | "apply_patch" | "shell" => {
+            json!({"type": tool_type})
         }
-        "web_search_preview_2025_03_11" => json!({"type": "web_search_preview_2025_03_11"}),
-        "openrouter:apply_patch" | "apply_patch" => json!({"type": "apply_patch"}),
-        "openrouter:bash" | "openrouter:shell" | "shell" => json!({"type": "shell"}),
         _ => json!({
             "type": "allowed_tools",
             "mode": "required",
