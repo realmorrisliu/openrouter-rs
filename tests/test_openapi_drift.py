@@ -732,8 +732,83 @@ class OpenApiDriftReportTests(unittest.TestCase):
         self.assertEqual(report["changed"][0]["repo_impact"]["category"], "already_supported")
         self.assertEqual(
             report["changed"][0]["repo_impact"]["schema_rules"],
-            ["Chat flexible tool payload"],
+            ["Chat server-tool payload", "Chat supported function-tool fields"],
         )
+
+    def test_chat_function_tool_shape_change_remains_actionable(self):
+        baseline = build_spec(
+            method="post",
+            path="/chat/completions",
+            operation_id="sendChatCompletionRequest",
+            request_properties={
+                "tools": {
+                    "items": {
+                        "anyOf": [
+                            {
+                                "properties": {
+                                    "function": {
+                                        "properties": {
+                                            "name": {"type": "string"},
+                                        },
+                                        "required": ["name"],
+                                        "type": "object",
+                                    },
+                                    "type": {"enum": ["function"], "type": "string"},
+                                },
+                                "required": ["type", "function"],
+                                "type": "object",
+                            }
+                        ]
+                    },
+                    "type": "array",
+                }
+            },
+        )
+        candidate = build_spec(
+            method="post",
+            path="/chat/completions",
+            operation_id="sendChatCompletionRequest",
+            request_properties={
+                "tools": {
+                    "items": {
+                        "anyOf": [
+                            {
+                                "properties": {
+                                    "function": {
+                                        "properties": {
+                                            "name": {"type": "string"},
+                                            "new_required": {"type": "string"},
+                                        },
+                                        "required": ["name", "new_required"],
+                                        "type": "object",
+                                    },
+                                    "type": {"enum": ["function"], "type": "string"},
+                                },
+                                "required": ["type", "function"],
+                                "type": "object",
+                            }
+                        ]
+                    },
+                    "type": "array",
+                }
+            },
+        )
+
+        report = openapi_drift.build_report(
+            baseline_spec=baseline,
+            candidate_spec=candidate,
+            baseline_label="baseline",
+            candidate_label="candidate",
+            source_url="https://example.com/openapi.json",
+            max_diff_lines=20,
+        )
+
+        self.assertTrue(report["has_drift"])
+        self.assertTrue(report["has_actionable_drift"])
+        self.assertEqual(report["repo_summary"]["already_supported_changed"], 0)
+        self.assertEqual(report["repo_summary"]["actionable_changed"], 1)
+        self.assertEqual(report["changed"][0]["repo_impact"]["category"], "actionable")
+        self.assertEqual(report["changed"][0]["repo_impact"]["schema_rules"], [])
 
     def test_chat_tool_container_type_change_remains_actionable(self):
         baseline = build_spec(
@@ -785,10 +860,7 @@ class OpenApiDriftReportTests(unittest.TestCase):
         self.assertEqual(report["repo_summary"]["already_supported_changed"], 0)
         self.assertEqual(report["repo_summary"]["actionable_changed"], 1)
         self.assertEqual(report["changed"][0]["repo_impact"]["category"], "actionable")
-        self.assertEqual(
-            report["changed"][0]["repo_impact"]["schema_rules"],
-            ["Chat flexible tool payload"],
-        )
+        self.assertEqual(report["changed"][0]["repo_impact"]["schema_rules"], [])
 
     def test_responses_value_tool_and_output_drift_is_classified_as_already_supported(self):
         baseline = build_spec(
