@@ -211,8 +211,21 @@ impl ResponsesRequestBuilder {
 
     /// Force the model to call a specific OpenRouter server tool.
     pub fn force_server_tool(&mut self, tool_type: impl Into<String>) -> &mut Self {
-        self.tool_choice = Some(Some(json!({ "type": tool_type.into() })));
+        self.tool_choice = Some(Some(json!({
+            "type": responses_server_tool_choice_type(tool_type.into())
+        })));
         self
+    }
+}
+
+fn responses_server_tool_choice_type(tool_type: String) -> String {
+    match tool_type.as_str() {
+        "openrouter:web_search" | "web_search" | "web_search_2025_08_26" | "web_search_preview" => {
+            "web_search_preview".to_string()
+        }
+        "openrouter:apply_patch" | "apply_patch" => "apply_patch".to_string(),
+        "openrouter:bash" | "openrouter:shell" | "shell" => "shell".to_string(),
+        _ => tool_type,
     }
 }
 

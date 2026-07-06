@@ -272,6 +272,32 @@ fn test_chat_request_server_tool_only_serialization() {
 }
 
 #[test]
+fn test_chat_request_preserves_explicit_empty_tools_array() {
+    let request = ChatCompletionRequest::builder()
+        .model("openai/gpt-5")
+        .messages(vec![Message::new(Role::User, "No tools")])
+        .tools(Vec::<Tool>::new())
+        .build()
+        .expect("request should build");
+
+    let value = serde_json::to_value(&request).expect("request should serialize");
+    assert_eq!(value["tools"], json!([]));
+}
+
+#[test]
+fn test_chat_request_preserves_explicit_empty_server_tools_array() {
+    let request = ChatCompletionRequest::builder()
+        .model("openai/gpt-5")
+        .messages(vec![Message::new(Role::User, "No tools")])
+        .server_tools(Vec::<ServerTool>::new())
+        .build()
+        .expect("request should build");
+
+    let value = serde_json::to_value(&request).expect("request should serialize");
+    assert_eq!(value["tools"], json!([]));
+}
+
+#[test]
 fn test_chat_request_extended_generation_fields_serialize() {
     let request = ChatCompletionRequest::builder()
         .model("openai/gpt-5")

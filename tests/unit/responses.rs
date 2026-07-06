@@ -196,9 +196,38 @@ fn test_responses_request_server_tool_helpers() {
     assert_eq!(value["tools"][0]["parameters"]["max_results"], 2);
     assert_eq!(value["tools"][1]["type"], "openrouter:datetime");
     assert_eq!(value["tools"][1]["parameters"]["timezone"], "UTC");
+    assert_eq!(value["tool_choice"], json!({"type": "web_search_preview"}));
+}
+
+#[test]
+fn test_responses_force_server_tool_maps_openrouter_types_to_response_choices() {
+    let web_search = ResponsesRequest::builder()
+        .input(json!("search"))
+        .force_server_tool("openrouter:web_search")
+        .build()
+        .expect("responses request should build");
+    let apply_patch = ResponsesRequest::builder()
+        .input(json!("patch"))
+        .force_server_tool("openrouter:apply_patch")
+        .build()
+        .expect("responses request should build");
+    let shell = ResponsesRequest::builder()
+        .input(json!("shell"))
+        .force_server_tool("openrouter:shell")
+        .build()
+        .expect("responses request should build");
+
     assert_eq!(
-        value["tool_choice"],
-        json!({"type": "openrouter:web_search"})
+        serde_json::to_value(&web_search).expect("request should serialize")["tool_choice"],
+        json!({"type": "web_search_preview"})
+    );
+    assert_eq!(
+        serde_json::to_value(&apply_patch).expect("request should serialize")["tool_choice"],
+        json!({"type": "apply_patch"})
+    );
+    assert_eq!(
+        serde_json::to_value(&shell).expect("request should serialize")["tool_choice"],
+        json!({"type": "shell"})
     );
 }
 

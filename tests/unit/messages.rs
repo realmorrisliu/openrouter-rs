@@ -120,6 +120,34 @@ fn test_anthropic_messages_request_merges_server_tools() {
 }
 
 #[test]
+fn test_anthropic_messages_request_preserves_explicit_empty_tools_array() {
+    let request = AnthropicMessagesRequest::builder()
+        .model("anthropic/claude-sonnet-4")
+        .max_tokens(512)
+        .messages(vec![AnthropicMessage::user("No tools")])
+        .tools(Vec::<AnthropicTool>::new())
+        .build()
+        .expect("messages request should build");
+
+    let value = serde_json::to_value(&request).expect("messages request should serialize");
+    assert_eq!(value["tools"], json!([]));
+}
+
+#[test]
+fn test_anthropic_messages_request_preserves_explicit_empty_server_tools_array() {
+    let request = AnthropicMessagesRequest::builder()
+        .model("anthropic/claude-sonnet-4")
+        .max_tokens(512)
+        .messages(vec![AnthropicMessage::user("No tools")])
+        .server_tools(Vec::<ServerTool>::new())
+        .build()
+        .expect("messages request should build");
+
+    let value = serde_json::to_value(&request).expect("messages request should serialize");
+    assert_eq!(value["tools"], json!([]));
+}
+
+#[test]
 fn test_anthropic_messages_response_deserialization() {
     let raw = r#"{
         "id": "msg_01XFDUDYJgAACzvnptvVoYEL",

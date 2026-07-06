@@ -716,7 +716,7 @@ impl Serialize for ChatCompletionRequest {
 
         let function_tools = self.tools.as_deref().unwrap_or_default();
         let server_tools = self.server_tools.as_deref().unwrap_or_default();
-        if !function_tools.is_empty() || !server_tools.is_empty() {
+        if self.tools.is_some() || self.server_tools.is_some() {
             let mut tools = Vec::with_capacity(function_tools.len() + server_tools.len());
             for tool in function_tools {
                 tools.push(serde_json::to_value(tool).map_err(serde::ser::Error::custom)?);
