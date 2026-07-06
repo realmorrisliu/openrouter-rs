@@ -470,7 +470,7 @@ impl From<Vec<String>> for StopSequence {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Builder)]
+#[derive(Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
 pub struct ChatCompletionRequest {
@@ -619,6 +619,10 @@ pub struct ChatCompletionRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     tools: Option<Vec<crate::types::Tool>>,
 
+    #[builder(setter(custom), default)]
+    #[serde(skip, default)]
+    server_tools: Option<Vec<crate::types::ServerTool>>,
+
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     tool_choice: Option<crate::types::ToolChoice>,
@@ -626,6 +630,112 @@ pub struct ChatCompletionRequest {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     parallel_tool_calls: Option<bool>,
+}
+
+fn insert_json_field<T, E>(
+    map: &mut serde_json::Map<String, Value>,
+    key: &str,
+    value: &T,
+) -> Result<(), E>
+where
+    T: Serialize,
+    E: serde::ser::Error,
+{
+    map.insert(
+        key.to_string(),
+        serde_json::to_value(value).map_err(E::custom)?,
+    );
+    Ok(())
+}
+
+fn insert_json_option<T, E>(
+    map: &mut serde_json::Map<String, Value>,
+    key: &str,
+    value: &Option<T>,
+) -> Result<(), E>
+where
+    T: Serialize,
+    E: serde::ser::Error,
+{
+    if let Some(value) = value {
+        insert_json_field::<T, E>(map, key, value)?;
+    }
+    Ok(())
+}
+
+impl Serialize for ChatCompletionRequest {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut map = serde_json::Map::new();
+
+        insert_json_field::<_, S::Error>(&mut map, "model", &self.model)?;
+        insert_json_field::<_, S::Error>(&mut map, "messages", &self.messages)?;
+        insert_json_option::<_, S::Error>(&mut map, "stream", &self.stream)?;
+        insert_json_option::<_, S::Error>(&mut map, "max_tokens", &self.max_tokens)?;
+        insert_json_option::<_, S::Error>(
+            &mut map,
+            "max_completion_tokens",
+            &self.max_completion_tokens,
+        )?;
+        insert_json_option::<_, S::Error>(&mut map, "temperature", &self.temperature)?;
+        insert_json_option::<_, S::Error>(&mut map, "seed", &self.seed)?;
+        insert_json_option::<_, S::Error>(&mut map, "top_p", &self.top_p)?;
+        insert_json_option::<_, S::Error>(&mut map, "top_k", &self.top_k)?;
+        insert_json_option::<_, S::Error>(&mut map, "frequency_penalty", &self.frequency_penalty)?;
+        insert_json_option::<_, S::Error>(&mut map, "presence_penalty", &self.presence_penalty)?;
+        insert_json_option::<_, S::Error>(
+            &mut map,
+            "repetition_penalty",
+            &self.repetition_penalty,
+        )?;
+        insert_json_option::<_, S::Error>(&mut map, "logit_bias", &self.logit_bias)?;
+        insert_json_option::<_, S::Error>(&mut map, "logprobs", &self.logprobs)?;
+        insert_json_option::<_, S::Error>(&mut map, "top_logprobs", &self.top_logprobs)?;
+        insert_json_option::<_, S::Error>(&mut map, "min_p", &self.min_p)?;
+        insert_json_option::<_, S::Error>(&mut map, "top_a", &self.top_a)?;
+        insert_json_option::<_, S::Error>(&mut map, "transforms", &self.transforms)?;
+        insert_json_option::<_, S::Error>(&mut map, "models", &self.models)?;
+        insert_json_option::<_, S::Error>(&mut map, "route", &self.route)?;
+        insert_json_option::<_, S::Error>(&mut map, "user", &self.user)?;
+        insert_json_option::<_, S::Error>(&mut map, "session_id", &self.session_id)?;
+        insert_json_option::<_, S::Error>(&mut map, "cache_control", &self.cache_control)?;
+        insert_json_option::<_, S::Error>(&mut map, "trace", &self.trace)?;
+        insert_json_option::<_, S::Error>(&mut map, "provider", &self.provider)?;
+        insert_json_option::<_, S::Error>(&mut map, "metadata", &self.metadata)?;
+        insert_json_option::<_, S::Error>(&mut map, "plugins", &self.plugins)?;
+        insert_json_option::<_, S::Error>(&mut map, "modalities", &self.modalities)?;
+        insert_json_option::<_, S::Error>(&mut map, "image_config", &self.image_config)?;
+        insert_json_option::<_, S::Error>(&mut map, "response_format", &self.response_format)?;
+        insert_json_option::<_, S::Error>(&mut map, "reasoning", &self.reasoning)?;
+        insert_json_option::<_, S::Error>(&mut map, "include_reasoning", &self.include_reasoning)?;
+        insert_json_option::<_, S::Error>(&mut map, "stop", &self.stop)?;
+        insert_json_option::<_, S::Error>(&mut map, "stream_options", &self.stream_options)?;
+        insert_json_option::<_, S::Error>(&mut map, "debug", &self.debug)?;
+
+        let function_tools = self.tools.as_deref().unwrap_or_default();
+        let server_tools = self.server_tools.as_deref().unwrap_or_default();
+        if !function_tools.is_empty() || !server_tools.is_empty() {
+            let mut tools = Vec::with_capacity(function_tools.len() + server_tools.len());
+            for tool in function_tools {
+                tools.push(serde_json::to_value(tool).map_err(serde::ser::Error::custom)?);
+            }
+            for tool in server_tools {
+                tools.push(serde_json::to_value(tool).map_err(serde::ser::Error::custom)?);
+            }
+            map.insert("tools".to_string(), Value::Array(tools));
+        }
+
+        insert_json_option::<_, S::Error>(&mut map, "tool_choice", &self.tool_choice)?;
+        insert_json_option::<_, S::Error>(
+            &mut map,
+            "parallel_tool_calls",
+            &self.parallel_tool_calls,
+        )?;
+
+        Value::Object(map).serialize(serializer)
+    }
 }
 
 impl ChatCompletionRequestBuilder {
@@ -637,6 +747,7 @@ impl ChatCompletionRequestBuilder {
     strip_option_vec_setter!(plugins, Plugin);
     strip_option_vec_setter!(modalities, Modality);
     strip_option_vec_setter!(tools, crate::types::Tool);
+    strip_option_vec_setter!(server_tools, crate::types::ServerTool);
 
     /// Enable reasoning with default settings (medium effort)
     pub fn enable_reasoning(&mut self) -> &mut Self {
@@ -676,6 +787,16 @@ impl ChatCompletionRequestBuilder {
         self
     }
 
+    /// Add a single OpenRouter server tool to the request.
+    pub fn server_tool(&mut self, tool: crate::types::ServerTool) -> &mut Self {
+        if let Some(Some(ref mut existing_tools)) = self.server_tools {
+            existing_tools.push(tool);
+        } else {
+            self.server_tools = Some(Some(vec![tool]));
+        }
+        self
+    }
+
     /// Set tool choice to auto (model chooses whether to use tools)
     pub fn tool_choice_auto(&mut self) -> &mut Self {
         self.tool_choice = Some(Some(crate::types::ToolChoice::auto()));
@@ -697,6 +818,12 @@ impl ChatCompletionRequestBuilder {
     /// Force the model to use a specific tool
     pub fn force_tool(&mut self, tool_name: &str) -> &mut Self {
         self.tool_choice = Some(Some(crate::types::ToolChoice::force_tool(tool_name)));
+        self
+    }
+
+    /// Force the model to use a specific OpenRouter server tool.
+    pub fn force_server_tool(&mut self, tool_type: impl Into<String>) -> &mut Self {
+        self.tool_choice = Some(Some(crate::types::ToolChoice::force_server_tool(tool_type)));
         self
     }
 
@@ -831,6 +958,11 @@ impl ChatCompletionRequest {
     /// Get the tools defined in this request
     pub fn tools(&self) -> Option<&[crate::types::Tool]> {
         self.tools.as_deref()
+    }
+
+    /// Get the OpenRouter server tools defined in this request.
+    pub fn server_tools(&self) -> Option<&[crate::types::ServerTool]> {
+        self.server_tools.as_deref()
     }
 
     /// Get the tool choice setting

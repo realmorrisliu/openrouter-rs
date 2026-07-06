@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added OpenRouter server-tool request helpers via `ServerTool` for chat completions, Responses API, Anthropic-compatible Messages, and preset creation request bodies, including `openrouter:web_search`, `openrouter:datetime`, raw custom server-tool escape hatches, and server-tool `tool_choice` helpers.
+- Added management-key SDK support for `GET /workspaces/{id}/members` via `api::workspaces::list_workspace_members(...)` and `client.management().list_workspace_members(...)`.
+
+### Changed
+- Accepted the 2026-07-06 OpenAPI drift review for server-tool request schemas and workspace member listing, restoring the repository snapshot to `88 / 88` official OpenAPI endpoint coverage.
+
 ## [0.11.1] - 2026-07-01
 
 ### Fixed

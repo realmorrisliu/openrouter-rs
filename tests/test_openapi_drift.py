@@ -641,6 +641,155 @@ class OpenApiDriftReportTests(unittest.TestCase):
             ["flexible plugin payload"],
         )
 
+    def test_chat_server_tool_drift_is_classified_as_already_supported(self):
+        baseline = build_spec(
+            method="post",
+            path="/chat/completions",
+            operation_id="sendChatCompletionRequest",
+            request_properties={
+                "tools": {
+                    "items": {
+                        "anyOf": [
+                            {
+                                "properties": {
+                                    "function": {
+                                        "properties": {
+                                            "name": {"type": "string"},
+                                        },
+                                        "required": ["name"],
+                                        "type": "object",
+                                    },
+                                    "type": {"enum": ["function"], "type": "string"},
+                                },
+                                "required": ["type", "function"],
+                                "type": "object",
+                            }
+                        ]
+                    },
+                    "type": "array",
+                }
+            },
+        )
+        candidate = build_spec(
+            method="post",
+            path="/chat/completions",
+            operation_id="sendChatCompletionRequest",
+            request_properties={
+                "tools": {
+                    "items": {
+                        "anyOf": [
+                            {
+                                "properties": {
+                                    "function": {
+                                        "properties": {
+                                            "name": {"type": "string"},
+                                            "strict": {"type": "boolean"},
+                                        },
+                                        "required": ["name"],
+                                        "type": "object",
+                                    },
+                                    "type": {"enum": ["function"], "type": "string"},
+                                },
+                                "required": ["type", "function"],
+                                "type": "object",
+                            },
+                            {
+                                "properties": {
+                                    "parameters": {
+                                        "properties": {
+                                            "max_results": {"type": "integer"},
+                                        },
+                                        "type": "object",
+                                    },
+                                    "type": {
+                                        "enum": ["openrouter:web_search"],
+                                        "type": "string",
+                                    },
+                                },
+                                "required": ["type"],
+                                "type": "object",
+                            },
+                        ]
+                    },
+                    "type": "array",
+                }
+            },
+        )
+
+        report = openapi_drift.build_report(
+            baseline_spec=baseline,
+            candidate_spec=candidate,
+            baseline_label="baseline",
+            candidate_label="candidate",
+            source_url="https://example.com/openapi.json",
+            max_diff_lines=20,
+        )
+
+        self.assertTrue(report["has_drift"])
+        self.assertFalse(report["has_actionable_drift"])
+        self.assertEqual(report["repo_summary"]["already_supported_changed"], 1)
+        self.assertEqual(report["repo_summary"]["actionable_changed"], 0)
+        self.assertEqual(report["changed"][0]["repo_impact"]["category"], "already_supported")
+        self.assertEqual(
+            report["changed"][0]["repo_impact"]["schema_rules"],
+            ["Chat flexible tool payload"],
+        )
+
+    def test_chat_tool_container_type_change_remains_actionable(self):
+        baseline = build_spec(
+            method="post",
+            path="/chat/completions",
+            operation_id="sendChatCompletionRequest",
+            request_properties={
+                "tools": {
+                    "items": {
+                        "anyOf": [
+                            {
+                                "properties": {
+                                    "type": {"enum": ["function"], "type": "string"},
+                                },
+                                "required": ["type"],
+                                "type": "object",
+                            }
+                        ]
+                    },
+                    "type": "array",
+                }
+            },
+        )
+        candidate = build_spec(
+            method="post",
+            path="/chat/completions",
+            operation_id="sendChatCompletionRequest",
+            request_properties={
+                "tools": {
+                    "properties": {
+                        "type": {"enum": ["function"], "type": "string"},
+                    },
+                    "type": "object",
+                }
+            },
+        )
+
+        report = openapi_drift.build_report(
+            baseline_spec=baseline,
+            candidate_spec=candidate,
+            baseline_label="baseline",
+            candidate_label="candidate",
+            source_url="https://example.com/openapi.json",
+            max_diff_lines=20,
+        )
+
+        self.assertTrue(report["has_drift"])
+        self.assertTrue(report["has_actionable_drift"])
+        self.assertEqual(report["repo_summary"]["already_supported_changed"], 0)
+        self.assertEqual(report["repo_summary"]["actionable_changed"], 1)
+        self.assertEqual(report["changed"][0]["repo_impact"]["category"], "actionable")
+        self.assertEqual(
+            report["changed"][0]["repo_impact"]["schema_rules"],
+            ["Chat flexible tool payload"],
+        )
+
     def test_responses_value_tool_and_output_drift_is_classified_as_already_supported(self):
         baseline = build_spec(
             method="post",
@@ -755,6 +904,81 @@ class OpenApiDriftReportTests(unittest.TestCase):
         self.assertEqual(
             report["changed"][0]["repo_impact"]["schema_rules"],
             ["Responses flexible output payload", "Responses flexible tool payload"],
+        )
+
+    def test_preset_responses_tool_drift_is_classified_as_already_supported(self):
+        baseline = build_spec(
+            method="post",
+            path="/presets/{slug}/responses",
+            operation_id="createResponsesPreset",
+            request_properties={
+                "tools": {
+                    "items": {
+                        "anyOf": [
+                            {
+                                "properties": {
+                                    "name": {"type": "string"},
+                                    "type": {"enum": ["function"], "type": "string"},
+                                },
+                                "required": ["type", "name"],
+                                "type": "object",
+                            }
+                        ]
+                    },
+                    "type": "array",
+                }
+            },
+        )
+        candidate = build_spec(
+            method="post",
+            path="/presets/{slug}/responses",
+            operation_id="createResponsesPreset",
+            request_properties={
+                "tools": {
+                    "items": {
+                        "anyOf": [
+                            {
+                                "properties": {
+                                    "name": {"type": "string"},
+                                    "type": {"enum": ["function"], "type": "string"},
+                                },
+                                "required": ["type", "name"],
+                                "type": "object",
+                            },
+                            {
+                                "properties": {
+                                    "type": {
+                                        "enum": ["openrouter:datetime"],
+                                        "type": "string",
+                                    },
+                                },
+                                "required": ["type"],
+                                "type": "object",
+                            },
+                        ]
+                    },
+                    "type": "array",
+                }
+            },
+        )
+
+        report = openapi_drift.build_report(
+            baseline_spec=baseline,
+            candidate_spec=candidate,
+            baseline_label="baseline",
+            candidate_label="candidate",
+            source_url="https://example.com/openapi.json",
+            max_diff_lines=20,
+        )
+
+        self.assertTrue(report["has_drift"])
+        self.assertFalse(report["has_actionable_drift"])
+        self.assertEqual(report["repo_summary"]["already_supported_changed"], 1)
+        self.assertEqual(report["repo_summary"]["actionable_changed"], 0)
+        self.assertEqual(report["changed"][0]["repo_impact"]["category"], "already_supported")
+        self.assertEqual(
+            report["changed"][0]["repo_impact"]["schema_rules"],
+            ["Responses flexible tool payload"],
         )
 
     def test_responses_flexible_container_type_changes_remain_actionable(self):

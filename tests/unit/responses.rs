@@ -13,7 +13,7 @@ use openrouter_rs::api::{
         ResponsesRequest, ResponsesResponse, ResponsesStreamEvent, create_response, stream_response,
     },
 };
-use openrouter_rs::types::OpenRouterExperimentalMetadata;
+use openrouter_rs::types::{OpenRouterExperimentalMetadata, ServerTool};
 use serde_json::json;
 
 struct CapturedRequest {
@@ -179,6 +179,30 @@ fn test_responses_request_serialization() {
 }
 
 #[test]
+fn test_responses_request_server_tool_helpers() {
+    let request = ResponsesRequest::builder()
+        .model("openai/gpt-5")
+        .input(json!("Find current docs"))
+        .server_tool(ServerTool::web_search_with_parameters(
+            json!({"max_results": 2}),
+        ))
+        .server_tool(ServerTool::datetime_with_timezone("UTC"))
+        .force_server_tool("openrouter:web_search")
+        .build()
+        .expect("responses request should build");
+
+    let value = serde_json::to_value(&request).expect("responses request should serialize");
+    assert_eq!(value["tools"][0]["type"], "openrouter:web_search");
+    assert_eq!(value["tools"][0]["parameters"]["max_results"], 2);
+    assert_eq!(value["tools"][1]["type"], "openrouter:datetime");
+    assert_eq!(value["tools"][1]["parameters"]["timezone"], "UTC");
+    assert_eq!(
+        value["tool_choice"],
+        json!({"type": "openrouter:web_search"})
+    );
+}
+
+#[test]
 fn test_responses_response_deserialization() {
     let raw = r#"{
         "id": "resp-abc123",
@@ -211,6 +235,49 @@ fn test_responses_response_deserialization() {
     assert_eq!(response.status.as_deref(), Some("completed"));
     assert!(response.output.is_some());
     assert!(response.usage.is_some());
+}
+
+#[test]
+fn test_responses_server_tool_output_items_preserve_fields() {
+    let raw = r#"{
+        "id": "resp-server-tools",
+        "object": "response",
+        "status": "completed",
+        "output": [
+            {
+                "type": "openrouter:web_search",
+                "id": "ws_tmp_abc123",
+                "status": "completed",
+                "action": {
+                    "type": "search",
+                    "query": "latest AI news",
+                    "sources": [{"type": "url", "url": "https://example.com"}]
+                }
+            },
+            {
+                "type": "openrouter:datetime",
+                "id": "dt_tmp_abc123",
+                "status": "completed",
+                "datetime": "2026-03-12T14:30:00.000Z",
+                "timezone": "UTC"
+            }
+        ]
+    }"#;
+
+    let response: ResponsesResponse =
+        serde_json::from_str(raw).expect("responses payload should deserialize");
+    let output = response.output.expect("output should be present");
+
+    assert_eq!(output[0]["type"], "openrouter:web_search");
+    assert_eq!(output[0]["status"], "completed");
+    assert_eq!(output[0]["action"]["query"], "latest AI news");
+    assert_eq!(
+        output[0]["action"]["sources"][0]["url"],
+        "https://example.com"
+    );
+    assert_eq!(output[1]["type"], "openrouter:datetime");
+    assert_eq!(output[1]["datetime"], "2026-03-12T14:30:00.000Z");
+    assert_eq!(output[1]["timezone"], "UTC");
 }
 
 #[test]

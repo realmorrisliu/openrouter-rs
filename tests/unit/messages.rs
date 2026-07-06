@@ -17,7 +17,7 @@ use openrouter_rs::api::{
         create_message, stream_messages,
     },
 };
-use openrouter_rs::types::OpenRouterExperimentalMetadata;
+use openrouter_rs::types::{OpenRouterExperimentalMetadata, ServerTool};
 use serde_json::json;
 
 #[test]
@@ -94,6 +94,32 @@ fn test_anthropic_messages_request_serialization() {
 }
 
 #[test]
+fn test_anthropic_messages_request_merges_server_tools() {
+    let request = AnthropicMessagesRequest::builder()
+        .model("anthropic/claude-sonnet-4")
+        .max_tokens(512)
+        .messages(vec![AnthropicMessage::user("What time is it?")])
+        .tool(AnthropicTool::custom(
+            "get_weather",
+            "Get weather by city",
+            json!({"type": "object"}),
+        ))
+        .server_tool(ServerTool::datetime_with_timezone("America/New_York"))
+        .build()
+        .expect("messages request should build");
+
+    let value = serde_json::to_value(&request).expect("messages request should serialize");
+    assert_eq!(value["tools"][0]["name"], "get_weather");
+    assert_eq!(value["tools"][1]["type"], "openrouter:datetime");
+    assert_eq!(
+        value["tools"][1]["parameters"]["timezone"],
+        "America/New_York"
+    );
+    assert_eq!(request.tools().map(|tools| tools.len()), Some(1));
+    assert_eq!(request.server_tools().map(|tools| tools.len()), Some(1));
+}
+
+#[test]
 fn test_anthropic_messages_response_deserialization() {
     let raw = r#"{
         "id": "msg_01XFDUDYJgAACzvnptvVoYEL",
@@ -112,7 +138,10 @@ fn test_anthropic_messages_response_deserialization() {
         "usage": {
             "input_tokens": 12,
             "output_tokens": 15,
-            "service_tier": "standard"
+            "service_tier": "standard",
+            "server_tool_use": {
+                "web_search_requests": 1
+            }
         }
     }"#;
 
@@ -129,6 +158,15 @@ fn test_anthropic_messages_response_deserialization() {
             .and_then(|usage| usage.output_tokens)
             .unwrap_or_default(),
         15
+    );
+    assert_eq!(
+        response
+            .usage
+            .as_ref()
+            .and_then(|usage| usage.extra.get("server_tool_use"))
+            .and_then(|value| value.get("web_search_requests"))
+            .and_then(|value| value.as_u64()),
+        Some(1)
     );
     assert_eq!(response.content.len(), 1);
     match &response.content[0] {

@@ -46,6 +46,8 @@
 //! let specific_choice = ToolChoice::force_tool("get_weather");
 //! ```
 
+use std::collections::HashMap;
+
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -86,6 +88,10 @@ pub struct Tool {
 
     /// Function definition
     pub function: FunctionDefinition,
+
+    /// Optional cache-control directive for provider-side prompt caching.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cache_control: Option<Value>,
 }
 
 impl Tool {
@@ -102,7 +108,9 @@ impl Tool {
                 name: name.to_string(),
                 description: description.to_string(),
                 parameters,
+                strict: None,
             },
+            cache_control: None,
         }
     }
 }
@@ -113,6 +121,8 @@ pub struct ToolBuilder {
     name: Option<String>,
     description: Option<String>,
     parameters: Option<Value>,
+    strict: Option<bool>,
+    cache_control: Option<Value>,
 }
 
 impl ToolBuilder {
@@ -127,6 +137,7 @@ impl ToolBuilder {
         self.name = Some(function.name);
         self.description = Some(function.description);
         self.parameters = Some(function.parameters);
+        self.strict = function.strict;
         self
     }
 
@@ -146,7 +157,9 @@ impl ToolBuilder {
                 name,
                 description: self.description.clone().unwrap_or_default(),
                 parameters: self.parameters.clone().unwrap_or(Value::Null),
+                strict: self.strict,
             },
+            cache_control: self.cache_control.clone(),
         })
     }
 }
@@ -170,6 +183,11 @@ pub struct FunctionDefinition {
     /// JSON Schema defining the function parameters
     #[builder(setter(custom))]
     pub parameters: Value,
+
+    /// Whether the model must strictly adhere to the parameter schema.
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub strict: Option<bool>,
 }
 
 impl FunctionDefinition {
@@ -212,6 +230,18 @@ impl ToolBuilder {
         let value: Value = serde_json::from_str(json).map_err(OpenRouterError::Serialization)?;
         Ok(self.parameters(value))
     }
+
+    /// Set the function strict-schema flag.
+    pub fn strict(&mut self, strict: bool) -> &mut Self {
+        self.strict = Some(strict);
+        self
+    }
+
+    /// Set the top-level tool cache-control payload.
+    pub fn cache_control(&mut self, cache_control: impl Into<Value>) -> &mut Self {
+        self.cache_control = Some(cache_control.into());
+        self
+    }
 }
 
 impl FunctionDefinitionBuilder {
@@ -236,6 +266,114 @@ impl FunctionDefinitionBuilder {
         let value: Value = serde_json::from_str(json).map_err(OpenRouterError::Serialization)?;
         self.parameters = Some(value);
         Ok(self)
+    }
+}
+
+/// OpenRouter built-in server tool definition.
+///
+/// Server tools are OpenRouter-hosted capabilities such as web search,
+/// datetime lookup, files, bash, and model search. They share a common wire
+/// shape: a `type`, optional `parameters`, and optional tool-specific
+/// top-level fields.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct ServerTool {
+    #[serde(rename = "type")]
+    pub tool_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parameters: Option<Value>,
+    #[serde(flatten)]
+    pub extra: HashMap<String, Value>,
+}
+
+impl ServerTool {
+    pub fn new(tool_type: impl Into<String>) -> Self {
+        Self {
+            tool_type: tool_type.into(),
+            parameters: None,
+            extra: HashMap::new(),
+        }
+    }
+
+    pub fn with_parameters(tool_type: impl Into<String>, parameters: impl Into<Value>) -> Self {
+        Self::new(tool_type).parameters(parameters)
+    }
+
+    pub fn parameters(mut self, parameters: impl Into<Value>) -> Self {
+        self.parameters = Some(parameters.into());
+        self
+    }
+
+    pub fn parameters_from<T: Serialize>(mut self, params: &T) -> Result<Self, OpenRouterError> {
+        self.parameters =
+            Some(serde_json::to_value(params).map_err(OpenRouterError::Serialization)?);
+        Ok(self)
+    }
+
+    pub fn option(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+
+    pub fn web_search() -> Self {
+        Self::new("openrouter:web_search")
+    }
+
+    pub fn web_search_with_parameters(parameters: impl Into<Value>) -> Self {
+        Self::with_parameters("openrouter:web_search", parameters)
+    }
+
+    pub fn web_search_preview() -> Self {
+        Self::new("web_search_preview")
+    }
+
+    pub fn datetime() -> Self {
+        Self::new("openrouter:datetime")
+    }
+
+    pub fn datetime_with_timezone(timezone: impl Into<String>) -> Self {
+        Self::with_parameters(
+            "openrouter:datetime",
+            serde_json::json!({ "timezone": timezone.into() }),
+        )
+    }
+
+    pub fn files() -> Self {
+        Self::new("openrouter:files")
+    }
+
+    pub fn bash() -> Self {
+        Self::new("openrouter:bash")
+    }
+
+    pub fn web_fetch() -> Self {
+        Self::new("openrouter:web_fetch")
+    }
+
+    pub fn advisor() -> Self {
+        Self::new("openrouter:advisor")
+    }
+
+    pub fn subagent() -> Self {
+        Self::new("openrouter:subagent")
+    }
+
+    pub fn image_generation() -> Self {
+        Self::new("openrouter:image_generation")
+    }
+
+    pub fn search_models() -> Self {
+        Self::new("openrouter:experimental__search_models")
+    }
+
+    pub fn apply_patch() -> Self {
+        Self::new("openrouter:apply_patch")
+    }
+}
+
+impl From<ServerTool> for Value {
+    fn from(tool: ServerTool) -> Self {
+        serde_json::to_value(tool).expect("server tool serialization should not fail")
     }
 }
 
@@ -269,6 +407,8 @@ pub enum ToolChoice {
     String(String),
     /// Force a specific tool to be called
     Specific(SpecificToolChoice),
+    /// Force a specific OpenRouter server tool to be called
+    Server(ServerToolChoice),
 }
 
 impl ToolChoice {
@@ -296,6 +436,13 @@ impl ToolChoice {
             },
         })
     }
+
+    /// Force the model to call a specific OpenRouter server tool.
+    pub fn force_server_tool(tool_type: impl Into<String>) -> Self {
+        Self::Server(ServerToolChoice {
+            tool_type: tool_type.into(),
+        })
+    }
 }
 
 /// Specific tool choice for forcing a particular tool
@@ -312,6 +459,14 @@ pub struct SpecificToolChoice {
 #[non_exhaustive]
 pub struct SpecificToolFunction {
     pub name: String,
+}
+
+/// Specific server-tool choice for forcing an OpenRouter built-in tool.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct ServerToolChoice {
+    #[serde(rename = "type")]
+    pub tool_type: String,
 }
 
 /// Helper function to create a tool with common parameter structure

@@ -4,7 +4,7 @@ use derive_builder::Builder;
 use futures_util::{StreamExt, stream::BoxStream};
 use reqwest::Client as HttpClient;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{Value, json};
 
 use crate::{
     api::chat::{CacheControl, DebugOptions, Plugin, TraceOptions},
@@ -187,6 +187,33 @@ impl ResponsesRequestBuilder {
     strip_option_vec_setter!(modalities, String);
     strip_option_vec_setter!(include, String);
     strip_option_vec_setter!(plugins, Plugin);
+
+    /// Add a single OpenRouter server tool to the request.
+    pub fn server_tool(&mut self, tool: crate::types::ServerTool) -> &mut Self {
+        if let Some(Some(ref mut existing_tools)) = self.tools {
+            existing_tools.push(Value::from(tool));
+        } else {
+            self.tools = Some(Some(vec![Value::from(tool)]));
+        }
+        self
+    }
+
+    /// Add multiple OpenRouter server tools to the request.
+    pub fn server_tools<T>(&mut self, tools: T) -> &mut Self
+    where
+        T: IntoIterator<Item = crate::types::ServerTool>,
+    {
+        for tool in tools {
+            self.server_tool(tool);
+        }
+        self
+    }
+
+    /// Force the model to call a specific OpenRouter server tool.
+    pub fn force_server_tool(&mut self, tool_type: impl Into<String>) -> &mut Self {
+        self.tool_choice = Some(Some(json!({ "type": tool_type.into() })));
+        self
+    }
 }
 
 impl ResponsesRequest {

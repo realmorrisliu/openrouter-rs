@@ -460,7 +460,7 @@ impl AnthropicOutputConfig {
 }
 
 /// Request body for `POST /messages`.
-#[derive(Serialize, Deserialize, Debug, Clone, Builder)]
+#[derive(Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
 pub struct AnthropicMessagesRequest {
@@ -507,6 +507,10 @@ pub struct AnthropicMessagesRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     tools: Option<Vec<AnthropicTool>>,
 
+    #[builder(setter(custom), default)]
+    #[serde(skip, default)]
+    server_tools: Option<Vec<crate::types::ServerTool>>,
+
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     tool_choice: Option<AnthropicToolChoice>,
@@ -552,9 +556,88 @@ pub struct AnthropicMessagesRequest {
     output_config: Option<AnthropicOutputConfig>,
 }
 
+fn insert_json_field<T, E>(
+    map: &mut serde_json::Map<String, Value>,
+    key: &str,
+    value: &T,
+) -> Result<(), E>
+where
+    T: Serialize,
+    E: serde::ser::Error,
+{
+    map.insert(
+        key.to_string(),
+        serde_json::to_value(value).map_err(E::custom)?,
+    );
+    Ok(())
+}
+
+fn insert_json_option<T, E>(
+    map: &mut serde_json::Map<String, Value>,
+    key: &str,
+    value: &Option<T>,
+) -> Result<(), E>
+where
+    T: Serialize,
+    E: serde::ser::Error,
+{
+    if let Some(value) = value {
+        insert_json_field::<T, E>(map, key, value)?;
+    }
+    Ok(())
+}
+
+impl Serialize for AnthropicMessagesRequest {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut map = serde_json::Map::new();
+
+        insert_json_field::<_, S::Error>(&mut map, "model", &self.model)?;
+        insert_json_field::<_, S::Error>(&mut map, "max_tokens", &self.max_tokens)?;
+        insert_json_field::<_, S::Error>(&mut map, "messages", &self.messages)?;
+        insert_json_option::<_, S::Error>(&mut map, "system", &self.system)?;
+        insert_json_option::<_, S::Error>(&mut map, "metadata", &self.metadata)?;
+        insert_json_option::<_, S::Error>(&mut map, "stop_sequences", &self.stop_sequences)?;
+        insert_json_option::<_, S::Error>(&mut map, "stream", &self.stream)?;
+        insert_json_option::<_, S::Error>(&mut map, "temperature", &self.temperature)?;
+        insert_json_option::<_, S::Error>(&mut map, "top_p", &self.top_p)?;
+        insert_json_option::<_, S::Error>(&mut map, "top_k", &self.top_k)?;
+
+        let anthropic_tools = self.tools.as_deref().unwrap_or_default();
+        let server_tools = self.server_tools.as_deref().unwrap_or_default();
+        if !anthropic_tools.is_empty() || !server_tools.is_empty() {
+            let mut tools = Vec::with_capacity(anthropic_tools.len() + server_tools.len());
+            for tool in anthropic_tools {
+                tools.push(serde_json::to_value(tool).map_err(serde::ser::Error::custom)?);
+            }
+            for tool in server_tools {
+                tools.push(serde_json::to_value(tool).map_err(serde::ser::Error::custom)?);
+            }
+            map.insert("tools".to_string(), Value::Array(tools));
+        }
+
+        insert_json_option::<_, S::Error>(&mut map, "tool_choice", &self.tool_choice)?;
+        insert_json_option::<_, S::Error>(&mut map, "thinking", &self.thinking)?;
+        insert_json_option::<_, S::Error>(&mut map, "service_tier", &self.service_tier)?;
+        insert_json_option::<_, S::Error>(&mut map, "provider", &self.provider)?;
+        insert_json_option::<_, S::Error>(&mut map, "plugins", &self.plugins)?;
+        insert_json_option::<_, S::Error>(&mut map, "route", &self.route)?;
+        insert_json_option::<_, S::Error>(&mut map, "user", &self.user)?;
+        insert_json_option::<_, S::Error>(&mut map, "session_id", &self.session_id)?;
+        insert_json_option::<_, S::Error>(&mut map, "trace", &self.trace)?;
+        insert_json_option::<_, S::Error>(&mut map, "models", &self.models)?;
+        insert_json_option::<_, S::Error>(&mut map, "output_config", &self.output_config)?;
+
+        Value::Object(map).serialize(serializer)
+    }
+}
+
 impl AnthropicMessagesRequestBuilder {
     strip_option_vec_setter!(stop_sequences, String);
     strip_option_vec_setter!(tools, AnthropicTool);
+    strip_option_vec_setter!(server_tools, crate::types::ServerTool);
     strip_option_vec_setter!(plugins, Plugin);
     strip_option_vec_setter!(models, String);
 
@@ -563,6 +646,15 @@ impl AnthropicMessagesRequestBuilder {
             existing_tools.push(tool);
         } else {
             self.tools = Some(Some(vec![tool]));
+        }
+        self
+    }
+
+    pub fn server_tool(&mut self, tool: crate::types::ServerTool) -> &mut Self {
+        if let Some(Some(ref mut existing_tools)) = self.server_tools {
+            existing_tools.push(tool);
+        } else {
+            self.server_tools = Some(Some(vec![tool]));
         }
         self
     }
@@ -602,6 +694,10 @@ impl AnthropicMessagesRequest {
 
     pub fn tools(&self) -> Option<&[AnthropicTool]> {
         self.tools.as_deref()
+    }
+
+    pub fn server_tools(&self) -> Option<&[crate::types::ServerTool]> {
+        self.server_tools.as_deref()
     }
 
     fn stream(&self, stream: bool) -> Self {

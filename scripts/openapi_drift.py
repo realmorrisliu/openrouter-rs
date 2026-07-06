@@ -78,6 +78,32 @@ REPO_FLEXIBLE_PLUGIN_OPERATION_KEYS = frozenset(
     {
         "POST /chat/completions",
         "POST /messages",
+        "POST /presets/{slug}/chat/completions",
+        "POST /presets/{slug}/messages",
+        "POST /presets/{slug}/responses",
+        "POST /responses",
+    }
+)
+REPO_FLEXIBLE_CHAT_TOOL_OPERATION_KEYS = frozenset(
+    {
+        "POST /chat/completions",
+        "POST /presets/{slug}/chat/completions",
+    }
+)
+REPO_FLEXIBLE_MESSAGES_TOOL_OPERATION_KEYS = frozenset(
+    {
+        "POST /messages",
+        "POST /presets/{slug}/messages",
+    }
+)
+REPO_FLEXIBLE_RESPONSES_TOOL_OPERATION_KEYS = frozenset(
+    {
+        "POST /presets/{slug}/responses",
+        "POST /responses",
+    }
+)
+REPO_FLEXIBLE_RESPONSES_OUTPUT_OPERATION_KEYS = frozenset(
+    {
         "POST /responses",
     }
 )
@@ -455,21 +481,40 @@ def is_repo_supported_messages_tool_payload_path(
     operation_key: str,
     path: tuple[Any, ...],
 ) -> bool:
-    return operation_key == "POST /messages" and is_request_schema_property_path(path, "tools")
+    return (
+        operation_key in REPO_FLEXIBLE_MESSAGES_TOOL_OPERATION_KEYS
+        and is_request_schema_property_path(path, "tools")
+    )
+
+
+def is_repo_supported_chat_tool_payload_path(
+    operation_key: str,
+    path: tuple[Any, ...],
+) -> bool:
+    return (
+        operation_key in REPO_FLEXIBLE_CHAT_TOOL_OPERATION_KEYS
+        and is_request_schema_property_path(path, "tools")
+    )
 
 
 def is_repo_supported_responses_tool_payload_path(
     operation_key: str,
     path: tuple[Any, ...],
 ) -> bool:
-    return operation_key == "POST /responses" and is_request_schema_property_path(path, "tools")
+    return (
+        operation_key in REPO_FLEXIBLE_RESPONSES_TOOL_OPERATION_KEYS
+        and is_request_schema_property_path(path, "tools")
+    )
 
 
 def is_repo_supported_responses_output_payload_path(
     operation_key: str,
     path: tuple[Any, ...],
 ) -> bool:
-    return operation_key == "POST /responses" and is_response_schema_property_path(path, "output")
+    return (
+        operation_key in REPO_FLEXIBLE_RESPONSES_OUTPUT_OPERATION_KEYS
+        and is_response_schema_property_path(path, "output")
+    )
 
 
 def is_repo_supported_flexible_plugin_payload(
@@ -488,6 +533,16 @@ def is_repo_supported_messages_tool_payload(
     value: Any,
 ) -> bool:
     return is_repo_supported_messages_tool_payload_path(
+        operation_key, path
+    ) and schema_has_type(value, "array")
+
+
+def is_repo_supported_chat_tool_payload(
+    operation_key: str,
+    path: tuple[Any, ...],
+    value: Any,
+) -> bool:
+    return is_repo_supported_chat_tool_payload_path(
         operation_key, path
     ) and schema_has_type(value, "array")
 
@@ -523,6 +578,9 @@ def strip_repo_supported_schema_details(
 
         if is_repo_supported_messages_tool_payload(operation_key, path, value):
             return {"<repo-supported-messages-tool-payload>": True}
+
+        if is_repo_supported_chat_tool_payload(operation_key, path, value):
+            return {"<repo-supported-chat-tool-payload>": True}
 
         if is_repo_supported_responses_tool_payload(operation_key, path, value):
             return {"<repo-supported-responses-tool-payload>": True}
@@ -580,6 +638,8 @@ def collect_repo_supported_schema_rules(operation_key: str, value: Any) -> list[
                 rules.add("flexible plugin payload")
             if is_repo_supported_messages_tool_payload(operation_key, path, item):
                 rules.add("Messages flexible tool payload")
+            if is_repo_supported_chat_tool_payload(operation_key, path, item):
+                rules.add("Chat flexible tool payload")
             if is_repo_supported_responses_tool_payload(operation_key, path, item):
                 rules.add("Responses flexible tool payload")
             if is_repo_supported_responses_output_payload(operation_key, path, item):

@@ -210,6 +210,13 @@ pub struct WorkspaceMember {
     pub created_at: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct ListWorkspaceMembersResponse {
+    pub data: Vec<WorkspaceMember>,
+    pub total_count: f64,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
@@ -599,6 +606,46 @@ pub(crate) async fn delete_workspace_budget_with_client(
         let payload: DeleteWorkspaceBudgetResponse =
             transport_response::parse_json_response(response, "workspace budget deletion").await?;
         Ok(payload.deleted)
+    } else {
+        transport_response::handle_error(response).await?;
+        unreachable!()
+    }
+}
+
+pub async fn list_workspace_members(
+    base_url: &str,
+    management_key: &str,
+    id: &str,
+    pagination: Option<PaginationOptions>,
+) -> Result<ListWorkspaceMembersResponse, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    list_workspace_members_with_client(&http_client, base_url, management_key, id, pagination).await
+}
+
+pub(crate) async fn list_workspace_members_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    management_key: &str,
+    id: &str,
+    pagination: Option<PaginationOptions>,
+) -> Result<ListWorkspaceMembersResponse, OpenRouterError> {
+    let url = format!("{base_url}/workspaces/{}/members", encode(id));
+    let query = ListWorkspacesQuery {
+        offset: pagination.and_then(|p| p.offset),
+        limit: pagination.and_then(|p| p.limit),
+    };
+    let req = transport_request::with_bearer_auth(
+        transport_request::get(http_client, &url),
+        management_key,
+    );
+    let response = if query.offset.is_none() && query.limit.is_none() {
+        req.send().await?
+    } else {
+        req.query(&query).send().await?
+    };
+
+    if response.status().is_success() {
+        transport_response::parse_json_response(response, "workspace member list").await
     } else {
         transport_response::handle_error(response).await?;
         unreachable!()

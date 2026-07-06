@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-06-29T14:45:40+00:00",
+  "captured_at": "2026-07-06T03:28:58+00:00",
   "info": {
     "contact": {
       "email": "support@openrouter.ai",
@@ -14,7 +14,7 @@
     "title": "OpenRouter API",
     "version": "1.0.0"
   },
-  "operation_count": 87,
+  "operation_count": 88,
   "operations": [
     {
       "deprecated": false,
@@ -601,6 +601,17 @@
     },
     {
       "deprecated": false,
+      "fingerprint": "152669ca130f94c3",
+      "id": "GET /workspaces/{id}/members",
+      "method": "GET",
+      "operation_id": "listWorkspaceMembers",
+      "path": "/workspaces/{id}/members",
+      "tags": [
+        "Workspaces"
+      ]
+    },
+    {
+      "deprecated": false,
       "fingerprint": "bfe80e24eca398d9",
       "id": "PATCH /byok/{id}",
       "method": "PATCH",
@@ -722,7 +733,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "195ae999d7774ddc",
+      "fingerprint": "1ad793dc6337d5a1",
       "id": "POST /chat/completions",
       "method": "POST",
       "operation_id": "sendChatCompletionRequest",
@@ -865,7 +876,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "1b40c868f2e81ab7",
+      "fingerprint": "240209c788ebed75",
       "id": "POST /presets/{slug}/chat/completions",
       "method": "POST",
       "operation_id": "createPresetsChatCompletions",
@@ -887,7 +898,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "3bd42e9634a515f5",
+      "fingerprint": "27e9667881aacbe3",
       "id": "POST /presets/{slug}/responses",
       "method": "POST",
       "operation_id": "createPresetsResponses",
@@ -909,7 +920,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "c3356b21052c4b2a",
+      "fingerprint": "148aa2cd8a4bbf97",
       "id": "POST /responses",
       "method": "POST",
       "operation_id": "createResponses",
