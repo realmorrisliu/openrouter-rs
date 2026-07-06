@@ -120,6 +120,54 @@ fn test_anthropic_messages_request_merges_server_tools() {
 }
 
 #[test]
+fn test_anthropic_messages_request_deserializes_server_tools_from_merged_tools_array() {
+    let request: AnthropicMessagesRequest = serde_json::from_value(json!({
+        "model": "anthropic/claude-sonnet-4",
+        "max_tokens": 512,
+        "messages": [{"role": "user", "content": "Search and inspect files"}],
+        "tools": [
+            {
+                "type": "custom",
+                "name": "get_weather",
+                "description": "Get weather by city",
+                "input_schema": {"type": "object"}
+            },
+            {
+                "type": "openrouter:datetime",
+                "parameters": {"timezone": "UTC"}
+            },
+            {
+                "type": "openrouter:files"
+            }
+        ]
+    }))
+    .expect("messages request should deserialize");
+
+    let anthropic_tools = request
+        .tools()
+        .expect("Anthropic tools should be preserved");
+    assert_eq!(anthropic_tools.len(), 1);
+    assert_eq!(anthropic_tools[0].name, "get_weather");
+    assert_eq!(anthropic_tools[0].tool_type.as_deref(), Some("custom"));
+
+    let server_tools = request
+        .server_tools()
+        .expect("server tools should be preserved");
+    assert_eq!(server_tools.len(), 2);
+    assert_eq!(server_tools[0].tool_type, "openrouter:datetime");
+    assert_eq!(
+        server_tools[0].parameters.as_ref().unwrap()["timezone"],
+        "UTC"
+    );
+    assert_eq!(server_tools[1].tool_type, "openrouter:files");
+
+    let value = serde_json::to_value(&request).expect("request should serialize");
+    assert_eq!(value["tools"][0]["name"], "get_weather");
+    assert_eq!(value["tools"][1]["type"], "openrouter:datetime");
+    assert_eq!(value["tools"][2]["type"], "openrouter:files");
+}
+
+#[test]
 fn test_anthropic_messages_request_preserves_explicit_empty_tools_array() {
     let request = AnthropicMessagesRequest::builder()
         .model("anthropic/claude-sonnet-4")
@@ -602,6 +650,7 @@ async fn test_create_message_sets_stream_false_and_headers() {
         .model("anthropic/claude-sonnet-4")
         .max_tokens(128)
         .messages(vec![AnthropicMessage::user("hello")])
+        .server_tool(ServerTool::files())
         .experimental_metadata(OpenRouterExperimentalMetadata::Enabled)
         .build()
         .expect("messages request should build");
@@ -660,10 +709,16 @@ async fn test_create_message_sets_stream_false_and_headers() {
             || headers_lower.contains("x-openrouter-metadata:enabled"),
         "experimental metadata header should be present, headers:\n{header_text}"
     );
+    assert!(
+        headers_lower.contains("x-openrouter-file-ids: openrouter")
+            || headers_lower.contains("x-openrouter-file-ids:openrouter"),
+        "files tool header should be present, headers:\n{header_text}"
+    );
 
     let request_json: serde_json::Value =
         serde_json::from_str(&request_body).expect("request body should be valid json");
     assert_eq!(request_json["stream"], false);
+    assert_eq!(request_json["tools"][0]["type"], "openrouter:files");
     assert!(request_json.get("experimental_metadata").is_none());
 
     server.join().expect("server thread should finish");

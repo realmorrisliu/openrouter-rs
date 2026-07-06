@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use derive_builder::Builder;
 use futures_util::{StreamExt, stream::BoxStream};
 use reqwest::Client as HttpClient;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de};
 use serde_json::Value;
 
 use crate::{
@@ -470,7 +470,7 @@ impl From<Vec<String>> for StopSequence {
     }
 }
 
-#[derive(Deserialize, Debug, Clone, Builder)]
+#[derive(Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
 pub struct ChatCompletionRequest {
@@ -480,156 +480,260 @@ pub struct ChatCompletionRequest {
     messages: Vec<Message>,
 
     #[builder(setter(skip), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     stream: Option<bool>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip)]
     experimental_metadata: Option<OpenRouterExperimentalMetadata>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     max_tokens: Option<u32>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     max_completion_tokens: Option<u32>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     temperature: Option<f64>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     seed: Option<u32>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     top_p: Option<f64>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     top_k: Option<u32>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     frequency_penalty: Option<f64>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     presence_penalty: Option<f64>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     repetition_penalty: Option<f64>,
 
     #[builder(setter(custom), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     logit_bias: Option<HashMap<String, f64>>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     logprobs: Option<bool>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     top_logprobs: Option<u32>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     min_p: Option<f64>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     top_a: Option<f64>,
 
     #[builder(setter(custom), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     transforms: Option<Vec<String>>,
 
     #[builder(setter(custom), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     models: Option<Vec<String>>,
 
     #[builder(setter(into, strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     route: Option<String>,
 
     #[builder(setter(into, strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     user: Option<String>,
 
     #[builder(setter(into, strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     session_id: Option<String>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     cache_control: Option<CacheControl>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     trace: Option<TraceOptions>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     provider: Option<ProviderPreferences>,
 
     #[builder(setter(custom), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     metadata: Option<HashMap<String, String>>,
 
     #[builder(setter(custom), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     plugins: Option<Vec<Plugin>>,
 
     #[builder(setter(custom), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     modalities: Option<Vec<Modality>>,
 
     #[builder(setter(custom), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     image_config: Option<HashMap<String, Value>>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     response_format: Option<ResponseFormat>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     reasoning: Option<ReasoningConfig>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     include_reasoning: Option<bool>,
 
     #[builder(setter(into, strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     stop: Option<StopSequence>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     stream_options: Option<StreamOptions>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     debug: Option<DebugOptions>,
 
     #[builder(setter(custom), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     tools: Option<Vec<crate::types::Tool>>,
 
     #[builder(setter(custom), default)]
-    #[serde(skip, default)]
     server_tools: Option<Vec<crate::types::ServerTool>>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     tool_choice: Option<crate::types::ToolChoice>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     parallel_tool_calls: Option<bool>,
+}
+
+#[derive(Deserialize)]
+struct ChatCompletionRequestWire {
+    model: String,
+    messages: Vec<Message>,
+    stream: Option<bool>,
+    #[serde(skip)]
+    experimental_metadata: Option<OpenRouterExperimentalMetadata>,
+    max_tokens: Option<u32>,
+    max_completion_tokens: Option<u32>,
+    temperature: Option<f64>,
+    seed: Option<u32>,
+    top_p: Option<f64>,
+    top_k: Option<u32>,
+    frequency_penalty: Option<f64>,
+    presence_penalty: Option<f64>,
+    repetition_penalty: Option<f64>,
+    logit_bias: Option<HashMap<String, f64>>,
+    logprobs: Option<bool>,
+    top_logprobs: Option<u32>,
+    min_p: Option<f64>,
+    top_a: Option<f64>,
+    transforms: Option<Vec<String>>,
+    models: Option<Vec<String>>,
+    route: Option<String>,
+    user: Option<String>,
+    session_id: Option<String>,
+    cache_control: Option<CacheControl>,
+    trace: Option<TraceOptions>,
+    provider: Option<ProviderPreferences>,
+    metadata: Option<HashMap<String, String>>,
+    plugins: Option<Vec<Plugin>>,
+    modalities: Option<Vec<Modality>>,
+    image_config: Option<HashMap<String, Value>>,
+    response_format: Option<ResponseFormat>,
+    reasoning: Option<ReasoningConfig>,
+    include_reasoning: Option<bool>,
+    stop: Option<StopSequence>,
+    stream_options: Option<StreamOptions>,
+    debug: Option<DebugOptions>,
+    tools: Option<Vec<Value>>,
+    tool_choice: Option<crate::types::ToolChoice>,
+    parallel_tool_calls: Option<bool>,
+}
+
+type SplitChatTools = (
+    Option<Vec<crate::types::Tool>>,
+    Option<Vec<crate::types::ServerTool>>,
+);
+
+impl<'de> Deserialize<'de> for ChatCompletionRequest {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let wire = ChatCompletionRequestWire::deserialize(deserializer)?;
+        let (tools, server_tools) = split_chat_request_tools(wire.tools)
+            .map_err(|error| de::Error::custom(format!("invalid chat tools entry: {error}")))?;
+
+        Ok(Self {
+            model: wire.model,
+            messages: wire.messages,
+            stream: wire.stream,
+            experimental_metadata: wire.experimental_metadata,
+            max_tokens: wire.max_tokens,
+            max_completion_tokens: wire.max_completion_tokens,
+            temperature: wire.temperature,
+            seed: wire.seed,
+            top_p: wire.top_p,
+            top_k: wire.top_k,
+            frequency_penalty: wire.frequency_penalty,
+            presence_penalty: wire.presence_penalty,
+            repetition_penalty: wire.repetition_penalty,
+            logit_bias: wire.logit_bias,
+            logprobs: wire.logprobs,
+            top_logprobs: wire.top_logprobs,
+            min_p: wire.min_p,
+            top_a: wire.top_a,
+            transforms: wire.transforms,
+            models: wire.models,
+            route: wire.route,
+            user: wire.user,
+            session_id: wire.session_id,
+            cache_control: wire.cache_control,
+            trace: wire.trace,
+            provider: wire.provider,
+            metadata: wire.metadata,
+            plugins: wire.plugins,
+            modalities: wire.modalities,
+            image_config: wire.image_config,
+            response_format: wire.response_format,
+            reasoning: wire.reasoning,
+            include_reasoning: wire.include_reasoning,
+            stop: wire.stop,
+            stream_options: wire.stream_options,
+            debug: wire.debug,
+            tools,
+            server_tools,
+            tool_choice: wire.tool_choice,
+            parallel_tool_calls: wire.parallel_tool_calls,
+        })
+    }
+}
+
+fn split_chat_request_tools(
+    tools: Option<Vec<Value>>,
+) -> Result<SplitChatTools, serde_json::Error> {
+    let Some(values) = tools else {
+        return Ok((None, None));
+    };
+    let was_empty = values.is_empty();
+    let mut function_tools = Vec::new();
+    let mut server_tools = Vec::new();
+
+    for value in values {
+        let is_function_tool = value.get("function").is_some()
+            || value
+                .get("type")
+                .and_then(Value::as_str)
+                .is_some_and(|tool_type| tool_type == "function");
+        if is_function_tool {
+            function_tools.push(serde_json::from_value(value)?);
+        } else if crate::types::ServerTool::is_server_tool_value(&value) {
+            server_tools.push(serde_json::from_value(value)?);
+        } else {
+            function_tools.push(serde_json::from_value(value)?);
+        }
+    }
+
+    let tools = if function_tools.is_empty() && !was_empty {
+        None
+    } else {
+        Some(function_tools)
+    };
+    let server_tools = if server_tools.is_empty() {
+        None
+    } else {
+        Some(server_tools)
+    };
+
+    Ok((tools, server_tools))
 }
 
 fn insert_json_field<T, E>(
@@ -965,6 +1069,12 @@ impl ChatCompletionRequest {
         self.server_tools.as_deref()
     }
 
+    pub(crate) fn requires_openrouter_files_tool_header(&self) -> bool {
+        self.server_tools
+            .as_deref()
+            .is_some_and(|tools| tools.iter().any(crate::types::ServerTool::is_files_tool))
+    }
+
     /// Get the tool choice setting
     pub fn tool_choice(&self) -> Option<&crate::types::ToolChoice> {
         self.tool_choice.as_ref()
@@ -1039,7 +1149,7 @@ pub(crate) async fn send_chat_completion_with_client(
     // Ensure that the request is not streaming to get a single response
     let request = request.stream(false);
 
-    let response = transport_request::with_experimental_metadata_header(
+    let request_builder = transport_request::with_experimental_metadata_header(
         transport_request::with_client_request_headers(
             transport_request::post(http_client, &url),
             api_key,
@@ -1048,10 +1158,13 @@ pub(crate) async fn send_chat_completion_with_client(
             app_categories,
         )?,
         &request.experimental_metadata,
-    )
-    .json(&request)
-    .send()
-    .await?;
+    );
+    let request_builder = transport_request::with_openrouter_files_tool_header(
+        request_builder,
+        request.requires_openrouter_files_tool_header(),
+    );
+
+    let response = request_builder.json(&request).send().await?;
 
     if response.status().is_success() {
         transport_response::parse_json_response(response, "chat completion").await
@@ -1107,7 +1220,7 @@ pub(crate) async fn stream_chat_completion_with_client(
     // Ensure that the request is streaming to get a continuous response
     let request = request.stream(true);
 
-    let response = transport_request::with_experimental_metadata_header(
+    let request_builder = transport_request::with_experimental_metadata_header(
         transport_request::with_client_request_headers(
             transport_request::post(http_client, &url),
             api_key,
@@ -1116,10 +1229,13 @@ pub(crate) async fn stream_chat_completion_with_client(
             app_categories,
         )?,
         &request.experimental_metadata,
-    )
-    .json(&request)
-    .send()
-    .await?;
+    );
+    let request_builder = transport_request::with_openrouter_files_tool_header(
+        request_builder,
+        request.requires_openrouter_files_tool_header(),
+    );
+
+    let response = request_builder.json(&request).send().await?;
 
     if response.status().is_success() {
         let lines = parse_sse_frames(response_lines(response))

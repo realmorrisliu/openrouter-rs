@@ -369,6 +369,41 @@ impl ServerTool {
     pub fn apply_patch() -> Self {
         Self::new("openrouter:apply_patch")
     }
+
+    pub(crate) fn is_server_tool_type(tool_type: &str) -> bool {
+        tool_type.starts_with("openrouter:")
+            || matches!(
+                tool_type,
+                "web_search"
+                    | "web_search_2025_08_26"
+                    | "web_search_preview"
+                    | "web_search_preview_2025_03_11"
+                    | "apply_patch"
+                    | "shell"
+            )
+    }
+
+    pub(crate) fn is_files_tool_type(tool_type: &str) -> bool {
+        matches!(tool_type, "openrouter:files" | "files")
+    }
+
+    pub(crate) fn is_files_tool(&self) -> bool {
+        Self::is_files_tool_type(&self.tool_type)
+    }
+
+    pub(crate) fn is_server_tool_value(value: &Value) -> bool {
+        value
+            .get("type")
+            .and_then(Value::as_str)
+            .is_some_and(Self::is_server_tool_type)
+    }
+
+    pub(crate) fn is_files_tool_value(value: &Value) -> bool {
+        value
+            .get("type")
+            .and_then(Value::as_str)
+            .is_some_and(Self::is_files_tool_type)
+    }
 }
 
 impl From<ServerTool> for Value {

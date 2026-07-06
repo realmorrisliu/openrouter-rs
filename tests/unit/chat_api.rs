@@ -11,7 +11,7 @@ use openrouter_rs::{
     api::chat::{
         ChatCompletionRequestBuilder, Message, send_chat_completion, stream_chat_completion,
     },
-    types::{OpenRouterExperimentalMetadata, Role, completion::CompletionsResponse},
+    types::{OpenRouterExperimentalMetadata, Role, ServerTool, completion::CompletionsResponse},
 };
 
 struct CapturedRequest {
@@ -185,6 +185,42 @@ async fn test_send_chat_completion_sets_stream_false_and_headers() {
     assert_eq!(request_json["stream"], false);
     assert_eq!(request_json["model"], "openai/gpt-4o-mini");
     assert!(request_json.get("experimental_metadata").is_none());
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_send_chat_completion_sets_files_tool_header() {
+    let (base_url, rx, server) = spawn_server(
+        r#"{"id":"gen-files","choices":[{"message":{"role":"assistant","content":"ok"}}],"created":1700000000,"model":"test-model","object":"chat.completion"}"#,
+        "application/json",
+    );
+
+    let request = ChatCompletionRequestBuilder::default()
+        .model("openai/gpt-4o-mini")
+        .messages(vec![Message::new(Role::User, "inspect uploaded files")])
+        .server_tool(ServerTool::files())
+        .build()
+        .expect("chat request should build");
+
+    send_chat_completion(&base_url, "api-key", &None, &None, &None, &request)
+        .await
+        .expect("send_chat_completion should succeed");
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    let headers_lower = captured.header_text.to_ascii_lowercase();
+    assert!(
+        headers_lower.contains("x-openrouter-file-ids: openrouter")
+            || headers_lower.contains("x-openrouter-file-ids:openrouter"),
+        "files tool header should be present, headers:\n{}",
+        captured.header_text
+    );
+
+    let request_json: serde_json::Value =
+        serde_json::from_str(&captured.body_text).expect("request body should be valid JSON");
+    assert_eq!(request_json["tools"][0]["type"], "openrouter:files");
 
     server.join().expect("server thread should finish");
 }

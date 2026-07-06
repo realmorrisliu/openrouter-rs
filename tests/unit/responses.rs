@@ -362,6 +362,7 @@ async fn test_create_response_sets_stream_false_and_headers() {
     let request = ResponsesRequest::builder()
         .model("openai/gpt-5")
         .input(json!([{"role":"user","content":"hello"}]))
+        .server_tool(ServerTool::files())
         .experimental_metadata(OpenRouterExperimentalMetadata::Enabled)
         .build()
         .expect("responses request should build");
@@ -425,11 +426,18 @@ async fn test_create_response_sets_stream_false_and_headers() {
         "experimental metadata header should be present, headers:\n{}",
         captured.header_text
     );
+    assert!(
+        headers_lower.contains("x-openrouter-file-ids: openrouter")
+            || headers_lower.contains("x-openrouter-file-ids:openrouter"),
+        "files tool header should be present, headers:\n{}",
+        captured.header_text
+    );
 
     let request_json: serde_json::Value =
         serde_json::from_str(&captured.body_text).expect("request body should be valid JSON");
     assert_eq!(request_json["stream"], false);
     assert_eq!(request_json["model"], "openai/gpt-5");
+    assert_eq!(request_json["tools"][0]["type"], "openrouter:files");
     assert!(request_json.get("experimental_metadata").is_none());
 
     server.join().expect("server thread should finish");

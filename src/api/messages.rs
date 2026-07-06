@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use derive_builder::Builder;
 use futures_util::{StreamExt, stream::BoxStream};
 use reqwest::Client as HttpClient;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de};
 use serde_json::{Value, json};
 
 use crate::{
@@ -460,7 +460,7 @@ impl AnthropicOutputConfig {
 }
 
 /// Request body for `POST /messages`.
-#[derive(Deserialize, Debug, Clone, Builder)]
+#[derive(Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
 pub struct AnthropicMessagesRequest {
@@ -472,88 +472,173 @@ pub struct AnthropicMessagesRequest {
     messages: Vec<AnthropicMessage>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     system: Option<AnthropicSystemPrompt>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     metadata: Option<AnthropicMessagesMetadata>,
 
     #[builder(setter(custom), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     stop_sequences: Option<Vec<String>>,
 
     #[builder(setter(skip), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     stream: Option<bool>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip)]
     experimental_metadata: Option<OpenRouterExperimentalMetadata>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     temperature: Option<f64>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     top_p: Option<f64>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     top_k: Option<u32>,
 
     #[builder(setter(custom), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     tools: Option<Vec<AnthropicTool>>,
 
     #[builder(setter(custom), default)]
-    #[serde(skip, default)]
     server_tools: Option<Vec<crate::types::ServerTool>>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     tool_choice: Option<AnthropicToolChoice>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     thinking: Option<AnthropicThinking>,
 
     #[builder(setter(into, strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     service_tier: Option<String>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     provider: Option<ProviderPreferences>,
 
     #[builder(setter(custom), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     plugins: Option<Vec<Plugin>>,
 
     #[builder(setter(into, strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     route: Option<String>,
 
     #[builder(setter(into, strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     user: Option<String>,
 
     #[builder(setter(into, strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     session_id: Option<String>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     trace: Option<TraceOptions>,
 
     #[builder(setter(custom), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     models: Option<Vec<String>>,
 
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     output_config: Option<AnthropicOutputConfig>,
+}
+
+#[derive(Deserialize)]
+struct AnthropicMessagesRequestWire {
+    model: String,
+    max_tokens: u32,
+    messages: Vec<AnthropicMessage>,
+    system: Option<AnthropicSystemPrompt>,
+    metadata: Option<AnthropicMessagesMetadata>,
+    stop_sequences: Option<Vec<String>>,
+    stream: Option<bool>,
+    #[serde(skip)]
+    experimental_metadata: Option<OpenRouterExperimentalMetadata>,
+    temperature: Option<f64>,
+    top_p: Option<f64>,
+    top_k: Option<u32>,
+    tools: Option<Vec<Value>>,
+    tool_choice: Option<AnthropicToolChoice>,
+    thinking: Option<AnthropicThinking>,
+    service_tier: Option<String>,
+    provider: Option<ProviderPreferences>,
+    plugins: Option<Vec<Plugin>>,
+    route: Option<String>,
+    user: Option<String>,
+    session_id: Option<String>,
+    trace: Option<TraceOptions>,
+    models: Option<Vec<String>>,
+    output_config: Option<AnthropicOutputConfig>,
+}
+
+type SplitAnthropicMessageTools = (
+    Option<Vec<AnthropicTool>>,
+    Option<Vec<crate::types::ServerTool>>,
+);
+
+impl<'de> Deserialize<'de> for AnthropicMessagesRequest {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let wire = AnthropicMessagesRequestWire::deserialize(deserializer)?;
+        let (tools, server_tools) = split_anthropic_message_tools(wire.tools).map_err(|error| {
+            de::Error::custom(format!("invalid Anthropic messages tools entry: {error}"))
+        })?;
+
+        Ok(Self {
+            model: wire.model,
+            max_tokens: wire.max_tokens,
+            messages: wire.messages,
+            system: wire.system,
+            metadata: wire.metadata,
+            stop_sequences: wire.stop_sequences,
+            stream: wire.stream,
+            experimental_metadata: wire.experimental_metadata,
+            temperature: wire.temperature,
+            top_p: wire.top_p,
+            top_k: wire.top_k,
+            tools,
+            server_tools,
+            tool_choice: wire.tool_choice,
+            thinking: wire.thinking,
+            service_tier: wire.service_tier,
+            provider: wire.provider,
+            plugins: wire.plugins,
+            route: wire.route,
+            user: wire.user,
+            session_id: wire.session_id,
+            trace: wire.trace,
+            models: wire.models,
+            output_config: wire.output_config,
+        })
+    }
+}
+
+fn split_anthropic_message_tools(
+    tools: Option<Vec<Value>>,
+) -> Result<SplitAnthropicMessageTools, serde_json::Error> {
+    let Some(values) = tools else {
+        return Ok((None, None));
+    };
+    let was_empty = values.is_empty();
+    let mut anthropic_tools = Vec::new();
+    let mut server_tools = Vec::new();
+
+    for value in values {
+        if value.get("name").is_some() {
+            anthropic_tools.push(serde_json::from_value(value)?);
+        } else if crate::types::ServerTool::is_server_tool_value(&value) {
+            server_tools.push(serde_json::from_value(value)?);
+        } else {
+            anthropic_tools.push(serde_json::from_value(value)?);
+        }
+    }
+
+    let tools = if anthropic_tools.is_empty() && !was_empty {
+        None
+    } else {
+        Some(anthropic_tools)
+    };
+    let server_tools = if server_tools.is_empty() {
+        None
+    } else {
+        Some(server_tools)
+    };
+
+    Ok((tools, server_tools))
 }
 
 fn insert_json_field<T, E>(
@@ -698,6 +783,12 @@ impl AnthropicMessagesRequest {
 
     pub fn server_tools(&self) -> Option<&[crate::types::ServerTool]> {
         self.server_tools.as_deref()
+    }
+
+    pub(crate) fn requires_openrouter_files_tool_header(&self) -> bool {
+        self.server_tools
+            .as_deref()
+            .is_some_and(|tools| tools.iter().any(crate::types::ServerTool::is_files_tool))
     }
 
     fn stream(&self, stream: bool) -> Self {
@@ -845,7 +936,7 @@ pub(crate) async fn create_message_with_client(
     let url = format!("{base_url}/messages");
     let request = request.stream(false);
 
-    let response = transport_request::with_experimental_metadata_header(
+    let request_builder = transport_request::with_experimental_metadata_header(
         transport_request::with_client_request_headers(
             transport_request::post(http_client, &url),
             api_key,
@@ -854,10 +945,13 @@ pub(crate) async fn create_message_with_client(
             app_categories,
         )?,
         &request.experimental_metadata,
-    )
-    .json(&request)
-    .send()
-    .await?;
+    );
+    let request_builder = transport_request::with_openrouter_files_tool_header(
+        request_builder,
+        request.requires_openrouter_files_tool_header(),
+    );
+
+    let response = request_builder.json(&request).send().await?;
 
     if response.status().is_success() {
         let response_data: AnthropicMessagesResponse =
@@ -905,7 +999,7 @@ pub(crate) async fn stream_messages_with_client(
     let url = format!("{base_url}/messages");
     let request = request.stream(true);
 
-    let response = transport_request::with_experimental_metadata_header(
+    let request_builder = transport_request::with_experimental_metadata_header(
         transport_request::with_client_request_headers(
             transport_request::post(http_client, &url),
             api_key,
@@ -914,10 +1008,13 @@ pub(crate) async fn stream_messages_with_client(
             app_categories,
         )?,
         &request.experimental_metadata,
-    )
-    .json(&request)
-    .send()
-    .await?;
+    );
+    let request_builder = transport_request::with_openrouter_files_tool_header(
+        request_builder,
+        request.requires_openrouter_files_tool_header(),
+    );
+
+    let response = request_builder.json(&request).send().await?;
 
     if response.status().is_success() {
         let stream = parse_sse_frames(response_lines(response))

@@ -251,6 +251,14 @@ impl ResponsesRequest {
     pub fn experimental_metadata(&self) -> Option<OpenRouterExperimentalMetadata> {
         self.experimental_metadata
     }
+
+    pub(crate) fn requires_openrouter_files_tool_header(&self) -> bool {
+        self.tools.as_deref().is_some_and(|tools| {
+            tools
+                .iter()
+                .any(crate::types::ServerTool::is_files_tool_value)
+        })
+    }
 }
 
 /// Non-streaming response payload returned by `POST /responses`.
@@ -317,7 +325,7 @@ pub(crate) async fn create_response_with_client(
     let url = format!("{base_url}/responses");
     let request = request.stream(false);
 
-    let response = transport_request::with_experimental_metadata_header(
+    let request_builder = transport_request::with_experimental_metadata_header(
         transport_request::with_client_request_headers(
             transport_request::post(http_client, &url),
             api_key,
@@ -326,10 +334,13 @@ pub(crate) async fn create_response_with_client(
             app_categories,
         )?,
         &request.experimental_metadata,
-    )
-    .json(&request)
-    .send()
-    .await?;
+    );
+    let request_builder = transport_request::with_openrouter_files_tool_header(
+        request_builder,
+        request.requires_openrouter_files_tool_header(),
+    );
+
+    let response = request_builder.json(&request).send().await?;
 
     if response.status().is_success() {
         let response_data: ResponsesResponse =
@@ -375,7 +386,7 @@ pub(crate) async fn stream_response_with_client(
     let url = format!("{base_url}/responses");
     let request = request.stream(true);
 
-    let response = transport_request::with_experimental_metadata_header(
+    let request_builder = transport_request::with_experimental_metadata_header(
         transport_request::with_client_request_headers(
             transport_request::post(http_client, &url),
             api_key,
@@ -384,10 +395,13 @@ pub(crate) async fn stream_response_with_client(
             app_categories,
         )?,
         &request.experimental_metadata,
-    )
-    .json(&request)
-    .send()
-    .await?;
+    );
+    let request_builder = transport_request::with_openrouter_files_tool_header(
+        request_builder,
+        request.requires_openrouter_files_tool_header(),
+    );
+
+    let response = request_builder.json(&request).send().await?;
 
     if response.status().is_success() {
         let lines = parse_sse_frames(response_lines(response))

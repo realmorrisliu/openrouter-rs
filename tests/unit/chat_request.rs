@@ -272,6 +272,55 @@ fn test_chat_request_server_tool_only_serialization() {
 }
 
 #[test]
+fn test_chat_request_deserializes_server_tools_from_merged_tools_array() {
+    let request: ChatCompletionRequest = serde_json::from_value(json!({
+        "model": "openai/gpt-5",
+        "messages": [{"role": "user", "content": "Search and inspect files"}],
+        "tools": [
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_weather",
+                    "description": "Get weather by city",
+                    "parameters": {"type": "object"},
+                    "strict": true
+                },
+                "cache_control": {"type": "ephemeral"}
+            },
+            {
+                "type": "openrouter:web_search",
+                "parameters": {"max_results": 3}
+            },
+            {
+                "type": "openrouter:files"
+            }
+        ]
+    }))
+    .expect("chat request should deserialize");
+
+    let function_tools = request.tools().expect("function tools should be preserved");
+    assert_eq!(function_tools.len(), 1);
+    assert_eq!(function_tools[0].function.name, "get_weather");
+    assert_eq!(function_tools[0].function.strict, Some(true));
+
+    let server_tools = request
+        .server_tools()
+        .expect("server tools should be preserved");
+    assert_eq!(server_tools.len(), 2);
+    assert_eq!(server_tools[0].tool_type, "openrouter:web_search");
+    assert_eq!(
+        server_tools[0].parameters.as_ref().unwrap()["max_results"],
+        3
+    );
+    assert_eq!(server_tools[1].tool_type, "openrouter:files");
+
+    let value = serde_json::to_value(&request).expect("request should serialize");
+    assert_eq!(value["tools"][0]["type"], "function");
+    assert_eq!(value["tools"][1]["type"], "openrouter:web_search");
+    assert_eq!(value["tools"][2]["type"], "openrouter:files");
+}
+
+#[test]
 fn test_chat_request_preserves_explicit_empty_tools_array() {
     let request = ChatCompletionRequest::builder()
         .model("openai/gpt-5")
