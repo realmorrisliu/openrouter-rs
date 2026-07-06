@@ -79,6 +79,17 @@ pub(crate) fn with_experimental_metadata_header(
     }
 }
 
+pub(crate) fn with_openrouter_files_tool_header(
+    req: RequestBuilder,
+    include_header: bool,
+) -> RequestBuilder {
+    if include_header {
+        req.header("X-OpenRouter-File-Ids", "openrouter")
+    } else {
+        req
+    }
+}
+
 fn serialize_app_categories(
     app_categories: &[String],
 ) -> Result<String, crate::error::OpenRouterError> {
@@ -126,7 +137,10 @@ mod tests {
 
     use crate::types::OpenRouterExperimentalMetadata;
 
-    use super::{post, with_client_request_headers, with_experimental_metadata_header};
+    use super::{
+        post, with_client_request_headers, with_experimental_metadata_header,
+        with_openrouter_files_tool_header,
+    };
 
     #[test]
     fn test_with_client_request_headers_sets_auth_and_metadata() {
@@ -213,6 +227,23 @@ mod tests {
                 .get("X-OpenRouter-Metadata")
                 .expect("experimental metadata header should exist"),
             "enabled"
+        );
+    }
+
+    #[test]
+    fn test_with_openrouter_files_tool_header_sets_required_value() {
+        let client = reqwest::Client::new();
+        let request =
+            with_openrouter_files_tool_header(post(&client, "http://example.com/test"), true)
+                .build()
+                .expect("request should build");
+
+        assert_eq!(
+            request
+                .headers()
+                .get("X-OpenRouter-File-Ids")
+                .expect("files header should exist"),
+            "openrouter"
         );
     }
 }

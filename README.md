@@ -21,7 +21,7 @@ Type-safe, async Rust SDK for the OpenRouter API.
 
 `openrouter-rs` is a community-maintained Rust SDK for OpenRouter. It exposes a domain-oriented client for chat, responses, messages, rerank, audio speech/transcription, image generation, video generation, models, embeddings, files, presets, analytics, and management APIs, plus a companion CLI in the same repository.
 
-The current repo snapshot implements `87 / 87` official OpenAPI method/path entries, with published live integration coverage tracked in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md).
+The current repo snapshot implements `88 / 88` official OpenAPI method/path entries, with published live integration coverage tracked in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md).
 
 ## Why `openrouter-rs`
 
@@ -29,7 +29,7 @@ The current repo snapshot implements `87 / 87` official OpenAPI method/path entr
 - Typed request/response models with builder-style ergonomics
 - Tokio-native `reqwest + rustls` transport with no `surf` / `curl` dependency chain
 - Streaming support for chat, responses, messages, and image generation, including a unified stream abstraction
-- Typed tools, manual JSON-schema tools, and multimodal chat content
+- Typed tools, manual JSON-schema tools, OpenRouter server tools, and multimodal chat content
 - Typed chat usage metadata for token counts, OpenRouter cost, provider cost breakdowns, and BYOK status
 - Opt-in OpenRouter response metadata for chat, Responses API, and Anthropic-compatible Messages requests
 - Discovery, rankings and benchmark datasets, task classifications, rerank, audio speech/transcription, image generation, video generation, files, embeddings, API-key management, preset creation/readback/versioning, analytics, BYOK provider credentials, observability destinations, workspace management, organization members, guardrails, activity, credits, and generation metadata/content coverage
@@ -109,7 +109,7 @@ The canonical public surface is domain-oriented:
 | `videos()` | `create`, `list_models`, `get_generation`, `get_content` | `/videos*` | API key |
 | `files()` | `list`, `upload`, `get_metadata`, `download_content`, `delete` | `/files*` | API key |
 | `models()` | `list`, `list_filtered`, `list_by_category`, `list_by_parameters`, `get`, `list_endpoints`, `list_providers`, `list_user_models`, `get_model_count`, `get_rankings_daily`, `get_app_rankings`, `get_task_classifications`, `get_benchmarks`, `list_zdr_endpoints`, `create_embedding`, `list_embedding_models` | `/model*`, `/models*`, `/providers`, `/datasets/*`, `/classifications/task`, `/benchmarks`, `/endpoints/zdr`, `/embeddings*` | API key |
-| `management()` | `create_api_key`, `create_api_key_in_workspace`, `list_api_keys`, `list_api_keys_in_workspace`, `list_presets`, `get_preset`, `list_preset_versions`, `get_preset_version`, `create_chat_completion_preset`, `create_response_preset`, `create_message_preset`, `get_analytics_meta`, `query_analytics`, `list_byok_keys`, `create_byok_key`, `get_byok_key`, `update_byok_key`, `delete_byok_key`, `list_observability_destinations`, `create_observability_destination`, `get_observability_destination`, `update_observability_destination`, `delete_observability_destination`, `create_auth_code`, `create_api_key_from_auth_code`, `list_guardrails`, `list_guardrails_in_workspace`, `create_guardrail`, `list_organization_members`, `list_workspaces`, `create_workspace`, `get_workspace`, `update_workspace`, `delete_workspace`, `list_workspace_budgets`, `upsert_workspace_budget`, `delete_workspace_budget`, `add_workspace_members`, `remove_workspace_members`, `get_activity`, `get_credits`, `create_coinbase_charge`, `get_generation`, `get_generation_content` | `/keys*`, `/presets*`, `/analytics*`, `/byok*`, `/observability/destinations*`, `/auth/keys*`, `/guardrails*`, `/organization/members`, `/workspaces*`, `/activity`, `/credits*`, `/generation*`, `/key` | Governed endpoints require a management key; billing/session endpoints still use the normal API key because that is how OpenRouter authenticates them |
+| `management()` | `create_api_key`, `create_api_key_in_workspace`, `list_api_keys`, `list_api_keys_in_workspace`, `list_presets`, `get_preset`, `list_preset_versions`, `get_preset_version`, `create_chat_completion_preset`, `create_response_preset`, `create_message_preset`, `get_analytics_meta`, `query_analytics`, `list_byok_keys`, `create_byok_key`, `get_byok_key`, `update_byok_key`, `delete_byok_key`, `list_observability_destinations`, `create_observability_destination`, `get_observability_destination`, `update_observability_destination`, `delete_observability_destination`, `create_auth_code`, `create_api_key_from_auth_code`, `list_guardrails`, `list_guardrails_in_workspace`, `create_guardrail`, `list_organization_members`, `list_workspaces`, `create_workspace`, `get_workspace`, `update_workspace`, `delete_workspace`, `list_workspace_budgets`, `upsert_workspace_budget`, `delete_workspace_budget`, `list_workspace_members`, `add_workspace_members`, `remove_workspace_members`, `get_activity`, `get_credits`, `create_coinbase_charge`, `get_generation`, `get_generation_content` | `/keys*`, `/presets*`, `/analytics*`, `/byok*`, `/observability/destinations*`, `/auth/keys*`, `/guardrails*`, `/organization/members`, `/workspaces*`, `/activity`, `/credits*`, `/generation*`, `/key` | Governed endpoints require a management key; billing/session endpoints still use the normal API key because that is how OpenRouter authenticates them |
 | `legacy()` | `completions().create` | `/completions` | `legacy-completions` feature + API key |
 
 At runtime, the builder/client exposes the values the SDK directly consumes:
@@ -131,13 +131,34 @@ Chat, Responses API, and Anthropic-compatible Messages request builders also exp
 - chat completions, responses, and Anthropic-compatible messages
 - rerank, audio speech generation, audio transcription, image generation, and video generation polling/content retrieval
 - unified streaming across chat, responses, and messages
-- manual tools and typed tools backed by `schemars`
+- manual tools, typed tools backed by `schemars`, and OpenRouter server tools such as `openrouter:web_search` and `openrouter:datetime`
 - multimodal chat content, including image, audio, video, and file parts
 - model discovery, provider discovery, app rankings, task classifications, unified benchmarks, embeddings, and ZDR endpoints
 - typed generation metadata, model voice/benchmark/link metadata, workspace I/O logging controls, video callback URL support, and file upload/download workflows
-- management-key workflows for keys, workspace-scoped keys, preset reads/writes, analytics, BYOK provider credentials, observability destinations, auth codes, organization members, workspaces, workspace budgets, workspace membership, guardrails, guardrail content filters, workspace-scoped guardrails, and activity, plus API-key-authenticated credits and generation metadata/content endpoints
+- management-key workflows for keys, workspace-scoped keys, preset reads/writes, analytics, BYOK provider credentials, observability destinations, auth codes, organization members, workspaces, workspace budgets, workspace member listing/mutation, guardrails, guardrail content filters, workspace-scoped guardrails, and activity, plus API-key-authenticated credits and generation metadata/content endpoints
 
 For deeper examples, prefer the runnable examples in [`examples/`](examples) over long README snippets.
+
+### Server Tools
+
+OpenRouter server tools use the same `ServerTool` type across chat completions, Responses API, Anthropic-compatible Messages, and preset creation request bodies:
+
+```rust
+use openrouter_rs::{
+    api::chat::{ChatCompletionRequest, Message},
+    types::{Role, ServerTool},
+};
+use serde_json::json;
+
+let request = ChatCompletionRequest::builder()
+    .model("openai/gpt-5")
+    .messages(vec![Message::new(Role::User, "Find current OpenRouter docs.")])
+    .server_tool(ServerTool::web_search_with_parameters(json!({
+        "max_results": 3
+    })))
+    .force_server_tool("openrouter:web_search")
+    .build()?;
+```
 
 ## Examples
 
@@ -229,7 +250,7 @@ For copy-paste shell/CI recipes, see [`docs/operations/cli-automation-workflows.
 
 - Community-maintained third-party SDK; not affiliated with OpenRouter
 - Canonical docs and examples prefer the domain clients over older flat helpers
-- Accepted endpoint coverage is tracked against the current OpenAPI snapshot, and the current baseline is fully implemented at the SDK surface (`87 / 87`)
+- Accepted endpoint coverage is tracked against the current OpenAPI snapshot, and the current baseline is fully implemented at the SDK surface (`88 / 88`)
 - Live integration coverage and gaps are published in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md)
 - Migration guidance for the `0.9.x -> 0.10.0` public-model future-proofing release, the `0.8.x -> 0.9.0` audio speech release, the `0.7.x -> 0.8.0` transport/error-surface release, and the archived `0.5.x -> 0.6.x` naming guide lives in [`MIGRATION.md`](MIGRATION.md)
 - Legacy `POST /completions` support remains available behind the `legacy-completions` feature
@@ -332,7 +353,8 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 ### Unreleased
 
-- No unreleased changes.
+- Added OpenRouter server-tool request helpers for chat completions, Responses API, Anthropic-compatible Messages, and preset creation request bodies.
+- Added typed management-key SDK support for `GET /workspaces/{id}/members`, restoring accepted OpenAPI endpoint coverage to `88 / 88`.
 
 ### Version 0.11.1 *(Latest)*
 

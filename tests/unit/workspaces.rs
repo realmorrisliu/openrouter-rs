@@ -522,6 +522,41 @@ async fn test_list_workspace_budgets_encodes_id_path() {
 }
 
 #[tokio::test]
+async fn test_list_workspace_members_encodes_id_pagination_and_auth_header() {
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":[{"id":"wm_1","workspace_id":"ws_123","user_id":"user_123","role":"member","created_at":"2025-01-01T00:00:00.000Z"}],"total_count":1}"#,
+    );
+
+    let members = workspaces::list_workspace_members(
+        &base_url,
+        "mgmt-key",
+        "team/prod 1",
+        Some(PaginationOptions::with_offset_and_limit(2, 10)),
+    )
+    .await
+    .expect("list workspace members should succeed");
+    assert_eq!(members.total_count, 1.0);
+    assert_eq!(members.data[0].user_id, "user_123");
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/workspaces/team%2Fprod%201/members?offset=2&limit=10 HTTP/1.1"
+    );
+    let request_lower = captured.request_text.to_ascii_lowercase();
+    assert!(
+        request_lower.contains("authorization: bearer mgmt-key")
+            || request_lower.contains("authorization:bearer mgmt-key"),
+        "authorization header should include management key, request:\n{}",
+        captured.request_text
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
 async fn test_upsert_workspace_budget_encodes_path_and_body() {
     let (base_url, rx, server) = spawn_json_server(
         r#"{"data":{"id":"770e8400-e29b-41d4-a716-446655440000","workspace_id":"550e8400-e29b-41d4-a716-446655440000","limit_usd":100,"reset_interval":"monthly","created_at":"2025-08-24T10:30:00Z","updated_at":"2025-08-24T15:45:00Z"}}"#,

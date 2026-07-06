@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import datetime as dt
 import difflib
 import hashlib
@@ -78,7 +79,43 @@ REPO_FLEXIBLE_PLUGIN_OPERATION_KEYS = frozenset(
     {
         "POST /chat/completions",
         "POST /messages",
+        "POST /presets/{slug}/chat/completions",
+        "POST /presets/{slug}/messages",
+        "POST /presets/{slug}/responses",
         "POST /responses",
+    }
+)
+REPO_FLEXIBLE_CHAT_TOOL_OPERATION_KEYS = frozenset(
+    {
+        "POST /chat/completions",
+        "POST /presets/{slug}/chat/completions",
+    }
+)
+REPO_FLEXIBLE_MESSAGES_TOOL_OPERATION_KEYS = frozenset(
+    {
+        "POST /messages",
+        "POST /presets/{slug}/messages",
+    }
+)
+REPO_FLEXIBLE_RESPONSES_TOOL_OPERATION_KEYS = frozenset(
+    {
+        "POST /presets/{slug}/responses",
+        "POST /responses",
+    }
+)
+REPO_FLEXIBLE_RESPONSES_OUTPUT_OPERATION_KEYS = frozenset(
+    {
+        "POST /responses",
+    }
+)
+REPO_CHAT_SUPPORTED_FUNCTION_TOOL_FIELDS = frozenset({"cache_control"})
+REPO_CHAT_SUPPORTED_FUNCTION_DEFINITION_FIELDS = frozenset({"strict"})
+REPO_CHAT_SERVER_TOOL_TYPE_MARKERS = frozenset(
+    {
+        "web_search",
+        "web_search_2025_08_26",
+        "web_search_preview",
+        "web_search_preview_2025_03_11",
     }
 )
 BASELINE_TOP_LEVEL_FIELDS = (
@@ -455,21 +492,40 @@ def is_repo_supported_messages_tool_payload_path(
     operation_key: str,
     path: tuple[Any, ...],
 ) -> bool:
-    return operation_key == "POST /messages" and is_request_schema_property_path(path, "tools")
+    return (
+        operation_key in REPO_FLEXIBLE_MESSAGES_TOOL_OPERATION_KEYS
+        and is_request_schema_property_path(path, "tools")
+    )
+
+
+def is_repo_supported_chat_tool_payload_path(
+    operation_key: str,
+    path: tuple[Any, ...],
+) -> bool:
+    return (
+        operation_key in REPO_FLEXIBLE_CHAT_TOOL_OPERATION_KEYS
+        and is_request_schema_property_path(path, "tools")
+    )
 
 
 def is_repo_supported_responses_tool_payload_path(
     operation_key: str,
     path: tuple[Any, ...],
 ) -> bool:
-    return operation_key == "POST /responses" and is_request_schema_property_path(path, "tools")
+    return (
+        operation_key in REPO_FLEXIBLE_RESPONSES_TOOL_OPERATION_KEYS
+        and is_request_schema_property_path(path, "tools")
+    )
 
 
 def is_repo_supported_responses_output_payload_path(
     operation_key: str,
     path: tuple[Any, ...],
 ) -> bool:
-    return operation_key == "POST /responses" and is_response_schema_property_path(path, "output")
+    return (
+        operation_key in REPO_FLEXIBLE_RESPONSES_OUTPUT_OPERATION_KEYS
+        and is_response_schema_property_path(path, "output")
+    )
 
 
 def is_repo_supported_flexible_plugin_payload(
@@ -490,6 +546,113 @@ def is_repo_supported_messages_tool_payload(
     return is_repo_supported_messages_tool_payload_path(
         operation_key, path
     ) and schema_has_type(value, "array")
+
+
+def is_repo_supported_chat_tool_payload(
+    operation_key: str,
+    path: tuple[Any, ...],
+    value: Any,
+) -> bool:
+    return is_repo_supported_chat_tool_payload_path(
+        operation_key, path
+    ) and schema_has_type(value, "array")
+
+
+def schema_direct_type_values(value: Any) -> set[str]:
+    if not isinstance(value, dict):
+        return set()
+
+    properties = value.get("properties")
+    if not isinstance(properties, dict):
+        return set()
+
+    type_schema = properties.get("type")
+    return {item for item in scalar_enum_values(type_schema) if isinstance(item, str)}
+
+
+def is_repo_supported_chat_server_tool_variant(value: Any) -> bool:
+    type_values = schema_direct_type_values(value)
+    if not type_values:
+        return False
+
+    return all(
+        item != "function"
+        and (
+            item.startswith("openrouter:")
+            or item in REPO_CHAT_SERVER_TOOL_TYPE_MARKERS
+        )
+        for item in type_values
+    )
+
+
+def strip_repo_supported_chat_function_tool_fields(value: Any) -> Any:
+    if not isinstance(value, dict):
+        return value
+
+    stripped = copy.deepcopy(value)
+    properties = stripped.get("properties")
+    if not isinstance(properties, dict):
+        return stripped
+
+    for field_name in REPO_CHAT_SUPPORTED_FUNCTION_TOOL_FIELDS:
+        properties.pop(field_name, None)
+
+    function_schema = properties.get("function")
+    if isinstance(function_schema, dict):
+        function_properties = function_schema.get("properties")
+        if isinstance(function_properties, dict):
+            for field_name in REPO_CHAT_SUPPORTED_FUNCTION_DEFINITION_FIELDS:
+                function_properties.pop(field_name, None)
+
+    return stripped
+
+
+def strip_repo_supported_chat_tool_payload_details(value: Any) -> Any:
+    stripped = copy.deepcopy(value)
+    items = stripped.get("items")
+    if not isinstance(items, dict):
+        return stripped
+
+    for union_key in ("anyOf", "oneOf"):
+        variants = items.get(union_key)
+        if not isinstance(variants, list):
+            continue
+
+        items[union_key] = [
+            strip_repo_supported_chat_function_tool_fields(variant)
+            for variant in variants
+            if not is_repo_supported_chat_server_tool_variant(variant)
+        ]
+
+    return stripped
+
+
+def chat_tool_payload_has_supported_details(value: Any) -> tuple[bool, bool]:
+    if not isinstance(value, dict):
+        return (False, False)
+
+    has_server_tool_variant = False
+    has_supported_function_fields = False
+
+    items = value.get("items")
+    if not isinstance(items, dict):
+        return (False, False)
+
+    for union_key in ("anyOf", "oneOf"):
+        variants = items.get(union_key)
+        if not isinstance(variants, list):
+            continue
+
+        for variant in variants:
+            if is_repo_supported_chat_server_tool_variant(variant):
+                has_server_tool_variant = True
+                continue
+
+            stripped_variant = strip_repo_supported_chat_function_tool_fields(variant)
+            if stripped_variant != variant:
+                has_supported_function_fields = True
+
+    return (has_server_tool_variant, has_supported_function_fields)
 
 
 def is_repo_supported_responses_tool_payload(
@@ -523,6 +686,9 @@ def strip_repo_supported_schema_details(
 
         if is_repo_supported_messages_tool_payload(operation_key, path, value):
             return {"<repo-supported-messages-tool-payload>": True}
+
+        if is_repo_supported_chat_tool_payload(operation_key, path, value):
+            return strip_repo_supported_chat_tool_payload_details(value)
 
         if is_repo_supported_responses_tool_payload(operation_key, path, value):
             return {"<repo-supported-responses-tool-payload>": True}
@@ -580,6 +746,14 @@ def collect_repo_supported_schema_rules(operation_key: str, value: Any) -> list[
                 rules.add("flexible plugin payload")
             if is_repo_supported_messages_tool_payload(operation_key, path, item):
                 rules.add("Messages flexible tool payload")
+            if is_repo_supported_chat_tool_payload(operation_key, path, item):
+                has_server_tool_variant, has_supported_function_fields = (
+                    chat_tool_payload_has_supported_details(item)
+                )
+                if has_server_tool_variant:
+                    rules.add("Chat server-tool payload")
+                if has_supported_function_fields:
+                    rules.add("Chat supported function-tool fields")
             if is_repo_supported_responses_tool_payload(operation_key, path, item):
                 rules.add("Responses flexible tool payload")
             if is_repo_supported_responses_output_payload(operation_key, path, item):

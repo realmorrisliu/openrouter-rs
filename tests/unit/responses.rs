@@ -13,7 +13,7 @@ use openrouter_rs::api::{
         ResponsesRequest, ResponsesResponse, ResponsesStreamEvent, create_response, stream_response,
     },
 };
-use openrouter_rs::types::OpenRouterExperimentalMetadata;
+use openrouter_rs::types::{OpenRouterExperimentalMetadata, ServerTool};
 use serde_json::json;
 
 struct CapturedRequest {
@@ -179,6 +179,158 @@ fn test_responses_request_serialization() {
 }
 
 #[test]
+fn test_responses_request_server_tool_helpers() {
+    let request = ResponsesRequest::builder()
+        .model("openai/gpt-5")
+        .input(json!("Find current docs"))
+        .server_tool(ServerTool::web_search_with_parameters(
+            json!({"max_results": 2}),
+        ))
+        .server_tool(ServerTool::datetime_with_timezone("UTC"))
+        .force_server_tool("openrouter:web_search")
+        .build()
+        .expect("responses request should build");
+
+    let value = serde_json::to_value(&request).expect("responses request should serialize");
+    assert_eq!(value["tools"][0]["type"], "openrouter:web_search");
+    assert_eq!(value["tools"][0]["parameters"]["max_results"], 2);
+    assert_eq!(value["tools"][1]["type"], "openrouter:datetime");
+    assert_eq!(value["tools"][1]["parameters"]["timezone"], "UTC");
+    assert_eq!(
+        value["tool_choice"],
+        json!({
+            "type": "allowed_tools",
+            "mode": "required",
+            "tools": [{"type": "openrouter:web_search"}]
+        })
+    );
+}
+
+#[test]
+fn test_responses_force_server_tool_preserves_openrouter_types() {
+    let web_search = ResponsesRequest::builder()
+        .input(json!("search"))
+        .force_server_tool("openrouter:web_search")
+        .build()
+        .expect("responses request should build");
+    let apply_patch = ResponsesRequest::builder()
+        .input(json!("patch"))
+        .force_server_tool("openrouter:apply_patch")
+        .build()
+        .expect("responses request should build");
+    let shell = ResponsesRequest::builder()
+        .input(json!("shell"))
+        .force_server_tool("openrouter:shell")
+        .build()
+        .expect("responses request should build");
+    let bash = ResponsesRequest::builder()
+        .input(json!("bash"))
+        .force_server_tool("openrouter:bash")
+        .build()
+        .expect("responses request should build");
+    let datetime = ResponsesRequest::builder()
+        .input(json!("datetime"))
+        .force_server_tool("openrouter:datetime")
+        .build()
+        .expect("responses request should build");
+
+    assert_eq!(
+        serde_json::to_value(&web_search).expect("request should serialize")["tool_choice"],
+        json!({
+            "type": "allowed_tools",
+            "mode": "required",
+            "tools": [{"type": "openrouter:web_search"}]
+        })
+    );
+    assert_eq!(
+        serde_json::to_value(&apply_patch).expect("request should serialize")["tool_choice"],
+        json!({
+            "type": "allowed_tools",
+            "mode": "required",
+            "tools": [{"type": "openrouter:apply_patch"}]
+        })
+    );
+    assert_eq!(
+        serde_json::to_value(&shell).expect("request should serialize")["tool_choice"],
+        json!({
+            "type": "allowed_tools",
+            "mode": "required",
+            "tools": [{"type": "openrouter:shell"}]
+        })
+    );
+    assert_eq!(
+        serde_json::to_value(&bash).expect("request should serialize")["tool_choice"],
+        json!({
+            "type": "allowed_tools",
+            "mode": "required",
+            "tools": [{"type": "openrouter:bash"}]
+        })
+    );
+    assert_eq!(
+        serde_json::to_value(&datetime).expect("request should serialize")["tool_choice"],
+        json!({
+            "type": "allowed_tools",
+            "mode": "required",
+            "tools": [{"type": "openrouter:datetime"}]
+        })
+    );
+}
+
+#[test]
+fn test_responses_force_server_tool_uses_direct_native_response_choices() {
+    let preview = ResponsesRequest::builder()
+        .input(json!("search"))
+        .force_server_tool("web_search_preview")
+        .build()
+        .expect("responses request should build");
+    let dated_preview = ResponsesRequest::builder()
+        .input(json!("search"))
+        .force_server_tool("web_search_preview_2025_03_11")
+        .build()
+        .expect("responses request should build");
+    let apply_patch = ResponsesRequest::builder()
+        .input(json!("patch"))
+        .force_server_tool("apply_patch")
+        .build()
+        .expect("responses request should build");
+    let shell = ResponsesRequest::builder()
+        .input(json!("shell"))
+        .force_server_tool("shell")
+        .build()
+        .expect("responses request should build");
+    let web_search_alias = ResponsesRequest::builder()
+        .input(json!("search"))
+        .force_server_tool("web_search")
+        .build()
+        .expect("responses request should build");
+
+    assert_eq!(
+        serde_json::to_value(&preview).expect("request should serialize")["tool_choice"],
+        json!({"type": "web_search_preview"})
+    );
+    assert_eq!(
+        serde_json::to_value(&dated_preview).expect("request should serialize")["tool_choice"],
+        json!({"type": "web_search_preview_2025_03_11"})
+    );
+    assert_eq!(
+        serde_json::to_value(&apply_patch).expect("request should serialize")["tool_choice"],
+        json!({"type": "apply_patch"})
+    );
+    assert_eq!(
+        serde_json::to_value(&shell).expect("request should serialize")["tool_choice"],
+        json!({"type": "shell"})
+    );
+    assert_eq!(
+        serde_json::to_value(&web_search_alias).expect("request should serialize")["tool_choice"],
+        json!({
+            "type": "allowed_tools",
+            "mode": "required",
+            "tools": [{"type": "web_search"}]
+        })
+    );
+}
+
+#[test]
 fn test_responses_response_deserialization() {
     let raw = r#"{
         "id": "resp-abc123",
@@ -211,6 +363,49 @@ fn test_responses_response_deserialization() {
     assert_eq!(response.status.as_deref(), Some("completed"));
     assert!(response.output.is_some());
     assert!(response.usage.is_some());
+}
+
+#[test]
+fn test_responses_server_tool_output_items_preserve_fields() {
+    let raw = r#"{
+        "id": "resp-server-tools",
+        "object": "response",
+        "status": "completed",
+        "output": [
+            {
+                "type": "openrouter:web_search",
+                "id": "ws_tmp_abc123",
+                "status": "completed",
+                "action": {
+                    "type": "search",
+                    "query": "latest AI news",
+                    "sources": [{"type": "url", "url": "https://example.com"}]
+                }
+            },
+            {
+                "type": "openrouter:datetime",
+                "id": "dt_tmp_abc123",
+                "status": "completed",
+                "datetime": "2026-03-12T14:30:00.000Z",
+                "timezone": "UTC"
+            }
+        ]
+    }"#;
+
+    let response: ResponsesResponse =
+        serde_json::from_str(raw).expect("responses payload should deserialize");
+    let output = response.output.expect("output should be present");
+
+    assert_eq!(output[0]["type"], "openrouter:web_search");
+    assert_eq!(output[0]["status"], "completed");
+    assert_eq!(output[0]["action"]["query"], "latest AI news");
+    assert_eq!(
+        output[0]["action"]["sources"][0]["url"],
+        "https://example.com"
+    );
+    assert_eq!(output[1]["type"], "openrouter:datetime");
+    assert_eq!(output[1]["datetime"], "2026-03-12T14:30:00.000Z");
+    assert_eq!(output[1]["timezone"], "UTC");
 }
 
 #[test]
@@ -266,6 +461,7 @@ async fn test_create_response_sets_stream_false_and_headers() {
     let request = ResponsesRequest::builder()
         .model("openai/gpt-5")
         .input(json!([{"role":"user","content":"hello"}]))
+        .server_tool(ServerTool::files())
         .experimental_metadata(OpenRouterExperimentalMetadata::Enabled)
         .build()
         .expect("responses request should build");
@@ -329,11 +525,18 @@ async fn test_create_response_sets_stream_false_and_headers() {
         "experimental metadata header should be present, headers:\n{}",
         captured.header_text
     );
+    assert!(
+        headers_lower.contains("x-openrouter-file-ids: openrouter")
+            || headers_lower.contains("x-openrouter-file-ids:openrouter"),
+        "files tool header should be present, headers:\n{}",
+        captured.header_text
+    );
 
     let request_json: serde_json::Value =
         serde_json::from_str(&captured.body_text).expect("request body should be valid JSON");
     assert_eq!(request_json["stream"], false);
     assert_eq!(request_json["model"], "openai/gpt-5");
+    assert_eq!(request_json["tools"][0]["type"], "openrouter:files");
     assert!(request_json.get("experimental_metadata").is_none());
 
     server.join().expect("server thread should finish");

@@ -973,6 +973,13 @@ async fn test_management_domain_remaining_methods_require_configured_key() {
     assert!(matches!(
         client
             .management()
+            .list_workspace_members("ws_123", None)
+            .await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .management()
             .add_workspace_members("ws_123", &workspace_members_request)
             .await,
         Err(OpenRouterError::KeyNotConfigured)
@@ -1415,6 +1422,48 @@ async fn test_management_domain_list_workspaces_without_pagination_delegates() {
         .recv_timeout(Duration::from_secs(2))
         .expect("should capture request");
     assert_eq!(captured.request_line, "GET /api/v1/workspaces HTTP/1.1");
+    assert!(
+        captured
+            .request_text
+            .to_ascii_lowercase()
+            .contains("authorization: bearer management-key")
+            || captured
+                .request_text
+                .to_ascii_lowercase()
+                .contains("authorization:bearer management-key"),
+        "authorization header should include management key, request:\n{}",
+        captured.request_text
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_management_domain_list_workspace_members_delegates() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
+    let client = OpenRouterClient::builder()
+        .base_url(base_url)
+        .management_key("management-key")
+        .build()
+        .expect("client should build");
+
+    let response = client
+        .management()
+        .list_workspace_members(
+            "team/prod 1",
+            Some(PaginationOptions::with_offset_and_limit(1, 5)),
+        )
+        .await
+        .expect("list_workspace_members should succeed");
+    assert_eq!(response.total_count, 0.0);
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/workspaces/team%2Fprod%201/members?offset=1&limit=5 HTTP/1.1"
+    );
     assert!(
         captured
             .request_text

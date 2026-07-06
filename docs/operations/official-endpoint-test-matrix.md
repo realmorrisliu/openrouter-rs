@@ -1,19 +1,21 @@
 # Official Endpoint Test Matrix
 
-Snapshot date: 2026-06-29
+Snapshot date: 2026-07-06
 Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)  
 Tracked baseline: `specs/openrouter/openapi-baseline.json`  
 Weekly drift workflow: `.github/workflows/openapi-drift.yml`
 
 ## Coverage Summary
 
-- Official OpenAPI endpoints: `87` method+path entries.
-- SDK implementation coverage (`src/api` + domain client): `87 / 87` (`100.0%`).
-- Live integration coverage (`tests/integration`): `24 / 87` endpoints currently exercised.
+- Official OpenAPI endpoints: `88` method+path entries.
+- SDK implementation coverage (`src/api` + domain client): `88 / 88` (`100.0%`).
+- Live integration coverage (`tests/integration`): `24 / 88` endpoints currently exercised.
   - Covered live now: `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `POST /rerank`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`, `GET /organization/members`
 
 Drift review note:
 
+- Upstream added OpenRouter server-tool variants to chat completions, Responses API, Anthropic-compatible Messages, and preset creation request schemas. The SDK now exposes `ServerTool` helpers and preserves raw `Value` escape hatches for high-churn server-tool payloads.
+- Upstream added `GET /workspaces/{id}/members`, now exposed as `client.management().list_workspace_members(...)`.
 - Upstream added task classification discovery and image generation endpoints. The SDK now exposes task classifications through `client.models().get_task_classifications(...)` and images through `client.images().create(...)`, `stream(...)`, `list_models()`, and `list_model_endpoints(...)`. The unified benchmarks endpoint now allows an omitted `source`, and nullable benchmark metadata is reflected in the typed response.
 - Upstream replaced the two per-source benchmark dataset endpoints with unified `GET /benchmarks` and added workspace budget management. The SDK now exposes `client.models().get_benchmarks(...)` and `client.management().list_workspace_budgets(...)` / `upsert_workspace_budget(...)` / `delete_workspace_budget(...)`. The old per-source benchmark methods remain deprecated compatibility wrappers.
 - Upstream added model reasoning metadata, analytics warnings, chat server-tool usage metadata, embedding cost details, and Anthropic file document sources. The SDK now exposes typed fields/helpers for these stable surfaces while preserving flexible `Value` and `HashMap` escape hatches for high-churn payloads.
@@ -124,6 +126,7 @@ Legend:
 | `GET /workspaces` | `client.management().list_workspaces(...)` | Yes | Path | No | P1 |
 | `GET /workspaces/{id}` | `client.management().get_workspace(...)` | Yes | Path | No | P1 |
 | `GET /workspaces/{id}/budgets` | `client.management().list_workspace_budgets(...)` | Yes | Path | No | P1 |
+| `GET /workspaces/{id}/members` | `client.management().list_workspace_members(...)` | Yes | Path | No | P1 |
 | `POST /messages` | `client.messages().create(...)` / `client.messages().stream(...)` | Yes | Path | Yes | Keep |
 | `POST /rerank` | `client.rerank().create(...)` | Yes | Path | Yes | Keep |
 | `POST /responses` | `client.responses().create(...)` / `client.responses().stream(...)` | Yes | Contract | Yes | Keep |

@@ -4,7 +4,7 @@ use derive_builder::Builder;
 use futures_util::{StreamExt, stream::BoxStream};
 use reqwest::Client as HttpClient;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{Value, json};
 
 use crate::{
     api::chat::{CacheControl, DebugOptions, Plugin, TraceOptions},
@@ -187,6 +187,46 @@ impl ResponsesRequestBuilder {
     strip_option_vec_setter!(modalities, String);
     strip_option_vec_setter!(include, String);
     strip_option_vec_setter!(plugins, Plugin);
+
+    /// Add a single OpenRouter server tool to the request.
+    pub fn server_tool(&mut self, tool: crate::types::ServerTool) -> &mut Self {
+        if let Some(Some(ref mut existing_tools)) = self.tools {
+            existing_tools.push(Value::from(tool));
+        } else {
+            self.tools = Some(Some(vec![Value::from(tool)]));
+        }
+        self
+    }
+
+    /// Add multiple OpenRouter server tools to the request.
+    pub fn server_tools<T>(&mut self, tools: T) -> &mut Self
+    where
+        T: IntoIterator<Item = crate::types::ServerTool>,
+    {
+        for tool in tools {
+            self.server_tool(tool);
+        }
+        self
+    }
+
+    /// Force the model to call a specific OpenRouter server tool.
+    pub fn force_server_tool(&mut self, tool_type: impl Into<String>) -> &mut Self {
+        self.tool_choice = Some(Some(responses_server_tool_choice(tool_type.into())));
+        self
+    }
+}
+
+fn responses_server_tool_choice(tool_type: String) -> Value {
+    match tool_type.as_str() {
+        "web_search_preview" | "web_search_preview_2025_03_11" | "apply_patch" | "shell" => {
+            json!({"type": tool_type})
+        }
+        _ => json!({
+            "type": "allowed_tools",
+            "mode": "required",
+            "tools": [{"type": tool_type}]
+        }),
+    }
 }
 
 impl ResponsesRequest {
@@ -210,6 +250,14 @@ impl ResponsesRequest {
 
     pub fn experimental_metadata(&self) -> Option<OpenRouterExperimentalMetadata> {
         self.experimental_metadata
+    }
+
+    pub(crate) fn requires_openrouter_files_tool_header(&self) -> bool {
+        self.tools.as_deref().is_some_and(|tools| {
+            tools
+                .iter()
+                .any(crate::types::ServerTool::is_files_tool_value)
+        })
     }
 }
 
@@ -277,7 +325,7 @@ pub(crate) async fn create_response_with_client(
     let url = format!("{base_url}/responses");
     let request = request.stream(false);
 
-    let response = transport_request::with_experimental_metadata_header(
+    let request_builder = transport_request::with_experimental_metadata_header(
         transport_request::with_client_request_headers(
             transport_request::post(http_client, &url),
             api_key,
@@ -286,10 +334,13 @@ pub(crate) async fn create_response_with_client(
             app_categories,
         )?,
         &request.experimental_metadata,
-    )
-    .json(&request)
-    .send()
-    .await?;
+    );
+    let request_builder = transport_request::with_openrouter_files_tool_header(
+        request_builder,
+        request.requires_openrouter_files_tool_header(),
+    );
+
+    let response = request_builder.json(&request).send().await?;
 
     if response.status().is_success() {
         let response_data: ResponsesResponse =
@@ -335,7 +386,7 @@ pub(crate) async fn stream_response_with_client(
     let url = format!("{base_url}/responses");
     let request = request.stream(true);
 
-    let response = transport_request::with_experimental_metadata_header(
+    let request_builder = transport_request::with_experimental_metadata_header(
         transport_request::with_client_request_headers(
             transport_request::post(http_client, &url),
             api_key,
@@ -344,10 +395,13 @@ pub(crate) async fn stream_response_with_client(
             app_categories,
         )?,
         &request.experimental_metadata,
-    )
-    .json(&request)
-    .send()
-    .await?;
+    );
+    let request_builder = transport_request::with_openrouter_files_tool_header(
+        request_builder,
+        request.requires_openrouter_files_tool_header(),
+    );
+
+    let response = request_builder.json(&request).send().await?;
 
     if response.status().is_success() {
         let lines = parse_sse_frames(response_lines(response))

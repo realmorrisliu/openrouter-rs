@@ -2480,6 +2480,26 @@ impl OpenRouterClient {
         }
     }
 
+    /// List organization members assigned to a workspace (`GET /workspaces/{id}/members`).
+    pub async fn list_workspace_members(
+        &self,
+        id: &str,
+        pagination: Option<PaginationOptions>,
+    ) -> Result<workspaces::ListWorkspaceMembersResponse, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            workspaces::list_workspace_members_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                id,
+                pagination,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
     /// Add multiple organization members to a workspace (`POST /workspaces/{id}/members/add`).
     pub async fn add_workspace_members(
         &self,
@@ -3490,6 +3510,15 @@ impl<'a> ManagementClient<'a> {
         interval: &str,
     ) -> Result<bool, OpenRouterError> {
         self.client.delete_workspace_budget(id, interval).await
+    }
+
+    /// List workspace members (`GET /workspaces/{id}/members`).
+    pub async fn list_workspace_members(
+        &self,
+        id: &str,
+        pagination: Option<PaginationOptions>,
+    ) -> Result<workspaces::ListWorkspaceMembersResponse, OpenRouterError> {
+        self.client.list_workspace_members(id, pagination).await
     }
 
     /// Add workspace members (`POST /workspaces/{id}/members/add`).
