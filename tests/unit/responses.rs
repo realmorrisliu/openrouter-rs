@@ -216,6 +216,11 @@ fn test_responses_force_server_tool_maps_openrouter_types_to_response_choices() 
         .force_server_tool("openrouter:shell")
         .build()
         .expect("responses request should build");
+    let datetime = ResponsesRequest::builder()
+        .input(json!("datetime"))
+        .force_server_tool("openrouter:datetime")
+        .build()
+        .expect("responses request should build");
 
     assert_eq!(
         serde_json::to_value(&web_search).expect("request should serialize")["tool_choice"],
@@ -228,6 +233,14 @@ fn test_responses_force_server_tool_maps_openrouter_types_to_response_choices() 
     assert_eq!(
         serde_json::to_value(&shell).expect("request should serialize")["tool_choice"],
         json!({"type": "shell"})
+    );
+    assert_eq!(
+        serde_json::to_value(&datetime).expect("request should serialize")["tool_choice"],
+        json!({
+            "type": "allowed_tools",
+            "mode": "required",
+            "tools": [{"type": "openrouter:datetime"}]
+        })
     );
 }
 
