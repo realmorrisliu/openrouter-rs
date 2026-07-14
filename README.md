@@ -21,7 +21,7 @@ Type-safe, async Rust SDK for the OpenRouter API.
 
 `openrouter-rs` is a community-maintained Rust SDK for OpenRouter. It exposes a domain-oriented client for chat, responses, messages, rerank, audio speech/transcription, image generation, video generation, models, embeddings, files, presets, analytics, and management APIs, plus a companion CLI in the same repository.
 
-The current repo snapshot implements `88 / 88` official OpenAPI method/path entries, with published live integration coverage tracked in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md).
+The current repo snapshot implements `89 / 89` official OpenAPI method/path entries, with published live integration coverage tracked in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md).
 
 ## Why `openrouter-rs`
 
@@ -39,7 +39,7 @@ The current repo snapshot implements `88 / 88` official OpenAPI method/path entr
 
 ```toml
 [dependencies]
-openrouter-rs = "0.11.1"
+openrouter-rs = "0.12.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -250,7 +250,7 @@ For copy-paste shell/CI recipes, see [`docs/operations/cli-automation-workflows.
 
 - Community-maintained third-party SDK; not affiliated with OpenRouter
 - Canonical docs and examples prefer the domain clients over older flat helpers
-- Accepted endpoint coverage is tracked against the current OpenAPI snapshot, and the current baseline is fully implemented at the SDK surface (`88 / 88`)
+- Accepted endpoint coverage is tracked against the current OpenAPI snapshot, and the current baseline is fully implemented at the SDK surface (`89 / 89`)
 - Live integration coverage and gaps are published in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md)
 - Migration guidance for the `0.9.x -> 0.10.0` public-model future-proofing release, the `0.8.x -> 0.9.0` audio speech release, the `0.7.x -> 0.8.0` transport/error-surface release, and the archived `0.5.x -> 0.6.x` naming guide lives in [`MIGRATION.md`](MIGRATION.md)
 - Legacy `POST /completions` support remains available behind the `legacy-completions` feature
@@ -353,10 +353,16 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 ### Unreleased
 
-- Added OpenRouter server-tool request helpers for chat completions, Responses API, Anthropic-compatible Messages, and preset creation request bodies.
-- Added typed management-key SDK support for `GET /workspaces/{id}/members`, restoring accepted OpenAPI endpoint coverage to `88 / 88`.
+- No unreleased changes yet.
 
-### Version 0.11.1 *(Latest)*
+### Version 0.12.0 *(Latest)*
+
+- Added OpenRouter server-tool request helpers for chat completions, Responses API, Anthropic-compatible Messages, and preset creation request bodies.
+- Added management-key SDK support for generation feedback and workspace member listing.
+- Added model/rankings filters, analytics classifier controls, verbose transcription fields, XAI ZDR policy, routed service tiers, server-tool reasoning details, and image text chunks.
+- Accepted OpenAPI drift through 2026-07-14 and restored tracked endpoint coverage to `89 / 89`.
+
+### Version 0.11.1
 
 - Accepted OpenRouter's new `max` reasoning effort and preserved future provider-defined effort strings in model metadata, keeping `/models` deserialization and CLI model listing forward-compatible with upstream taxonomy additions.
 - Hardened scheduled live Responses checks so transient runtime statuses stay service warnings while completed empty outputs, SDK deserialization failures, and non-retryable API errors remain hard failures.
