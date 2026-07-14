@@ -35,6 +35,30 @@ pub struct GenerationFeedbackData {
     pub success: bool,
 }
 
+/// One provider attempt recorded for a generation.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct ProviderResponse {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub endpoint_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_byok: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub latency: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model_permaslug: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub routed_service_tier: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<i32>,
+    #[serde(flatten)]
+    pub extra: HashMap<String, Value>,
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 #[non_exhaustive]
 pub struct GenerationData {
@@ -71,7 +95,7 @@ pub struct GenerationData {
     pub response_cache_source_id: Option<String>,
     pub service_tier: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub routed_service_tier: Option<String>,
+    pub provider_responses: Option<Vec<ProviderResponse>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub status: Option<i32>,
 }

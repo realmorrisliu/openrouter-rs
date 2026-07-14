@@ -179,8 +179,13 @@ fn test_generation_response_deserializes_num_fetches() {
             "num_fetches": 3,
             "preset_id": "preset_123",
             "response_cache_source_id": "gen_original",
-            "service_tier": "priority"
-            ,"routed_service_tier": "flex"
+            "service_tier": "priority",
+            "provider_responses": [{
+                "endpoint_id": "ep_123",
+                "provider_name": "OpenAI",
+                "routed_service_tier": "flex",
+                "status": 200
+            }]
         }
     }"#;
 
@@ -198,7 +203,16 @@ fn test_generation_response_deserializes_num_fetches() {
         Some("gen_original")
     );
     assert_eq!(parsed.data.service_tier.as_deref(), Some("priority"));
-    assert_eq!(parsed.data.routed_service_tier.as_deref(), Some("flex"));
+    let provider_response = &parsed
+        .data
+        .provider_responses
+        .as_ref()
+        .expect("provider responses should deserialize")[0];
+    assert_eq!(
+        provider_response.routed_service_tier.as_deref(),
+        Some("flex")
+    );
+    assert_eq!(provider_response.status, Some(200));
 }
 
 #[test]
