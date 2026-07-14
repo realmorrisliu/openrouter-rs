@@ -1710,6 +1710,24 @@ impl OpenRouterClient {
         }
     }
 
+    /// Submit structured feedback for a generation. Requires a management key.
+    pub async fn submit_generation_feedback(
+        &self,
+        request: &generation::GenerationFeedbackRequest,
+    ) -> Result<generation::GenerationFeedbackData, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            generation::submit_generation_feedback_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                request,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
     /// Returns a list of models available through the API.
     ///
     /// # Returns
@@ -1937,6 +1955,24 @@ impl OpenRouterClient {
                 api_key,
                 start_date,
                 end_date,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Return daily rankings using the full upstream filter surface.
+    pub async fn get_rankings_daily_filtered(
+        &self,
+        params: Option<&discovery::RankingsDailyParams>,
+    ) -> Result<discovery::RankingsDailyResponse, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            discovery::get_rankings_daily_with_params_and_client(
+                self.http_client(),
+                &self.base_url,
+                api_key,
+                params,
             )
             .await
         } else {
@@ -2933,6 +2969,14 @@ impl<'a> ModelsClient<'a> {
         self.client.get_rankings_daily(start_date, end_date).await
     }
 
+    /// Return daily rankings using all upstream filters.
+    pub async fn get_rankings_daily_filtered(
+        &self,
+        params: Option<&discovery::RankingsDailyParams>,
+    ) -> Result<discovery::RankingsDailyResponse, OpenRouterError> {
+        self.client.get_rankings_daily_filtered(params).await
+    }
+
     /// Return ranked applications (`GET /datasets/app-rankings`).
     pub async fn get_app_rankings(
         &self,
@@ -3195,6 +3239,14 @@ impl<'a> ManagementClient<'a> {
         id: impl Into<String>,
     ) -> Result<generation::GenerationContentData, OpenRouterError> {
         self.client.get_generation_content(id).await
+    }
+
+    /// Submit structured generation feedback (`POST /generation/feedback`).
+    pub async fn submit_generation_feedback(
+        &self,
+        request: &generation::GenerationFeedbackRequest,
+    ) -> Result<generation::GenerationFeedbackData, OpenRouterError> {
+        self.client.submit_generation_feedback(request).await
     }
 
     /// Get endpoint usage activity (`GET /activity`).

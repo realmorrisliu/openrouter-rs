@@ -11,6 +11,27 @@ use openrouter_rs::{
     types::{ApiResponse, ModelCategory, SupportedParameters},
 };
 
+#[test]
+fn test_extended_model_filters_serialize() {
+    let params = ListModelsParams::builder()
+        .min_output_price(0.1)
+        .max_age_days(30)
+        .min_intelligence_index(0.5)
+        .max_tool_success_rate(0.9)
+        .limit(25)
+        .offset(50)
+        .build()
+        .expect("model filters should build");
+
+    let value = serde_json::to_value(params).expect("filters should serialize");
+    assert_eq!(value["min_output_price"], 0.1);
+    assert_eq!(value["max_age_days"], 30);
+    assert_eq!(value["min_intelligence_index"], 0.5);
+    assert_eq!(value["max_tool_success_rate"], 0.9);
+    assert_eq!(value["limit"], 25);
+    assert_eq!(value["offset"], 50);
+}
+
 struct CapturedRequest {
     request_line: String,
     request_text: String,

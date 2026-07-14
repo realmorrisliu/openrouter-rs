@@ -260,6 +260,22 @@ fn test_image_streaming_response_deserialization() {
     }
 }
 
+#[test]
+fn test_image_text_chunk_deserialization() {
+    let parsed: ImageStreamingResponse = serde_json::from_str(
+        r#"{"data":{"type":"image_generation.text_chunk","phase":"reasoning","text":"draft"}}"#,
+    )
+    .expect("text chunk should deserialize");
+
+    match parsed.data {
+        ImageStreamEvent::TextChunk(event) => {
+            assert_eq!(event.phase, "reasoning");
+            assert_eq!(event.text, "draft");
+        }
+        other => panic!("expected text chunk, got {other:?}"),
+    }
+}
+
 #[tokio::test]
 async fn test_create_image_generation_path_body_and_headers() {
     let response = r#"{

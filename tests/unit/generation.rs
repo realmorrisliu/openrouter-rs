@@ -131,6 +131,37 @@ async fn test_get_generation_content_path_and_auth_header() {
     server.join().expect("server thread should finish");
 }
 
+#[tokio::test]
+async fn test_submit_generation_feedback_path_and_management_auth() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"data":{"success":true}}"#);
+    let request = generation::GenerationFeedbackRequest::builder()
+        .generation_id("gen_123")
+        .category("incorrect_response")
+        .comment("Repeated output")
+        .build()
+        .expect("feedback request should build");
+
+    let response = generation::submit_generation_feedback(&base_url, "management-key", &request)
+        .await
+        .expect("feedback request should succeed");
+    assert!(response.success);
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "POST /api/v1/generation/feedback HTTP/1.1"
+    );
+    assert!(
+        captured
+            .request_text
+            .to_ascii_lowercase()
+            .contains("bearer management-key")
+    );
+    server.join().expect("server thread should finish");
+}
+
 #[test]
 fn test_generation_response_deserializes_num_fetches() {
     let raw = r#"{
@@ -149,6 +180,7 @@ fn test_generation_response_deserializes_num_fetches() {
             "preset_id": "preset_123",
             "response_cache_source_id": "gen_original",
             "service_tier": "priority"
+            ,"routed_service_tier": "flex"
         }
     }"#;
 
@@ -166,6 +198,7 @@ fn test_generation_response_deserializes_num_fetches() {
         Some("gen_original")
     );
     assert_eq!(parsed.data.service_tier.as_deref(), Some("priority"));
+    assert_eq!(parsed.data.routed_service_tier.as_deref(), Some("flex"));
 }
 
 #[test]

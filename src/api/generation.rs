@@ -10,6 +10,31 @@ use crate::{
     types::ApiResponse,
 };
 
+#[derive(Serialize, Deserialize, Debug, Clone, derive_builder::Builder)]
+#[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
+pub struct GenerationFeedbackRequest {
+    #[builder(setter(into))]
+    pub generation_id: String,
+    #[builder(setter(into))]
+    pub category: String,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub comment: Option<String>,
+}
+
+impl GenerationFeedbackRequest {
+    pub fn builder() -> GenerationFeedbackRequestBuilder {
+        GenerationFeedbackRequestBuilder::default()
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct GenerationFeedbackData {
+    pub success: bool,
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 #[non_exhaustive]
 pub struct GenerationData {
@@ -46,7 +71,43 @@ pub struct GenerationData {
     pub response_cache_source_id: Option<String>,
     pub service_tier: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub routed_service_tier: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub status: Option<i32>,
+}
+
+pub async fn submit_generation_feedback(
+    base_url: &str,
+    management_key: &str,
+    request: &GenerationFeedbackRequest,
+) -> Result<GenerationFeedbackData, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    submit_generation_feedback_with_client(&http_client, base_url, management_key, request).await
+}
+
+pub(crate) async fn submit_generation_feedback_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    management_key: &str,
+    request: &GenerationFeedbackRequest,
+) -> Result<GenerationFeedbackData, OpenRouterError> {
+    let url = format!("{base_url}/generation/feedback");
+    let response = transport_request::with_bearer_auth(
+        transport_request::post(http_client, &url),
+        management_key,
+    )
+    .json(request)
+    .send()
+    .await?;
+
+    if response.status().is_success() {
+        let payload: ApiResponse<GenerationFeedbackData> =
+            transport_response::parse_json_response(response, "generation feedback").await?;
+        Ok(payload.data)
+    } else {
+        transport_response::handle_error(response).await?;
+        unreachable!()
+    }
 }
 
 /// Stored prompt/input and completion/output content returned by `GET /generation/content`.

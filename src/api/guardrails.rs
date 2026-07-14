@@ -124,6 +124,8 @@ pub struct Guardrail {
     pub enforce_zdr_google: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub enforce_zdr_other: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enforce_zdr_xai: Option<bool>,
     pub created_at: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<String>,
@@ -182,6 +184,9 @@ pub struct CreateGuardrailRequest {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     enforce_zdr_other: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    enforce_zdr_xai: Option<bool>,
     #[builder(setter(into, strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     workspace_id: Option<String>,
@@ -243,6 +248,8 @@ pub struct UpdateGuardrailRequest {
     enforce_zdr_google: Option<bool>,
     #[builder(setter(strip_option), default)]
     enforce_zdr_other: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    enforce_zdr_xai: Option<bool>,
 }
 
 impl Serialize for UpdateGuardrailRequest {
@@ -300,6 +307,9 @@ impl Serialize for UpdateGuardrailRequest {
         }
         if let Some(value) = &self.enforce_zdr_other {
             map.serialize_entry("enforce_zdr_other", value)?;
+        }
+        if let Some(value) = &self.enforce_zdr_xai {
+            map.serialize_entry("enforce_zdr_xai", value)?;
         }
         map.end()
     }

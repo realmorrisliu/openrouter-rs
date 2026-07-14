@@ -235,6 +235,40 @@ pub struct RankingsDailyResponse {
     pub meta: RankingsDailyMeta,
 }
 
+/// Query parameters for `GET /datasets/rankings-daily`.
+#[derive(Serialize, Deserialize, Debug, Clone, Default, Builder)]
+#[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
+pub struct RankingsDailyParams {
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub start_date: Option<String>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end_date: Option<String>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub period: Option<String>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub modality: Option<String>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub context_bucket: Option<String>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub category: Option<String>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub language_type: Option<String>,
+}
+
+impl RankingsDailyParams {
+    pub fn builder() -> RankingsDailyParamsBuilder {
+        RankingsDailyParamsBuilder::default()
+    }
+}
+
 /// Query parameters for `GET /datasets/app-rankings`.
 #[derive(Serialize, Deserialize, Debug, Clone, Default, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
@@ -691,25 +725,35 @@ pub(crate) async fn get_rankings_daily_with_client(
     start_date: Option<&str>,
     end_date: Option<&str>,
 ) -> Result<RankingsDailyResponse, OpenRouterError> {
-    #[derive(Serialize)]
-    struct RankingsDailyQuery<'a> {
-        #[serde(skip_serializing_if = "Option::is_none")]
-        start_date: Option<&'a str>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        end_date: Option<&'a str>,
-    }
-
-    let url = format!("{base_url}/datasets/rankings-daily");
-    let query = RankingsDailyQuery {
-        start_date,
-        end_date,
+    let params = RankingsDailyParams {
+        start_date: start_date.map(str::to_owned),
+        end_date: end_date.map(str::to_owned),
+        ..Default::default()
     };
+    get_rankings_daily_with_params_and_client(http_client, base_url, api_key, Some(&params)).await
+}
+
+pub async fn get_rankings_daily_with_params(
+    base_url: &str,
+    api_key: &str,
+    params: Option<&RankingsDailyParams>,
+) -> Result<RankingsDailyResponse, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    get_rankings_daily_with_params_and_client(&http_client, base_url, api_key, params).await
+}
+
+pub(crate) async fn get_rankings_daily_with_params_and_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    params: Option<&RankingsDailyParams>,
+) -> Result<RankingsDailyResponse, OpenRouterError> {
+    let url = format!("{base_url}/datasets/rankings-daily");
     let req =
         transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
-    let response = if query.start_date.is_none() && query.end_date.is_none() {
-        req.send().await?
-    } else {
-        req.query(&query).send().await?
+    let response = match params {
+        Some(params) => req.query(params).send().await?,
+        None => req.send().await?,
     };
 
     if response.status().is_success() {

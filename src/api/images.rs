@@ -280,6 +280,15 @@ pub struct ImageCompletedEvent {
     pub extra: HashMap<String, Value>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct ImageTextChunkEvent {
+    #[serde(rename = "type")]
+    pub event_type: String,
+    pub phase: String,
+    pub text: String,
+}
+
 /// Error details emitted by streaming image generation.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
@@ -313,6 +322,7 @@ pub struct ImageStreamErrorEvent {
 pub enum ImageStreamEvent {
     PartialImage(ImagePartialImageEvent),
     Completed(ImageCompletedEvent),
+    TextChunk(ImageTextChunkEvent),
     Error(ImageStreamErrorEvent),
     Other(Value),
 }

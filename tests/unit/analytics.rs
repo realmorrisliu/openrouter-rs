@@ -7,8 +7,9 @@ use std::{
 };
 
 use openrouter_rs::api::analytics::{
-    self, AnalyticsFilter, AnalyticsFilterValue, AnalyticsMeta, AnalyticsOrderBy,
-    AnalyticsQueryRequest, AnalyticsQueryResponse, AnalyticsTimeRange,
+    self, AnalyticsClassifierDimensions, AnalyticsClassifierFilters, AnalyticsFilter,
+    AnalyticsFilterValue, AnalyticsMeta, AnalyticsOrderBy, AnalyticsQueryRequest,
+    AnalyticsQueryResponse, AnalyticsTimeRange,
 };
 use serde_json::json;
 
@@ -208,6 +209,25 @@ async fn test_query_analytics_path_body_and_auth_header() {
         })
         .limit(100)
         .group_limit(10)
+        .classifier_dimensions(
+            AnalyticsClassifierDimensions::builder()
+                .classifier_id("classifier-1")
+                .dimension_names(["topic"])
+                .include_nulls(true)
+                .build()
+                .expect("classifier dimensions should build"),
+        )
+        .classifier_filters(
+            AnalyticsClassifierFilters::builder()
+                .classifier_id("classifier-1")
+                .filters([AnalyticsFilter {
+                    field: "topic".to_string(),
+                    operator: "eq".to_string(),
+                    value: AnalyticsFilterValue::String("coding".to_string()),
+                }])
+                .build()
+                .expect("classifier filters should build"),
+        )
         .build()
         .expect("analytics query request should build");
 
@@ -229,6 +249,8 @@ async fn test_query_analytics_path_body_and_auth_header() {
     assert_eq!(body["dimensions"][0], "model");
     assert_eq!(body["filters"][0]["value"], "openai/gpt-5");
     assert_eq!(body["time_range"]["start"], "2026-06-01T00:00:00Z");
+    assert_eq!(body["classifier_dimensions"]["dimension_names"][0], "topic");
+    assert_eq!(body["classifier_filters"]["filters"][0]["value"], "coding");
 
     let request_lower = captured.request_text.to_ascii_lowercase();
     assert!(

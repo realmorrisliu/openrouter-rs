@@ -10,8 +10,8 @@ use openrouter_rs::{
     api::discovery::{
         self, ActivityItem, AppRankingsParams, AppRankingsResponse, BenchmarksAAResponse,
         BenchmarksDAResponse, BigNumber, ModelsCountData, Provider, PublicEndpoint,
-        RankingsDailyResponse, TaskClassificationsResponse, UnifiedBenchmarkItem,
-        UnifiedBenchmarksParams, UserModel,
+        RankingsDailyParams, RankingsDailyResponse, TaskClassificationsResponse,
+        UnifiedBenchmarkItem, UnifiedBenchmarksParams, UserModel,
     },
     types::{ApiResponse, Effort},
 };
@@ -635,6 +635,34 @@ async fn test_get_rankings_daily_with_date_query_and_auth_header() {
         captured.request_text
     );
 
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_get_rankings_daily_with_extended_filters() {
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":[],"meta":{"as_of":"2026-07-13T00:00:00Z","version":"v1","start_date":"2026-07-12","end_date":"2026-07-13"}}"#,
+    );
+    let params = RankingsDailyParams::builder()
+        .period("week")
+        .modality("tool_calling")
+        .context_bucket("100K")
+        .category("programming")
+        .language_type("programming")
+        .build()
+        .expect("rankings filters should build");
+
+    discovery::get_rankings_daily_with_params(&base_url, "api-key", Some(&params))
+        .await
+        .expect("rankings request should succeed");
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert!(captured.request_line.contains("period=week"));
+    assert!(captured.request_line.contains("modality=tool_calling"));
+    assert!(captured.request_line.contains("context_bucket=100K"));
+    assert!(captured.request_line.contains("category=programming"));
+    assert!(captured.request_line.contains("language_type=programming"));
     server.join().expect("server thread should finish");
 }
 

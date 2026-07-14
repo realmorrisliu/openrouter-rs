@@ -153,6 +153,7 @@ fn test_create_guardrail_request_serializes_content_filters_and_provider_zdr_fla
         .enforce_zdr_openai(false)
         .enforce_zdr_google(true)
         .enforce_zdr_other(false)
+        .enforce_zdr_xai(true)
         .build()
         .expect("create guardrail request should build");
 
@@ -176,6 +177,7 @@ fn test_create_guardrail_request_serializes_content_filters_and_provider_zdr_fla
     assert_eq!(value["enforce_zdr_openai"], false);
     assert_eq!(value["enforce_zdr_google"], true);
     assert_eq!(value["enforce_zdr_other"], false);
+    assert_eq!(value["enforce_zdr_xai"], true);
 }
 
 #[test]
@@ -209,6 +211,7 @@ fn test_update_guardrail_request_serializes_and_clears_content_filters() {
         .enforce_zdr_openai(true)
         .enforce_zdr_google(false)
         .enforce_zdr_other(false)
+        .enforce_zdr_xai(true)
         .build()
         .expect("update guardrail request should build");
 
@@ -221,6 +224,7 @@ fn test_update_guardrail_request_serializes_and_clears_content_filters() {
     assert_eq!(value["enforce_zdr_openai"], true);
     assert_eq!(value["enforce_zdr_google"], false);
     assert_eq!(value["enforce_zdr_other"], false);
+    assert_eq!(value["enforce_zdr_xai"], true);
 
     let cleared = UpdateGuardrailRequest::builder()
         .clear_content_filter_builtins()

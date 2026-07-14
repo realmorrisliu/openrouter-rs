@@ -1,19 +1,20 @@
 # Official Endpoint Test Matrix
 
-Snapshot date: 2026-07-06
+Snapshot date: 2026-07-14
 Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)  
 Tracked baseline: `specs/openrouter/openapi-baseline.json`  
 Weekly drift workflow: `.github/workflows/openapi-drift.yml`
 
 ## Coverage Summary
 
-- Official OpenAPI endpoints: `88` method+path entries.
-- SDK implementation coverage (`src/api` + domain client): `88 / 88` (`100.0%`).
-- Live integration coverage (`tests/integration`): `24 / 88` endpoints currently exercised.
+- Official OpenAPI endpoints: `89` method+path entries.
+- SDK implementation coverage (`src/api` + domain client): `89 / 89` (`100.0%`).
+- Live integration coverage (`tests/integration`): `24 / 89` endpoints currently exercised.
   - Covered live now: `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `POST /rerank`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`, `GET /organization/members`
 
 Drift review note:
 
+- Upstream added `POST /generation/feedback`, new model/rankings filters, analytics classifier controls, verbose transcription fields, XAI ZDR policy, routed service tiers, server-tool reasoning details, and image text chunks. The SDK exposes stable fields and keeps flexible provider, Responses, and server-tool payloads where the upstream surface remains high-churn.
 - Upstream added OpenRouter server-tool variants to chat completions, Responses API, Anthropic-compatible Messages, and preset creation request schemas. The SDK now exposes `ServerTool` helpers and preserves raw `Value` escape hatches for high-churn server-tool payloads.
 - Upstream added `GET /workspaces/{id}/members`, now exposed as `client.management().list_workspace_members(...)`.
 - Upstream added task classification discovery and image generation endpoints. The SDK now exposes task classifications through `client.models().get_task_classifications(...)` and images through `client.images().create(...)`, `stream(...)`, `list_models()`, and `list_model_endpoints(...)`. The unified benchmarks endpoint now allows an omitted `source`, and nullable benchmark metadata is reflected in the typed response.
@@ -82,6 +83,7 @@ Legend:
 | `GET /files/{file_id}/content` | `client.files().download_content(...)` | Yes | Path | No | P1 |
 | `GET /generation` | `client.get_generation(...)` / `client.management().get_generation(...)` | Yes | Path | No | P2 |
 | `GET /generation/content` | `client.get_generation_content(...)` / `client.management().get_generation_content(...)` | Yes | Path | No | P2 |
+| `POST /generation/feedback` | `client.management().submit_generation_feedback(...)` | Yes | Path | No | P1 |
 | `GET /guardrails` | `client.management().list_guardrails(...)` / `client.management().list_guardrails_in_workspace(...)` | Yes | Path | Yes | Keep |
 | `POST /guardrails` | `client.management().create_guardrail(...)` | Yes | Contract | Yes | Keep |
 | `GET /guardrails/{id}` | `client.management().get_guardrail(...)` | Yes | Contract | Yes | Keep |

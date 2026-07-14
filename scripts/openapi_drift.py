@@ -63,9 +63,7 @@ REPO_DYNAMIC_PROVIDER_NAME_MARKERS = frozenset({"Anthropic", "Google", "OpenAI"}
 REPO_DYNAMIC_OUTPUT_MODALITY_MARKERS = frozenset({"image", "text", "video"})
 REPO_FLEXIBLE_PROVIDER_OPTION_MARKERS = frozenset({"anthropic", "google-vertex", "openai"})
 REPO_FLEXIBLE_PROVIDER_OPTION_VALUE_SCHEMA = {
-    "additionalProperties": {
-        "nullable": True,
-    },
+    "additionalProperties": {},
     "type": "object",
 }
 REPO_RESPONSES_FLEXIBLE_NULLABILITY_FIELDS = frozenset(
@@ -478,6 +476,15 @@ def schema_has_type(value: Any, schema_type: str) -> bool:
     )
 
 
+def strip_null_schema_type(value: dict[str, Any]) -> None:
+    value_type = value.get("type")
+    if not isinstance(value_type, list) or "null" not in value_type:
+        return
+
+    remaining_types = [item for item in value_type if item != "null"]
+    value["type"] = remaining_types[0] if len(remaining_types) == 1 else remaining_types
+
+
 def is_repo_supported_flexible_plugin_payload_path(
     operation_key: str,
     path: tuple[Any, ...],
@@ -718,7 +725,7 @@ def strip_repo_supported_schema_details(
                 for field_name in REPO_RESPONSES_FLEXIBLE_NULLABILITY_FIELDS:
                     field_schema = properties.get(field_name)
                     if isinstance(field_schema, dict):
-                        field_schema.pop("nullable", None)
+                        strip_null_schema_type(field_schema)
 
         return stripped
 
@@ -763,7 +770,7 @@ def collect_repo_supported_schema_rules(operation_key: str, value: Any) -> list[
                 if isinstance(properties, dict):
                     for field_name in REPO_RESPONSES_FLEXIBLE_NULLABILITY_FIELDS:
                         field_schema = properties.get(field_name)
-                        if isinstance(field_schema, dict) and field_schema.get("nullable") is True:
+                        if isinstance(field_schema, dict) and schema_has_type(field_schema, "null"):
                             rules.add("Responses flexible nullable fields")
 
             for key, child in item.items():
@@ -898,6 +905,23 @@ def canonicalize_unordered_schema_collections(value: Any, key: str | None = None
     return value
 
 
+def normalize_nullable_schema_syntax(value: Any) -> Any:
+    if isinstance(value, list):
+        return [normalize_nullable_schema_syntax(item) for item in value]
+
+    if not isinstance(value, dict):
+        return value
+
+    normalized = {
+        key: normalize_nullable_schema_syntax(item)
+        for key, item in value.items()
+        if key != "nullable"
+    }
+    if value.get("nullable") is True and isinstance(normalized.get("type"), str):
+        normalized["type"] = ["null", normalized["type"]]
+    return normalized
+
+
 def collect_effective_security_schemes(
     effective_security: Any,
     spec: dict[str, Any],
@@ -974,6 +998,7 @@ def normalize_path_item(path_item: dict[str, Any], spec: dict[str, Any]) -> dict
 def normalize_operation(raw_operation: dict[str, Any], path_item: dict[str, Any], spec: dict[str, Any]) -> Any:
     inherited_operation = inherit_effective_operation_fields(raw_operation, path_item, spec)
     normalized_operation = strip_doc_only_fields(inherited_operation)
+    normalized_operation = normalize_nullable_schema_syntax(normalized_operation)
     return canonicalize_unordered_schema_collections(normalized_operation)
 
 
