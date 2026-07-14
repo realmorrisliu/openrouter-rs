@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-07-14
+
 ### Added
 - Added management-key SDK support for `POST /generation/feedback` via `GenerationFeedbackRequest` and `client.management().submit_generation_feedback(...)`.
 - Added the latest model and rankings filters, analytics classifier dimensions/filters, verbose transcription controls and timestamps, XAI guardrail ZDR policy, routed service-tier metadata, server-tool reasoning details, and image-generation text chunks.
