@@ -47,7 +47,7 @@ Legacy text completions are opt-in:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.11.1", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.12.0", features = ["legacy-completions"] }
 tokio = { version = "1", features = ["full"] }
 ```
 
