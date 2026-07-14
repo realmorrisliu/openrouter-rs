@@ -125,6 +125,55 @@ pub struct AnalyticsOrderBy {
     pub direction: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, Builder)]
+#[builder(build_fn(error = "OpenRouterError"))]
+pub struct AnalyticsClassifierDimensions {
+    #[builder(setter(into))]
+    pub classifier_id: String,
+    #[builder(setter(custom), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dimension_names: Option<Vec<String>>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_nulls: Option<bool>,
+}
+
+impl AnalyticsClassifierDimensions {
+    pub fn builder() -> AnalyticsClassifierDimensionsBuilder {
+        AnalyticsClassifierDimensionsBuilder::default()
+    }
+}
+
+impl AnalyticsClassifierDimensionsBuilder {
+    strip_option_vec_setter!(dimension_names, String);
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Builder)]
+#[builder(build_fn(error = "OpenRouterError"))]
+pub struct AnalyticsClassifierFilters {
+    #[builder(setter(into))]
+    pub classifier_id: String,
+    #[builder(setter(custom))]
+    pub filters: Vec<AnalyticsFilter>,
+}
+
+impl AnalyticsClassifierFilters {
+    pub fn builder() -> AnalyticsClassifierFiltersBuilder {
+        AnalyticsClassifierFiltersBuilder::default()
+    }
+}
+
+impl AnalyticsClassifierFiltersBuilder {
+    pub fn filters<T, S>(&mut self, items: T) -> &mut Self
+    where
+        T: IntoIterator<Item = S>,
+        S: Into<AnalyticsFilter>,
+    {
+        self.filters = Some(items.into_iter().map(Into::into).collect());
+        self
+    }
+}
+
 /// Request payload for `POST /analytics/query`.
 #[derive(Serialize, Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
@@ -153,6 +202,12 @@ pub struct AnalyticsQueryRequest {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub time_range: Option<AnalyticsTimeRange>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub classifier_dimensions: Option<AnalyticsClassifierDimensions>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub classifier_filters: Option<AnalyticsClassifierFilters>,
 }
 
 impl AnalyticsQueryRequest {

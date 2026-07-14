@@ -60,6 +60,8 @@ fn test_transcription_request_serialization() {
         .input_audio(TranscriptionInputAudio::new("UklGRiQA...", "wav"))
         .language("en")
         .temperature(0.0)
+        .response_format("verbose_json")
+        .timestamp_granularities(["segment", "word"])
         .provider(TranscriptionProviderOptions::new(provider_options))
         .build()
         .expect("transcription request should build");
@@ -70,6 +72,8 @@ fn test_transcription_request_serialization() {
     assert_eq!(value["input_audio"]["format"], "wav");
     assert_eq!(value["language"], "en");
     assert_eq!(value["temperature"], 0.0);
+    assert_eq!(value["response_format"], "verbose_json");
+    assert_eq!(value["timestamp_granularities"][1], "word");
     assert_eq!(
         value["provider"]["options"]["openai"]["prompt"],
         "Use product names verbatim"

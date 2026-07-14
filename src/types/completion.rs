@@ -27,6 +27,18 @@ pub struct ReasoningDetail {
     /// Index of the reasoning block (Gemini specific)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub index: Option<u32>,
+    /// Server-tool name for `reasoning.server_tool_call` blocks.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_name: Option<String>,
+    /// Serialized server-tool arguments.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub arguments: Option<String>,
+    /// Server-tool result.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub result: Option<String>,
+    /// Tool-call identifier when supplied by the provider.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_call_id: Option<String>,
 }
 
 impl ReasoningDetail {

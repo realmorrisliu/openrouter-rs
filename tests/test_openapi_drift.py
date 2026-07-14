@@ -64,6 +64,36 @@ def build_spec(
 
 
 class OpenApiDriftReportTests(unittest.TestCase):
+    def test_nullable_dialect_change_is_not_reported_as_drift(self):
+        baseline = build_spec(
+            response_properties={
+                "metadata": {
+                    "type": "object",
+                    "nullable": True,
+                    "additionalProperties": {"nullable": True},
+                }
+            }
+        )
+        candidate = build_spec(
+            response_properties={
+                "metadata": {
+                    "type": ["object", "null"],
+                    "additionalProperties": {},
+                }
+            }
+        )
+
+        report = openapi_drift.build_report(
+            baseline_spec=baseline,
+            candidate_spec=candidate,
+            baseline_label="baseline",
+            candidate_label="candidate",
+            source_url="https://example.com/openapi.json",
+            max_diff_lines=20,
+        )
+
+        self.assertFalse(report["has_drift"])
+
     def test_reduce_spec_for_baseline_sanitizes_openrouter_api_key_examples(self):
         raw_key = "sk-or-v1-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ab"
         spec = build_spec(

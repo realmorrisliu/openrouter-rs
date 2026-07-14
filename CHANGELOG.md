@@ -8,10 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added management-key SDK support for `POST /generation/feedback` via `GenerationFeedbackRequest` and `client.management().submit_generation_feedback(...)`.
+- Added the latest model and rankings filters, analytics classifier dimensions/filters, verbose transcription controls and timestamps, XAI guardrail ZDR policy, routed service-tier metadata, server-tool reasoning details, and image-generation text chunks.
 - Added OpenRouter server-tool request helpers via `ServerTool` for chat completions, Responses API, Anthropic-compatible Messages, and preset creation request bodies, including `openrouter:web_search`, `openrouter:datetime`, raw custom server-tool escape hatches, and server-tool `tool_choice` helpers.
 - Added management-key SDK support for `GET /workspaces/{id}/members` via `api::workspaces::list_workspace_members(...)` and `client.management().list_workspace_members(...)`.
 
 ### Changed
+- Accepted the 2026-07-14 OpenAPI drift review and normalized equivalent OpenAPI 3.0/3.1 nullable syntax, restoring the repository snapshot to `89 / 89` official endpoint coverage.
 - Accepted the 2026-07-06 OpenAPI drift review for server-tool request schemas and workspace member listing, restoring the repository snapshot to `88 / 88` official OpenAPI endpoint coverage.
 
 ## [0.11.1] - 2026-07-01

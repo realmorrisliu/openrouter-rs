@@ -132,6 +132,19 @@ fn test_response_with_reasoning_details() {
     assert_eq!(reasoning_details[0].reasoning_type(), "reasoning.text");
 }
 
+#[test]
+fn test_server_tool_reasoning_detail_deserializes() {
+    let detail: openrouter_rs::types::completion::ReasoningDetail = serde_json::from_str(
+        r#"{"type":"reasoning.server_tool_call","index":0,"tool_name":"web_search","arguments":"{}","result":"ok","tool_call_id":"call_1"}"#,
+    )
+    .expect("server tool reasoning detail should deserialize");
+
+    assert_eq!(detail.tool_name.as_deref(), Some("web_search"));
+    assert_eq!(detail.arguments.as_deref(), Some("{}"));
+    assert_eq!(detail.result.as_deref(), Some("ok"));
+    assert_eq!(detail.tool_call_id.as_deref(), Some("call_1"));
+}
+
 /// Test deserialization of streaming response chunk
 #[test]
 fn test_streaming_response_deserialization() {

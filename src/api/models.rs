@@ -225,6 +225,42 @@ pub struct ListModelsParams {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_price: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_output_price: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_output_price: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_age_days: Option<u32>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_age_days: Option<u32>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_intelligence_index: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_intelligence_index: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_coding_index: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_coding_index: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_agentic_index: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_agentic_index: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_tool_success_rate: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_tool_success_rate: Option<f64>,
     #[builder(setter(into, strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub arch: Option<String>,
@@ -243,6 +279,12 @@ pub struct ListModelsParams {
     #[builder(setter(into, strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub region: Option<String>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u32>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub offset: Option<u32>,
 }
 
 impl ListModelsParams {
@@ -260,12 +302,26 @@ impl ListModelsParams {
             && self.context.is_none()
             && self.min_price.is_none()
             && self.max_price.is_none()
+            && self.min_output_price.is_none()
+            && self.max_output_price.is_none()
+            && self.min_age_days.is_none()
+            && self.max_age_days.is_none()
+            && self.min_intelligence_index.is_none()
+            && self.max_intelligence_index.is_none()
+            && self.min_coding_index.is_none()
+            && self.max_coding_index.is_none()
+            && self.min_agentic_index.is_none()
+            && self.max_agentic_index.is_none()
+            && self.min_tool_success_rate.is_none()
+            && self.max_tool_success_rate.is_none()
             && self.arch.is_none()
             && self.model_authors.is_none()
             && self.providers.is_none()
             && self.distillable.is_none()
             && self.zdr.is_none()
             && self.region.is_none()
+            && self.limit.is_none()
+            && self.offset.is_none()
     }
 }
 
