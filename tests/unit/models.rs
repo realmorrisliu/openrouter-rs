@@ -109,6 +109,11 @@ fn test_model_endpoints_pricing_allows_missing_optional_fields() {
                 "pricing": {
                     "prompt": "0.00000025",
                     "completion": "0.000002",
+                    "overrides": [{
+                        "prompt": "0.0000005",
+                        "completion": "0.000004",
+                        "min_prompt_tokens": 200000
+                    }],
                     "discount": 0
                 },
                 "provider_name": "Qwen",
@@ -132,6 +137,9 @@ fn test_model_endpoints_pricing_allows_missing_optional_fields() {
     assert_eq!(pricing.completion, "0.000002");
     assert!(pricing.request.is_none());
     assert!(pricing.image.is_none());
+    let override_price = &pricing.overrides.as_ref().expect("overrides should exist")[0];
+    assert_eq!(override_price.prompt.as_deref(), Some("0.0000005"));
+    assert_eq!(override_price.min_prompt_tokens, Some(200000.0));
 }
 
 #[test]

@@ -17,6 +17,7 @@ use crate::{
 pub enum ContentFilterAction {
     Redact,
     Block,
+    Flag,
 }
 
 /// Action for a built-in content filter.

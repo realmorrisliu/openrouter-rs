@@ -13,7 +13,7 @@ use crate::{
     transport::{
         request as transport_request, response as transport_response, sse::response_lines,
     },
-    types::{OpenRouterExperimentalMetadata, ProviderPreferences},
+    types::{AnthropicCacheCreation, OpenRouterExperimentalMetadata, ProviderPreferences},
     utils::parse_sse_frames,
 };
 
@@ -814,6 +814,8 @@ pub struct AnthropicMessagesUsage {
     pub cache_creation_input_tokens: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cache_read_input_tokens: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cache_creation: Option<AnthropicCacheCreation>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub service_tier: Option<String>,
     #[serde(flatten)]

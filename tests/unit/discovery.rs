@@ -108,7 +108,12 @@ fn test_models_for_user_response_deserialization() {
             "description": "Test model",
             "pricing": {
                 "prompt": "0.000002",
-                "completion": 0.000008
+                "completion": 0.000008,
+                "overrides": [{
+                    "completion": "0.000012",
+                    "utc_start": 100,
+                    "utc_end": 400
+                }]
             },
             "context_length": 128000,
             "architecture": {
@@ -155,6 +160,13 @@ fn test_models_for_user_response_deserialization() {
         parsed.data[0].pricing.completion,
         BigNumber::Number(_)
     ));
+    let override_price = &parsed.data[0]
+        .pricing
+        .overrides
+        .as_ref()
+        .expect("pricing overrides should deserialize")[0];
+    assert_eq!(override_price.completion.as_deref(), Some("0.000012"));
+    assert_eq!(override_price.utc_start, Some(100.0));
     let reasoning = parsed.data[0]
         .reasoning
         .as_ref()

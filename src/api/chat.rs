@@ -153,6 +153,54 @@ impl CacheControl {
     }
 }
 
+/// Explicit prompt-cache mode used by OpenAI-style cache controls.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+#[serde(rename_all = "lowercase")]
+pub enum PromptCacheMode {
+    Explicit,
+}
+
+/// Marks an explicit prompt-cache boundary on a text content part.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct PromptCacheBreakpoint {
+    pub mode: PromptCacheMode,
+}
+
+impl PromptCacheBreakpoint {
+    pub fn explicit() -> Self {
+        Self {
+            mode: PromptCacheMode::Explicit,
+        }
+    }
+}
+
+/// Request-level controls for explicit prompt caching.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct PromptCacheOptions {
+    pub mode: PromptCacheMode,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ttl: Option<String>,
+}
+
+impl PromptCacheOptions {
+    pub fn explicit() -> Self {
+        Self {
+            mode: PromptCacheMode::Explicit,
+            ttl: None,
+        }
+    }
+
+    pub fn explicit_with_ttl(ttl: impl Into<String>) -> Self {
+        Self {
+            mode: PromptCacheMode::Explicit,
+            ttl: Some(ttl.into()),
+        }
+    }
+}
+
 /// A content part in a multi-modal message.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
@@ -163,6 +211,8 @@ pub enum ContentPart {
         text: String,
         #[serde(skip_serializing_if = "Option::is_none")]
         cache_control: Option<CacheControl>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        prompt_cache_breakpoint: Option<PromptCacheBreakpoint>,
     },
     /// Image URL content
     ImageUrl { image_url: ImageUrl },
@@ -181,6 +231,7 @@ impl ContentPart {
         Self::Text {
             text: text.into(),
             cache_control: None,
+            prompt_cache_breakpoint: None,
         }
     }
 
@@ -188,7 +239,23 @@ impl ContentPart {
         Self::Text {
             text: text.into(),
             cache_control: Some(cache_control),
+            prompt_cache_breakpoint: None,
         }
+    }
+
+    pub fn text_with_prompt_cache_breakpoint(
+        text: impl Into<String>,
+        breakpoint: PromptCacheBreakpoint,
+    ) -> Self {
+        Self::Text {
+            text: text.into(),
+            cache_control: None,
+            prompt_cache_breakpoint: Some(breakpoint),
+        }
+    }
+
+    pub fn cache_breakpoint_text(text: impl Into<String>) -> Self {
+        Self::text_with_prompt_cache_breakpoint(text, PromptCacheBreakpoint::explicit())
     }
 
     pub fn cacheable_text(text: impl Into<String>) -> Self {
@@ -283,6 +350,58 @@ impl From<&str> for Content {
 impl From<Vec<ContentPart>> for Content {
     fn from(parts: Vec<ContentPart>) -> Self {
         Self::Parts(parts)
+    }
+}
+
+/// One text part in a static predicted output.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct PredictionContentText {
+    #[serde(rename = "type")]
+    pub content_type: String,
+    pub text: String,
+}
+
+impl PredictionContentText {
+    pub fn new(text: impl Into<String>) -> Self {
+        Self {
+            content_type: "text".to_string(),
+            text: text.into(),
+        }
+    }
+}
+
+/// Static predicted output content.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+#[serde(untagged)]
+pub enum PredictionContent {
+    Text(String),
+    Parts(Vec<PredictionContentText>),
+}
+
+/// Static predicted output used to reduce latency when most output is known.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct Prediction {
+    #[serde(rename = "type")]
+    pub prediction_type: String,
+    pub content: PredictionContent,
+}
+
+impl Prediction {
+    pub fn text(text: impl Into<String>) -> Self {
+        Self {
+            prediction_type: "content".to_string(),
+            content: PredictionContent::Text(text.into()),
+        }
+    }
+
+    pub fn parts(parts: Vec<PredictionContentText>) -> Self {
+        Self {
+            prediction_type: "content".to_string(),
+            content: PredictionContent::Parts(parts),
+        }
     }
 }
 
@@ -545,6 +664,15 @@ pub struct ChatCompletionRequest {
     #[builder(setter(strip_option), default)]
     cache_control: Option<CacheControl>,
 
+    #[builder(setter(into, strip_option), default)]
+    prompt_cache_key: Option<String>,
+
+    #[builder(setter(strip_option), default)]
+    prompt_cache_options: Option<PromptCacheOptions>,
+
+    #[builder(setter(strip_option), default)]
+    prediction: Option<Prediction>,
+
     #[builder(setter(strip_option), default)]
     trace: Option<TraceOptions>,
 
@@ -621,6 +749,9 @@ struct ChatCompletionRequestWire {
     user: Option<String>,
     session_id: Option<String>,
     cache_control: Option<CacheControl>,
+    prompt_cache_key: Option<String>,
+    prompt_cache_options: Option<PromptCacheOptions>,
+    prediction: Option<Prediction>,
     trace: Option<TraceOptions>,
     provider: Option<ProviderPreferences>,
     metadata: Option<HashMap<String, String>>,
@@ -677,6 +808,9 @@ impl<'de> Deserialize<'de> for ChatCompletionRequest {
             user: wire.user,
             session_id: wire.session_id,
             cache_control: wire.cache_control,
+            prompt_cache_key: wire.prompt_cache_key,
+            prompt_cache_options: wire.prompt_cache_options,
+            prediction: wire.prediction,
             trace: wire.trace,
             provider: wire.provider,
             metadata: wire.metadata,
@@ -805,6 +939,13 @@ impl Serialize for ChatCompletionRequest {
         insert_json_option::<_, S::Error>(&mut map, "user", &self.user)?;
         insert_json_option::<_, S::Error>(&mut map, "session_id", &self.session_id)?;
         insert_json_option::<_, S::Error>(&mut map, "cache_control", &self.cache_control)?;
+        insert_json_option::<_, S::Error>(&mut map, "prompt_cache_key", &self.prompt_cache_key)?;
+        insert_json_option::<_, S::Error>(
+            &mut map,
+            "prompt_cache_options",
+            &self.prompt_cache_options,
+        )?;
+        insert_json_option::<_, S::Error>(&mut map, "prediction", &self.prediction)?;
         insert_json_option::<_, S::Error>(&mut map, "trace", &self.trace)?;
         insert_json_option::<_, S::Error>(&mut map, "provider", &self.provider)?;
         insert_json_option::<_, S::Error>(&mut map, "metadata", &self.metadata)?;

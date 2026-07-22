@@ -111,7 +111,8 @@ impl VideoProviderOptions {
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
 pub struct VideoGenerationRequest {
-    #[builder(setter(into))]
+    #[builder(setter(into), default)]
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub prompt: String,
     #[builder(setter(into))]
     pub model: String,

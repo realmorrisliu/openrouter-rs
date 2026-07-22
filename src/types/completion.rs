@@ -79,6 +79,14 @@ pub struct ServerToolUseDetails {
     pub web_search_requests: Option<u32>,
 }
 
+/// Anthropic-style prompt-cache creation token breakdown.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct AnthropicCacheCreation {
+    pub ephemeral_5m_input_tokens: u64,
+    pub ephemeral_1h_input_tokens: u64,
+}
+
 /// Token and billing usage reported for chat completion responses.
 ///
 /// Response payloads are intentionally constructed by deserialization rather than

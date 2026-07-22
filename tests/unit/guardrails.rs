@@ -146,7 +146,7 @@ fn test_create_guardrail_request_serializes_content_filters_and_provider_zdr_fla
         .label("[PROMPT_INJECTION]")])
         .content_filters([ContentFilterEntry::new(
             r"\b(sk-[a-zA-Z0-9]{48})\b",
-            ContentFilterAction::Redact,
+            ContentFilterAction::Flag,
         )
         .label("[API_KEY]")])
         .enforce_zdr_anthropic(true)
@@ -171,7 +171,7 @@ fn test_create_guardrail_request_serializes_content_filters_and_provider_zdr_fla
         value["content_filters"][0]["pattern"],
         r"\b(sk-[a-zA-Z0-9]{48})\b"
     );
-    assert_eq!(value["content_filters"][0]["action"], "redact");
+    assert_eq!(value["content_filters"][0]["action"], "flag");
     assert_eq!(value["content_filters"][0]["label"], "[API_KEY]");
     assert_eq!(value["enforce_zdr_anthropic"], true);
     assert_eq!(value["enforce_zdr_openai"], false);

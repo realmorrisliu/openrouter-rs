@@ -1,4 +1,7 @@
-use openrouter_rs::{OpenRouterClient, api::images::ImageGenerationRequest};
+use openrouter_rs::{
+    OpenRouterClient,
+    api::images::{ImageGenerationRequest, ImageProviderOptions},
+};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -10,6 +13,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .prompt("A red panda astronaut floating in space, studio lighting")
         .aspect_ratio("16:9")
         .resolution("2K")
+        .provider(ImageProviderOptions::default().allow_fallbacks(true))
         .build()?;
 
     let response = client.images().create(&request).await?;

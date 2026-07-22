@@ -88,8 +88,36 @@ pub struct Pricing {
     pub input_cache_write: Option<String>,
     pub web_search: Option<String>,
     pub internal_reasoning: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub overrides: Option<Vec<PricingOverride>>,
     #[serde(flatten)]
     pub extra: HashMap<String, Value>,
+}
+
+/// Conditional override applied to base model pricing.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct PricingOverride {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub audio: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub completion: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub input_audio_cache: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub input_cache_read: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub input_cache_write: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub input_cache_write_1h: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_prompt_tokens: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prompt: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub utc_end: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub utc_start: Option<f64>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -172,6 +200,8 @@ pub struct EndpointPricing {
     pub image: Option<String>,
     pub prompt: String,
     pub completion: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub overrides: Option<Vec<PricingOverride>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
