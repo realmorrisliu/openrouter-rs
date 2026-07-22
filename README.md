@@ -135,6 +135,7 @@ Chat, Responses API, and Anthropic-compatible Messages request builders also exp
 - multimodal chat content, including image, audio, video, and file parts
 - model discovery, provider discovery, app rankings, task classifications, unified benchmarks, embeddings, and ZDR endpoints
 - typed generation metadata, model voice/benchmark/link metadata, workspace I/O logging controls, video callback URL support, and file upload/download workflows
+- explicit chat prompt-cache breakpoints and static predictions, image provider routing controls, conditional model pricing, and image-only video generation requests
 - management-key workflows for keys, workspace-scoped keys, preset reads/writes, analytics, BYOK provider credentials, observability destinations, auth codes, organization members, workspaces, workspace budgets, workspace member listing/mutation, guardrails, guardrail content filters, workspace-scoped guardrails, and activity, plus API-key-authenticated credits and generation metadata/content endpoints
 
 For deeper examples, prefer the runnable examples in [`examples/`](examples) over long README snippets.

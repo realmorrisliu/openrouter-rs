@@ -70,6 +70,24 @@ fn test_video_generation_request_serialization() {
 }
 
 #[test]
+fn test_video_generation_request_allows_image_only_input() {
+    let request = VideoGenerationRequest::builder()
+        .model("google/veo-3.1")
+        .input_references(vec![VideoInputReference::image(
+            "https://example.com/reference.png",
+        )])
+        .build()
+        .expect("image-only video request should build");
+
+    let value = serde_json::to_value(request).expect("video request should serialize");
+    assert!(value.get("prompt").is_none());
+    assert_eq!(
+        value["input_references"][0]["image_url"]["url"],
+        "https://example.com/reference.png"
+    );
+}
+
+#[test]
 fn test_video_generation_response_deserialization() {
     let raw = r#"{
         "id": "job-abc123",

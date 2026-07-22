@@ -1,7 +1,8 @@
 use openrouter_rs::{
     api::chat::{
         CacheControl, CacheControlType, ChatCompletionRequest, ContentPart, DebugOptions, Message,
-        Modality, Plugin, StopSequence, StreamOptions, TraceOptions,
+        Modality, Plugin, Prediction, PredictionContentText, PromptCacheMode, PromptCacheOptions,
+        StopSequence, StreamOptions, TraceOptions,
     },
     types::{Effort, Role, ServerTool, Tool},
 };
@@ -98,6 +99,7 @@ fn test_text_content_part_cache_control_deserialization() {
         ContentPart::Text {
             text,
             cache_control,
+            ..
         } => {
             assert_eq!(text, "cached");
             let cache_control = cache_control.expect("cache control should be present");
@@ -106,6 +108,42 @@ fn test_text_content_part_cache_control_deserialization() {
         }
         _ => panic!("expected text content part"),
     }
+}
+
+#[test]
+fn test_explicit_prompt_cache_and_prediction_serialize() {
+    let request = ChatCompletionRequest::builder()
+        .model("openai/gpt-5.6")
+        .messages(vec![Message::with_parts(
+            Role::User,
+            vec![ContentPart::cache_breakpoint_text("stable prefix")],
+        )])
+        .prompt_cache_key("docs-v1")
+        .prompt_cache_options(PromptCacheOptions::explicit_with_ttl("30m"))
+        .prediction(Prediction::parts(vec![PredictionContentText::new(
+            "Expected response",
+        )]))
+        .build()
+        .expect("request should build");
+
+    let value = serde_json::to_value(request).expect("request should serialize");
+    assert_eq!(
+        value["messages"][0]["content"][0]["prompt_cache_breakpoint"]["mode"],
+        "explicit"
+    );
+    assert_eq!(value["prompt_cache_key"], "docs-v1");
+    assert_eq!(value["prompt_cache_options"]["mode"], "explicit");
+    assert_eq!(value["prompt_cache_options"]["ttl"], "30m");
+    assert_eq!(value["prediction"]["type"], "content");
+    assert_eq!(value["prediction"]["content"][0]["type"], "text");
+    assert_eq!(
+        value["prediction"]["content"][0]["text"],
+        "Expected response"
+    );
+
+    let options: PromptCacheOptions = serde_json::from_value(value["prompt_cache_options"].clone())
+        .expect("prompt cache options should deserialize");
+    assert!(matches!(options.mode, PromptCacheMode::Explicit));
 }
 
 #[test]
@@ -293,6 +331,12 @@ fn test_chat_request_deserializes_server_tools_from_merged_tools_array() {
             },
             {
                 "type": "openrouter:files"
+            },
+            {
+                "type": "namespace",
+                "name": "tools",
+                "description": "Grouped tools",
+                "tools": []
             }
         ]
     }))
@@ -306,18 +350,20 @@ fn test_chat_request_deserializes_server_tools_from_merged_tools_array() {
     let server_tools = request
         .server_tools()
         .expect("server tools should be preserved");
-    assert_eq!(server_tools.len(), 2);
+    assert_eq!(server_tools.len(), 3);
     assert_eq!(server_tools[0].tool_type, "openrouter:web_search");
     assert_eq!(
         server_tools[0].parameters.as_ref().unwrap()["max_results"],
         3
     );
     assert_eq!(server_tools[1].tool_type, "openrouter:files");
+    assert_eq!(server_tools[2].tool_type, "namespace");
 
     let value = serde_json::to_value(&request).expect("request should serialize");
     assert_eq!(value["tools"][0]["type"], "function");
     assert_eq!(value["tools"][1]["type"], "openrouter:web_search");
     assert_eq!(value["tools"][2]["type"], "openrouter:files");
+    assert_eq!(value["tools"][3]["type"], "namespace");
 }
 
 #[test]

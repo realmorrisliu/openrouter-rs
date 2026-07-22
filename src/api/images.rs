@@ -16,6 +16,7 @@ use crate::{
     transport::{
         request as transport_request, response as transport_response, sse::response_lines,
     },
+    types::AnthropicCacheCreation,
     utils::parse_sse_frames,
 };
 
@@ -59,14 +60,62 @@ impl ImageInputReference {
 #[non_exhaustive]
 pub struct ImageProviderOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub allow_fallbacks: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ignore: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub only: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub options: Option<HashMap<String, Value>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub order: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sort: Option<Value>,
 }
 
 impl ImageProviderOptions {
     pub fn new(options: HashMap<String, Value>) -> Self {
         Self {
             options: Some(options),
+            ..Self::default()
         }
+    }
+
+    pub fn allow_fallbacks(mut self, allow_fallbacks: bool) -> Self {
+        self.allow_fallbacks = Some(allow_fallbacks);
+        self
+    }
+
+    pub fn ignore<T, S>(mut self, providers: T) -> Self
+    where
+        T: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.ignore = Some(providers.into_iter().map(Into::into).collect());
+        self
+    }
+
+    pub fn only<T, S>(mut self, providers: T) -> Self
+    where
+        T: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.only = Some(providers.into_iter().map(Into::into).collect());
+        self
+    }
+
+    pub fn order<T, S>(mut self, providers: T) -> Self
+    where
+        T: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.order = Some(providers.into_iter().map(Into::into).collect());
+        self
+    }
+
+    pub fn sort(mut self, sort: impl Into<Value>) -> Self {
+        self.sort = Some(sort.into());
+        self
     }
 }
 
@@ -155,6 +204,8 @@ pub struct ImageGenerationUsage {
     pub cost: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub is_byok: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cache_creation: Option<AnthropicCacheCreation>,
     #[serde(flatten)]
     pub extra: HashMap<String, Value>,
 }

@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use urlencoding::encode;
 
 use crate::{
-    api::models::ModelReasoning,
+    api::models::{ModelReasoning, PricingOverride},
     error::OpenRouterError,
     transport::{request as transport_request, response as transport_response},
     types::ApiResponse,
@@ -66,6 +66,8 @@ pub struct PublicPricing {
     pub input_cache_write: Option<BigNumber>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub discount: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub overrides: Option<Vec<PricingOverride>>,
 }
 
 /// Model architecture data in model discovery responses.

@@ -313,6 +313,9 @@
                   "$ref": "#/components/schemas/CustomTool"
                 },
                 {
+                  "$ref": "#/components/schemas/NamespaceTool"
+                },
+                {
                   "$ref": "#/components/schemas/AdvisorServerTool_OpenRouter"
                 },
                 {
@@ -960,7 +963,7 @@
         "type": "object"
       },
       "AnthropicCacheControlDirective": {
-        "description": "Enable automatic prompt caching. When set at the top level, the system automatically applies cache breakpoints to the last cacheable block in the request. Currently supported for Anthropic Claude models.",
+        "description": "Enable automatic prompt caching. When set at the top level, the system automatically applies cache breakpoints to the last cacheable block in the request. When set on an individual content block, it marks an explicit cache breakpoint; block-level markers also work on OpenAI models that support explicit prompt caching \u2014 OpenRouter converts them to the provider's native format.",
         "example": {
           "type": "ephemeral"
         },
@@ -4063,6 +4066,52 @@
         ],
         "type": "object"
       },
+      "AutoBetaRouterPlugin": {
+        "example": {
+          "allowed_models": [
+            "anthropic/*",
+            "openai/gpt-4o"
+          ],
+          "cost_quality_tradeoff": 7,
+          "enabled": true,
+          "id": "auto-beta-router"
+        },
+        "properties": {
+          "allowed_models": {
+            "description": "List of model patterns to filter which models the auto-beta-router can route between. Supports wildcards (e.g., \"anthropic/*\" matches all Anthropic models). When not specified, uses the default supported models list.",
+            "example": [
+              "anthropic/*",
+              "openai/gpt-4o",
+              "google/*"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "cost_quality_tradeoff": {
+            "description": "Balances routing between cost and quality on a 0-10 scale. The auto-beta-router ranks models for the classified task type by community spend share, then filters candidates by their average cost per generation for that task. Higher values favor cheaper models: 10 keeps only models around the cheapest 10th percentile, while 0 permits models up to the 90th percentile for cost. Defaults to 7.",
+            "example": 7,
+            "maximum": 10,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "enabled": {
+            "description": "Set to false to disable the auto-beta-router plugin for this request. Defaults to true.",
+            "type": "boolean"
+          },
+          "id": {
+            "enum": [
+              "auto-beta-router"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
       "AutoRouterPlugin": {
         "example": {
           "allowed_models": [
@@ -4262,6 +4311,7 @@
           "digitalocean",
           "featherless",
           "fireworks",
+          "fish-audio",
           "friendli",
           "gmicloud",
           "google-ai-studio",
@@ -4276,6 +4326,7 @@
           "inflection",
           "io-net",
           "ionstream",
+          "krea",
           "liquid",
           "mancer",
           "mara",
@@ -4303,6 +4354,7 @@
           "recraft",
           "reka",
           "relace",
+          "sail-research",
           "sakana",
           "sambanova",
           "seed",
@@ -4311,6 +4363,7 @@
           "stepfun",
           "streamlake",
           "switchpoint",
+          "tencent",
           "tenstorrent",
           "together",
           "upstage",
@@ -5600,6 +5653,9 @@
               "null"
             ]
           },
+          "prompt_cache_options": {
+            "$ref": "#/components/schemas/PromptCacheOptions"
+          },
           "reasoning": {
             "$ref": "#/components/schemas/BaseReasoningConfig",
             "nullable": true
@@ -5711,6 +5767,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/CustomTool"
+                },
+                {
+                  "$ref": "#/components/schemas/NamespaceTool"
                 }
               ]
             },
@@ -6476,7 +6535,7 @@
             "type": "object"
           }
         ],
-        "description": "Cache control for the content part",
+        "description": "Anthropic-style cache breakpoint for the content part. Interchangeable with the OpenAI-style `prompt_cache_breakpoint` marker: OpenRouter converts between the two based on the provider serving the request.",
         "example": {
           "ttl": "5m",
           "type": "ephemeral"
@@ -6615,6 +6674,9 @@
         "properties": {
           "cache_control": {
             "$ref": "#/components/schemas/ChatContentCacheControl"
+          },
+          "prompt_cache_breakpoint": {
+            "$ref": "#/components/schemas/PromptCacheBreakpoint"
           },
           "text": {
             "type": "string"
@@ -7320,6 +7382,7 @@
             "items": {
               "discriminator": {
                 "mapping": {
+                  "auto-beta-router": "#/components/schemas/AutoBetaRouterPlugin",
                   "auto-router": "#/components/schemas/AutoRouterPlugin",
                   "context-compression": "#/components/schemas/ContextCompressionPlugin",
                   "file-parser": "#/components/schemas/FileParserPlugin",
@@ -7335,6 +7398,9 @@
               "oneOf": [
                 {
                   "$ref": "#/components/schemas/AutoRouterPlugin"
+                },
+                {
+                  "$ref": "#/components/schemas/AutoBetaRouterPlugin"
                 },
                 {
                   "$ref": "#/components/schemas/ModerationPlugin"
@@ -7364,6 +7430,9 @@
             },
             "type": "array"
           },
+          "prediction": {
+            "$ref": "#/components/schemas/Prediction"
+          },
           "presence_penalty": {
             "description": "Presence penalty (-2.0 to 2.0)",
             "example": 0,
@@ -7372,6 +7441,15 @@
               "number",
               "null"
             ]
+          },
+          "prompt_cache_key": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "prompt_cache_options": {
+            "$ref": "#/components/schemas/PromptCacheOptions"
           },
           "provider": {
             "$ref": "#/components/schemas/ProviderPreferences"
@@ -8452,34 +8530,7 @@
             ]
           },
           "server_tool_use_details": {
-            "description": "Usage for server-side tool execution (e.g., web search)",
-            "properties": {
-              "tool_calls_executed": {
-                "description": "Number of OpenRouter server tool calls that executed and produced a result",
-                "type": [
-                  "integer",
-                  "null"
-                ]
-              },
-              "tool_calls_requested": {
-                "description": "Total number of OpenRouter server-orchestrated tool calls the model requested, across all tool types. Provider-native tools (e.g. native web search) are not counted here.",
-                "type": [
-                  "integer",
-                  "null"
-                ]
-              },
-              "web_search_requests": {
-                "description": "Number of web searches performed by server-side tools. For server-orchestrated tool calls a web search is also counted in tool_calls_requested; provider-native web search may report web_search_requests only. Do not sum the two.",
-                "type": [
-                  "integer",
-                  "null"
-                ]
-              }
-            },
-            "type": [
-              "object",
-              "null"
-            ]
+            "$ref": "#/components/schemas/ServerToolUseDetails"
           },
           "total_tokens": {
             "description": "Total number of tokens",
@@ -9045,7 +9096,8 @@
         "description": "Action taken when the pattern matches",
         "enum": [
           "redact",
-          "block"
+          "block",
+          "flag"
         ],
         "example": "block",
         "type": "string",
@@ -9642,6 +9694,7 @@
           "enforce_zdr_google": false,
           "enforce_zdr_openai": true,
           "enforce_zdr_other": false,
+          "enforce_zdr_xai": false,
           "ignored_models": null,
           "ignored_providers": null,
           "limit_usd": 50,
@@ -9682,7 +9735,7 @@
             ]
           },
           "content_filter_builtins": {
-            "description": "Builtin content filters to apply. The \"flag\" action is only supported for \"regex-prompt-injection\"; PII slugs (email, phone, ssn, credit-card, ip-address, person-name, address) accept \"block\" or \"redact\" only.",
+            "description": "Builtin content filters to apply. Every builtin slug supports \"block\", \"redact\", and the detect-only \"flag\" action.",
             "example": [
               {
                 "action": "block",
@@ -9725,7 +9778,7 @@
           },
           "enforce_zdr": {
             "deprecated": true,
-            "description": "Deprecated. Use enforce_zdr_anthropic, enforce_zdr_openai, enforce_zdr_google, and enforce_zdr_other instead. When provided, its value is copied into any of those per-provider fields that are not explicitly specified on the request.",
+            "description": "Deprecated. Use enforce_zdr_anthropic, enforce_zdr_openai, enforce_zdr_google, enforce_zdr_xai, and enforce_zdr_other instead. When provided, its value is copied into any of those per-provider fields that are not explicitly specified on the request.",
             "example": false,
             "type": [
               "boolean",
@@ -9757,7 +9810,15 @@
             ]
           },
           "enforce_zdr_other": {
-            "description": "Whether to enforce zero data retention for models that are not from Anthropic, OpenAI, or Google. Falls back to enforce_zdr when not provided.",
+            "description": "Whether to enforce zero data retention for models that are not from Anthropic, OpenAI, Google, or xAI. Falls back to enforce_zdr when not provided.",
+            "example": false,
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "enforce_zdr_xai": {
+            "description": "Whether to enforce zero data retention for xAI models. Falls back to enforce_zdr when not provided.",
             "example": false,
             "type": [
               "boolean",
@@ -9847,6 +9908,7 @@
             "enforce_zdr_google": false,
             "enforce_zdr_openai": true,
             "enforce_zdr_other": false,
+            "enforce_zdr_xai": false,
             "id": "550e8400-e29b-41d4-a716-446655440000",
             "ignored_models": null,
             "ignored_providers": null,
@@ -12509,7 +12571,7 @@
             "$ref": "#/components/schemas/AnthropicCacheControlDirective"
           },
           "max_completion_tokens": {
-            "description": "Maximum number of output tokens (including reasoning tokens) each panelist and the judge model may produce per inner call. Controls the total output budget so reasoning-heavy models like GPT-5.5 do not exhaust their token allowance before producing visible text. When omitted, panelists default to 32000 and the judge to 50000.",
+            "description": "Maximum number of output tokens (including reasoning tokens) each panelist and the judge model may produce per inner call. Controls the total output budget so reasoning-heavy models like GPT-5.5 do not exhaust their token allowance before producing visible text. When omitted, panelists default to 32000 and the judge to 20000.",
             "example": 16384,
             "type": "integer"
           },
@@ -13266,6 +13328,7 @@
             "enforce_zdr_google": false,
             "enforce_zdr_openai": true,
             "enforce_zdr_other": false,
+            "enforce_zdr_xai": false,
             "id": "550e8400-e29b-41d4-a716-446655440000",
             "ignored_models": null,
             "ignored_providers": null,
@@ -13516,6 +13579,7 @@
           "enforce_zdr_google": false,
           "enforce_zdr_openai": true,
           "enforce_zdr_other": false,
+          "enforce_zdr_xai": false,
           "id": "550e8400-e29b-41d4-a716-446655440000",
           "ignored_models": null,
           "ignored_providers": null,
@@ -13605,7 +13669,7 @@
           },
           "enforce_zdr": {
             "deprecated": true,
-            "description": "Deprecated. Use enforce_zdr_anthropic, enforce_zdr_openai, enforce_zdr_google, and enforce_zdr_other instead. When provided, its value is copied into any of those per-provider fields that are not explicitly specified on the request.",
+            "description": "Deprecated. Use enforce_zdr_anthropic, enforce_zdr_openai, enforce_zdr_google, enforce_zdr_xai, and enforce_zdr_other instead. When provided, its value is copied into any of those per-provider fields that are not explicitly specified on the request.",
             "example": false,
             "type": [
               "boolean",
@@ -13637,7 +13701,15 @@
             ]
           },
           "enforce_zdr_other": {
-            "description": "Whether to enforce zero data retention for models that are not from Anthropic, OpenAI, or Google. Falls back to enforce_zdr when not provided.",
+            "description": "Whether to enforce zero data retention for models that are not from Anthropic, OpenAI, Google, or xAI. Falls back to enforce_zdr when not provided.",
+            "example": false,
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "enforce_zdr_xai": {
+            "description": "Whether to enforce zero data retention for xAI models. Falls back to enforce_zdr when not provided.",
             "example": false,
             "type": [
               "boolean",
@@ -14097,6 +14169,118 @@
         ],
         "type": "object"
       },
+      "ImageGenerationProviderPreferences": {
+        "description": "Provider routing preferences and provider-specific passthrough configuration.",
+        "example": {
+          "allow_fallbacks": false,
+          "only": [
+            "google-ai-studio"
+          ]
+        },
+        "properties": {
+          "allow_fallbacks": {
+            "description": "Whether to allow backup providers to serve requests\n- true: (default) when the primary provider (or your custom providers in \"order\") is unavailable, use the next best provider.\n- false: use only the primary/custom provider, and return the upstream error if it's unavailable.\n",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "ignore": {
+            "description": "List of provider slugs to ignore. If provided, this list is merged with your account-wide ignored provider settings for this request.",
+            "example": [
+              "openai",
+              "anthropic"
+            ],
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ProviderName"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "only": {
+            "description": "List of provider slugs to allow. If provided, this list is merged with your account-wide allowed provider settings for this request.",
+            "example": [
+              "openai",
+              "anthropic"
+            ],
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ProviderName"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "options": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProviderOptions"
+              },
+              {
+                "example": {
+                  "black-forest-labs": {
+                    "guidance": 3,
+                    "steps": 40
+                  }
+                }
+              }
+            ]
+          },
+          "order": {
+            "description": "An ordered list of provider slugs. The router will attempt to use the first provider in the subset of this list that supports your requested model, and fall back to the next if it is unavailable. If no providers are available, the request will fail with an error message.",
+            "example": [
+              "openai",
+              "anthropic"
+            ],
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ProviderName"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "sort": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProviderSort"
+              },
+              {
+                "$ref": "#/components/schemas/ProviderSortConfig"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The sorting strategy to use for this request, if \"order\" is not specified. When set, no load balancing is performed.",
+            "example": "price"
+          }
+        },
+        "type": "object"
+      },
       "ImageGenerationRequest": {
         "description": "Image generation request input",
         "example": {
@@ -14187,25 +14371,7 @@
             "type": "string"
           },
           "provider": {
-            "description": "Provider-specific passthrough configuration",
-            "properties": {
-              "options": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/ProviderOptions"
-                  },
-                  {
-                    "example": {
-                      "black-forest-labs": {
-                        "guidance": 3,
-                        "steps": 40
-                      }
-                    }
-                  }
-                ]
-              }
-            },
-            "type": "object"
+            "$ref": "#/components/schemas/ImageGenerationProviderPreferences"
           },
           "quality": {
             "description": "Rendering quality. Providers without a quality knob ignore this.",
@@ -14471,6 +14637,9 @@
           "total_tokens": 4175
         },
         "properties": {
+          "cache_creation": {
+            "$ref": "#/components/schemas/AnthropicCacheCreation"
+          },
           "completion_tokens": {
             "description": "The tokens generated",
             "type": "integer"
@@ -16078,6 +16247,7 @@
               "enforce_zdr_google": false,
               "enforce_zdr_openai": true,
               "enforce_zdr_other": false,
+              "enforce_zdr_xai": false,
               "id": "550e8400-e29b-41d4-a716-446655440000",
               "ignored_models": null,
               "ignored_providers": null,
@@ -17294,6 +17464,9 @@
           },
           "usage": {
             "properties": {
+              "cache_creation": {
+                "$ref": "#/components/schemas/AnthropicCacheCreation"
+              },
               "cache_creation_input_tokens": {
                 "type": [
                   "integer",
@@ -18100,6 +18273,7 @@
             "items": {
               "discriminator": {
                 "mapping": {
+                  "auto-beta-router": "#/components/schemas/AutoBetaRouterPlugin",
                   "auto-router": "#/components/schemas/AutoRouterPlugin",
                   "context-compression": "#/components/schemas/ContextCompressionPlugin",
                   "file-parser": "#/components/schemas/FileParserPlugin",
@@ -18115,6 +18289,9 @@
               "oneOf": [
                 {
                   "$ref": "#/components/schemas/AutoRouterPlugin"
+                },
+                {
+                  "$ref": "#/components/schemas/AutoBetaRouterPlugin"
                 },
                 {
                   "$ref": "#/components/schemas/ModerationPlugin"
@@ -18841,7 +19018,6 @@
                   "Lynn 2",
                   "Lynn",
                   "Mancer",
-                  "Meta",
                   "Modal",
                   "Nineteen",
                   "OctoAI",
@@ -18887,6 +19063,7 @@
                   "DigitalOcean",
                   "Featherless",
                   "Fireworks",
+                  "Fish Audio",
                   "Friendli",
                   "GMICloud",
                   "Google",
@@ -18904,6 +19081,7 @@
                   "Liquid",
                   "Mara",
                   "Mancer 2",
+                  "Meta",
                   "Minimax",
                   "ModelRun",
                   "Mistral",
@@ -18926,6 +19104,7 @@
                   "Recraft",
                   "Reka",
                   "Relace",
+                  "Sail Research",
                   "Sakana AI",
                   "SambaNova",
                   "Seed",
@@ -18935,6 +19114,7 @@
                   "Stealth",
                   "StreamLake",
                   "Switchpoint",
+                  "Tencent",
                   "Tenstorrent",
                   "Together",
                   "Upstage",
@@ -18942,6 +19122,7 @@
                   "Wafer",
                   "WandB",
                   "Quiver",
+                  "Krea",
                   "Xiaomi",
                   "xAI",
                   "Z.AI",
@@ -19765,6 +19946,120 @@
         },
         "required": [
           "data"
+        ],
+        "type": "object"
+      },
+      "NamespaceFunctionTool": {
+        "description": "A function tool grouped inside a namespace tool",
+        "example": {
+          "name": "spawn_agent",
+          "type": "function"
+        },
+        "properties": {
+          "allowed_callers": {
+            "items": {
+              "enum": [
+                "direct",
+                "programmatic"
+              ],
+              "type": "string",
+              "x-speakeasy-unknown-values": "allow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "defer_loading": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "output_schema": {
+            "additionalProperties": {},
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "parameters": {
+            "additionalProperties": {},
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "strict": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "type": {
+            "enum": [
+              "function"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "name"
+        ],
+        "type": "object"
+      },
+      "NamespaceTool": {
+        "description": "Groups function/custom tools under a shared namespace",
+        "example": {
+          "description": "Tools for spawning and managing sub-agents.",
+          "name": "multi_agent_v1",
+          "tools": [
+            {
+              "name": "spawn_agent",
+              "type": "function"
+            }
+          ],
+          "type": "namespace"
+        },
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "tools": {
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/NamespaceFunctionTool"
+                },
+                {
+                  "$ref": "#/components/schemas/CustomTool"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          "type": {
+            "enum": [
+              "namespace"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "name",
+          "description",
+          "tools"
         ],
         "type": "object"
       },
@@ -23676,6 +23971,14 @@
           "type": "openrouter:bash"
         },
         "properties": {
+          "arguments": {
+            "description": "The raw tool-call arguments string as emitted by the model.",
+            "type": "string"
+          },
+          "call_id": {
+            "description": "The model-generated tool call id from the originating turn.",
+            "type": "string"
+          },
           "command": {
             "type": "string"
           },
@@ -25446,8 +25749,18 @@
           "id": {
             "type": "string"
           },
+          "instance_name": {
+            "description": "Provider-safe function name of the specific subagent instance that produced this item (e.g. `openrouter_subagent__1`). Present only on items from non-default instances \u2014 the second and later subagent entries in the request `tools` array. The first (default) instance omits it, even when multiple subagents are configured. When a replayed item echoes this field back, the transcript rehydrates the call under that instance's tool. This identity is positional: it is derived from the index of the subagent entry in the request `tools` array, so keep the order of subagent entries stable across requests in a conversation.",
+            "example": "openrouter_subagent__1",
+            "type": "string"
+          },
           "model": {
             "description": "Slug of the worker model that executed the task.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Configured name of the subagent that executed the task (the `name` on its tool entry). Present only for named subagents; omitted for an unnamed (default) subagent.",
+            "example": "summarizer",
             "type": "string"
           },
           "outcome": {
@@ -25733,6 +26046,7 @@
           "logit_bias",
           "logprobs",
           "top_logprobs",
+          "prediction",
           "seed",
           "response_format",
           "structured_outputs",
@@ -26127,6 +26441,65 @@
         "type": "string",
         "x-speakeasy-unknown-values": "allow"
       },
+      "Prediction": {
+        "description": "Static predicted output content. Supported models can use this to reduce latency when much of the response is known in advance.",
+        "example": {
+          "content": "Expected response",
+          "type": "content"
+        },
+        "properties": {
+          "content": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "$ref": "#/components/schemas/PredictionContentText"
+                },
+                "type": "array"
+              }
+            ]
+          },
+          "type": {
+            "enum": [
+              "content"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "content"
+        ],
+        "type": [
+          "object",
+          "null"
+        ]
+      },
+      "PredictionContentText": {
+        "description": "Text content part for a predicted output.",
+        "example": {
+          "text": "Expected response",
+          "type": "text"
+        },
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "text"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "text"
+        ],
+        "type": "object"
+      },
       "PreferredMaxLatency": {
         "anyOf": [
           {
@@ -26473,8 +26846,62 @@
           "null"
         ]
       },
+      "PricingOverride": {
+        "description": "A conditional override of the base pricing. An entry applies only when all of its condition fields (e.g. min_prompt_tokens, or the utc_start/utc_end time window) match the request; among applicable entries, later entries win per price key; price keys absent from an entry inherit the base price.",
+        "example": {
+          "completion": "0.00002",
+          "min_prompt_tokens": 200000,
+          "prompt": "0.000005"
+        },
+        "properties": {
+          "audio": {
+            "description": "Overridden price in USD per audio input token",
+            "type": "string"
+          },
+          "completion": {
+            "description": "Overridden price in USD per token for completion (output) generation",
+            "type": "string"
+          },
+          "input_audio_cache": {
+            "description": "Overridden price in USD per cached audio input token",
+            "type": "string"
+          },
+          "input_cache_read": {
+            "description": "Overridden price in USD per cached input token (read)",
+            "type": "string"
+          },
+          "input_cache_write": {
+            "description": "Overridden price in USD per cache-write token",
+            "type": "string"
+          },
+          "input_cache_write_1h": {
+            "description": "Overridden price in USD per 1-hour cache-write token",
+            "type": "string"
+          },
+          "min_prompt_tokens": {
+            "description": "Condition: the entry applies when the total prompt tokens of a request are strictly greater than this threshold",
+            "format": "double",
+            "type": "number"
+          },
+          "prompt": {
+            "description": "Overridden price in USD per token for prompt (input) processing",
+            "type": "string"
+          },
+          "utc_end": {
+            "description": "Condition: exclusive end of a daily UTC time window as an HHMM clock number (e.g. 400 = 04:00)",
+            "format": "double",
+            "type": "number"
+          },
+          "utc_start": {
+            "description": "Condition: inclusive start of a daily UTC time window as an HHMM clock number (e.g. 100 = 01:00, 1030 = 10:30). The entry applies while the current UTC time is inside the half-open window [utc_start, utc_end), which may wrap past midnight (utc_start > utc_end).",
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
       "PromptCacheBreakpoint": {
-        "description": "Marks an explicit prompt-cache boundary on this content block. Everything through the block carrying this marker is part of the candidate cached prefix. Only supported by OpenAI GPT-5.6 and newer.",
+        "description": "Marks an explicit prompt-cache boundary on this content block (OpenAI-style). Everything through the block carrying this marker is part of the candidate cached prefix. Supported natively by OpenAI GPT-5.6 and newer; on providers that use Anthropic-style `cache_control`, OpenRouter converts the marker to that format automatically.",
         "example": {
           "mode": "explicit"
         },
@@ -26534,7 +26961,6 @@
       },
       "ProviderName": {
         "enum": [
-          "Meta",
           "AkashML",
           "AI21",
           "AionLabs",
@@ -26568,6 +26994,7 @@
           "DigitalOcean",
           "Featherless",
           "Fireworks",
+          "Fish Audio",
           "Friendli",
           "GMICloud",
           "Google",
@@ -26585,6 +27012,7 @@
           "Liquid",
           "Mara",
           "Mancer 2",
+          "Meta",
           "Minimax",
           "ModelRun",
           "Mistral",
@@ -26607,6 +27035,7 @@
           "Recraft",
           "Reka",
           "Relace",
+          "Sail Research",
           "Sakana AI",
           "SambaNova",
           "Seed",
@@ -26616,6 +27045,7 @@
           "Stealth",
           "StreamLake",
           "Switchpoint",
+          "Tencent",
           "Tenstorrent",
           "Together",
           "Upstage",
@@ -26623,6 +27053,7 @@
           "Wafer",
           "WandB",
           "Quiver",
+          "Krea",
           "Xiaomi",
           "xAI",
           "Z.AI",
@@ -26800,6 +27231,10 @@
             "additionalProperties": {},
             "type": "object"
           },
+          "fish-audio": {
+            "additionalProperties": {},
+            "type": "object"
+          },
           "friendli": {
             "additionalProperties": {},
             "type": "object"
@@ -26877,6 +27312,10 @@
             "type": "object"
           },
           "klusterai": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "krea": {
             "additionalProperties": {},
             "type": "object"
           },
@@ -27032,6 +27471,10 @@
             "additionalProperties": {},
             "type": "object"
           },
+          "sail-research": {
+            "additionalProperties": {},
+            "type": "object"
+          },
           "sakana": {
             "additionalProperties": {},
             "type": "object"
@@ -27077,6 +27520,10 @@
             "type": "object"
           },
           "targon": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "tencent": {
             "additionalProperties": {},
             "type": "object"
           },
@@ -27419,7 +27866,6 @@
               "Lynn 2",
               "Lynn",
               "Mancer",
-              "Meta",
               "Modal",
               "Nineteen",
               "OctoAI",
@@ -27465,6 +27911,7 @@
               "DigitalOcean",
               "Featherless",
               "Fireworks",
+              "Fish Audio",
               "Friendli",
               "GMICloud",
               "Google",
@@ -27482,6 +27929,7 @@
               "Liquid",
               "Mara",
               "Mancer 2",
+              "Meta",
               "Minimax",
               "ModelRun",
               "Mistral",
@@ -27504,6 +27952,7 @@
               "Recraft",
               "Reka",
               "Relace",
+              "Sail Research",
               "Sakana AI",
               "SambaNova",
               "Seed",
@@ -27513,6 +27962,7 @@
               "Stealth",
               "StreamLake",
               "Switchpoint",
+              "Tencent",
               "Tenstorrent",
               "Together",
               "Upstage",
@@ -27520,6 +27970,7 @@
               "Wafer",
               "WandB",
               "Quiver",
+              "Krea",
               "Xiaomi",
               "xAI",
               "Z.AI",
@@ -27727,6 +28178,13 @@
                 "description": "Price in USD per internal reasoning token",
                 "type": "string"
               },
+              "overrides": {
+                "description": "Conditional overrides of the base pricing (e.g. long-context or time-based pricing). An entry applies when all of its condition fields (e.g. min_prompt_tokens, or the utc_start/utc_end time window) match the request; among applicable entries, later entries win per key; price keys absent from an entry inherit the base price. The top-level pricing keys always reflect the price that applies under default conditions.",
+                "items": {
+                  "$ref": "#/components/schemas/PricingOverride"
+                },
+                "type": "array"
+              },
               "prompt": {
                 "description": "Price in USD per token for prompt (input) processing",
                 "type": "string"
@@ -27886,6 +28344,13 @@
           "internal_reasoning": {
             "description": "Price in USD per internal reasoning token",
             "type": "string"
+          },
+          "overrides": {
+            "description": "Conditional overrides of the base pricing (e.g. long-context or time-based pricing). An entry applies when all of its condition fields (e.g. min_prompt_tokens, or the utc_start/utc_end time window) match the request; among applicable entries, later entries win per key; price keys absent from an entry inherit the base price. The top-level pricing keys always reflect the price that applies under default conditions.",
+            "items": {
+              "$ref": "#/components/schemas/PricingOverride"
+            },
+            "type": "array"
           },
           "prompt": {
             "description": "Price in USD per token for prompt (input) processing",
@@ -28369,6 +28834,7 @@
           "openai-responses-v1",
           "azure-openai-responses-v1",
           "xai-responses-v1",
+          "meta-responses-v1",
           "anthropic-claude-v1",
           "google-gemini-v1",
           null
@@ -28977,6 +29443,7 @@
             "items": {
               "discriminator": {
                 "mapping": {
+                  "auto-beta-router": "#/components/schemas/AutoBetaRouterPlugin",
                   "auto-router": "#/components/schemas/AutoRouterPlugin",
                   "context-compression": "#/components/schemas/ContextCompressionPlugin",
                   "file-parser": "#/components/schemas/FileParserPlugin",
@@ -28992,6 +29459,9 @@
               "oneOf": [
                 {
                   "$ref": "#/components/schemas/AutoRouterPlugin"
+                },
+                {
+                  "$ref": "#/components/schemas/AutoBetaRouterPlugin"
                 },
                 {
                   "$ref": "#/components/schemas/ModerationPlugin"
@@ -29029,10 +29499,7 @@
             ]
           },
           "previous_response_id": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "description": "Not supported. The Responses API is stateless: no responses are stored, so a previous response cannot be referenced. Requests with a non-null value are rejected with a 400 error. Send the full conversation history in `input` instead."
           },
           "prompt": {
             "$ref": "#/components/schemas/StoredPromptTemplate"
@@ -29185,6 +29652,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/CustomTool"
+                },
+                {
+                  "$ref": "#/components/schemas/NamespaceTool"
                 },
                 {
                   "$ref": "#/components/schemas/AdvisorServerTool_OpenRouter"
@@ -29712,6 +30182,41 @@
         "example": "medium",
         "type": "string",
         "x-speakeasy-unknown-values": "allow"
+      },
+      "ServerToolUseDetails": {
+        "description": "Usage for server-side tool execution (e.g., web search)",
+        "example": {
+          "tool_calls_executed": 2,
+          "tool_calls_requested": 2,
+          "web_search_requests": 2
+        },
+        "properties": {
+          "tool_calls_executed": {
+            "description": "Number of OpenRouter server tool calls that executed and produced a result.",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "tool_calls_requested": {
+            "description": "Total number of OpenRouter server-orchestrated tool calls the model requested, across all tool types. Provider-native tools (e.g. native web search) are not counted here.",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "web_search_requests": {
+            "description": "Number of web searches performed by server-side tools. For server-orchestrated tool calls a web search is also counted in tool_calls_requested; provider-native web search may report web_search_requests only. Do not sum the two.",
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "type": [
+          "object",
+          "null"
+        ]
       },
       "ServiceTier": {
         "enum": [
@@ -30819,9 +31324,10 @@
         "type": "object"
       },
       "SubagentServerToolConfig": {
-        "description": "Configuration for the openrouter:subagent server tool.",
+        "description": "Configuration for one openrouter:subagent server tool entry.",
         "example": {
-          "model": "~anthropic/claude-haiku-latest"
+          "model": "~anthropic/claude-haiku-latest",
+          "name": "summarizer"
         },
         "properties": {
           "instructions": {
@@ -30844,6 +31350,14 @@
           "model": {
             "description": "Slug of the model that executes delegated tasks (any OpenRouter model). Typically a smaller, cheaper, faster model than the one delegating. When omitted, the model from the outer API request is used. The subagent tool itself cannot be the subagent model.",
             "example": "~anthropic/claude-haiku-latest",
+            "type": "string"
+          },
+          "name": {
+            "description": "Optional name for this subagent. The model sees one tool per named subagent (and one default for an unnamed entry). Names must be unique across subagent entries. Letters, digits, spaces, underscores, and dashes; trimmed; 1\u201364 chars.",
+            "example": "summarizer",
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9 _-]+$",
             "type": "string"
           },
           "reasoning": {
@@ -32176,7 +32690,7 @@
             ]
           },
           "content_filter_builtins": {
-            "description": "Builtin content filters to apply. Set to null to remove. The \"flag\" action is only supported for \"regex-prompt-injection\"; PII slugs (email, phone, ssn, credit-card, ip-address, person-name, address) accept \"block\" or \"redact\" only.",
+            "description": "Builtin content filters to apply. Set to null to remove. Every builtin slug supports \"block\", \"redact\", and the detect-only \"flag\" action.",
             "example": [
               {
                 "action": "block",
@@ -32213,7 +32727,7 @@
           },
           "enforce_zdr": {
             "deprecated": true,
-            "description": "Deprecated. Use enforce_zdr_anthropic, enforce_zdr_openai, enforce_zdr_google, and enforce_zdr_other instead. When provided, its value is copied into any of those per-provider fields that are not explicitly specified on the request.",
+            "description": "Deprecated. Use enforce_zdr_anthropic, enforce_zdr_openai, enforce_zdr_google, enforce_zdr_xai, and enforce_zdr_other instead. When provided, its value is copied into any of those per-provider fields that are not explicitly specified on the request.",
             "example": true,
             "type": [
               "boolean",
@@ -32245,7 +32759,15 @@
             ]
           },
           "enforce_zdr_other": {
-            "description": "Whether to enforce zero data retention for models that are not from Anthropic, OpenAI, or Google. Falls back to enforce_zdr when not provided.",
+            "description": "Whether to enforce zero data retention for models that are not from Anthropic, OpenAI, Google, or xAI. Falls back to enforce_zdr when not provided.",
+            "example": true,
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "enforce_zdr_xai": {
+            "description": "Whether to enforce zero data retention for xAI models. Falls back to enforce_zdr when not provided.",
             "example": true,
             "type": [
               "boolean",
@@ -32324,6 +32846,7 @@
             "enforce_zdr_google": true,
             "enforce_zdr_openai": true,
             "enforce_zdr_other": true,
+            "enforce_zdr_xai": true,
             "id": "550e8400-e29b-41d4-a716-446655440000",
             "ignored_models": null,
             "ignored_providers": null,
@@ -32666,6 +33189,9 @@
                   "is_byok": {
                     "description": "Whether a request was made using a Bring Your Own Key configuration",
                     "type": "boolean"
+                  },
+                  "server_tool_use_details": {
+                    "$ref": "#/components/schemas/ServerToolUseDetails"
                   }
                 },
                 "type": "object"
@@ -32756,6 +33282,8 @@
             "type": "string"
           },
           "prompt": {
+            "description": "Text prompt describing the video to generate. Optional for models that support generating a video from image input alone; required by all other models.",
+            "example": "A serene mountain landscape at sunset",
             "type": "string"
           },
           "provider": {
@@ -32805,7 +33333,6 @@
           }
         },
         "required": [
-          "prompt",
           "model"
         ],
         "type": "object"
@@ -34688,7 +35215,7 @@
                         "x-speakeasy-unknown-values": "allow"
                       },
                       "field": {
-                        "description": "Field to order by",
+                        "description": "Field to order by: a metric included in `metrics` (or \"request_count\", which may be ordered by without being requested), a requested dimension, or \"date\".",
                         "example": "request_count",
                         "type": "string"
                       }
@@ -36087,6 +36614,7 @@
                 "digitalocean",
                 "featherless",
                 "fireworks",
+                "fish-audio",
                 "friendli",
                 "gmicloud",
                 "google-ai-studio",
@@ -36101,6 +36629,7 @@
                 "inflection",
                 "io-net",
                 "ionstream",
+                "krea",
                 "liquid",
                 "mancer",
                 "mara",
@@ -36128,6 +36657,7 @@
                 "recraft",
                 "reka",
                 "relace",
+                "sail-research",
                 "sakana",
                 "sambanova",
                 "seed",
@@ -36136,6 +36666,7 @@
                 "stepfun",
                 "streamlake",
                 "switchpoint",
+                "tencent",
                 "tenstorrent",
                 "together",
                 "upstage",
@@ -38724,6 +39255,22 @@
             },
             "description": "Returns a list of endpoints"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 403,
+                    "message": "Only management keys can perform this operation"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            },
+            "description": "Forbidden - Authentication successful but insufficient permissions"
+          },
           "500": {
             "content": {
               "application/json": {
@@ -40183,6 +40730,7 @@
                 "enforce_zdr_google": false,
                 "enforce_zdr_openai": true,
                 "enforce_zdr_other": false,
+                "enforce_zdr_xai": false,
                 "ignored_models": null,
                 "ignored_providers": null,
                 "limit_usd": 50,
@@ -40215,6 +40763,7 @@
                     "enforce_zdr_google": false,
                     "enforce_zdr_openai": true,
                     "enforce_zdr_other": false,
+                    "enforce_zdr_xai": false,
                     "id": "550e8400-e29b-41d4-a716-446655440000",
                     "ignored_models": null,
                     "ignored_providers": null,
@@ -40815,6 +41364,7 @@
                     "enforce_zdr_google": true,
                     "enforce_zdr_openai": true,
                     "enforce_zdr_other": true,
+                    "enforce_zdr_xai": true,
                     "id": "550e8400-e29b-41d4-a716-446655440000",
                     "ignored_models": null,
                     "ignored_providers": null,
@@ -44570,6 +45120,22 @@
             },
             "description": "Returns the model details"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 403,
+                    "message": "Only management keys can perform this operation"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            },
+            "description": "Forbidden - Authentication successful but insufficient permissions"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -44759,8 +45325,7 @@
             "schema": {
               "description": "Minimum context length (tokens). Models with smaller context are excluded.",
               "example": 128000,
-              "exclusiveMinimum": 0,
-              "minimum": 0,
+              "minimum": 1,
               "type": "integer"
             }
           },
@@ -45128,6 +45693,22 @@
             },
             "description": "Bad Request - Invalid request parameters or malformed input"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 403,
+                    "message": "Only management keys can perform this operation"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            },
+            "description": "Forbidden - Authentication successful but insufficient permissions"
+          },
           "500": {
             "content": {
               "application/json": {
@@ -45228,6 +45809,22 @@
               }
             },
             "description": "Bad Request - Invalid request parameters or malformed input"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 403,
+                    "message": "Only management keys can perform this operation"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            },
+            "description": "Forbidden - Authentication successful but insufficient permissions"
           },
           "500": {
             "content": {
@@ -45373,6 +45970,22 @@
               }
             },
             "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 403,
+                    "message": "Only management keys can perform this operation"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            },
+            "description": "Forbidden - Authentication successful but insufficient permissions"
           },
           "404": {
             "content": {
@@ -45573,6 +46186,22 @@
               }
             },
             "description": "Returns a list of endpoints"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 403,
+                    "message": "Only management keys can perform this operation"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            },
+            "description": "Forbidden - Authentication successful but insufficient permissions"
           },
           "404": {
             "content": {
@@ -51004,7 +51633,7 @@
         }
       ],
       "post": {
-        "description": "Remove multiple members from a workspace. Members with active API keys in the workspace cannot be removed. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "description": "Remove multiple members from a workspace. Members with active API keys in the workspace cannot be removed. SCIM-managed members cannot be removed; changes must be made in your identity provider. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "bulkRemoveWorkspaceMembers",
         "parameters": [
           {

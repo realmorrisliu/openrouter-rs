@@ -127,7 +127,14 @@ fn test_image_generation_request_serialization() {
         .n(2)
         .output_compression(80)
         .output_format("webp")
-        .provider(ImageProviderOptions::new(provider_options))
+        .provider(
+            ImageProviderOptions::new(provider_options)
+                .allow_fallbacks(false)
+                .only(["Black Forest Labs"])
+                .ignore(["OpenAI"])
+                .order(["Black Forest Labs", "Google"])
+                .sort(serde_json::json!({"by": "price", "partition": "model"})),
+        )
         .quality("high")
         .resolution("2K")
         .seed(42)
@@ -148,6 +155,11 @@ fn test_image_generation_request_serialization() {
         value["provider"]["options"]["black-forest-labs"]["steps"],
         40
     );
+    assert_eq!(value["provider"]["allow_fallbacks"], false);
+    assert_eq!(value["provider"]["only"][0], "Black Forest Labs");
+    assert_eq!(value["provider"]["ignore"][0], "OpenAI");
+    assert_eq!(value["provider"]["order"][1], "Google");
+    assert_eq!(value["provider"]["sort"]["partition"], "model");
     assert!(value.get("stream").is_none());
 }
 
@@ -164,7 +176,11 @@ fn test_image_generation_response_deserialization() {
             "completion_tokens": 4175,
             "total_tokens": 4175,
             "cost": 0.04,
-            "is_byok": false
+            "is_byok": false,
+            "cache_creation": {
+                "ephemeral_5m_input_tokens": 100,
+                "ephemeral_1h_input_tokens": 20
+            }
         }
     }"#;
 
@@ -173,9 +189,14 @@ fn test_image_generation_response_deserialization() {
     assert_eq!(parsed.created, 1748372400);
     assert_eq!(parsed.data[0].b64_json, "aW1hZ2U=");
     assert_eq!(parsed.data[0].media_type.as_deref(), Some("image/svg+xml"));
+    let usage = parsed.usage.expect("usage should be present");
+    assert_eq!(usage.cost, Some(0.04));
     assert_eq!(
-        parsed.usage.expect("usage should be present").cost,
-        Some(0.04)
+        usage
+            .cache_creation
+            .expect("cache creation should be present")
+            .ephemeral_1h_input_tokens,
+        20
     );
 }
 

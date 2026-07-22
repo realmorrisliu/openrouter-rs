@@ -215,6 +215,10 @@ fn test_anthropic_messages_response_deserialization() {
             "input_tokens": 12,
             "output_tokens": 15,
             "service_tier": "standard",
+            "cache_creation": {
+                "ephemeral_5m_input_tokens": 100,
+                "ephemeral_1h_input_tokens": 20
+            },
             "server_tool_use": {
                 "web_search_requests": 1
             }
@@ -243,6 +247,14 @@ fn test_anthropic_messages_response_deserialization() {
             .and_then(|value| value.get("web_search_requests"))
             .and_then(|value| value.as_u64()),
         Some(1)
+    );
+    assert_eq!(
+        response
+            .usage
+            .as_ref()
+            .and_then(|usage| usage.cache_creation.as_ref())
+            .map(|details| details.ephemeral_5m_input_tokens),
+        Some(100)
     );
     assert_eq!(response.content.len(), 1);
     match &response.content[0] {

@@ -380,6 +380,7 @@ impl ServerTool {
                     | "web_search_preview_2025_03_11"
                     | "apply_patch"
                     | "shell"
+                    | "namespace"
             )
     }
 
