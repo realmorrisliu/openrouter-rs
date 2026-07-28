@@ -323,6 +323,58 @@ class OpenApiDriftReportTests(unittest.TestCase):
             ["dynamic provider name enum"],
         )
 
+    def test_dynamic_provider_slug_drift_is_classified_as_already_supported(self):
+        baseline = build_spec(
+            response_properties={
+                "provider": {
+                    "enum": ["anthropic", "google-vertex", "openai"],
+                    "type": "string",
+                    "x-speakeasy-unknown-values": "allow",
+                }
+            }
+        )
+        candidate = build_spec(
+            response_properties={
+                "provider": {
+                    "enum": ["anthropic", "coreweave", "google-vertex", "openai"],
+                    "type": "string",
+                    "x-speakeasy-unknown-values": "allow",
+                }
+            }
+        )
+
+        report = openapi_drift.build_report(
+            baseline_spec=baseline,
+            candidate_spec=candidate,
+            baseline_label="baseline",
+            candidate_label="candidate",
+            source_url="https://example.com/openapi.json",
+            max_diff_lines=20,
+        )
+
+        self.assertFalse(report["has_actionable_drift"])
+        self.assertEqual(report["repo_summary"]["already_supported_changed"], 1)
+        self.assertEqual(
+            report["changed"][0]["repo_impact"]["schema_rules"],
+            ["dynamic provider name enum"],
+        )
+
+    def test_hidden_operation_metadata_is_not_reported_as_drift(self):
+        baseline = build_spec()
+        candidate = build_spec()
+        candidate["paths"]["/models"]["get"]["x-hidden"] = True
+
+        report = openapi_drift.build_report(
+            baseline_spec=baseline,
+            candidate_spec=candidate,
+            baseline_label="baseline",
+            candidate_label="candidate",
+            source_url="https://example.com/openapi.json",
+            max_diff_lines=20,
+        )
+
+        self.assertFalse(report["has_drift"])
+
     def test_dynamic_enum_with_object_members_does_not_crash(self):
         baseline = build_spec(
             response_properties={

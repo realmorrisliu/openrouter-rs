@@ -113,6 +113,7 @@ fn test_create_guardrail_request_serialization() {
         .name("Production")
         .description("Production guardrail")
         .limit_usd(100.0)
+        .include_byok_in_budgets(true)
         .reset_interval("monthly")
         .allowed_providers(vec!["openai".to_string(), "anthropic".to_string()])
         .allowed_models(vec![
@@ -128,6 +129,7 @@ fn test_create_guardrail_request_serialization() {
     assert_eq!(value["name"], "Production");
     assert_eq!(value["description"], "Production guardrail");
     assert_eq!(value["limit_usd"], 100.0);
+    assert_eq!(value["include_byok_in_budgets"], true);
     assert_eq!(value["reset_interval"], "monthly");
     assert_eq!(value["allowed_providers"][0], "openai");
     assert_eq!(value["allowed_models"][1], "anthropic/claude-sonnet-4");
@@ -184,12 +186,14 @@ fn test_create_guardrail_request_serializes_content_filters_and_provider_zdr_fla
 fn test_update_guardrail_request_serialization() {
     let request = UpdateGuardrailRequest::builder()
         .name("Updated")
+        .include_byok_in_budgets(false)
         .enforce_zdr(false)
         .build()
         .expect("update guardrail request should build");
 
     let value = serde_json::to_value(&request).expect("request should serialize");
     assert_eq!(value["name"], "Updated");
+    assert_eq!(value["include_byok_in_budgets"], false);
     assert_eq!(value["enforce_zdr"], false);
     assert!(value.get("description").is_none());
     assert!(value.get("allowed_models").is_none());
@@ -315,6 +319,7 @@ fn test_guardrail_response_deserialization() {
             "name": "Production Guardrail",
             "description": "Guardrail for production traffic",
             "limit_usd": 100,
+            "include_byok_in_budgets": true,
             "reset_interval": "monthly",
             "allowed_providers": ["openai"],
             "allowed_models": ["openai/gpt-4.1"],
@@ -349,6 +354,7 @@ fn test_guardrail_response_deserialization() {
     assert_eq!(parsed.data.enforce_zdr_openai, Some(false));
     assert_eq!(parsed.data.enforce_zdr_google, Some(true));
     assert_eq!(parsed.data.enforce_zdr_other, Some(false));
+    assert!(parsed.data.include_byok_in_budgets);
     assert_eq!(
         parsed.data.content_filter_builtins.unwrap_or_default()[0].slug,
         ContentFilterBuiltinSlug::RegexPromptInjection

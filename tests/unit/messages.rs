@@ -279,6 +279,52 @@ fn test_anthropic_document_file_id_part_serializes() {
 }
 
 #[test]
+fn test_anthropic_compaction_and_dynamic_tool_blocks_roundtrip() {
+    let message: AnthropicMessage = serde_json::from_value(json!({
+        "role": "system",
+        "content": [
+            {
+                "type": "compaction",
+                "content": null,
+                "encrypted_content": "enc_123"
+            },
+            {
+                "type": "advisor_tool_result",
+                "tool_use_id": "srvtoolu_123",
+                "content": {"type": "advisor_result", "text": "Use option A"}
+            },
+            {
+                "type": "tool_reference",
+                "tool_name": "get_weather"
+            },
+            {
+                "type": "tool_addition",
+                "tool": {
+                    "type": "mcp_tool_reference",
+                    "name": "search",
+                    "server_name": "docs"
+                }
+            },
+            {
+                "type": "tool_removal",
+                "tool": {
+                    "type": "tool_reference",
+                    "name": "get_weather"
+                }
+            }
+        ]
+    }))
+    .expect("new content blocks should deserialize");
+
+    let value = serde_json::to_value(message).expect("content blocks should serialize");
+    assert_eq!(value["content"][0]["encrypted_content"], "enc_123");
+    assert_eq!(value["content"][1]["tool_use_id"], "srvtoolu_123");
+    assert_eq!(value["content"][2]["tool_name"], "get_weather");
+    assert_eq!(value["content"][3]["tool"]["server_name"], "docs");
+    assert_eq!(value["content"][4]["type"], "tool_removal");
+}
+
+#[test]
 fn test_anthropic_messages_system_role_roundtrip() {
     let message = AnthropicMessage::system("Follow the policy.");
     let value = serde_json::to_value(&message).expect("system message should serialize");

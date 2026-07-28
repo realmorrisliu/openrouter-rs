@@ -29,6 +29,8 @@ pub struct Workspace {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub default_guardrail_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub default_text_model: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub default_image_model: Option<String>,
@@ -260,6 +262,8 @@ pub struct WorkspaceBudget {
 #[non_exhaustive]
 pub struct ListWorkspaceBudgetsResponse {
     pub data: Vec<WorkspaceBudget>,
+    #[serde(default)]
+    pub include_byok_in_budgets: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Builder)]
@@ -267,12 +271,22 @@ pub struct ListWorkspaceBudgetsResponse {
 #[non_exhaustive]
 pub struct UpsertWorkspaceBudgetRequest {
     pub limit_usd: f64,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_byok_in_budgets: Option<bool>,
 }
 
 impl UpsertWorkspaceBudgetRequest {
     pub fn builder() -> UpsertWorkspaceBudgetRequestBuilder {
         UpsertWorkspaceBudgetRequestBuilder::default()
     }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct UpsertWorkspaceBudgetResponse {
+    pub data: WorkspaceBudget,
+    pub include_byok_in_budgets: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -529,7 +543,7 @@ pub async fn upsert_workspace_budget(
     id: &str,
     interval: &str,
     request: &UpsertWorkspaceBudgetRequest,
-) -> Result<WorkspaceBudget, OpenRouterError> {
+) -> Result<UpsertWorkspaceBudgetResponse, OpenRouterError> {
     let http_client = crate::transport::new_client()?;
     upsert_workspace_budget_with_client(
         &http_client,
@@ -549,7 +563,7 @@ pub(crate) async fn upsert_workspace_budget_with_client(
     id: &str,
     interval: &str,
     request: &UpsertWorkspaceBudgetRequest,
-) -> Result<WorkspaceBudget, OpenRouterError> {
+) -> Result<UpsertWorkspaceBudgetResponse, OpenRouterError> {
     let url = format!(
         "{base_url}/workspaces/{}/budgets/{}",
         encode(id),
@@ -564,9 +578,7 @@ pub(crate) async fn upsert_workspace_budget_with_client(
     .await?;
 
     if response.status().is_success() {
-        let payload: ApiResponse<WorkspaceBudget> =
-            transport_response::parse_json_response(response, "workspace budget upsert").await?;
-        Ok(payload.data)
+        transport_response::parse_json_response(response, "workspace budget upsert").await
     } else {
         transport_response::handle_error(response).await?;
         unreachable!()

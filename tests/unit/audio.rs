@@ -80,6 +80,30 @@ fn test_transcription_request_serialization() {
     );
 }
 
+#[test]
+fn test_transcription_speaker_labels_deserialize() {
+    let response: audio::TranscriptionResponse = serde_json::from_value(serde_json::json!({
+        "text": "Hello",
+        "segments": [{
+            "id": 0,
+            "start": 0.0,
+            "end": 0.5,
+            "text": "Hello",
+            "speaker": 1
+        }],
+        "words": [{
+            "word": "Hello",
+            "start": 0.0,
+            "end": 0.5,
+            "speaker": 1
+        }]
+    }))
+    .expect("speaker labels should deserialize");
+
+    assert_eq!(response.segments.unwrap()[0].speaker, Some(1));
+    assert_eq!(response.words.unwrap()[0].speaker, Some(1));
+}
+
 #[tokio::test]
 async fn test_create_transcription_path_body_headers_and_response() {
     let listener = TcpListener::bind("127.0.0.1:0").expect("listener should bind");

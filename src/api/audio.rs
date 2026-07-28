@@ -174,6 +174,8 @@ pub struct TranscriptionSegment {
     pub start: f64,
     pub end: f64,
     pub text: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub speaker: Option<i64>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tokens: Vec<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -194,6 +196,8 @@ pub struct TranscriptionWord {
     pub word: String,
     pub start: f64,
     pub end: f64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub speaker: Option<i64>,
 }
 
 /// Usage metadata for audio transcription requests.

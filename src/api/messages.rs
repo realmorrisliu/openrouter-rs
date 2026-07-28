@@ -173,6 +173,28 @@ pub enum AnthropicContentPart {
         #[serde(skip_serializing_if = "Option::is_none")]
         cache_control: Option<CacheControl>,
     },
+    Compaction {
+        content: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        encrypted_content: Option<String>,
+    },
+    AdvisorToolResult {
+        tool_use_id: String,
+        content: Value,
+    },
+    ToolReference {
+        tool_name: String,
+    },
+    ToolAddition {
+        tool: Value,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        cache_control: Option<CacheControl>,
+    },
+    ToolRemoval {
+        tool: Value,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        cache_control: Option<CacheControl>,
+    },
 }
 
 impl AnthropicContentPart {

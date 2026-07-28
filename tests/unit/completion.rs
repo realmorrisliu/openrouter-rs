@@ -1,4 +1,4 @@
-use openrouter_rs::types::completion::CompletionsResponse;
+use openrouter_rs::types::completion::{Choice, CompletionsResponse};
 
 /// Test deserialization of a standard non-streaming response
 #[test]
@@ -10,7 +10,8 @@ fn test_non_streaming_response_deserialization() {
             "index": 0,
             "message": {
                 "role": "assistant",
-                "content": "Hello from Rust!"
+                "content": "Hello from Rust!",
+                "model": "openai/gpt-4o"
             }
         }],
         "created": 1700000000,
@@ -28,6 +29,10 @@ fn test_non_streaming_response_deserialization() {
     assert_eq!(choice.content(), Some("Hello from Rust!"));
     assert_eq!(choice.role(), Some("assistant"));
     assert_eq!(choice.index(), Some(0));
+    let Choice::NonStreaming(choice) = choice else {
+        panic!("expected non-streaming choice");
+    };
+    assert_eq!(choice.message.model.as_deref(), Some("openai/gpt-4o"));
 }
 
 /// Test deserialization of response with index field (Grok model format)

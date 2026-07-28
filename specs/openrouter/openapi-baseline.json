@@ -1731,6 +1731,12 @@
               "null"
             ]
           },
+          "encrypted_content": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "type": {
             "enum": [
               "compaction"
@@ -2968,6 +2974,76 @@
         ],
         "type": "object"
       },
+      "AnthropicToolSearchToolBm25": {
+        "properties": {
+          "allowed_callers": {
+            "$ref": "#/components/schemas/AnthropicAllowedCallers"
+          },
+          "cache_control": {
+            "$ref": "#/components/schemas/AnthropicCacheControlDirective"
+          },
+          "defer_loading": {
+            "type": "boolean"
+          },
+          "name": {
+            "enum": [
+              "tool_search_tool_bm25"
+            ],
+            "type": "string"
+          },
+          "strict": {
+            "type": "boolean"
+          },
+          "type": {
+            "enum": [
+              "tool_search_tool_bm25_20251119",
+              "tool_search_tool_bm25"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          }
+        },
+        "required": [
+          "type",
+          "name"
+        ],
+        "type": "object"
+      },
+      "AnthropicToolSearchToolRegex": {
+        "properties": {
+          "allowed_callers": {
+            "$ref": "#/components/schemas/AnthropicAllowedCallers"
+          },
+          "cache_control": {
+            "$ref": "#/components/schemas/AnthropicCacheControlDirective"
+          },
+          "defer_loading": {
+            "type": "boolean"
+          },
+          "name": {
+            "enum": [
+              "tool_search_tool_regex"
+            ],
+            "type": "string"
+          },
+          "strict": {
+            "type": "boolean"
+          },
+          "type": {
+            "enum": [
+              "tool_search_tool_regex_20251119",
+              "tool_search_tool_regex"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          }
+        },
+        "required": [
+          "type",
+          "name"
+        ],
+        "type": "object"
+      },
       "AnthropicToolSearchToolResult": {
         "example": {
           "content": {
@@ -4072,7 +4148,7 @@
             "anthropic/*",
             "openai/gpt-4o"
           ],
-          "cost_quality_tradeoff": 7,
+          "cost_quality_tradeoff": 9,
           "enabled": true,
           "id": "auto-beta-router"
         },
@@ -4090,8 +4166,8 @@
             "type": "array"
           },
           "cost_quality_tradeoff": {
-            "description": "Balances routing between cost and quality on a 0-10 scale. The auto-beta-router ranks models for the classified task type by community spend share, then filters candidates by their average cost per generation for that task. Higher values favor cheaper models: 10 keeps only models around the cheapest 10th percentile, while 0 permits models up to the 90th percentile for cost. Defaults to 7.",
-            "example": 7,
+            "description": "Balances routing between cost and quality on a 0-10 scale. The auto-beta-router ranks models for the classified task type by community spend share, then filters candidates by their average cost per generation for that task. Higher values favor cheaper models: 10 keeps only models around the cheapest 10th percentile, while 0 permits models up to the 90th percentile for cost. Defaults to 9.",
+            "example": 9,
             "maximum": 10,
             "minimum": 0,
             "type": "integer"
@@ -4120,7 +4196,8 @@
           ],
           "cost_quality_tradeoff": 7,
           "enabled": true,
-          "id": "auto-router"
+          "id": "auto-router",
+          "pin_model": false
         },
         "properties": {
           "allowed_models": {
@@ -4151,6 +4228,11 @@
               "auto-router"
             ],
             "type": "string"
+          },
+          "pin_model": {
+            "description": "When true, reuses the model from the most recent assistant message's `model` attribute for subsequent turns. Defaults to false.",
+            "example": false,
+            "type": "boolean"
           }
         },
         "required": [
@@ -4301,6 +4383,7 @@
           "clarifai",
           "cloudflare",
           "cohere",
+          "coreweave",
           "crusoe",
           "darkbloom",
           "decart",
@@ -4333,6 +4416,7 @@
           "meta",
           "minimax",
           "mistral",
+          "modal",
           "modelrun",
           "modular",
           "moonshotai",
@@ -4354,8 +4438,10 @@
           "recraft",
           "reka",
           "relace",
+          "runway",
           "sail-research",
           "sakana",
+          "sakana-ai",
           "sambanova",
           "seed",
           "siliconflow",
@@ -4370,6 +4456,7 @@
           "venice",
           "wafer",
           "wandb",
+          "wandb-legacy",
           "xai",
           "xiaomi",
           "z-ai"
@@ -6357,6 +6444,7 @@
         "description": "Assistant message for requests and responses",
         "example": {
           "content": "The capital of France is Paris.",
+          "model": "openai/gpt-4o",
           "role": "assistant"
         },
         "properties": {
@@ -6382,6 +6470,11 @@
           },
           "images": {
             "$ref": "#/components/schemas/ChatAssistantImages"
+          },
+          "model": {
+            "description": "Model that generated this assistant message",
+            "example": "openai/gpt-4o",
+            "type": "string"
           },
           "name": {
             "description": "Optional name for the assistant",
@@ -7679,7 +7772,7 @@
             "$ref": "#/components/schemas/TraceConfig"
           },
           "user": {
-            "description": "Unique user identifier",
+            "description": "Per-end-user identifier for abuse isolation. Use a stable ID, hash, or pseudonym. When a provider requires a user identity, OpenRouter folds it into the hashed identity sent upstream and never forwards it raw. If omitted, requests use an account-level identity, so provider policy blocks can affect the whole account.",
             "example": "user-123",
             "type": "string"
           }
@@ -8620,6 +8713,11 @@
           "max_total_results": {
             "description": "Maximum total number of search results across all search calls in a single request. Once this limit is reached, the tool will stop returning new results. Useful for controlling cost and context size in agentic loops. Defaults to 50 when not specified.",
             "example": 50,
+            "type": "integer"
+          },
+          "max_uses": {
+            "description": "Maximum number of web searches the model may perform in a single request. Once reached, further search calls return an error result instead of executing. Applies to the Exa, Firecrawl, Parallel, and Perplexity engines. With native provider search, forwarded only to Anthropic (as `max_uses`); other native search providers have no equivalent parameter and ignore it.",
+            "example": 3,
             "type": "integer"
           },
           "parameters": {
@@ -9853,6 +9951,11 @@
               "null"
             ]
           },
+          "include_byok_in_budgets": {
+            "description": "Whether BYOK (bring-your-own-key) inference spend counts toward this guardrail's limit_usd, in addition to OpenRouter credit spend. Defaults to false.",
+            "example": false,
+            "type": "boolean"
+          },
           "limit_usd": {
             "description": "Spending limit in USD",
             "example": 50,
@@ -9912,6 +10015,7 @@
             "id": "550e8400-e29b-41d4-a716-446655440000",
             "ignored_models": null,
             "ignored_providers": null,
+            "include_byok_in_budgets": false,
             "limit_usd": 50,
             "name": "My New Guardrail",
             "reset_interval": "monthly",
@@ -10214,6 +10318,7 @@
           "data": {
             "created_at": "2025-08-24T10:30:00Z",
             "created_by": "user_abc123",
+            "default_guardrail_id": "595d5849-7e86-51fd-a7c0-705c34e4afff",
             "default_image_model": "openai/dall-e-3",
             "default_provider_sort": "price",
             "default_text_model": "openai/gpt-4o",
@@ -13332,6 +13437,7 @@
             "id": "550e8400-e29b-41d4-a716-446655440000",
             "ignored_models": null,
             "ignored_providers": null,
+            "include_byok_in_budgets": false,
             "limit_usd": 100,
             "name": "Production Guardrail",
             "reset_interval": "monthly",
@@ -13466,6 +13572,7 @@
           "data": {
             "created_at": "2025-08-24T10:30:00Z",
             "created_by": "user_abc123",
+            "default_guardrail_id": "595d5849-7e86-51fd-a7c0-705c34e4afff",
             "default_image_model": "openai/dall-e-3",
             "default_provider_sort": "price",
             "default_text_model": "openai/gpt-4o",
@@ -13583,6 +13690,7 @@
           "id": "550e8400-e29b-41d4-a716-446655440000",
           "ignored_models": null,
           "ignored_providers": null,
+          "include_byok_in_budgets": false,
           "limit_usd": 100,
           "name": "Production Guardrail",
           "reset_interval": "monthly",
@@ -13748,6 +13856,11 @@
               "null"
             ]
           },
+          "include_byok_in_budgets": {
+            "description": "Whether BYOK (bring-your-own-key) inference spend counts toward this guardrail's limit_usd, in addition to OpenRouter credit spend.",
+            "example": false,
+            "type": "boolean"
+          },
           "limit_usd": {
             "description": "Spending limit in USD",
             "example": 100,
@@ -13782,6 +13895,7 @@
         "required": [
           "id",
           "name",
+          "include_byok_in_budgets",
           "created_at",
           "workspace_id"
         ],
@@ -16010,6 +16124,11 @@
             "example": 5,
             "type": "integer"
           },
+          "max_uses": {
+            "description": "Maximum number of web searches the model may perform in a single request. Once reached, further search calls return an error result instead of executing. Applies to the Exa, Firecrawl, Parallel, and Perplexity engines. With native provider search, forwarded only to Anthropic (as `max_uses`); other native search providers have no equivalent parameter and ignore it.",
+            "example": 3,
+            "type": "integer"
+          },
           "search_context_size": {
             "$ref": "#/components/schemas/SearchContextSizeEnum"
           },
@@ -16251,6 +16370,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440000",
               "ignored_models": null,
               "ignored_providers": null,
+              "include_byok_in_budgets": false,
               "limit_usd": 100,
               "name": "Production Guardrail",
               "reset_interval": "monthly",
@@ -16478,7 +16598,8 @@
               "updated_at": "2025-08-24T15:45:00Z",
               "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
             }
-          ]
+          ],
+          "include_byok_in_budgets": false
         },
         "properties": {
           "data": {
@@ -16487,10 +16608,16 @@
               "$ref": "#/components/schemas/WorkspaceBudget"
             },
             "type": "array"
+          },
+          "include_byok_in_budgets": {
+            "description": "Whether BYOK spend is included in the workspace budgets",
+            "example": false,
+            "type": "boolean"
           }
         },
         "required": [
-          "data"
+          "data",
+          "include_byok_in_budgets"
         ],
         "type": "object"
       },
@@ -16533,6 +16660,7 @@
             {
               "created_at": "2025-08-24T10:30:00Z",
               "created_by": "user_abc123",
+              "default_guardrail_id": "595d5849-7e86-51fd-a7c0-705c34e4afff",
               "default_image_model": "openai/dall-e-3",
               "default_provider_sort": "price",
               "default_text_model": "openai/gpt-4o",
@@ -17259,6 +17387,12 @@
                       "null"
                     ]
                   },
+                  "encrypted_content": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
                   "type": {
                     "enum": [
                       "compaction_delta"
@@ -17350,6 +17484,12 @@
               {
                 "properties": {
                   "content": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "encrypted_content": {
                     "type": [
                       "string",
                       "null"
@@ -17899,6 +18039,12 @@
                             "null"
                           ]
                         },
+                        "encrypted_content": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
                         "type": {
                           "enum": [
                             "compaction"
@@ -17914,6 +18060,12 @@
                     },
                     {
                       "$ref": "#/components/schemas/MessagesAdvisorToolResultBlock"
+                    },
+                    {
+                      "$ref": "#/components/schemas/MessagesToolAdditionBlock"
+                    },
+                    {
+                      "$ref": "#/components/schemas/MessagesToolRemovalBlock"
                     }
                   ]
                 },
@@ -18512,6 +18664,9 @@
                     "cache_control": {
                       "$ref": "#/components/schemas/AnthropicCacheControlDirective"
                     },
+                    "defer_loading": {
+                      "type": "boolean"
+                    },
                     "description": {
                       "type": "string"
                     },
@@ -18780,6 +18935,12 @@
                     "type"
                   ],
                   "type": "object"
+                },
+                {
+                  "$ref": "#/components/schemas/AnthropicToolSearchToolBm25"
+                },
+                {
+                  "$ref": "#/components/schemas/AnthropicToolSearchToolRegex"
                 }
               ]
             },
@@ -19049,9 +19210,11 @@
                   "Cerebras",
                   "Chutes",
                   "Cirrascale",
+                  "Claude Platform on AWS",
                   "Clarifai",
                   "Cloudflare",
                   "Cohere",
+                  "CoreWeave",
                   "Crucible",
                   "Crusoe",
                   "Darkbloom",
@@ -19088,6 +19251,7 @@
                   "Modular",
                   "Moonshot AI",
                   "Morph",
+                  "VoyageAI by MongoDB",
                   "NCompass",
                   "Nebius",
                   "Nex AGI",
@@ -19123,6 +19287,7 @@
                   "WandB",
                   "Quiver",
                   "Krea",
+                  "Runway",
                   "Xiaomi",
                   "xAI",
                   "Z.AI",
@@ -19302,6 +19467,182 @@
         "required": [
           "event",
           "data"
+        ],
+        "type": "object"
+      },
+      "MessagesToolAdditionBlock": {
+        "description": "Loads a previously deferred tool (declared in `tools` with `defer_loading: true`) mid-conversation without invalidating the prompt cache. Only valid in `role: \"system\"` messages. Not supported on Claude Sonnet 5 or models older than Claude Opus 4.8.",
+        "example": {
+          "tool": {
+            "name": "get_forecast",
+            "type": "tool_reference"
+          },
+          "type": "tool_addition"
+        },
+        "properties": {
+          "cache_control": {
+            "$ref": "#/components/schemas/AnthropicCacheControlDirective"
+          },
+          "tool": {
+            "oneOf": [
+              {
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "tool_reference"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "name"
+                ],
+                "type": "object"
+              },
+              {
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "server_name": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "mcp_tool_reference"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "name",
+                  "server_name"
+                ],
+                "type": "object"
+              },
+              {
+                "properties": {
+                  "server_name": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "mcp_toolset_reference"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "server_name"
+                ],
+                "type": "object"
+              }
+            ]
+          },
+          "type": {
+            "enum": [
+              "tool_addition"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "tool"
+        ],
+        "type": "object"
+      },
+      "MessagesToolRemovalBlock": {
+        "description": "Removes a tool from the conversation mid-conversation without invalidating the prompt cache. Only valid in `role: \"system\"` messages. Not supported on Claude Sonnet 5 or models older than Claude Opus 4.8.",
+        "example": {
+          "tool": {
+            "name": "get_weather",
+            "type": "tool_reference"
+          },
+          "type": "tool_removal"
+        },
+        "properties": {
+          "cache_control": {
+            "$ref": "#/components/schemas/AnthropicCacheControlDirective"
+          },
+          "tool": {
+            "oneOf": [
+              {
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "tool_reference"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "name"
+                ],
+                "type": "object"
+              },
+              {
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "server_name": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "mcp_tool_reference"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "name",
+                  "server_name"
+                ],
+                "type": "object"
+              },
+              {
+                "properties": {
+                  "server_name": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "mcp_toolset_reference"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "server_name"
+                ],
+                "type": "object"
+              }
+            ]
+          },
+          "type": {
+            "enum": [
+              "tool_removal"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "tool"
         ],
         "type": "object"
       },
@@ -20257,6 +20598,7 @@
         "enum": [
           "end_turn",
           "max_tokens",
+          "model_context_window_exceeded",
           "stop_sequence",
           "tool_use",
           "pause_turn",
@@ -24478,7 +24820,12 @@
             "$ref": "#/components/schemas/OutputItemImageGenerationCall"
           },
           {
-            "properties": {},
+            "properties": {
+              "prompt": {
+                "description": "The prompt (possibly rewritten) that the image was generated from.",
+                "type": "string"
+              }
+            },
             "type": "object"
           }
         ],
@@ -24506,6 +24853,10 @@
             "type": "string"
           },
           "imageUrl": {
+            "type": "string"
+          },
+          "prompt": {
+            "description": "The prompt (possibly rewritten) that the image was generated from.",
             "type": "string"
           },
           "result": {
@@ -26068,7 +26419,7 @@
         "example": {
           "enabled": true,
           "id": "pareto-router",
-          "min_coding_score": 0.8,
+          "max_price": 5,
           "price_source": "prompt"
         },
         "properties": {
@@ -26082,8 +26433,15 @@
             ],
             "type": "string"
           },
+          "max_price": {
+            "description": "Maximum input price in USD per million tokens. When set, quality-tier selection (min_coding_score) is bypassed: the router computes the Pareto frontier over the top coding models and routes to the best-scoring frontier model priced at or below this cap, falling back through cheaper frontier models, then non-frontier models. Enforced against the price source given by price_source. Returns 404 when no candidate satisfies the cap.",
+            "example": 5,
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
           "min_coding_score": {
-            "description": "Minimum coding quality score between 0 and 1. Maps to internal quality tiers: >= 0.66 \u2192 high (top coding models), >= 0.33 \u2192 medium (strong modern flagships), < 0.33 \u2192 low (capable coders above the median). Omit to default to the highest tier (equivalent to >= 0.66).",
+            "description": "Minimum coding quality score between 0 and 1. Maps to internal quality tiers: >= 0.66 \u2192 high (top coding models), >= 0.33 \u2192 medium (strong modern flagships), < 0.33 \u2192 low (capable coders above the median). Omit to default to the highest tier (equivalent to >= 0.66). Not used when max_price is set (price-based selection takes over).",
             "example": 0.8,
             "format": "double",
             "maximum": 1,
@@ -26091,7 +26449,7 @@
             "type": "number"
           },
           "price_source": {
-            "description": "Price source for the Pareto frontier cost axis. \"prompt\" uses catalog list price (endpoint.pricing.prompt). \"weighted_avg\" uses traffic-weighted effective input price from ClickHouse, falling back to prompt price for models without traffic data. Defaults to \"prompt\".",
+            "description": "Price source for the Pareto frontier cost axis and for enforcing max_price. \"prompt\" uses catalog list price (endpoint.pricing.prompt). \"weighted_avg\" uses traffic-weighted effective input price from ClickHouse, falling back to prompt price for models without traffic data. Defaults to \"prompt\".",
             "enum": [
               "prompt",
               "weighted_avg"
@@ -26745,6 +27103,11 @@
             "example": 5,
             "type": "integer"
           },
+          "max_uses": {
+            "description": "Maximum number of web searches the model may perform in a single request. Once reached, further search calls return an error result instead of executing. Applies to the Exa, Firecrawl, Parallel, and Perplexity engines. With native provider search, forwarded only to Anthropic (as `max_uses`); other native search providers have no equivalent parameter and ignore it.",
+            "example": 3,
+            "type": "integer"
+          },
           "search_context_size": {
             "$ref": "#/components/schemas/SearchContextSizeEnum"
           },
@@ -26778,6 +27141,11 @@
           "max_results": {
             "description": "Maximum number of search results to return per search call. Defaults to 5. Applies to Exa, Firecrawl, Parallel, and Perplexity engines; ignored with native provider search. Perplexity supports a maximum of 20; values above 20 are clamped.",
             "example": 5,
+            "type": "integer"
+          },
+          "max_uses": {
+            "description": "Maximum number of web searches the model may perform in a single request. Once reached, further search calls return an error result instead of executing. Applies to the Exa, Firecrawl, Parallel, and Perplexity engines. With native provider search, forwarded only to Anthropic (as `max_uses`); other native search providers have no equivalent parameter and ignore it.",
+            "example": 3,
             "type": "integer"
           },
           "search_context_size": {
@@ -26961,6 +27329,7 @@
       },
       "ProviderName": {
         "enum": [
+          "Modal",
           "AkashML",
           "AI21",
           "AionLabs",
@@ -26980,9 +27349,11 @@
           "Cerebras",
           "Chutes",
           "Cirrascale",
+          "Claude Platform on AWS",
           "Clarifai",
           "Cloudflare",
           "Cohere",
+          "CoreWeave",
           "Crucible",
           "Crusoe",
           "Darkbloom",
@@ -27019,6 +27390,7 @@
           "Modular",
           "Moonshot AI",
           "Morph",
+          "VoyageAI by MongoDB",
           "NCompass",
           "Nebius",
           "Nex AGI",
@@ -27054,6 +27426,7 @@
           "WandB",
           "Quiver",
           "Krea",
+          "Runway",
           "Xiaomi",
           "xAI",
           "Z.AI",
@@ -27167,11 +27540,19 @@
             "additionalProperties": {},
             "type": "object"
           },
+          "claude-on-aws": {
+            "additionalProperties": {},
+            "type": "object"
+          },
           "cloudflare": {
             "additionalProperties": {},
             "type": "object"
           },
           "cohere": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "coreweave": {
             "additionalProperties": {},
             "type": "object"
           },
@@ -27471,11 +27852,19 @@
             "additionalProperties": {},
             "type": "object"
           },
+          "runway": {
+            "additionalProperties": {},
+            "type": "object"
+          },
           "sail-research": {
             "additionalProperties": {},
             "type": "object"
           },
           "sakana": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "sakana-ai": {
             "additionalProperties": {},
             "type": "object"
           },
@@ -27551,11 +27940,19 @@
             "additionalProperties": {},
             "type": "object"
           },
+          "voyageai": {
+            "additionalProperties": {},
+            "type": "object"
+          },
           "wafer": {
             "additionalProperties": {},
             "type": "object"
           },
           "wandb": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "wandb-legacy": {
             "additionalProperties": {},
             "type": "object"
           },
@@ -27897,9 +28294,11 @@
               "Cerebras",
               "Chutes",
               "Cirrascale",
+              "Claude Platform on AWS",
               "Clarifai",
               "Cloudflare",
               "Cohere",
+              "CoreWeave",
               "Crucible",
               "Crusoe",
               "Darkbloom",
@@ -27936,6 +28335,7 @@
               "Modular",
               "Moonshot AI",
               "Morph",
+              "VoyageAI by MongoDB",
               "NCompass",
               "Nebius",
               "Nex AGI",
@@ -27971,6 +28371,7 @@
               "WandB",
               "Quiver",
               "Krea",
+              "Runway",
               "Xiaomi",
               "xAI",
               "Z.AI",
@@ -29404,6 +29805,8 @@
             ]
           },
           "max_tool_calls": {
+            "description": "Maximum number of server-tool (e.g. `openrouter:web_search`) agent steps the model may take during a request. Defaults to 30, which is also the maximum. Ignored when `stop_server_tools_when` is set.",
+            "example": 30,
             "type": [
               "integer",
               "null"
@@ -29523,6 +29926,8 @@
             "$ref": "#/components/schemas/DeprecatedRoute"
           },
           "safety_identifier": {
+            "description": "Recommended per-end-user identifier for abuse isolation. Use a stable ID, hash, or pseudonym. When a provider requires a user identity, OpenRouter folds it into the hashed identity sent upstream and never forwards it raw. If omitted, requests use an account-level identity, so provider policy blocks can affect the whole account.",
+            "example": "user-123",
             "type": [
               "string",
               "null"
@@ -29962,6 +30367,7 @@
           "id": 0,
           "no_speech_prob": 0.01,
           "seek": 0,
+          "speaker": 0,
           "start": 0,
           "temperature": 0,
           "text": "Hello there.",
@@ -30000,6 +30406,11 @@
           },
           "seek": {
             "description": "Seek offset of the segment",
+            "example": 0,
+            "type": "integer"
+          },
+          "speaker": {
+            "description": "Speaker index for the segment, present when the provider returns diarization data",
             "example": 0,
             "type": "integer"
           },
@@ -30089,6 +30500,7 @@
         "description": "A timestamped word, returned when the provider includes word-level timestamps",
         "example": {
           "end": 0.4,
+          "speaker": 0,
           "start": 0,
           "word": "Hello"
         },
@@ -30098,6 +30510,11 @@
             "example": 0.4,
             "format": "double",
             "type": "number"
+          },
+          "speaker": {
+            "description": "Speaker index for the word, present when the provider returns diarization data",
+            "example": 0,
+            "type": "integer"
           },
           "start": {
             "description": "Word start time in seconds",
@@ -30615,7 +31032,7 @@
         "type": "object"
       },
       "StopServerToolsWhen": {
-        "description": "Stop conditions for the server-tool agent loop. Any condition firing halts the loop (OR logic). When set, this overrides `max_tool_calls`.",
+        "description": "Stop conditions for the server-tool agent loop. Any condition firing halts the loop (OR logic). When set, this overrides `max_tool_calls`. When a condition fires while the model is still emitting tool calls, the pending tool calls are executed and one final turn is made with tool calls disabled so the response ends with a natural-language answer instead of an unfinished tool call.",
         "example": [
           {
             "step_count": 5,
@@ -32802,6 +33219,11 @@
               "null"
             ]
           },
+          "include_byok_in_budgets": {
+            "description": "Whether BYOK (bring-your-own-key) inference spend counts toward this guardrail's limit_usd, in addition to OpenRouter credit spend. Omit to leave unchanged.",
+            "example": true,
+            "type": "boolean"
+          },
           "limit_usd": {
             "description": "New spending limit in USD",
             "example": 75,
@@ -32850,6 +33272,7 @@
             "id": "550e8400-e29b-41d4-a716-446655440000",
             "ignored_models": null,
             "ignored_providers": null,
+            "include_byok_in_budgets": true,
             "limit_usd": 75,
             "name": "Updated Guardrail Name",
             "reset_interval": "weekly",
@@ -33068,6 +33491,7 @@
           "data": {
             "created_at": "2025-08-24T10:30:00Z",
             "created_by": "user_abc123",
+            "default_guardrail_id": "595d5849-7e86-51fd-a7c0-705c34e4afff",
             "default_image_model": "openai/dall-e-3",
             "default_provider_sort": "price",
             "default_text_model": "openai/gpt-4o",
@@ -33102,9 +33526,15 @@
       },
       "UpsertWorkspaceBudgetRequest": {
         "example": {
+          "include_byok_in_budgets": true,
           "limit_usd": 100
         },
         "properties": {
+          "include_byok_in_budgets": {
+            "description": "Whether to include BYOK spend in the workspace budget",
+            "example": true,
+            "type": "boolean"
+          },
           "limit_usd": {
             "description": "Spending limit in USD. Must be greater than 0.",
             "example": 100,
@@ -33126,7 +33556,8 @@
             "reset_interval": "monthly",
             "updated_at": "2025-08-24T15:45:00Z",
             "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
-          }
+          },
+          "include_byok_in_budgets": true
         },
         "properties": {
           "data": {
@@ -33138,10 +33569,16 @@
                 "description": "The created or updated budget"
               }
             ]
+          },
+          "include_byok_in_budgets": {
+            "description": "Whether BYOK spend is included in the workspace budgets",
+            "example": true,
+            "type": "boolean"
           }
         },
         "required": [
-          "data"
+          "data",
+          "include_byok_in_budgets"
         ],
         "type": "object"
       },
@@ -33888,6 +34325,11 @@
             "example": 50,
             "type": "integer"
           },
+          "max_uses": {
+            "description": "Maximum number of web searches the model may perform in a single request. Once reached, further search calls return an error result instead of executing. Applies to the Exa, Firecrawl, Parallel, and Perplexity engines. With native provider search, forwarded only to Anthropic (as `max_uses`); other native search providers have no equivalent parameter and ignore it.",
+            "example": 3,
+            "type": "integer"
+          },
           "search_context_size": {
             "$ref": "#/components/schemas/SearchQualityLevel"
           },
@@ -34061,6 +34503,11 @@
             "example": 5,
             "type": "integer"
           },
+          "max_uses": {
+            "description": "Maximum number of web searches the model may perform in a single request. Once reached, further search calls return an error result instead of executing. Applies to the Exa, Firecrawl, Parallel, and Perplexity engines. With native provider search, forwarded only to Anthropic (as `max_uses`); other native search providers have no equivalent parameter and ignore it.",
+            "example": 3,
+            "type": "integer"
+          },
           "search_context_size": {
             "$ref": "#/components/schemas/SearchContextSizeEnum"
           },
@@ -34116,6 +34563,11 @@
           "max_total_results": {
             "description": "Maximum total number of search results across all search calls in a single request. Once this limit is reached, the tool will stop returning new results. Useful for controlling cost and context size in agentic loops. Defaults to 50 when not specified.",
             "example": 50,
+            "type": "integer"
+          },
+          "max_uses": {
+            "description": "Maximum number of web searches the model may perform in a single request. Once reached, further search calls return an error result instead of executing. Applies to the Exa, Firecrawl, Parallel, and Perplexity engines. With native provider search, forwarded only to Anthropic (as `max_uses`); other native search providers have no equivalent parameter and ignore it.",
+            "example": 3,
             "type": "integer"
           },
           "search_context_size": {
@@ -34277,6 +34729,7 @@
         "example": {
           "created_at": "2025-08-24T10:30:00Z",
           "created_by": "user_abc123",
+          "default_guardrail_id": "595d5849-7e86-51fd-a7c0-705c34e4afff",
           "default_image_model": "openai/dall-e-3",
           "default_provider_sort": "price",
           "default_text_model": "openai/gpt-4o",
@@ -34304,6 +34757,12 @@
               "string",
               "null"
             ]
+          },
+          "default_guardrail_id": {
+            "description": "Deterministic ID of the workspace's implicitly-created default guardrail",
+            "example": "595d5849-7e86-51fd-a7c0-705c34e4afff",
+            "format": "uuid",
+            "type": "string"
           },
           "default_image_model": {
             "description": "Default image model for this workspace",
@@ -34396,6 +34855,7 @@
         },
         "required": [
           "id",
+          "default_guardrail_id",
           "name",
           "slug",
           "description",
@@ -36604,6 +37064,7 @@
                 "clarifai",
                 "cloudflare",
                 "cohere",
+                "coreweave",
                 "crusoe",
                 "darkbloom",
                 "decart",
@@ -36636,6 +37097,7 @@
                 "meta",
                 "minimax",
                 "mistral",
+                "modal",
                 "modelrun",
                 "modular",
                 "moonshotai",
@@ -36657,8 +37119,10 @@
                 "recraft",
                 "reka",
                 "relace",
+                "runway",
                 "sail-research",
                 "sakana",
+                "sakana-ai",
                 "sambanova",
                 "seed",
                 "siliconflow",
@@ -36673,6 +37137,7 @@
                 "venice",
                 "wafer",
                 "wandb",
+                "wandb-legacy",
                 "xai",
                 "xiaomi",
                 "z-ai"
@@ -36712,6 +37177,22 @@
               }
             },
             "description": "List of BYOK credentials"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 400,
+                    "message": "Invalid request parameters"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            },
+            "description": "Bad Request - Invalid request parameters or malformed input"
           },
           "401": {
             "content": {
@@ -39445,6 +39926,7 @@
         "tags": [
           "Files"
         ],
+        "x-hidden": true,
         "x-speakeasy-name-override": "list",
         "x-speakeasy-pagination": {
           "inputs": [
@@ -39632,6 +40114,7 @@
         "tags": [
           "Files"
         ],
+        "x-hidden": true,
         "x-speakeasy-name-override": "upload"
       }
     },
@@ -39746,6 +40229,7 @@
         "tags": [
           "Files"
         ],
+        "x-hidden": true,
         "x-speakeasy-name-override": "delete"
       },
       "get": {
@@ -39863,6 +40347,7 @@
         "tags": [
           "Files"
         ],
+        "x-hidden": true,
         "x-speakeasy-name-override": "retrieve"
       },
       "parameters": [
@@ -40002,6 +40487,7 @@
         "tags": [
           "Files"
         ],
+        "x-hidden": true,
         "x-speakeasy-name-override": "download"
       },
       "parameters": [
@@ -40628,6 +41114,7 @@
                       "id": "550e8400-e29b-41d4-a716-446655440000",
                       "ignored_models": null,
                       "ignored_providers": null,
+                      "include_byok_in_budgets": false,
                       "limit_usd": 100,
                       "name": "Production Guardrail",
                       "reset_interval": "monthly",
@@ -40643,6 +41130,22 @@
               }
             },
             "description": "List of guardrails"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 400,
+                    "message": "Invalid request parameters"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            },
+            "description": "Bad Request - Invalid request parameters or malformed input"
           },
           "401": {
             "content": {
@@ -40767,6 +41270,7 @@
                     "id": "550e8400-e29b-41d4-a716-446655440000",
                     "ignored_models": null,
                     "ignored_providers": null,
+                    "include_byok_in_budgets": false,
                     "limit_usd": 50,
                     "name": "My New Guardrail",
                     "reset_interval": "monthly",
@@ -41234,6 +41738,7 @@
                     "id": "550e8400-e29b-41d4-a716-446655440000",
                     "ignored_models": null,
                     "ignored_providers": null,
+                    "include_byok_in_budgets": false,
                     "limit_usd": 100,
                     "name": "Production Guardrail",
                     "reset_interval": "monthly",
@@ -41368,6 +41873,7 @@
                     "id": "550e8400-e29b-41d4-a716-446655440000",
                     "ignored_models": null,
                     "ignored_providers": null,
+                    "include_byok_in_budgets": true,
                     "limit_usd": 75,
                     "name": "Updated Guardrail Name",
                     "reset_interval": "weekly",
@@ -43342,6 +43848,22 @@
               }
             },
             "description": "List of API keys"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 400,
+                    "message": "Invalid request parameters"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            },
+            "description": "Bad Request - Invalid request parameters or malformed input"
           },
           "401": {
             "content": {
@@ -46335,6 +46857,22 @@
               }
             },
             "description": "List of observability destinations"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 400,
+                    "message": "Invalid request parameters"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            },
+            "description": "Bad Request - Invalid request parameters or malformed input"
           },
           "401": {
             "content": {
@@ -49798,6 +50336,7 @@
         },
         "summary": "Create a response",
         "tags": [
+          "responses",
           "beta.responses"
         ],
         "x-speakeasy-name-override": "send",
@@ -50347,6 +50886,7 @@
                     {
                       "created_at": "2025-08-24T10:30:00Z",
                       "created_by": "user_abc123",
+                      "default_guardrail_id": "595d5849-7e86-51fd-a7c0-705c34e4afff",
                       "default_image_model": "openai/dall-e-3",
                       "default_provider_sort": "price",
                       "default_text_model": "openai/gpt-4o",
@@ -50468,6 +51008,7 @@
                   "data": {
                     "created_at": "2025-08-24T10:30:00Z",
                     "created_by": "user_abc123",
+                    "default_guardrail_id": "595d5849-7e86-51fd-a7c0-705c34e4afff",
                     "default_image_model": "openai/dall-e-3",
                     "default_provider_sort": "price",
                     "default_text_model": "openai/gpt-4o",
@@ -50706,6 +51247,7 @@
                   "data": {
                     "created_at": "2025-08-24T10:30:00Z",
                     "created_by": "user_abc123",
+                    "default_guardrail_id": "595d5849-7e86-51fd-a7c0-705c34e4afff",
                     "default_image_model": "openai/dall-e-3",
                     "default_provider_sort": "price",
                     "default_text_model": "openai/gpt-4o",
@@ -50833,6 +51375,7 @@
                   "data": {
                     "created_at": "2025-08-24T10:30:00Z",
                     "created_by": "user_abc123",
+                    "default_guardrail_id": "595d5849-7e86-51fd-a7c0-705c34e4afff",
                     "default_image_model": "openai/dall-e-3",
                     "default_provider_sort": "price",
                     "default_text_model": "openai/gpt-4o",
@@ -50975,7 +51518,8 @@
                       "updated_at": "2025-08-24T15:45:00Z",
                       "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
                     }
-                  ]
+                  ],
+                  "include_byok_in_budgets": false
                 },
                 "schema": {
                   "$ref": "#/components/schemas/ListWorkspaceBudgetsResponse"
@@ -51190,6 +51734,7 @@
           "content": {
             "application/json": {
               "example": {
+                "include_byok_in_budgets": true,
                 "limit_usd": 100
               },
               "schema": {
@@ -51211,7 +51756,8 @@
                     "reset_interval": "monthly",
                     "updated_at": "2025-08-24T15:45:00Z",
                     "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
-                  }
+                  },
+                  "include_byok_in_budgets": true
                 },
                 "schema": {
                   "$ref": "#/components/schemas/UpsertWorkspaceBudgetResponse"
@@ -51892,7 +52438,11 @@
       "name": "beta.Analytics"
     },
     {
-      "description": "beta.responses endpoints",
+      "description": "responses endpoints",
+      "name": "responses"
+    },
+    {
+      "description": "Deprecated alias of responses. Use responses instead; scheduled for removal (sunset date TBD).",
       "name": "beta.responses"
     }
   ]
