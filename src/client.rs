@@ -2480,7 +2480,7 @@ impl OpenRouterClient {
         id: &str,
         interval: &str,
         request: &workspaces::UpsertWorkspaceBudgetRequest,
-    ) -> Result<workspaces::WorkspaceBudget, OpenRouterError> {
+    ) -> Result<workspaces::UpsertWorkspaceBudgetResponse, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
             workspaces::upsert_workspace_budget_with_client(
                 self.http_client(),
@@ -3549,7 +3549,7 @@ impl<'a> ManagementClient<'a> {
         id: &str,
         interval: &str,
         request: &workspaces::UpsertWorkspaceBudgetRequest,
-    ) -> Result<workspaces::WorkspaceBudget, OpenRouterError> {
+    ) -> Result<workspaces::UpsertWorkspaceBudgetResponse, OpenRouterError> {
         self.client
             .upsert_workspace_budget(id, interval, request)
             .await

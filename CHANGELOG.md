@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added explicit chat prompt-cache breakpoints/options, static predicted output, image provider routing preferences, conditional model pricing overrides, detailed cache-creation usage, and custom guardrail `flag` actions.
-- Added assistant-message model annotations, BYOK budget controls for guardrails and workspace budgets, workspace default guardrail IDs, transcription speaker labels, and Anthropic compaction and dynamic-tool content blocks.
+- Added assistant-message model annotations, round-tripped BYOK budget controls for guardrails and workspace budgets, workspace default guardrail IDs, transcription speaker labels, and Anthropic compaction and dynamic-tool content blocks.
 
 ### Changed
 - Accepted the 2026-07-22 OpenAPI drift review, including optional prompts for image-only video generation, and refreshed the `89 / 89` official endpoint snapshot.
