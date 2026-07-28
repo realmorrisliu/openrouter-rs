@@ -51,7 +51,10 @@ require_pattern "management().create_api_key_from_auth_code(...)" "$README_PATH"
 # If MIGRATION.md exists (OR-25 and later), validate current and historical key structure.
 if [[ -f "$MIGRATION_PATH" ]]; then
   require_pattern "# Migration Guide" "$MIGRATION_PATH"
-  require_pattern "## Latest: 0.9.x -> 0.10.0" "$MIGRATION_PATH"
+  require_pattern "## Latest: 0.12.x -> 0.13.0" "$MIGRATION_PATH"
+  require_pattern "response.include_byok_in_budgets" "$MIGRATION_PATH"
+  require_pattern "ContentPart::Text { text, cache_control, .. }" "$MIGRATION_PATH"
+  require_pattern "## Previous breaking release: 0.9.x -> 0.10.0" "$MIGRATION_PATH"
   require_pattern "## Previous: 0.8.x -> 0.9.0" "$MIGRATION_PATH"
   require_pattern "## Earlier: 0.7.x -> 0.8.0" "$MIGRATION_PATH"
   require_pattern "## Historical: 0.5.x -> 0.6.0" "$MIGRATION_PATH"
