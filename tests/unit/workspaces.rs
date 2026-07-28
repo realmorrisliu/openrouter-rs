@@ -226,6 +226,7 @@ fn test_workspace_response_deserialization() {
             "name": "Production",
             "slug": "production",
             "description": "Production environment",
+            "default_guardrail_id": "gr_default",
             "default_text_model": "openai/gpt-4o",
             "default_image_model": "openai/dall-e-3",
             "default_provider_sort": "price",
@@ -244,6 +245,10 @@ fn test_workspace_response_deserialization() {
         serde_json::from_str(raw).expect("workspace response should deserialize");
     assert_eq!(parsed.data.id, "ws_123");
     assert_eq!(parsed.data.slug, "production");
+    assert_eq!(
+        parsed.data.default_guardrail_id.as_deref(),
+        Some("gr_default")
+    );
     assert_eq!(parsed.data.created_by.as_deref(), Some("user_123"));
     assert_eq!(parsed.data.io_logging_api_key_ids, Some(vec![101, 202]));
     assert_eq!(parsed.data.io_logging_sampling_rate, 0.5);
@@ -310,12 +315,14 @@ fn test_workspace_budget_response_deserialization() {
             "reset_interval": "monthly",
             "created_at": "2025-08-24T10:30:00Z",
             "updated_at": "2025-08-24T15:45:00Z"
-        }]
+        }],
+        "include_byok_in_budgets": true
     }"#;
 
     let parsed: workspaces::ListWorkspaceBudgetsResponse =
         serde_json::from_str(raw).expect("workspace budget list should deserialize");
     assert_eq!(parsed.data.len(), 1);
+    assert!(parsed.include_byok_in_budgets);
     assert_eq!(parsed.data[0].limit_usd, 100.0);
     assert_eq!(parsed.data[0].reset_interval.as_deref(), Some("monthly"));
 
@@ -563,6 +570,7 @@ async fn test_upsert_workspace_budget_encodes_path_and_body() {
     );
     let request = UpsertWorkspaceBudgetRequest::builder()
         .limit_usd(100.0)
+        .include_byok_in_budgets(true)
         .build()
         .expect("budget request should build");
 
@@ -587,6 +595,7 @@ async fn test_upsert_workspace_budget_encodes_path_and_body() {
     let body: serde_json::Value =
         serde_json::from_str(&captured.body_text).expect("body should be valid json");
     assert_eq!(body["limit_usd"], 100.0);
+    assert_eq!(body["include_byok_in_budgets"], true);
 
     server.join().expect("server thread should finish");
 }

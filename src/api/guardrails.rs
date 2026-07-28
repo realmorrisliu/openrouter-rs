@@ -105,6 +105,8 @@ pub struct Guardrail {
     pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit_usd: Option<f64>,
+    #[serde(default)]
+    pub include_byok_in_budgets: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reset_interval: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -155,6 +157,9 @@ pub struct CreateGuardrailRequest {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     limit_usd: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    include_byok_in_budgets: Option<bool>,
     #[builder(setter(into, strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     reset_interval: Option<String>,
@@ -217,6 +222,8 @@ pub struct UpdateGuardrailRequest {
     description: Option<String>,
     #[builder(setter(strip_option), default)]
     limit_usd: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    include_byok_in_budgets: Option<bool>,
     #[builder(setter(into, strip_option), default)]
     reset_interval: Option<String>,
     #[builder(setter(custom), default)]
@@ -267,6 +274,9 @@ impl Serialize for UpdateGuardrailRequest {
         }
         if let Some(value) = &self.limit_usd {
             map.serialize_entry("limit_usd", value)?;
+        }
+        if let Some(value) = &self.include_byok_in_budgets {
+            map.serialize_entry("include_byok_in_budgets", value)?;
         }
         if let Some(value) = &self.reset_interval {
             map.serialize_entry("reset_interval", value)?;

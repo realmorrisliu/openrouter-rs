@@ -147,6 +147,16 @@ fn test_explicit_prompt_cache_and_prediction_serialize() {
 }
 
 #[test]
+fn test_assistant_message_model_roundtrip() {
+    let message = Message::new(Role::Assistant, "Hello").with_model("openai/gpt-5.6");
+    let value = serde_json::to_value(&message).expect("message should serialize");
+    assert_eq!(value["model"], "openai/gpt-5.6");
+
+    let parsed: Message = serde_json::from_value(value).expect("message should deserialize");
+    assert_eq!(parsed.model.as_deref(), Some("openai/gpt-5.6"));
+}
+
+#[test]
 fn test_multimodal_content_parts_serialize() {
     let request = ChatCompletionRequest::builder()
         .model("openai/gpt-5")

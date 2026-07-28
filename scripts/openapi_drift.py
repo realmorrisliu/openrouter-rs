@@ -18,7 +18,15 @@ UPSTREAM_OPENAPI_URL = "https://openrouter.ai/openapi.json"
 OPENROUTER_EXAMPLE_TOKEN_PATTERN = re.compile(r"sk-or-v1-[A-Za-z0-9_-]{20,}")
 OPENROUTER_EXAMPLE_TOKEN_PLACEHOLDER = "sk-or-v1-[REDACTED]"
 HTTP_METHODS = ("get", "post", "put", "patch", "delete", "options", "head", "trace")
-DOC_ONLY_FIELDS = {"description", "example", "examples", "externalDocs", "summary", "title"}
+DOC_ONLY_FIELDS = {
+    "description",
+    "example",
+    "examples",
+    "externalDocs",
+    "summary",
+    "title",
+    "x-hidden",
+}
 REPO_KNOWN_METADATA_PARAMETERS = frozenset(
     {
         ("header", "HTTP-Referer"),
@@ -59,7 +67,10 @@ REPO_SUPPORTED_METADATA_PARAMETER_SHAPES = {
         "x-speakeasy-name-override": "appTitle",
     },
 }
-REPO_DYNAMIC_PROVIDER_NAME_MARKERS = frozenset({"Anthropic", "Google", "OpenAI"})
+REPO_DYNAMIC_PROVIDER_NAME_MARKER_SETS = (
+    frozenset({"Anthropic", "Google", "OpenAI"}),
+    frozenset({"anthropic", "google-vertex", "openai"}),
+)
 REPO_DYNAMIC_OUTPUT_MODALITY_MARKERS = frozenset({"image", "text", "video"})
 REPO_FLEXIBLE_PROVIDER_OPTION_MARKERS = frozenset({"anthropic", "google-vertex", "openai"})
 REPO_FLEXIBLE_PROVIDER_OPTION_VALUE_SCHEMA = {
@@ -410,7 +421,10 @@ def is_repo_supported_dynamic_provider_name_enum(value: Any) -> bool:
     return (
         value.get("type") == "string"
         and value.get("x-speakeasy-unknown-values") == "allow"
-        and REPO_DYNAMIC_PROVIDER_NAME_MARKERS.issubset(string_values)
+        and any(
+            markers.issubset(string_values)
+            for markers in REPO_DYNAMIC_PROVIDER_NAME_MARKER_SETS
+        )
     )
 
 

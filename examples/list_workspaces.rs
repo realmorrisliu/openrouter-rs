@@ -16,7 +16,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("workspace count: {}", workspaces.total_count);
     for workspace in workspaces.data {
-        println!("{} ({})", workspace.name, workspace.slug);
+        println!(
+            "{} ({}) default guardrail: {:?}",
+            workspace.name, workspace.slug, workspace.default_guardrail_id
+        );
     }
 
     Ok(())

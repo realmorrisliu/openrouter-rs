@@ -410,6 +410,9 @@ impl Prediction {
 pub struct Message {
     pub role: Role,
     pub content: Content,
+    /// Model that generated an assistant message.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
     /// Optional name for tool messages or function calls
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
@@ -426,6 +429,7 @@ impl Message {
         Self {
             role,
             content: content.into(),
+            model: None,
             name: None,
             tool_call_id: None,
             tool_calls: None,
@@ -437,6 +441,7 @@ impl Message {
         Self {
             role,
             content: Content::Parts(parts),
+            model: None,
             name: None,
             tool_call_id: None,
             tool_calls: None,
@@ -448,6 +453,7 @@ impl Message {
         Self {
             role: Role::Tool,
             content: content.into(),
+            model: None,
             name: None,
             tool_call_id: Some(tool_call_id.to_string()),
             tool_calls: None,
@@ -463,6 +469,7 @@ impl Message {
         Self {
             role: Role::Tool,
             content: content.into(),
+            model: None,
             name: Some(tool_name.to_string()),
             tool_call_id: Some(tool_call_id.to_string()),
             tool_calls: None,
@@ -474,6 +481,7 @@ impl Message {
         Self {
             role,
             content: content.into(),
+            model: None,
             name: Some(name.to_string()),
             tool_call_id: None,
             tool_calls: None,
@@ -488,10 +496,16 @@ impl Message {
         Self {
             role: Role::Assistant,
             content: content.into(),
+            model: None,
             name: None,
             tool_call_id: None,
             tool_calls: Some(tool_calls),
         }
+    }
+
+    pub fn with_model(mut self, model: impl Into<String>) -> Self {
+        self.model = Some(model.into());
+        self
     }
 }
 

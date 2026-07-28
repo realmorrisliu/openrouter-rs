@@ -29,6 +29,8 @@ pub struct Workspace {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub default_guardrail_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub default_text_model: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub default_image_model: Option<String>,
@@ -260,6 +262,8 @@ pub struct WorkspaceBudget {
 #[non_exhaustive]
 pub struct ListWorkspaceBudgetsResponse {
     pub data: Vec<WorkspaceBudget>,
+    #[serde(default)]
+    pub include_byok_in_budgets: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Builder)]
@@ -267,6 +271,9 @@ pub struct ListWorkspaceBudgetsResponse {
 #[non_exhaustive]
 pub struct UpsertWorkspaceBudgetRequest {
     pub limit_usd: f64,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_byok_in_budgets: Option<bool>,
 }
 
 impl UpsertWorkspaceBudgetRequest {

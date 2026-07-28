@@ -1,6 +1,6 @@
 # Official Endpoint Test Matrix
 
-Snapshot date: 2026-07-22
+Snapshot date: 2026-07-28
 Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)  
 Tracked baseline: `specs/openrouter/openapi-baseline.json`  
 Weekly drift workflow: `.github/workflows/openapi-drift.yml`
@@ -14,6 +14,7 @@ Weekly drift workflow: `.github/workflows/openapi-drift.yml`
 
 Drift review note:
 
+- Upstream added assistant-message model annotations, BYOK-aware guardrail and workspace budget fields, workspace default guardrail IDs, transcription speaker labels, Anthropic compaction and dynamic-tool blocks, and more flexible plugin/server-tool/Responses fields. The SDK types the stable fields and continues to carry provider taxonomy, plugin options, server-tool options, and Responses payload growth through existing flexible representations.
 - Upstream added explicit chat prompt-cache controls, static predicted output, image provider routing preferences, conditional pricing overrides, detailed cache-creation usage, custom guardrail `flag` actions, namespace tools, and image-only video generation. The SDK types the stable fields and reuses its existing flexible server-tool, plugin, provider-taxonomy, and Responses payload handling for the remaining schema additions.
 - Upstream added `POST /generation/feedback`, new model/rankings filters, analytics classifier controls, verbose transcription fields, XAI ZDR policy, routed service tiers, server-tool reasoning details, and image text chunks. The SDK exposes stable fields and keeps flexible provider, Responses, and server-tool payloads where the upstream surface remains high-churn.
 - Upstream added OpenRouter server-tool variants to chat completions, Responses API, Anthropic-compatible Messages, and preset creation request schemas. The SDK now exposes `ServerTool` helpers and preserves raw `Value` escape hatches for high-churn server-tool payloads.
