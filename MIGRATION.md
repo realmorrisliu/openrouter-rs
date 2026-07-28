@@ -2,10 +2,29 @@
 
 This document keeps historical migration guides intact because the repo still smoke-tests older domain/naming transitions.
 
-> Latest breaking release target: `0.9.x -> 0.10.0`.
-> `0.10.0` makes high-churn public SDK model types non-exhaustive so additive upstream OpenRouter fields and taxonomy values do not keep causing accidental source breaks.
+> Latest breaking release target: `0.12.x -> 0.13.0`.
+> `0.13.0` preserves the official workspace-budget response wrapper and adds prompt-cache metadata to text content parts.
 
-## Latest: 0.9.x -> 0.10.0
+## Latest: 0.12.x -> 0.13.0
+
+Two public return/type shapes changed to match the upstream OpenRouter schema.
+
+### Quick Checklist For 0.13.0
+
+- Read an upserted workspace budget from `response.data`; the response-level `include_byok_in_budgets` field reports the confirmed BYOK policy.
+- Replace direct `ContentPart::Text` construction with `ContentPart::text(...)`, `ContentPart::cacheable_text(...)`, or `ContentPart::cache_breakpoint_text(...)` when possible.
+- Add `..` when matching `ContentPart::Text` if the new `prompt_cache_breakpoint` field is not needed.
+
+### Breaking-Change Mapping For 0.13.0
+
+| Area | Old Usage (`0.12.x`) | New Usage (`0.13.0`) |
+| --- | --- | --- |
+| Workspace budget upsert | `let budget = client.management().upsert_workspace_budget(...).await?;` | `let response = client.management().upsert_workspace_budget(...).await?; let budget = response.data;` |
+| BYOK budget policy | Not returned by workspace budget upsert | `response.include_byok_in_budgets` |
+| Text content construction | `ContentPart::Text { text, cache_control }` | `ContentPart::text(text)` or include `prompt_cache_breakpoint` |
+| Text content matching | `ContentPart::Text { text, cache_control }` | `ContentPart::Text { text, cache_control, .. }` |
+
+## Previous breaking release: 0.9.x -> 0.10.0
 
 This release intentionally future-proofs public SDK model types that mirror upstream request, response, metadata, usage, pricing, discovery, streaming, and taxonomy shapes. The runtime JSON behavior is unchanged, but Rust source that constructed affected public structs with literals or matched affected public enums exhaustively may need small edits.
 
