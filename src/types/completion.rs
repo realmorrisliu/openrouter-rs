@@ -557,6 +557,8 @@ pub struct StreamingChoice {
 pub struct Message {
     #[serde(default, deserialize_with = "deserialize_optional_text_content")]
     pub content: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
     pub role: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
