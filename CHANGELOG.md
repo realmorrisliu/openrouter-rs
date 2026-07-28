@@ -7,11 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-07-28
+
 ### Added
 - Added explicit chat prompt-cache breakpoints/options, static predicted output, image provider routing preferences, conditional model pricing overrides, detailed cache-creation usage, and custom guardrail `flag` actions.
 - Added assistant-message model annotations, round-tripped BYOK budget controls for guardrails and workspace budgets, workspace default guardrail IDs, transcription speaker labels, and Anthropic compaction and dynamic-tool content blocks.
 
 ### Changed
+- **Breaking:** `upsert_workspace_budget(...)` now returns `UpsertWorkspaceBudgetResponse`; read the budget from `.data` and the confirmed BYOK policy from `.include_byok_in_budgets`.
+- **Breaking:** `ContentPart::Text` now carries `prompt_cache_breakpoint`; callers that construct or match the variant directly should use the provided constructors or a `..` pattern.
 - Accepted the 2026-07-22 OpenAPI drift review, including optional prompts for image-only video generation, and refreshed the `89 / 89` official endpoint snapshot.
 - Accepted the 2026-07-28 OpenAPI drift review and kept provider/plugin/server-tool/Responses schema growth on the existing flexible payload surfaces.
 

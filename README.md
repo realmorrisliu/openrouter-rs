@@ -39,7 +39,7 @@ The current repo snapshot implements `89 / 89` official OpenAPI method/path entr
 
 ```toml
 [dependencies]
-openrouter-rs = "0.12.0"
+openrouter-rs = "0.13.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -47,7 +47,7 @@ Legacy text completions are opt-in:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.12.0", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.13.0", features = ["legacy-completions"] }
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -357,7 +357,15 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 - No unreleased changes yet.
 
-### Version 0.12.0 *(Latest)*
+### Version 0.13.0 *(Latest)*
+
+- Added explicit prompt-cache controls, static predicted output, image provider routing, conditional pricing overrides, cache-creation usage details, and guardrail `flag` actions.
+- Added assistant-message model annotations, BYOK-aware guardrail/workspace budgets, workspace default guardrail IDs, transcription speaker labels, and Anthropic compaction/dynamic-tool blocks.
+- Enabled image-only video requests and kept the accepted OpenAPI snapshot at `89 / 89` through the 2026-07-28 review.
+- **Breaking:** workspace budget upserts now return `UpsertWorkspaceBudgetResponse`; read the budget from `.data`.
+- **Breaking:** direct construction or matching of `ContentPart::Text` must account for `prompt_cache_breakpoint`; prefer the provided constructors or `..` patterns.
+
+### Version 0.12.0
 
 - Added OpenRouter server-tool request helpers for chat completions, Responses API, Anthropic-compatible Messages, and preset creation request bodies.
 - Added management-key SDK support for generation feedback and workspace member listing.
