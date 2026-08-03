@@ -355,7 +355,7 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 ### Unreleased
 
-- No unreleased changes yet.
+- Tool-aware chat streaming now preserves provider-supplied tool-call indices without inventing missing values, and `FinishReason::Other` keeps unknown provider finish reasons forward-compatible.
 
 ### Version 0.13.0 *(Latest)*
 

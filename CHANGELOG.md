@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Preserved streamed tool-call indices through tool-aware accumulation without inventing index `0` when providers omit the optional field, and preserved unknown finish-reason strings via `FinishReason::Other` instead of rejecting the full response frame.
+
 ## [0.13.0] - 2026-07-28
 
 ### Added

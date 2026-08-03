@@ -110,6 +110,7 @@ pub enum StreamEvent {
 /// streaming fragments.
 #[derive(Debug, Clone, Default)]
 struct ToolCallAccumulator {
+    index: Option<u32>,
     id: Option<String>,
     type_: Option<String>,
     name: Option<String>,
@@ -119,6 +120,9 @@ struct ToolCallAccumulator {
 impl ToolCallAccumulator {
     /// Merge a partial tool call fragment into this accumulator.
     fn merge(&mut self, partial: &PartialToolCall) {
+        if partial.index.is_some() {
+            self.index = partial.index;
+        }
         if let Some(id) = &partial.id {
             self.id = Some(id.clone());
         }
@@ -147,7 +151,7 @@ impl ToolCallAccumulator {
                 name: self.name?,
                 arguments: self.arguments,
             },
-            index: None,
+            index: self.index,
         })
     }
 }
@@ -270,11 +274,9 @@ impl ToolAwareStream {
 
     /// Finalize the stream: assemble complete tool calls and emit `Done`.
     fn finalize(&mut self) {
-        let tool_calls: Vec<ToolCall> = self
-            .tool_accumulators
-            .values()
-            .cloned()
-            .filter_map(|acc| acc.into_tool_call())
+        let tool_calls: Vec<ToolCall> = std::mem::take(&mut self.tool_accumulators)
+            .into_values()
+            .filter_map(ToolCallAccumulator::into_tool_call)
             .collect();
 
         self.pending_events.push_back(StreamEvent::Done {
@@ -386,13 +388,14 @@ struct StreamMeta {
     usage: Option<Value>,
 }
 
-fn finish_reason_to_string(reason: &FinishReason) -> &'static str {
+fn finish_reason_to_string(reason: &FinishReason) -> String {
     match reason {
-        FinishReason::ToolCalls => "tool_calls",
-        FinishReason::Stop => "stop",
-        FinishReason::Length => "length",
-        FinishReason::ContentFilter => "content_filter",
-        FinishReason::Error => "error",
+        FinishReason::ToolCalls => "tool_calls".to_string(),
+        FinishReason::Stop => "stop".to_string(),
+        FinishReason::Length => "length".to_string(),
+        FinishReason::ContentFilter => "content_filter".to_string(),
+        FinishReason::Error => "error".to_string(),
+        FinishReason::Other(value) => value.clone(),
     }
 }
 
@@ -468,8 +471,7 @@ pub fn adapt_chat_stream(
                         }
 
                         if let Some(reason) = choice.finish_reason() {
-                            state.meta.finish_reason =
-                                Some(finish_reason_to_string(reason).to_string());
+                            state.meta.finish_reason = Some(finish_reason_to_string(reason));
                         }
                     }
                 }
