@@ -13,7 +13,7 @@
 //! - `client.images()` -> [`images`]
 //! - `client.videos()` -> [`videos`]
 //! - `client.models()` -> [`models`], [`embeddings`], [`discovery`]
-//! - `client.management()` -> [`api_keys`], [`auth`], [`byok`], [`credits`], [`generation`], [`guardrails`], [`observability`], [`organization`], [`presets`], [`workspaces`]
+//! - `client.management()` -> [`api_keys`], [`auth`], [`byok`], [`credits`], [`generation`], [`guardrails`], [`observability`], [`organization`], [`presets`], [`scim`], [`workspaces`]
 //! - `client.legacy()` -> [`legacy`] (feature `legacy-completions`)
 //!
 //! Endpoint families currently implemented here:
@@ -35,6 +35,7 @@
 //! - preset creation from inference request bodies
 //! - guardrails and guardrail assignments
 //! - organization member listing
+//! - SCIM group discovery and group-role mappings
 //! - workspace CRUD and membership management
 //! - structured API error payloads
 //!
@@ -140,6 +141,7 @@ pub mod organization;
 pub mod presets;
 pub mod rerank;
 pub mod responses;
+pub mod scim;
 #[deprecated(note = "use api::audio for the canonical /audio/speech surface")]
 pub mod tts;
 pub mod videos;

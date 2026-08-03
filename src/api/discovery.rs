@@ -551,6 +551,16 @@ impl UnifiedBenchmarksParams {
             max_results: None,
         }
     }
+
+    pub fn openrouter() -> Self {
+        Self {
+            source: Some("openrouter".to_string()),
+            task_type: None,
+            arena: None,
+            category: None,
+            max_results: None,
+        }
+    }
 }
 
 /// One Artificial Analysis row returned by `GET /benchmarks`.
@@ -586,12 +596,30 @@ pub struct UnifiedBenchmarksDAItem {
     pub extra: HashMap<String, serde_json::Value>,
 }
 
+/// One OpenRouter evaluation row returned by `GET /benchmarks`.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct UnifiedBenchmarksORItem {
+    pub source: String,
+    pub model_permaslug: String,
+    pub display_name: String,
+    pub benchmark_type: String,
+    pub accuracy: f64,
+    pub accuracy_stddev: Option<f64>,
+    pub avg_cost_per_task: Option<f64>,
+    pub total_tasks: u64,
+    pub last_run_timestamp: String,
+    #[serde(flatten)]
+    pub extra: HashMap<String, serde_json::Value>,
+}
+
 /// One benchmark row returned by `GET /benchmarks`.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(untagged)]
 #[non_exhaustive]
 pub enum UnifiedBenchmarkItem {
     DesignArena(UnifiedBenchmarksDAItem),
+    OpenRouter(UnifiedBenchmarksORItem),
     ArtificialAnalysis(UnifiedBenchmarksAAItem),
     Other(HashMap<String, serde_json::Value>),
 }

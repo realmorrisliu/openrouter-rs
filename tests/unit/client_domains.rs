@@ -10,7 +10,7 @@ use openrouter_rs::{
     OpenRouterClient,
     api::{
         analytics, audio, auth, byok, chat, credits, discovery, embeddings, files, guardrails,
-        images, messages, observability, rerank, responses, videos, workspaces,
+        images, messages, observability, rerank, responses, scim, videos, workspaces,
     },
     error::OpenRouterError,
     types::{ModelCategory, PaginationOptions, Role, SupportedParameters},
@@ -391,6 +391,14 @@ async fn test_files_domain_requires_api_key() {
         .content(b"hello".to_vec())
         .build()
         .expect("upload request should build");
+    let query = files::FileQuery::builder()
+        .provider("openai")
+        .build()
+        .expect("file query should build");
+    let list_params = files::ListFilesParams::builder()
+        .provider("openai")
+        .build()
+        .expect("list params should build");
 
     assert!(matches!(
         client.files().list(None, None, None).await,
@@ -410,6 +418,32 @@ async fn test_files_domain_requires_api_key() {
     ));
     assert!(matches!(
         client.files().delete("file_123", None).await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client.files().list_for_provider(&list_params).await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client.files().upload_for_provider(&upload, &query).await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .files()
+            .get_metadata_for_provider("file_123", &query)
+            .await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .files()
+            .download_content_for_provider("file_123", &query)
+            .await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client.files().delete_for_provider("file_123", &query).await,
         Err(OpenRouterError::KeyNotConfigured)
     ));
 }
@@ -534,6 +568,57 @@ async fn test_management_domain_requires_management_key() {
         .create_api_key("new-key", Some(10.0))
         .await;
     assert!(matches!(result, Err(OpenRouterError::KeyNotConfigured)));
+}
+
+#[tokio::test]
+async fn test_management_domain_scim_requires_management_key() {
+    let client = OpenRouterClient::builder()
+        .build()
+        .expect("client should build");
+    let create = scim::CreateScimGroupMappingRequest::builder()
+        .scim_group_id("group-1")
+        .workspace_id("workspace-1")
+        .role("member")
+        .build()
+        .expect("create mapping request should build");
+    let update = scim::UpdateScimGroupMappingRequest::builder()
+        .role("admin")
+        .build()
+        .expect("update mapping request should build");
+
+    assert!(matches!(
+        client.management().list_scim_groups(None).await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client.management().list_scim_group_mappings(None).await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client.management().create_scim_group_mapping(&create).await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .management()
+            .get_scim_group_mapping("mapping-1")
+            .await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .management()
+            .update_scim_group_mapping("mapping-1", &update)
+            .await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .management()
+            .delete_scim_group_mapping("mapping-1", false)
+            .await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
 }
 
 #[test]

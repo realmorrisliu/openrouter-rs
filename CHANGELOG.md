@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added management-key support for SCIM group discovery and group-role mappings through `client.management()`.
+- Added provider-aware Files queries and response types for OpenAI and Anthropic-backed file storage.
+
+### Changed
+- Accepted the 2026-08-03 OpenAPI drift review, including OpenRouter benchmark rows, optional speech voices, model alias targets, guardrail publication/training controls, and workspace BYOK budget defaults, restoring the official endpoint snapshot to `95 / 95`.
+
 ### Fixed
 - Preserved streamed tool-call indices through tool-aware accumulation without inventing index `0` when providers omit the optional field, and preserved unknown finish-reason strings via `FinishReason::Other` instead of rejecting the full response frame.
 

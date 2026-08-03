@@ -7,7 +7,7 @@ use crate::{
     api::{
         analytics, api_keys, audio, auth, byok, chat, credits, discovery, embeddings, files,
         generation, guardrails, images, messages, models, observability, organization, presets,
-        rerank, responses, videos, workspaces,
+        rerank, responses, scim, videos, workspaces,
     },
     error::OpenRouterError,
     strip_option_vec_setter,
@@ -2844,6 +2844,13 @@ pub struct FilesClient<'a> {
 }
 
 impl<'a> FilesClient<'a> {
+    fn api_key(&self) -> Result<&str, OpenRouterError> {
+        self.client
+            .api_key
+            .as_deref()
+            .ok_or(OpenRouterError::KeyNotConfigured)
+    }
+
     /// List files (`GET /files`).
     pub async fn list(
         &self,
@@ -2890,6 +2897,84 @@ impl<'a> FilesClient<'a> {
         workspace_id: Option<&str>,
     ) -> Result<files::FileDeleteResponse, OpenRouterError> {
         self.client.delete_file(file_id, workspace_id).await
+    }
+
+    /// List files in the response shape negotiated with a backing provider.
+    pub async fn list_for_provider(
+        &self,
+        params: &files::ListFilesParams,
+    ) -> Result<files::ProviderFileListResponse, OpenRouterError> {
+        files::list_provider_files_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.api_key()?,
+            params,
+        )
+        .await
+    }
+
+    /// Upload a file to a selected backing provider.
+    pub async fn upload_for_provider(
+        &self,
+        request: &files::UploadFileRequest,
+        query: &files::FileQuery,
+    ) -> Result<files::ProviderFileMetadata, OpenRouterError> {
+        files::upload_provider_file_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.api_key()?,
+            request,
+            query,
+        )
+        .await
+    }
+
+    /// Get file metadata in a provider-native response shape.
+    pub async fn get_metadata_for_provider(
+        &self,
+        file_id: &str,
+        query: &files::FileQuery,
+    ) -> Result<files::ProviderFileMetadata, OpenRouterError> {
+        files::get_provider_file_metadata_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.api_key()?,
+            file_id,
+            query,
+        )
+        .await
+    }
+
+    /// Download file content from a selected backing provider.
+    pub async fn download_content_for_provider(
+        &self,
+        file_id: &str,
+        query: &files::FileQuery,
+    ) -> Result<Vec<u8>, OpenRouterError> {
+        files::download_provider_file_content_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.api_key()?,
+            file_id,
+            query,
+        )
+        .await
+    }
+
+    /// Delete a file from a selected backing provider.
+    pub async fn delete_for_provider(
+        &self,
+        file_id: &str,
+        query: &files::FileQuery,
+    ) -> Result<files::ProviderFileDeleteResponse, OpenRouterError> {
+        files::delete_provider_file_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.api_key()?,
+            file_id,
+            query,
+        )
+        .await
     }
 }
 
@@ -3055,6 +3140,101 @@ pub struct ManagementClient<'a> {
 }
 
 impl<'a> ManagementClient<'a> {
+    fn management_key(&self) -> Result<&str, OpenRouterError> {
+        self.client
+            .management_key
+            .as_deref()
+            .ok_or(OpenRouterError::KeyNotConfigured)
+    }
+
+    /// List SCIM groups (`GET /scim/groups`).
+    pub async fn list_scim_groups(
+        &self,
+        pagination: Option<PaginationOptions>,
+    ) -> Result<scim::ListScimGroupsResponse, OpenRouterError> {
+        scim::list_scim_groups_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.management_key()?,
+            pagination,
+        )
+        .await
+    }
+
+    /// List SCIM group mappings (`GET /scim/group-mappings`).
+    pub async fn list_scim_group_mappings(
+        &self,
+        pagination: Option<PaginationOptions>,
+    ) -> Result<scim::ListScimGroupMappingsResponse, OpenRouterError> {
+        scim::list_scim_group_mappings_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.management_key()?,
+            pagination,
+        )
+        .await
+    }
+
+    /// Create a SCIM group mapping (`POST /scim/group-mappings`).
+    pub async fn create_scim_group_mapping(
+        &self,
+        request: &scim::CreateScimGroupMappingRequest,
+    ) -> Result<scim::ScimGroupMapping, OpenRouterError> {
+        scim::create_scim_group_mapping_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.management_key()?,
+            request,
+        )
+        .await
+    }
+
+    /// Get a SCIM group mapping (`GET /scim/group-mappings/{id}`).
+    pub async fn get_scim_group_mapping(
+        &self,
+        id: &str,
+    ) -> Result<scim::ScimGroupMapping, OpenRouterError> {
+        scim::get_scim_group_mapping_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.management_key()?,
+            id,
+        )
+        .await
+    }
+
+    /// Update a SCIM group mapping (`PATCH /scim/group-mappings/{id}`).
+    pub async fn update_scim_group_mapping(
+        &self,
+        id: &str,
+        request: &scim::UpdateScimGroupMappingRequest,
+    ) -> Result<scim::ScimGroupMapping, OpenRouterError> {
+        scim::update_scim_group_mapping_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.management_key()?,
+            id,
+            request,
+        )
+        .await
+    }
+
+    /// Delete a SCIM group mapping (`DELETE /scim/group-mappings/{id}`).
+    pub async fn delete_scim_group_mapping(
+        &self,
+        id: &str,
+        keep_members: bool,
+    ) -> Result<bool, OpenRouterError> {
+        scim::delete_scim_group_mapping_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.management_key()?,
+            id,
+            keep_members,
+        )
+        .await
+    }
+
     /// Create a managed API key (`POST /keys`).
     pub async fn create_api_key(
         &self,

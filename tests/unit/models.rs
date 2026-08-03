@@ -216,6 +216,10 @@ fn test_model_response_deserializes_links_and_benchmarks() {
             "links": {
                 "details": "/api/v1/models/openai/gpt-4/endpoints"
             },
+            "alias_target": {
+                "slug": "openai/gpt-4.1",
+                "name": "GPT-4.1"
+            },
             "benchmarks": {
                 "artificial_analysis": {
                     "intelligence_index": 71.4,
@@ -244,6 +248,14 @@ fn test_model_response_deserializes_links_and_benchmarks() {
         serde_json::from_str(raw).expect("single model response should deserialize");
     assert_eq!(parsed.data.canonical_slug.as_deref(), Some("openai/gpt-4"));
     assert!(parsed.data.context_length.is_none());
+    assert_eq!(
+        parsed
+            .data
+            .alias_target
+            .as_ref()
+            .map(|target| target.slug.as_str()),
+        Some("openai/gpt-4.1")
+    );
     assert_eq!(
         parsed
             .data

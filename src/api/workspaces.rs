@@ -36,6 +36,8 @@ pub struct Workspace {
     pub default_image_model: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub default_provider_sort: Option<String>,
+    #[serde(default)]
+    pub include_byok_in_budgets: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub io_logging_api_key_ids: Option<Vec<u64>>,
     pub io_logging_sampling_rate: f64,
@@ -286,6 +288,7 @@ impl UpsertWorkspaceBudgetRequest {
 #[non_exhaustive]
 pub struct UpsertWorkspaceBudgetResponse {
     pub data: WorkspaceBudget,
+    #[serde(default)]
     pub include_byok_in_budgets: bool,
 }
 
