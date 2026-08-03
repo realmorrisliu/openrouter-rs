@@ -110,6 +110,7 @@ pub enum StreamEvent {
 /// streaming fragments.
 #[derive(Debug, Clone, Default)]
 struct ToolCallAccumulator {
+    index: Option<u32>,
     id: Option<String>,
     type_: Option<String>,
     name: Option<String>,
@@ -119,6 +120,9 @@ struct ToolCallAccumulator {
 impl ToolCallAccumulator {
     /// Merge a partial tool call fragment into this accumulator.
     fn merge(&mut self, partial: &PartialToolCall) {
+        if partial.index.is_some() {
+            self.index = partial.index;
+        }
         if let Some(id) = &partial.id {
             self.id = Some(id.clone());
         }
@@ -139,7 +143,7 @@ impl ToolCallAccumulator {
     ///
     /// Returns `None` if required fields (`id`, `name`) are still missing,
     /// which would indicate an incomplete stream.
-    fn into_tool_call(self, index: u32) -> Option<ToolCall> {
+    fn into_tool_call(self) -> Option<ToolCall> {
         Some(ToolCall {
             id: self.id?,
             type_: self.type_.unwrap_or_else(|| "function".to_string()),
@@ -147,7 +151,7 @@ impl ToolCallAccumulator {
                 name: self.name?,
                 arguments: self.arguments,
             },
-            index: Some(index),
+            index: self.index,
         })
     }
 }
@@ -270,11 +274,9 @@ impl ToolAwareStream {
 
     /// Finalize the stream: assemble complete tool calls and emit `Done`.
     fn finalize(&mut self) {
-        // Preserve the accumulation index on each assembled tool call so the
-        // caller can tell parallel tool calls apart after accumulation.
         let tool_calls: Vec<ToolCall> = std::mem::take(&mut self.tool_accumulators)
-            .into_iter()
-            .filter_map(|(index, acc)| acc.into_tool_call(index))
+            .into_values()
+            .filter_map(ToolCallAccumulator::into_tool_call)
             .collect();
 
         self.pending_events.push_back(StreamEvent::Done {

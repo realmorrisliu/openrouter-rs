@@ -195,12 +195,13 @@ fn content_chunk(id: &str, model: &str, content: &str) -> CompletionsResponse {
 fn tool_call_chunk(
     id: &str,
     model: &str,
-    tool_call_index: u32,
+    tool_call_index: impl Into<Option<u32>>,
     tool_id: Option<&str>,
     tool_type: Option<&str>,
     func_name: Option<&str>,
     func_args: Option<&str>,
 ) -> CompletionsResponse {
+    let tool_call_index = tool_call_index.into();
     let function = if func_name.is_some() || func_args.is_some() {
         json!({
             "name": func_name,
@@ -241,6 +242,29 @@ fn tool_call_chunk(
         "usage": null
     }))
     .expect("tool call chunk should deserialize")
+}
+
+#[tokio::test]
+async fn test_tool_aware_stream_preserves_missing_tool_call_index() {
+    let raw_stream = stream::iter(vec![Ok(tool_call_chunk(
+        "gen-1",
+        "gpt-4",
+        None,
+        Some("call_1"),
+        Some("function"),
+        Some("get_weather"),
+        Some("{}"),
+    ))])
+    .boxed();
+    let events: Vec<_> = ToolAwareStream::new(raw_stream).collect().await;
+
+    match &events[0] {
+        StreamEvent::Done { tool_calls, .. } => {
+            assert_eq!(tool_calls.len(), 1);
+            assert_eq!(tool_calls[0].index, None);
+        }
+        other => panic!("Expected Done, got {other:?}"),
+    }
 }
 
 /// Helper: create a final chunk with finish_reason and usage.
