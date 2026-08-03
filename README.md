@@ -39,7 +39,7 @@ The current repo snapshot implements `95 / 95` official OpenAPI method/path entr
 
 ```toml
 [dependencies]
-openrouter-rs = "0.13.0"
+openrouter-rs = "0.14.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -47,7 +47,7 @@ Legacy text completions are opt-in:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.13.0", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.14.0", features = ["legacy-completions"] }
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -355,11 +355,15 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 ### Unreleased
 
+- No unreleased changes yet.
+
+### Version 0.14.0 *(Latest)*
+
 - Tool-aware chat streaming now preserves provider-supplied tool-call indices without inventing missing values, and `FinishReason::Other` keeps unknown provider finish reasons forward-compatible.
 - Added SCIM group and group-role mapping management plus provider-aware Files API support.
 - Accepted the 2026-08-03 OpenAPI drift review and restored tracked endpoint coverage to `95 / 95`.
 
-### Version 0.13.0 *(Latest)*
+### Version 0.13.0
 
 - Added explicit prompt-cache controls, static predicted output, image provider routing, conditional pricing overrides, cache-creation usage details, and guardrail `flag` actions.
 - Added assistant-message model annotations, BYOK-aware guardrail/workspace budgets, workspace default guardrail IDs, transcription speaker labels, and Anthropic compaction/dynamic-tool blocks.

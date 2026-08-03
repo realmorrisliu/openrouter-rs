@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-08-03
+
 ### Added
 - Added management-key support for SCIM group discovery and group-role mappings through `client.management()`.
 - Added provider-aware Files queries and response types for OpenAI and Anthropic-backed file storage.
