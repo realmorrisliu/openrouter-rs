@@ -177,6 +177,62 @@ fn test_streaming_response_deserialization() {
     assert_eq!(choice.index(), Some(0));
 }
 
+/// OpenRouter's schema marks `finish_reason` as allowing unknown values, so a
+/// provider may stream a value this SDK does not model. The whole SSE frame
+/// must still deserialize, capturing the raw value instead of erroring.
+#[test]
+fn test_unknown_finish_reason_does_not_fail_full_frame() {
+    let json = r#"{
+        "id": "gen-stream-002",
+        "choices": [{
+            "finish_reason": "function_call",
+            "index": 0,
+            "delta": {
+                "role": "assistant",
+                "content": null
+            }
+        }],
+        "created": 1700000000,
+        "model": "test-model",
+        "object": "chat.completion.chunk"
+    }"#;
+
+    let response: CompletionsResponse = serde_json::from_str(json).expect("Failed to deserialize");
+
+    assert_eq!(response.choices.len(), 1);
+    let choice = &response.choices[0];
+    assert!(matches!(
+        choice.finish_reason(),
+        Some(openrouter_rs::types::completion::FinishReason::Other(value))
+            if value == "function_call"
+    ));
+}
+
+/// Unknown finish reasons survive a serialize round-trip and known variants
+/// keep their snake_case wire form.
+#[test]
+fn test_finish_reason_round_trip() {
+    use openrouter_rs::types::completion::FinishReason;
+
+    assert_eq!(
+        serde_json::to_string(&FinishReason::ToolCalls).unwrap(),
+        r#""tool_calls""#
+    );
+    assert_eq!(
+        serde_json::to_string(&FinishReason::Stop).unwrap(),
+        r#""stop""#
+    );
+    assert_eq!(
+        serde_json::to_string(&FinishReason::Other("max_tokens".to_string())).unwrap(),
+        r#""max_tokens""#
+    );
+
+    let parsed: FinishReason = serde_json::from_str(r#""function_call""#).unwrap();
+    assert!(matches!(parsed, FinishReason::Other(value) if value == "function_call"));
+    let known: FinishReason = serde_json::from_str(r#""length""#).unwrap();
+    assert!(matches!(known, FinishReason::Length));
+}
+
 /// Test deserialization with refusal field
 #[test]
 fn test_response_with_refusal() {

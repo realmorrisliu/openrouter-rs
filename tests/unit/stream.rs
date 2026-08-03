@@ -479,10 +479,14 @@ async fn test_tool_aware_stream_parallel_tool_calls() {
             assert_eq!(tool_calls[0].id, "call_1");
             assert_eq!(tool_calls[0].function.name, "get_weather");
             assert_eq!(tool_calls[0].function.arguments, "{\"city\": \"NYC\"}");
+            // The streamed index must survive accumulation so callers can
+            // distinguish parallel tool calls.
+            assert_eq!(tool_calls[0].index, Some(0));
 
             assert_eq!(tool_calls[1].id, "call_2");
             assert_eq!(tool_calls[1].function.name, "get_time");
             assert_eq!(tool_calls[1].function.arguments, "{\"timezone\": \"EST\"}");
+            assert_eq!(tool_calls[1].index, Some(1));
         }
         other => panic!("Expected Done, got {:?}", other),
     }

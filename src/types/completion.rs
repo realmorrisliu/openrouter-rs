@@ -509,15 +509,73 @@ impl Choice {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+/// Why the model stopped generating.
+///
+/// OpenRouter's wire schema marks `finish_reason` as allowing unknown values
+/// (`x-speakeasy-unknown-values: allow`), so providers may stream values this
+/// SDK does not model (e.g. a legacy `"function_call"`). Deserializing such a
+/// value into a strict enum would fail the entire SSE frame, dropping its
+/// content — so unrecognized values are captured verbatim in
+/// [`FinishReason::Other`] instead.
+#[derive(Debug, Clone)]
 #[non_exhaustive]
-#[serde(rename_all = "snake_case")]
 pub enum FinishReason {
     ToolCalls,
     Stop,
     Length,
     ContentFilter,
     Error,
+    /// An upstream finish-reason value not yet modeled by this SDK.
+    ///
+    /// The raw wire string is preserved exactly as received.
+    Other(String),
+}
+
+impl FinishReason {
+    /// The wire-string form of this finish reason.
+    fn as_str(&self) -> &str {
+        match self {
+            FinishReason::ToolCalls => "tool_calls",
+            FinishReason::Stop => "stop",
+            FinishReason::Length => "length",
+            FinishReason::ContentFilter => "content_filter",
+            FinishReason::Error => "error",
+            FinishReason::Other(value) => value,
+        }
+    }
+}
+
+impl Serialize for FinishReason {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for FinishReason {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct Visitor;
+
+        impl<'de> serde::de::Visitor<'de> for Visitor {
+            type Value = FinishReason;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a finish reason string")
+            }
+
+            fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<Self::Value, E> {
+                Ok(match value {
+                    "tool_calls" => FinishReason::ToolCalls,
+                    "stop" => FinishReason::Stop,
+                    "length" => FinishReason::Length,
+                    "content_filter" => FinishReason::ContentFilter,
+                    "error" => FinishReason::Error,
+                    other => FinishReason::Other(other.to_string()),
+                })
+            }
+        }
+
+        deserializer.deserialize_str(Visitor)
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
