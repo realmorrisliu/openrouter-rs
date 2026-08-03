@@ -48,7 +48,7 @@ pub struct SpeechRequest {
     #[builder(setter(into))]
     pub model: String,
     #[builder(setter(into), default)]
-    #[serde(skip_serializing_if = "String::is_empty")]
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub voice: String,
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]

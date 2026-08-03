@@ -55,6 +55,13 @@ fn test_speech_request_allows_omitting_voice() {
 
     let value = serde_json::to_value(request).expect("speech request should serialize");
     assert!(value.get("voice").is_none());
+
+    let request: SpeechRequest = serde_json::from_value(serde_json::json!({
+        "model": "openai/gpt-audio",
+        "input": "Hello world"
+    }))
+    .expect("voice is optional when deserializing");
+    assert!(request.voice.is_empty());
 }
 
 #[test]
