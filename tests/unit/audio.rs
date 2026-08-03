@@ -46,6 +46,18 @@ fn test_speech_request_serialization() {
 }
 
 #[test]
+fn test_speech_request_allows_omitting_voice() {
+    let request = SpeechRequest::builder()
+        .model("openai/gpt-audio")
+        .input("Hello world")
+        .build()
+        .expect("voice is optional in the upstream contract");
+
+    let value = serde_json::to_value(request).expect("speech request should serialize");
+    assert!(value.get("voice").is_none());
+}
+
+#[test]
 fn test_transcription_request_serialization() {
     let mut provider_options = HashMap::new();
     provider_options.insert(

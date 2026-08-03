@@ -230,6 +230,7 @@ fn test_workspace_response_deserialization() {
             "default_text_model": "openai/gpt-4o",
             "default_image_model": "openai/dall-e-3",
             "default_provider_sort": "price",
+            "include_byok_in_budgets": true,
             "io_logging_api_key_ids": [101, 202],
             "io_logging_sampling_rate": 0.5,
             "is_observability_io_logging_enabled": false,
@@ -252,6 +253,7 @@ fn test_workspace_response_deserialization() {
     assert_eq!(parsed.data.created_by.as_deref(), Some("user_123"));
     assert_eq!(parsed.data.io_logging_api_key_ids, Some(vec![101, 202]));
     assert_eq!(parsed.data.io_logging_sampling_rate, 0.5);
+    assert!(parsed.data.include_byok_in_budgets);
 }
 
 #[test]
@@ -566,7 +568,7 @@ async fn test_list_workspace_members_encodes_id_pagination_and_auth_header() {
 #[tokio::test]
 async fn test_upsert_workspace_budget_encodes_path_and_body() {
     let (base_url, rx, server) = spawn_json_server(
-        r#"{"data":{"id":"770e8400-e29b-41d4-a716-446655440000","workspace_id":"550e8400-e29b-41d4-a716-446655440000","limit_usd":100,"reset_interval":"monthly","created_at":"2025-08-24T10:30:00Z","updated_at":"2025-08-24T15:45:00Z"},"include_byok_in_budgets":true}"#,
+        r#"{"data":{"id":"770e8400-e29b-41d4-a716-446655440000","workspace_id":"550e8400-e29b-41d4-a716-446655440000","limit_usd":100,"reset_interval":"monthly","created_at":"2025-08-24T10:30:00Z","updated_at":"2025-08-24T15:45:00Z"}}"#,
     );
     let request = UpsertWorkspaceBudgetRequest::builder()
         .limit_usd(100.0)
@@ -584,7 +586,7 @@ async fn test_upsert_workspace_budget_encodes_path_and_body() {
     .await
     .expect("upsert workspace budget should succeed");
     assert_eq!(response.data.limit_usd, 100.0);
-    assert!(response.include_byok_in_budgets);
+    assert!(!response.include_byok_in_budgets);
 
     let captured = rx
         .recv_timeout(Duration::from_secs(2))

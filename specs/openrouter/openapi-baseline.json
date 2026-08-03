@@ -2032,9 +2032,96 @@
         ],
         "type": "object"
       },
+      "AnthropicFile": {
+        "description": "A stored file in Anthropic's Files API shape.",
+        "example": {
+          "_shape": "anthropic",
+          "created_at": "2025-01-01T00:00:00Z",
+          "downloadable": false,
+          "filename": "document.pdf",
+          "id": "or_file_011CNha8iCJcU1wXNR6q4V8w",
+          "mime_type": "application/pdf",
+          "size_bytes": 1024000,
+          "type": "file"
+        },
+        "properties": {
+          "_shape": {
+            "enum": [
+              "anthropic"
+            ],
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "downloadable": {
+            "type": "boolean"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "mime_type": {
+            "type": "string"
+          },
+          "size_bytes": {
+            "type": "integer"
+          },
+          "type": {
+            "enum": [
+              "file"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "_shape",
+          "id",
+          "type",
+          "filename",
+          "mime_type",
+          "size_bytes",
+          "created_at",
+          "downloadable"
+        ],
+        "type": "object"
+      },
+      "AnthropicFileDeleted": {
+        "description": "Deletion result in Anthropic's shape.",
+        "example": {
+          "_shape": "anthropic",
+          "id": "or_file_011CNha8iCJcU1wXNR6q4V8w",
+          "type": "file_deleted"
+        },
+        "properties": {
+          "_shape": {
+            "enum": [
+              "anthropic"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "file_deleted"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "_shape",
+          "id",
+          "type"
+        ],
+        "type": "object"
+      },
       "AnthropicFileDocumentSource": {
         "example": {
-          "file_id": "file_011CNha8iCJcU1wXNR6q4V8w",
+          "file_id": "or_file_011CNha8iCJcU1wXNR6q4V8w",
           "type": "file"
         },
         "properties": {
@@ -2051,6 +2138,53 @@
         "required": [
           "type",
           "file_id"
+        ],
+        "type": "object"
+      },
+      "AnthropicFileList": {
+        "description": "A page of files in Anthropic's shape.",
+        "example": {
+          "_shape": "anthropic",
+          "data": [],
+          "first_id": null,
+          "has_more": false,
+          "last_id": null
+        },
+        "properties": {
+          "_shape": {
+            "enum": [
+              "anthropic"
+            ],
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/AnthropicFile"
+            },
+            "type": "array"
+          },
+          "first_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "last_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "_shape",
+          "data",
+          "has_more",
+          "first_id",
+          "last_id"
         ],
         "type": "object"
       },
@@ -4146,10 +4280,13 @@
         "example": {
           "allowed_models": [
             "anthropic/*",
+            "openai/*"
+          ],
+          "cost_tier": "low",
+          "enabled": true,
+          "excluded_models": [
             "openai/gpt-4o"
           ],
-          "cost_quality_tradeoff": 9,
-          "enabled": true,
           "id": "auto-beta-router"
         },
         "properties": {
@@ -4166,15 +4303,40 @@
             "type": "array"
           },
           "cost_quality_tradeoff": {
-            "description": "Balances routing between cost and quality on a 0-10 scale. The auto-beta-router ranks models for the classified task type by community spend share, then filters candidates by their average cost per generation for that task. Higher values favor cheaper models: 10 keeps only models around the cheapest 10th percentile, while 0 permits models up to the 90th percentile for cost. Defaults to 9.",
+            "deprecated": true,
+            "description": "Deprecated: Use cost_tier instead. Balances routing between cost and quality on a 0-10 scale. The auto-beta-router ranks models for the classified task type by community spend share, then filters candidates by their average cost per generation for that task. Higher values favor cheaper models: 10 keeps only models around the cheapest 10th percentile, while 0 permits models up to the 90th percentile for cost. Defaults to 9. Numeric cost_quality_tradeoff remains supported, retains ceiling behavior, and takes precedence over cost_tier when both are provided.",
             "example": 9,
             "maximum": 10,
             "minimum": 0,
             "type": "integer"
           },
+          "cost_tier": {
+            "description": "Named cost/quality setting. For auto-beta-router, tiers select cost-percentile bands: low = [0, 20), medium = [20, 40), high = [40, 60), xhigh = [60, 80), and max = [80, 100]. Numeric cost_quality_tradeoff takes precedence and retains ceiling behavior.",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ],
+            "example": "low",
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
           "enabled": {
             "description": "Set to false to disable the auto-beta-router plugin for this request. Defaults to true.",
             "type": "boolean"
+          },
+          "excluded_models": {
+            "description": "List of model patterns to exclude from auto-beta-router selection. Supports wildcards (e.g., \"meta-llama/*\" excludes all Llama models). Applied after allowed_models, so an excluded pattern always wins over an allowed one.",
+            "example": [
+              "openai/gpt-4o",
+              "meta-llama/*"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "id": {
             "enum": [
@@ -4192,10 +4354,13 @@
         "example": {
           "allowed_models": [
             "anthropic/*",
+            "openai/*"
+          ],
+          "cost_tier": "medium",
+          "enabled": true,
+          "excluded_models": [
             "openai/gpt-4o"
           ],
-          "cost_quality_tradeoff": 7,
-          "enabled": true,
           "id": "auto-router",
           "pin_model": false
         },
@@ -4213,15 +4378,40 @@
             "type": "array"
           },
           "cost_quality_tradeoff": {
-            "description": "Controls cost vs. quality routing tradeoff (0\u201310). 0 = pure quality (best model regardless of cost), 10 = maximize for cost (cheapest model wins). Intermediate values blend quality and cost signals continuously. Defaults to 7.",
+            "deprecated": true,
+            "description": "Deprecated: Use cost_tier instead. Controls cost vs. quality routing tradeoff (0\u201310). 0 = pure quality (best model regardless of cost), 10 = maximize for cost (cheapest model wins). Intermediate values blend quality and cost signals continuously. Defaults to 7. Numeric cost_quality_tradeoff remains supported and takes precedence over cost_tier when both are provided.",
             "example": 7,
             "maximum": 10,
             "minimum": 0,
             "type": "integer"
           },
+          "cost_tier": {
+            "description": "Shorthand for cost_quality_tradeoff. Higher tiers spend more on better models: low = 9, medium = 7, high = 5, xhigh = 3, and max = 1. Numeric cost_quality_tradeoff takes precedence when both are provided.",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ],
+            "example": "medium",
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
           "enabled": {
             "description": "Set to false to disable the auto-router plugin for this request. Defaults to true.",
             "type": "boolean"
+          },
+          "excluded_models": {
+            "description": "List of model patterns to exclude from auto-router selection. Supports wildcards (e.g., \"meta-llama/*\" excludes all Llama models). Applied after allowed_models, so an excluded pattern always wins over an allowed one.",
+            "example": [
+              "openai/gpt-4o",
+              "meta-llama/*"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "id": {
             "enum": [
@@ -4451,6 +4641,7 @@
           "switchpoint",
           "tencent",
           "tenstorrent",
+          "thinkingmachines",
           "together",
           "upstage",
           "venice",
@@ -7652,10 +7843,11 @@
             ]
           },
           "service_tier": {
-            "description": "The service tier to use for processing this request.",
+            "description": "The service tier to use for processing this request. `fast` is accepted as an alias for `priority`.",
             "enum": [
               "auto",
               "default",
+              "fast",
               "flex",
               "priority",
               "scale",
@@ -8694,7 +8886,7 @@
             "$ref": "#/components/schemas/WebSearchEngineEnum"
           },
           "excluded_domains": {
-            "description": "Exclude search results from these domains. Supported by Exa, Firecrawl, Parallel, Perplexity, Anthropic, and xAI. Not supported with OpenAI (silently ignored). Cannot be used with allowed_domains.",
+            "description": "Exclude search results from these domains. Supported by Exa, Firecrawl, Parallel, Perplexity, Anthropic, OpenAI, and xAI. Cannot be used with allowed_domains.",
             "items": {
               "type": "string"
             },
@@ -9874,6 +10066,30 @@
               "null"
             ]
           },
+          "enable_free_model_publication": {
+            "description": "Whether this guardrail allows free endpoints that publish prompts.",
+            "example": false,
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "enable_free_model_training": {
+            "description": "Whether this guardrail allows free endpoints that train on request data.",
+            "example": true,
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "enable_paid_model_training": {
+            "description": "Whether this guardrail allows paid endpoints that train on request data.",
+            "example": true,
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
           "enforce_zdr": {
             "deprecated": true,
             "description": "Deprecated. Use enforce_zdr_anthropic, enforce_zdr_openai, enforce_zdr_google, enforce_zdr_xai, and enforce_zdr_other instead. When provided, its value is copied into any of those per-provider fields that are not explicitly specified on the request.",
@@ -10216,6 +10432,43 @@
         ],
         "type": "object"
       },
+      "CreateScimGroupMappingRequest": {
+        "properties": {
+          "role": {
+            "enum": [
+              "admin",
+              "member"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "scim_group_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "workspace_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scim_group_id",
+          "workspace_id",
+          "role"
+        ],
+        "type": "object"
+      },
+      "CreateScimGroupMappingResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ScimGroupMapping"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "CreateWorkspaceRequest": {
         "example": {
           "default_image_model": "openai/dall-e-3",
@@ -10324,6 +10577,7 @@
             "default_text_model": "openai/gpt-4o",
             "description": "Production environment workspace",
             "id": "550e8400-e29b-41d4-a716-446655440000",
+            "include_byok_in_budgets": false,
             "io_logging_api_key_ids": null,
             "io_logging_sampling_rate": 1,
             "is_data_discount_logging_enabled": true,
@@ -10869,6 +11123,18 @@
         ],
         "type": "object"
       },
+      "DeleteScimGroupMappingResponse": {
+        "properties": {
+          "deleted": {
+            "const": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "type": "object"
+      },
       "DeleteWorkspaceBudgetResponse": {
         "example": {
           "deleted": true
@@ -11287,133 +11553,61 @@
         "type": "object"
       },
       "FileDeleteResponse": {
-        "description": "Confirmation that a file was deleted.",
+        "description": "Confirmation that a file was deleted, in the negotiated shape.",
+        "discriminator": {
+          "mapping": {
+            "anthropic": "#/components/schemas/AnthropicFileDeleted",
+            "openai": "#/components/schemas/OpenAIFileDeleted",
+            "openrouter": "#/components/schemas/OpenRouterFileDeleted"
+          },
+          "propertyName": "_shape"
+        },
         "example": {
-          "id": "file_011CNha8iCJcU1wXNR6q4V8w",
+          "_shape": "openrouter",
+          "id": "or_file_011CNha8iCJcU1wXNR6q4V8w",
           "type": "file_deleted"
         },
-        "properties": {
-          "id": {
-            "type": "string"
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/OpenRouterFileDeleted"
           },
-          "type": {
-            "enum": [
-              "file_deleted"
-            ],
-            "type": "string"
+          {
+            "$ref": "#/components/schemas/OpenAIFileDeleted"
+          },
+          {
+            "$ref": "#/components/schemas/AnthropicFileDeleted"
           }
-        },
-        "required": [
-          "id",
-          "type"
-        ],
-        "type": "object"
+        ]
       },
       "FileListResponse": {
-        "description": "A page of files belonging to the requesting workspace.",
+        "description": "A page of files, in the negotiated shape.",
+        "discriminator": {
+          "mapping": {
+            "anthropic": "#/components/schemas/AnthropicFileList",
+            "openai": "#/components/schemas/OpenAIFileList",
+            "openrouter": "#/components/schemas/OpenRouterFileList"
+          },
+          "propertyName": "_shape"
+        },
         "example": {
+          "_shape": "openrouter",
           "cursor": null,
-          "data": [
-            {
-              "created_at": "2025-01-01T00:00:00Z",
-              "downloadable": false,
-              "filename": "document.pdf",
-              "id": "file_011CNha8iCJcU1wXNR6q4V8w",
-              "mime_type": "application/pdf",
-              "size_bytes": 1024000,
-              "type": "file"
-            }
-          ],
-          "first_id": "file_011CNha8iCJcU1wXNR6q4V8w",
+          "data": [],
+          "first_id": null,
           "has_more": false,
-          "last_id": "file_011CNha8iCJcU1wXNR6q4V8w"
+          "last_id": null
         },
-        "properties": {
-          "cursor": {
-            "description": "Opaque cursor for the next page; null when there are no more results.",
-            "type": [
-              "string",
-              "null"
-            ]
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/OpenRouterFileList"
           },
-          "data": {
-            "items": {
-              "$ref": "#/components/schemas/FileMetadata"
-            },
-            "type": "array"
+          {
+            "$ref": "#/components/schemas/OpenAIFileList"
           },
-          "first_id": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "has_more": {
-            "type": "boolean"
-          },
-          "last_id": {
-            "type": [
-              "string",
-              "null"
-            ]
+          {
+            "$ref": "#/components/schemas/AnthropicFileList"
           }
-        },
-        "required": [
-          "data",
-          "has_more",
-          "first_id",
-          "last_id",
-          "cursor"
-        ],
-        "type": "object"
-      },
-      "FileMetadata": {
-        "description": "Metadata describing a stored file.",
-        "example": {
-          "created_at": "2025-01-01T00:00:00Z",
-          "downloadable": false,
-          "filename": "document.pdf",
-          "id": "file_011CNha8iCJcU1wXNR6q4V8w",
-          "mime_type": "application/pdf",
-          "size_bytes": 1024000,
-          "type": "file"
-        },
-        "properties": {
-          "created_at": {
-            "type": "string"
-          },
-          "downloadable": {
-            "type": "boolean"
-          },
-          "filename": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "mime_type": {
-            "type": "string"
-          },
-          "size_bytes": {
-            "type": "integer"
-          },
-          "type": {
-            "enum": [
-              "file"
-            ],
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "type",
-          "filename",
-          "mime_type",
-          "size_bytes",
-          "created_at",
-          "downloadable"
-        ],
-        "type": "object"
+        ]
       },
       "FileParserPlugin": {
         "example": {
@@ -11469,6 +11663,48 @@
           "index"
         ],
         "type": "object"
+      },
+      "FileProvider": {
+        "description": "Store or read this file on the named provider using your own API key for it. Omit to use OpenRouter storage.",
+        "enum": [
+          "openai",
+          "anthropic"
+        ],
+        "example": "openai",
+        "type": "string",
+        "x-speakeasy-unknown-values": "allow"
+      },
+      "FileResponse": {
+        "description": "A stored file. The shape is negotiated per request \u2014 see the endpoint description.",
+        "discriminator": {
+          "mapping": {
+            "anthropic": "#/components/schemas/AnthropicFile",
+            "openai": "#/components/schemas/OpenAIFile",
+            "openrouter": "#/components/schemas/OpenRouterFile"
+          },
+          "propertyName": "_shape"
+        },
+        "example": {
+          "_shape": "openrouter",
+          "created_at": "2025-01-01T00:00:00Z",
+          "downloadable": false,
+          "filename": "document.pdf",
+          "id": "or_file_011CNha8iCJcU1wXNR6q4V8w",
+          "mime_type": "application/pdf",
+          "size_bytes": 1024000,
+          "type": "file"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/OpenRouterFile"
+          },
+          {
+            "$ref": "#/components/schemas/OpenAIFile"
+          },
+          {
+            "$ref": "#/components/schemas/AnthropicFile"
+          }
+        ]
       },
       "FileSearchServerTool": {
         "description": "File search tool configuration",
@@ -11988,7 +12224,7 @@
         "type": "object"
       },
       "FusionAnalysisResult": {
-        "description": "Structured analysis produced by the fusion judge model.",
+        "description": "Structured analysis produced by the fusion analyst model.",
         "example": {
           "blind_spots": [
             "No model considered the impact on existing API consumers."
@@ -12122,7 +12358,7 @@
         "type": "object"
       },
       "FusionCallAnalysisCompletedEvent": {
-        "description": "Emitted when the fusion judge completes with the structured analysis.",
+        "description": "Emitted when the fusion analyst completes with the structured analysis.",
         "example": {
           "analysis": {
             "blind_spots": [],
@@ -12166,8 +12402,9 @@
         "type": "object"
       },
       "FusionCallAnalysisInProgressEvent": {
-        "description": "Emitted when the fusion judge starts producing the structured analysis.",
+        "description": "Emitted when the fusion analyst starts producing the structured analysis.",
         "example": {
+          "analyst_model": "openai/gpt-5",
           "item_id": "st_fusion_abc",
           "judge_model": "openai/gpt-5",
           "output_index": 0,
@@ -12175,10 +12412,16 @@
           "type": "response.fusion_call.analysis.in_progress"
         },
         "properties": {
+          "analyst_model": {
+            "description": "Slug of the model producing the structured analysis.",
+            "type": "string"
+          },
           "item_id": {
             "type": "string"
           },
           "judge_model": {
+            "deprecated": true,
+            "description": "Deprecated alias of `analyst_model`, kept so existing consumers keep working. Always carries the same value. Use `analyst_model`.",
             "type": "string"
           },
           "output_index": {
@@ -12196,6 +12439,7 @@
         },
         "required": [
           "type",
+          "analyst_model",
           "judge_model",
           "output_index",
           "item_id",
@@ -12496,7 +12740,7 @@
         },
         "properties": {
           "analysis_models": {
-            "description": "Slugs of models to run in parallel as the \"expert panel\" the judge analyzes. Each model receives the same user prompt with web_search + web_fetch enabled. Capped at 8 models to bound cost amplification. When omitted, defaults to the Quality preset from the /labs/fusion UI (~anthropic/claude-opus-latest, ~openai/gpt-latest, ~google/gemini-pro-latest).",
+            "description": "Slugs of models to run in parallel as the \"expert panel\" the analyst analyzes. Each model receives the same user prompt with web_search + web_fetch enabled. Capped at 8 models to bound cost amplification. When omitted, defaults to the Quality preset from the /labs/fusion UI (~anthropic/claude-opus-latest, ~openai/gpt-latest, ~google/gemini-pro-latest).",
             "example": [
               "~anthropic/claude-opus-latest",
               "~openai/gpt-latest",
@@ -12520,19 +12764,19 @@
             "type": "string"
           },
           "max_tool_calls": {
-            "description": "Maximum number of tool-calling steps each panelist (analysis model) and the judge model may take during their agentic web-research loop. Models with web_search/web_fetch enabled iterate until they produce a text response or hit this ceiling. Defaults to 8. Capped at 16.",
+            "description": "Maximum number of tool-calling steps each panelist (analysis model) and the analyst model may take during their agentic web-research loop. Models with web_search/web_fetch enabled iterate until they produce a text response or hit this ceiling. Defaults to 8. Capped at 16.",
             "example": 12,
             "maximum": 16,
             "minimum": 1,
             "type": "integer"
           },
           "model": {
-            "description": "Slug of the model that performs both the judge step (with web_search + web_fetch) and the final synthesis. When omitted, defaults to the first model in the Quality preset.",
+            "description": "Slug of the model that performs both the analyst step (with web_search + web_fetch) and the final synthesis. When omitted, defaults to the first model in the Quality preset.",
             "example": "~anthropic/claude-opus-latest",
             "type": "string"
           },
           "preset": {
-            "description": "A curated OpenRouter fusion preset (slugs follow `<task>-<tier>`, e.g. `general-high`). Expands server-side into the preset's analysis_models panel and judge model, so callers never name individual models. Explicitly provided `analysis_models` / `model` take precedence.",
+            "description": "A curated OpenRouter fusion preset (slugs follow `<task>-<tier>`, e.g. `general-high`). Expands server-side into the preset's analysis_models panel and analyst model, so callers never name individual models. Explicitly provided `analysis_models` / `model` take precedence.",
             "enum": [
               "general-high",
               "general-budget",
@@ -12543,7 +12787,7 @@
             "x-speakeasy-unknown-values": "allow"
           },
           "tools": {
-            "description": "Server tools available to panelist and judge inner calls. Each entry uses the same `{ type, parameters? }` shorthand as the outer Chat Completions request. When omitted, defaults to `[{ type: \"openrouter:web_search\" }, { type: \"openrouter:web_fetch\" }]`. Pass an empty array to disable tools entirely (panelists answer from parametric knowledge only).",
+            "description": "Server tools available to panelist and analyst inner calls. Each entry uses the same `{ type, parameters? }` shorthand as the outer Chat Completions request. When omitted, defaults to `[{ type: \"openrouter:web_search\" }, { type: \"openrouter:web_fetch\" }]`. Pass an empty array to disable tools entirely (panelists answer from parametric knowledge only).",
             "example": [
               {
                 "parameters": {
@@ -12659,7 +12903,7 @@
         },
         "properties": {
           "analysis_models": {
-            "description": "Slugs of models to run in parallel as the analysis panel. Each model receives the user prompt with openrouter:web_search and openrouter:web_fetch enabled, then a judge model summarizes the collective output into structured analysis JSON. Capped at 8 models to bound cost amplification. Defaults to the Quality preset from /labs/fusion.",
+            "description": "Slugs of models to run in parallel as the analysis panel. Each model receives the user prompt with openrouter:web_search and openrouter:web_fetch enabled, then an analyst model summarizes the collective output into structured analysis JSON. Capped at 8 models to bound cost amplification. Defaults to the Quality preset from /labs/fusion.",
             "example": [
               "~anthropic/claude-opus-latest",
               "~openai/gpt-latest",
@@ -12676,27 +12920,27 @@
             "$ref": "#/components/schemas/AnthropicCacheControlDirective"
           },
           "max_completion_tokens": {
-            "description": "Maximum number of output tokens (including reasoning tokens) each panelist and the judge model may produce per inner call. Controls the total output budget so reasoning-heavy models like GPT-5.5 do not exhaust their token allowance before producing visible text. When omitted, panelists default to 32000 and the judge to 20000.",
+            "description": "Maximum number of output tokens (including reasoning tokens) each panelist and the analyst model may produce per inner call. Controls the total output budget so reasoning-heavy models like GPT-5.5 do not exhaust their token allowance before producing visible text. When omitted, panelists default to 32000 and the analyst to 20000.",
             "example": 16384,
             "type": "integer"
           },
           "max_tool_calls": {
-            "description": "Maximum number of tool-calling steps each panelist (analysis model) and the judge model may take during their agentic web-research loop. Models with web_search/web_fetch enabled iterate until they produce a text response or hit this ceiling. Defaults to 8. Capped at 16.",
+            "description": "Maximum number of tool-calling steps each panelist (analysis model) and the analyst model may take during their agentic web-research loop. Models with web_search/web_fetch enabled iterate until they produce a text response or hit this ceiling. Defaults to 8. Capped at 16.",
             "example": 12,
             "maximum": 16,
             "minimum": 1,
             "type": "integer"
           },
           "model": {
-            "description": "Slug of the judge model that produces the structured analysis JSON. Defaults to the model used in the outer API request.",
+            "description": "Slug of the analyst model that produces the structured analysis JSON. Defaults to the model used in the outer API request.",
             "example": "~anthropic/claude-opus-latest",
             "type": "string"
           },
           "reasoning": {
-            "description": "Reasoning configuration forwarded to panelist and judge inner calls. Use this to control reasoning effort and token budget for models that support extended thinking.",
+            "description": "Reasoning configuration forwarded to panelist and analyst inner calls. Use this to control reasoning effort and token budget for models that support extended thinking.",
             "properties": {
               "effort": {
-                "description": "Reasoning effort level for panelist and judge inner calls.",
+                "description": "Reasoning effort level for panelist and analyst inner calls.",
                 "enum": [
                   "max",
                   "xhigh",
@@ -12710,20 +12954,20 @@
                 "x-speakeasy-unknown-values": "allow"
               },
               "max_tokens": {
-                "description": "Maximum number of reasoning tokens each panelist and judge model may use. Helps bound cost when models allocate too much budget to chain-of-thought.",
+                "description": "Maximum number of reasoning tokens each panelist and analyst model may use. Helps bound cost when models allocate too much budget to chain-of-thought.",
                 "type": "integer"
               }
             },
             "type": "object"
           },
           "temperature": {
-            "description": "Temperature forwarded to panelist inner calls. The judge always runs at temperature 0 regardless of this value. When omitted, the provider's default applies.",
+            "description": "Temperature forwarded to panelist inner calls. The analyst always runs at temperature 0 regardless of this value. When omitted, the provider's default applies.",
             "example": 0.7,
             "format": "double",
             "type": "number"
           },
           "tools": {
-            "description": "Server tools available to panelist and judge inner calls. Each entry uses the same `{ type, parameters? }` shorthand as the outer Chat Completions request. When omitted, defaults to `[{ type: \"openrouter:web_search\" }, { type: \"openrouter:web_fetch\" }]`. Pass an empty array to disable tools entirely (panelists answer from parametric knowledge only).",
+            "description": "Server tools available to panelist and analyst inner calls. Each entry uses the same `{ type, parameters? }` shorthand as the outer Chat Completions request. When omitted, defaults to `[{ type: \"openrouter:web_search\" }, { type: \"openrouter:web_fetch\" }]`. Pass an empty array to disable tools entirely (panelists answer from parametric knowledge only).",
             "example": [
               {
                 "parameters": {
@@ -12761,7 +13005,7 @@
         "type": "object"
       },
       "FusionServerTool_OpenRouter": {
-        "description": "OpenRouter built-in server tool: fans out the user prompt to a panel of analysis models, then asks a judge model to summarize their collective output as structured JSON the outer model can synthesize from.",
+        "description": "OpenRouter built-in server tool: fans out the user prompt to a panel of analysis models, then asks an analyst model to summarize their collective output as structured JSON the outer model can synthesize from.",
         "example": {
           "parameters": {
             "analysis_models": [
@@ -12799,7 +13043,7 @@
             "type": "string"
           },
           "url": {
-            "description": "URL of the web page a panel or the judge retrieved during the run.",
+            "description": "URL of the web page a panel or the analyst retrieved during the run.",
             "type": "string"
           }
         },
@@ -13024,10 +13268,11 @@
                 "type": "string"
               },
               "data_region": {
-                "description": "The data region this generation was routed through. 'europe' for EU-routed requests, 'global' otherwise.",
+                "description": "The data region this generation was routed through: 'global', 'europe', or 'us'.",
                 "enum": [
                   "global",
-                  "europe"
+                  "europe",
+                  "us"
                 ],
                 "example": "global",
                 "type": "string",
@@ -13567,6 +13812,17 @@
         ],
         "type": "object"
       },
+      "GetScimGroupMappingResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ScimGroupMapping"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "GetWorkspaceResponse": {
         "example": {
           "data": {
@@ -13578,6 +13834,7 @@
             "default_text_model": "openai/gpt-4o",
             "description": "Production environment workspace",
             "id": "550e8400-e29b-41d4-a716-446655440000",
+            "include_byok_in_budgets": false,
             "io_logging_api_key_ids": null,
             "io_logging_sampling_rate": 1,
             "is_data_discount_logging_enabled": true,
@@ -13681,6 +13938,9 @@
           "content_filters": null,
           "created_at": "2025-08-24T10:30:00Z",
           "description": "Guardrail for production environment",
+          "enable_free_model_publication": false,
+          "enable_free_model_training": true,
+          "enable_paid_model_training": true,
           "enforce_zdr": null,
           "enforce_zdr_anthropic": true,
           "enforce_zdr_google": false,
@@ -13772,6 +14032,30 @@
             "example": "Guardrail for production environment",
             "type": [
               "string",
+              "null"
+            ]
+          },
+          "enable_free_model_publication": {
+            "description": "Whether this guardrail allows free endpoints that publish prompts.",
+            "example": false,
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "enable_free_model_training": {
+            "description": "Whether this guardrail allows free endpoints that train on request data.",
+            "example": true,
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "enable_paid_model_training": {
+            "description": "Whether this guardrail allows paid endpoints that train on request data.",
+            "example": true,
+            "type": [
+              "boolean",
               "null"
             ]
           },
@@ -15687,6 +15971,13 @@
                               "type": "null"
                             }
                           ]
+                        },
+                        "type": {
+                          "default": "message",
+                          "enum": [
+                            "message"
+                          ],
+                          "type": "string"
                         }
                       },
                       "type": "object"
@@ -16587,6 +16878,42 @@
         ],
         "type": "object"
       },
+      "ListScimGroupMappingsResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ScimGroupMapping"
+            },
+            "type": "array"
+          },
+          "total_count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "data",
+          "total_count"
+        ],
+        "type": "object"
+      },
+      "ListScimGroupsResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ScimGroup"
+            },
+            "type": "array"
+          },
+          "total_count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "data",
+          "total_count"
+        ],
+        "type": "object"
+      },
       "ListWorkspaceBudgetsResponse": {
         "example": {
           "data": [
@@ -16610,14 +16937,13 @@
             "type": "array"
           },
           "include_byok_in_budgets": {
-            "description": "Whether BYOK spend is included in the workspace budgets",
+            "description": "Whether BYOK (bring-your-own-key) spend is included when enforcing the workspace's budgets. This is a workspace-wide setting that applies to all budget intervals (daily, weekly, monthly, and lifetime).",
             "example": false,
             "type": "boolean"
           }
         },
         "required": [
-          "data",
-          "include_byok_in_budgets"
+          "data"
         ],
         "type": "object"
       },
@@ -16666,6 +16992,7 @@
               "default_text_model": "openai/gpt-4o",
               "description": "Production environment workspace",
               "id": "550e8400-e29b-41d4-a716-446655440000",
+              "include_byok_in_budgets": false,
               "io_logging_api_key_ids": null,
               "io_logging_sampling_rate": 1,
               "is_data_discount_logging_enabled": true,
@@ -19280,6 +19607,7 @@
                   "Switchpoint",
                   "Tencent",
                   "Tenstorrent",
+                  "Thinking Machines",
                   "Together",
                   "Upstage",
                   "Venice",
@@ -19713,6 +20041,9 @@
           }
         },
         "properties": {
+          "alias_target": {
+            "$ref": "#/components/schemas/ModelAliasTarget"
+          },
           "architecture": {
             "$ref": "#/components/schemas/ModelArchitecture"
           },
@@ -19827,6 +20158,28 @@
           "default_parameters",
           "supported_voices",
           "links"
+        ],
+        "type": "object"
+      },
+      "ModelAliasTarget": {
+        "description": "Concrete model targeted by this tilde-latest alias, when applicable",
+        "example": {
+          "name": "Claude Sonnet 4.5",
+          "slug": "anthropic/claude-sonnet-4.5"
+        },
+        "properties": {
+          "name": {
+            "description": "Human-readable name of the concrete model targeted by this alias",
+            "type": "string"
+          },
+          "slug": {
+            "description": "Routable model ID of the concrete target, matching that model row's id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "name"
         ],
         "type": "object"
       },
@@ -23101,6 +23454,169 @@
         ],
         "type": "object"
       },
+      "OpenAIFile": {
+        "description": "A stored file in OpenAI's Files API shape.",
+        "example": {
+          "_shape": "openai",
+          "bytes": 1024000,
+          "created_at": 1735689600,
+          "filename": "document.pdf",
+          "id": "or_file_011CNha8iCJcU1wXNR6q4V8w",
+          "object": "file",
+          "purpose": "user_data",
+          "status": "processed"
+        },
+        "properties": {
+          "_shape": {
+            "enum": [
+              "openai"
+            ],
+            "type": "string"
+          },
+          "bytes": {
+            "type": "integer"
+          },
+          "created_at": {
+            "type": "integer"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "object": {
+            "enum": [
+              "file"
+            ],
+            "type": "string"
+          },
+          "purpose": {
+            "enum": [
+              "assistants",
+              "batch",
+              "fine-tune",
+              "vision",
+              "user_data",
+              "evals",
+              "assistants_output",
+              "batch_output",
+              "fine-tune-results"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "status": {
+            "enum": [
+              "processed"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "_shape",
+          "id",
+          "object",
+          "bytes",
+          "created_at",
+          "filename",
+          "purpose",
+          "status"
+        ],
+        "type": "object"
+      },
+      "OpenAIFileDeleted": {
+        "description": "Deletion result in OpenAI's shape.",
+        "example": {
+          "_shape": "openai",
+          "deleted": true,
+          "id": "or_file_011CNha8iCJcU1wXNR6q4V8w",
+          "object": "file"
+        },
+        "properties": {
+          "_shape": {
+            "enum": [
+              "openai"
+            ],
+            "type": "string"
+          },
+          "deleted": {
+            "const": true,
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "object": {
+            "enum": [
+              "file"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "_shape",
+          "id",
+          "object",
+          "deleted"
+        ],
+        "type": "object"
+      },
+      "OpenAIFileList": {
+        "description": "A page of files in OpenAI's shape.",
+        "example": {
+          "_shape": "openai",
+          "data": [],
+          "first_id": null,
+          "has_more": false,
+          "last_id": null,
+          "object": "list"
+        },
+        "properties": {
+          "_shape": {
+            "enum": [
+              "openai"
+            ],
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/OpenAIFile"
+            },
+            "type": "array"
+          },
+          "first_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "last_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "object": {
+            "enum": [
+              "list"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "_shape",
+          "object",
+          "data",
+          "has_more",
+          "first_id",
+          "last_id"
+        ],
+        "type": "object"
+      },
       "OpenAIResponseCustomToolCall": {
         "example": {
           "call_id": "call-abc123",
@@ -24078,6 +24594,149 @@
         },
         "type": "object"
       },
+      "OpenRouterFile": {
+        "description": "A stored file in the OpenRouter superset shape: Anthropic-shaped, plus OpenRouter-only fields.",
+        "example": {
+          "_shape": "openrouter",
+          "created_at": "2025-01-01T00:00:00Z",
+          "downloadable": false,
+          "filename": "document.pdf",
+          "id": "or_file_011CNha8iCJcU1wXNR6q4V8w",
+          "mime_type": "application/pdf",
+          "size_bytes": 1024000,
+          "type": "file"
+        },
+        "properties": {
+          "_shape": {
+            "enum": [
+              "openrouter"
+            ],
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "downloadable": {
+            "type": "boolean"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "mime_type": {
+            "type": "string"
+          },
+          "size_bytes": {
+            "type": "integer"
+          },
+          "type": {
+            "enum": [
+              "file"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "_shape",
+          "id",
+          "type",
+          "filename",
+          "mime_type",
+          "size_bytes",
+          "created_at",
+          "downloadable"
+        ],
+        "type": "object"
+      },
+      "OpenRouterFileDeleted": {
+        "description": "Deletion result in the OpenRouter shape.",
+        "example": {
+          "_shape": "openrouter",
+          "id": "or_file_011CNha8iCJcU1wXNR6q4V8w",
+          "type": "file_deleted"
+        },
+        "properties": {
+          "_shape": {
+            "enum": [
+              "openrouter"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "file_deleted"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "_shape",
+          "id",
+          "type"
+        ],
+        "type": "object"
+      },
+      "OpenRouterFileList": {
+        "description": "A page of files in the OpenRouter shape.",
+        "example": {
+          "_shape": "openrouter",
+          "cursor": null,
+          "data": [],
+          "first_id": null,
+          "has_more": false,
+          "last_id": null
+        },
+        "properties": {
+          "_shape": {
+            "enum": [
+              "openrouter"
+            ],
+            "type": "string"
+          },
+          "cursor": {
+            "description": "Opaque cursor for the next page; null when there are no more results.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/OpenRouterFile"
+            },
+            "type": "array"
+          },
+          "first_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "last_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "_shape",
+          "data",
+          "has_more",
+          "first_id",
+          "last_id",
+          "cursor"
+        ],
+        "type": "object"
+      },
       "OpenRouterMetadata": {
         "example": {
           "attempt": 1,
@@ -24767,7 +25426,7 @@
             "type": "array"
           },
           "failure_reason": {
-            "description": "Typed failure reason when the fusion run failed. Possible values include: all_panels_failed, insufficient_credits, rate_limited, judge_not_valid_json, judge_schema_mismatch, judge_upstream_error, judge_empty_completion.",
+            "description": "Typed failure reason when the fusion run failed. Possible values include: all_panels_failed, insufficient_credits, rate_limited, judge_not_valid_json, judge_schema_mismatch, judge_upstream_error, judge_empty_completion. The four analysis-stage codes keep their pre-rename `judge_` spelling so existing consumers keep matching.",
             "type": "string"
           },
           "id": {
@@ -24792,7 +25451,7 @@
             "type": "array"
           },
           "sources": {
-            "description": "Web pages the analysis panels and judge retrieved via web search during this fusion run, deduplicated by URL across the whole run. Present when at least one model cited a source.",
+            "description": "Web pages the analysis panels and analyst retrieved via web search during this fusion run, deduplicated by URL across the whole run. Present when at least one model cited a source.",
             "items": {
               "$ref": "#/components/schemas/FusionSource"
             },
@@ -27419,6 +28078,7 @@
           "Switchpoint",
           "Tencent",
           "Tenstorrent",
+          "Thinking Machines",
           "Together",
           "Upstage",
           "Venice",
@@ -27920,6 +28580,10 @@
             "additionalProperties": {},
             "type": "object"
           },
+          "thinkingmachines": {
+            "additionalProperties": {},
+            "type": "object"
+          },
           "together": {
             "additionalProperties": {},
             "type": "object"
@@ -28364,6 +29028,7 @@
               "Switchpoint",
               "Tencent",
               "Tenstorrent",
+              "Thinking Machines",
               "Together",
               "Upstage",
               "Venice",
@@ -28777,8 +29442,11 @@
           "int4",
           "int8",
           "fp4",
+          "mxfp4",
+          "nvfp4",
           "fp6",
           "fp8",
+          "mxfp8",
           "fp16",
           "bf16",
           "fp32",
@@ -29234,6 +29902,7 @@
           "unknown",
           "openai-responses-v1",
           "azure-openai-responses-v1",
+          "bedrock-openai-responses-v1",
           "xai-responses-v1",
           "meta-responses-v1",
           "anthropic-claude-v1",
@@ -29710,7 +30379,8 @@
               "empty_image_file",
               "failed_to_download_image",
               "image_file_not_found",
-              "bio_policy"
+              "bio_policy",
+              "data_residency_mismatch"
             ],
             "type": "string",
             "x-speakeasy-unknown-values": "allow"
@@ -29935,9 +30605,11 @@
           },
           "service_tier": {
             "default": "auto",
+            "description": "The service tier to use for processing this request. `fast` is accepted as an alias for `priority`.",
             "enum": [
               "auto",
               "default",
+              "fast",
               "flex",
               "priority",
               "scale",
@@ -30540,6 +31212,101 @@
         "example": 900,
         "type": "integer"
       },
+      "ScimGroup": {
+        "example": {
+          "created_at": "2025-08-24T10:30:00.000Z",
+          "display_name": "Engineering",
+          "external_id": "group-external-id",
+          "id": "550e8400-e29b-41d4-a716-446655440000",
+          "organization_id": "org_123456",
+          "updated_at": "2025-08-24T10:30:00.000Z"
+        },
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "external_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "external_id",
+          "display_name",
+          "created_at",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "ScimGroupMapping": {
+        "example": {
+          "created_at": "2025-08-24T10:30:00.000Z",
+          "id": "770e8400-e29b-41d4-a716-446655440000",
+          "organization_id": "org_123456",
+          "role": "member",
+          "scim_group_id": "550e8400-e29b-41d4-a716-446655440000",
+          "updated_at": "2025-08-24T10:30:00.000Z",
+          "workspace_id": "660e8400-e29b-41d4-a716-446655440000"
+        },
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "admin",
+              "member"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "scim_group_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "scim_group_id",
+          "workspace_id",
+          "role",
+          "created_at",
+          "updated_at"
+        ],
+        "type": "object"
+      },
       "SearchContextSizeEnum": {
         "description": "Size of the search context for web search tools",
         "enum": [
@@ -31021,13 +31788,13 @@
           "voice": {
             "description": "Voice identifier (provider-specific).",
             "example": "en_paul_neutral",
+            "minLength": 1,
             "type": "string"
           }
         },
         "required": [
           "model",
-          "input",
-          "voice"
+          "input"
         ],
         "type": "object"
       },
@@ -32818,6 +33585,7 @@
             "enum": [
               "artificial-analysis",
               "design-arena",
+              "openrouter",
               null
             ],
             "example": "artificial-analysis",
@@ -32861,6 +33629,94 @@
         ],
         "type": "object"
       },
+      "UnifiedBenchmarksORItem": {
+        "example": {
+          "accuracy": 0.72,
+          "accuracy_stddev": 0.03,
+          "avg_cost_per_task": 0.002,
+          "benchmark_type": "gpqa_diamond",
+          "display_name": "GPT-4o",
+          "last_run_timestamp": "2026-06-03T12:00:00Z",
+          "model_permaslug": "openai/gpt-4o",
+          "source": "openrouter",
+          "total_tasks": 300
+        },
+        "properties": {
+          "accuracy": {
+            "description": "Aggregate accuracy score from 0 to 1. Higher is better.",
+            "example": 0.72,
+            "format": "double",
+            "type": "number"
+          },
+          "accuracy_stddev": {
+            "description": "Standard deviation of run accuracy, or null for a single run.",
+            "example": 0.03,
+            "format": "double",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "avg_cost_per_task": {
+            "description": "Average cost per task in USD, or null if unavailable.",
+            "example": 0.002,
+            "format": "double",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "benchmark_type": {
+            "description": "OpenRouter benchmark evaluation type.",
+            "enum": [
+              "gpqa_diamond",
+              "tau_bench_verified_airline"
+            ],
+            "example": "gpqa_diamond",
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "display_name": {
+            "description": "Human-readable model name.",
+            "example": "GPT-4o",
+            "type": "string"
+          },
+          "last_run_timestamp": {
+            "description": "Timestamp of the most recent public benchmark run.",
+            "example": "2026-06-03T12:00:00Z",
+            "type": "string"
+          },
+          "model_permaslug": {
+            "description": "Stable OpenRouter model identifier.",
+            "example": "openai/gpt-4o",
+            "type": "string"
+          },
+          "source": {
+            "description": "Benchmark source discriminator.",
+            "enum": [
+              "openrouter"
+            ],
+            "type": "string"
+          },
+          "total_tasks": {
+            "description": "Total benchmark tasks across runs.",
+            "example": 300,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "source",
+          "model_permaslug",
+          "display_name",
+          "benchmark_type",
+          "accuracy",
+          "accuracy_stddev",
+          "avg_cost_per_task",
+          "total_tasks",
+          "last_run_timestamp"
+        ],
+        "type": "object"
+      },
       "UnifiedBenchmarksResponse": {
         "example": {
           "data": [
@@ -32875,6 +33731,17 @@
                 "prompt": "0.0000025"
               },
               "source": "artificial-analysis"
+            },
+            {
+              "accuracy": 0.72,
+              "accuracy_stddev": 0.03,
+              "avg_cost_per_task": 0.002,
+              "benchmark_type": "gpqa_diamond",
+              "display_name": "GPT-4o",
+              "last_run_timestamp": "2026-06-03T12:00:00Z",
+              "model_permaslug": "openai/gpt-4o",
+              "source": "openrouter",
+              "total_tasks": 300
             }
           ],
           "meta": {
@@ -32893,7 +33760,8 @@
               "discriminator": {
                 "mapping": {
                   "artificial-analysis": "#/components/schemas/UnifiedBenchmarksAAItem",
-                  "design-arena": "#/components/schemas/UnifiedBenchmarksDAItem"
+                  "design-arena": "#/components/schemas/UnifiedBenchmarksDAItem",
+                  "openrouter": "#/components/schemas/UnifiedBenchmarksORItem"
                 },
                 "propertyName": "source"
               },
@@ -32903,6 +33771,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/UnifiedBenchmarksDAItem"
+                },
+                {
+                  "$ref": "#/components/schemas/UnifiedBenchmarksORItem"
                 }
               ]
             },
@@ -33139,6 +34010,30 @@
             "maxLength": 1000,
             "type": [
               "string",
+              "null"
+            ]
+          },
+          "enable_free_model_publication": {
+            "description": "Whether this guardrail allows free endpoints that publish prompts.",
+            "example": false,
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "enable_free_model_training": {
+            "description": "Whether this guardrail allows free endpoints that train on request data.",
+            "example": true,
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "enable_paid_model_training": {
+            "description": "Whether this guardrail allows paid endpoints that train on request data.",
+            "example": true,
+            "type": [
+              "boolean",
               "null"
             ]
           },
@@ -33397,6 +34292,33 @@
         ],
         "type": "object"
       },
+      "UpdateScimGroupMappingRequest": {
+        "properties": {
+          "role": {
+            "enum": [
+              "admin",
+              "member"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          }
+        },
+        "required": [
+          "role"
+        ],
+        "type": "object"
+      },
+      "UpdateScimGroupMappingResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ScimGroupMapping"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "UpdateWorkspaceRequest": {
         "example": {
           "name": "Updated Workspace",
@@ -33497,6 +34419,7 @@
             "default_text_model": "openai/gpt-4o",
             "description": "Production environment workspace",
             "id": "550e8400-e29b-41d4-a716-446655440000",
+            "include_byok_in_budgets": false,
             "io_logging_api_key_ids": null,
             "io_logging_sampling_rate": 1,
             "is_data_discount_logging_enabled": true,
@@ -33531,7 +34454,7 @@
         },
         "properties": {
           "include_byok_in_budgets": {
-            "description": "Whether to include BYOK spend in the workspace budget",
+            "description": "Whether to include BYOK (bring-your-own-key) spend when enforcing the workspace's budgets. This is a workspace-wide setting: it applies to every budget interval (daily, weekly, monthly, and lifetime), not just the interval being upserted in this request. Omit to leave the current setting unchanged.",
             "example": true,
             "type": "boolean"
           },
@@ -33571,14 +34494,13 @@
             ]
           },
           "include_byok_in_budgets": {
-            "description": "Whether BYOK spend is included in the workspace budgets",
+            "description": "Whether BYOK (bring-your-own-key) spend is included when enforcing the workspace's budgets. This is a workspace-wide setting that applies to all budget intervals (daily, weekly, monthly, and lifetime).",
             "example": true,
             "type": "boolean"
           }
         },
         "required": [
-          "data",
-          "include_byok_in_budgets"
+          "data"
         ],
         "type": "object"
       },
@@ -33750,6 +34672,7 @@
             "enum": [
               "480p",
               "720p",
+              "768p",
               "1080p",
               "1K",
               "2K",
@@ -33993,6 +34916,7 @@
               "enum": [
                 "480p",
                 "720p",
+                "768p",
                 "1080p",
                 "1K",
                 "2K",
@@ -34022,8 +34946,14 @@
                 "720x1080",
                 "720x1280",
                 "720x1680",
+                "768x768",
+                "768x1024",
+                "768x1152",
+                "768x1366",
+                "768x1792",
                 "854x480",
                 "960x720",
+                "1024x768",
                 "1080x720",
                 "1080x1080",
                 "1080x1440",
@@ -34031,19 +34961,31 @@
                 "1080x1920",
                 "1080x2520",
                 "1120x480",
+                "1152x768",
                 "1280x720",
+                "1366x768",
                 "1440x1080",
+                "1440x1440",
+                "1440x1920",
+                "1440x2160",
+                "1440x2560",
+                "1440x3360",
                 "1620x1080",
                 "1680x720",
+                "1792x768",
                 "1920x1080",
+                "1920x1440",
+                "2160x1440",
                 "2160x2160",
                 "2160x2880",
                 "2160x3240",
                 "2160x3840",
                 "2160x5040",
                 "2520x1080",
+                "2560x1440",
                 "2880x2160",
                 "3240x2160",
+                "3360x1440",
                 "3840x2160",
                 "5040x2160"
               ],
@@ -34304,7 +35246,7 @@
             "$ref": "#/components/schemas/WebSearchEngineEnum"
           },
           "excluded_domains": {
-            "description": "Exclude search results from these domains. Supported by Exa, Firecrawl, Parallel, Perplexity, Anthropic, and xAI. Not supported with OpenAI (silently ignored). Cannot be used with allowed_domains.",
+            "description": "Exclude search results from these domains. Supported by Exa, Firecrawl, Parallel, Perplexity, Anthropic, OpenAI, and xAI. Cannot be used with allowed_domains.",
             "items": {
               "type": "string"
             },
@@ -34344,12 +35286,24 @@
           "allowed_domains": [
             "example.com"
           ],
+          "blocked_domains": [
+            "spam.com"
+          ],
           "excluded_domains": [
             "spam.com"
           ]
         },
         "properties": {
           "allowed_domains": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "blocked_domains": {
             "items": {
               "type": "string"
             },
@@ -34544,7 +35498,7 @@
             "$ref": "#/components/schemas/WebSearchEngineEnum"
           },
           "excluded_domains": {
-            "description": "Exclude search results from these domains. Supported by Exa, Firecrawl, Parallel, Perplexity, Anthropic, and xAI. Not supported with OpenAI (silently ignored). Cannot be used with allowed_domains.",
+            "description": "Exclude search results from these domains. Supported by Exa, Firecrawl, Parallel, Perplexity, Anthropic, OpenAI, and xAI. Cannot be used with allowed_domains.",
             "items": {
               "type": "string"
             },
@@ -34735,6 +35689,7 @@
           "default_text_model": "openai/gpt-4o",
           "description": "Production environment workspace",
           "id": "550e8400-e29b-41d4-a716-446655440000",
+          "include_byok_in_budgets": false,
           "io_logging_api_key_ids": null,
           "io_logging_sampling_rate": 1,
           "is_data_discount_logging_enabled": true,
@@ -34759,7 +35714,7 @@
             ]
           },
           "default_guardrail_id": {
-            "description": "Deterministic ID of the workspace's implicitly-created default guardrail",
+            "description": "Deterministic ID derived from the workspace ID. The default guardrail is materialized when its configuration is first written.",
             "example": "595d5849-7e86-51fd-a7c0-705c34e4afff",
             "format": "uuid",
             "type": "string"
@@ -34801,6 +35756,11 @@
             "example": "550e8400-e29b-41d4-a716-446655440000",
             "format": "uuid",
             "type": "string"
+          },
+          "include_byok_in_budgets": {
+            "description": "Whether BYOK (bring-your-own-key) spend counts toward this workspace's budgets. Set it via the workspace budget endpoints.",
+            "example": false,
+            "type": "boolean"
           },
           "io_logging_api_key_ids": {
             "description": "Optional array of API key IDs to filter I/O logging. Null means all keys are logged.",
@@ -36792,7 +37752,7 @@
     },
     "/benchmarks": {
       "get": {
-        "description": "Unified benchmark endpoint that aggregates scores from multiple benchmark sources (Artificial Analysis, Design Arena). Filter by source to reproduce the exact shapes from the legacy per-source endpoints, or use task_type to find models suited for specific workloads. Authenticate with any valid OpenRouter API key. Rate-limited to 30 requests/minute per key and 500 requests/day per account.",
+        "description": "Unified benchmark endpoint that aggregates scores from multiple benchmark sources (Artificial Analysis, Design Arena, and OpenRouter's own tau-bench and GPQA evals). Filter by source to reproduce the exact shapes from the legacy per-source endpoints, or use task_type to find models suited for specific workloads. Authenticate with any valid OpenRouter API key. Rate-limited to 30 requests/minute per key and 500 requests/day per account.",
         "operationId": "getBenchmarks",
         "parameters": [
           {
@@ -36804,7 +37764,8 @@
               "description": "Benchmark source to query. Determines the shape of the returned items. When omitted, returns results from all sources.",
               "enum": [
                 "artificial-analysis",
-                "design-arena"
+                "design-arena",
+                "openrouter"
               ],
               "example": "artificial-analysis",
               "type": "string",
@@ -36886,6 +37847,17 @@
                         "prompt": "0.0000025"
                       },
                       "source": "artificial-analysis"
+                    },
+                    {
+                      "accuracy": 0.72,
+                      "accuracy_stddev": 0.03,
+                      "avg_cost_per_task": 0.002,
+                      "benchmark_type": "gpqa_diamond",
+                      "display_name": "GPT-4o",
+                      "last_run_timestamp": "2026-06-03T12:00:00Z",
+                      "model_permaslug": "openai/gpt-4o",
+                      "source": "openrouter",
+                      "total_tasks": 300
                     }
                   ],
                   "meta": {
@@ -37132,6 +38104,7 @@
                 "switchpoint",
                 "tencent",
                 "tenstorrent",
+                "thinkingmachines",
                 "together",
                 "upstage",
                 "venice",
@@ -38973,10 +39946,12 @@
                   "input": {
                     "anyOf": [
                       {
+                        "minLength": 1,
                         "type": "string"
                       },
                       {
                         "items": {
+                          "minLength": 1,
                           "type": "string"
                         },
                         "type": "array"
@@ -39005,6 +39980,7 @@
                                   {
                                     "properties": {
                                       "text": {
+                                        "minLength": 1,
                                         "type": "string"
                                       },
                                       "type": {
@@ -39057,6 +40033,7 @@
                                   }
                                 ]
                               },
+                              "minItems": 1,
                               "type": "array"
                             }
                           },
@@ -39812,7 +40789,7 @@
             "required": false,
             "schema": {
               "description": "Opaque pagination cursor from a previous response.",
-              "example": "eyJjdXJzb3IiOiJmaWxlXzAxMUNOaGE4aUNKY1Uxd1hOUjZxNFY4dyJ9",
+              "example": "eyJjdXJzb3IiOiJvcl9maWxlXzAxMUNOaGE4aUNKY1Uxd1hOUjZxNFY4dyJ9",
               "type": "string"
             }
           },
@@ -39827,6 +40804,65 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "Store or read this file on the named provider using your own API key for it. Omit to use OpenRouter storage.",
+            "example": "openai",
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/FileProvider"
+            }
+          },
+          {
+            "description": "OpenAI-style forward cursor: the id to list after.",
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "description": "OpenAI-style forward cursor: the id to list after.",
+              "example": "or_file_011CNha8iCJcU1wXNR6q4V8w",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Anthropic-style forward cursor: the id to list after.",
+            "in": "query",
+            "name": "after_id",
+            "required": false,
+            "schema": {
+              "description": "Anthropic-style forward cursor: the id to list after.",
+              "example": "or_file_011CNha8iCJcU1wXNR6q4V8w",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Anthropic-style reverse cursor. Not supported by OpenRouter storage.",
+            "in": "query",
+            "name": "before_id",
+            "required": false,
+            "schema": {
+              "description": "Anthropic-style reverse cursor. Not supported by OpenRouter storage.",
+              "example": "or_file_011CNha8iCJcU1wXNR6q4V8w",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Sort direction. Only `asc` is supported by OpenRouter storage.",
+            "in": "query",
+            "name": "order",
+            "required": false,
+            "schema": {
+              "description": "Sort direction. Only `asc` is supported by OpenRouter storage.",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "example": "asc",
+              "type": "string",
+              "x-speakeasy-unknown-values": "allow"
+            }
           }
         ],
         "responses": {
@@ -39840,15 +40876,15 @@
                       "created_at": "2025-01-01T00:00:00Z",
                       "downloadable": false,
                       "filename": "document.pdf",
-                      "id": "file_011CNha8iCJcU1wXNR6q4V8w",
+                      "id": "or_file_011CNha8iCJcU1wXNR6q4V8w",
                       "mime_type": "application/pdf",
                       "size_bytes": 1024000,
                       "type": "file"
                     }
                   ],
-                  "first_id": "file_011CNha8iCJcU1wXNR6q4V8w",
+                  "first_id": "or_file_011CNha8iCJcU1wXNR6q4V8w",
                   "has_more": false,
-                  "last_id": "file_011CNha8iCJcU1wXNR6q4V8w"
+                  "last_id": "or_file_011CNha8iCJcU1wXNR6q4V8w"
                 },
                 "schema": {
                   "$ref": "#/components/schemas/FileListResponse"
@@ -39889,6 +40925,22 @@
             },
             "description": "Unauthorized - Authentication required or invalid credentials"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 403,
+                    "message": "Only management keys can perform this operation"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            },
+            "description": "Forbidden - Authentication successful but insufficient permissions"
+          },
           "429": {
             "content": {
               "application/json": {
@@ -39920,6 +40972,38 @@
               }
             },
             "description": "Internal Server Error - Unexpected server error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 502,
+                    "message": "Provider returned error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadGatewayResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway - Provider/upstream API failure"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 503,
+                    "message": "Service temporarily unavailable"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailableResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable - Service temporarily unavailable"
           }
         },
         "summary": "List files",
@@ -39969,6 +41053,16 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "Store or read this file on the named provider using your own API key for it. Omit to use OpenRouter storage.",
+            "example": "openai",
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/FileProvider"
+            }
           }
         ],
         "requestBody": {
@@ -40001,13 +41095,13 @@
                   "created_at": "2025-01-01T00:00:00Z",
                   "downloadable": false,
                   "filename": "document.pdf",
-                  "id": "file_011CNha8iCJcU1wXNR6q4V8w",
+                  "id": "or_file_011CNha8iCJcU1wXNR6q4V8w",
                   "mime_type": "application/pdf",
                   "size_bytes": 1024000,
                   "type": "file"
                 },
                 "schema": {
-                  "$ref": "#/components/schemas/FileMetadata"
+                  "$ref": "#/components/schemas/FileResponse"
                 }
               }
             },
@@ -40108,6 +41202,38 @@
               }
             },
             "description": "Internal Server Error - Unexpected server error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 502,
+                    "message": "Provider returned error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadGatewayResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway - Provider/upstream API failure"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 503,
+                    "message": "Service temporarily unavailable"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailableResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable - Service temporarily unavailable"
           }
         },
         "summary": "Upload a file",
@@ -40128,7 +41254,7 @@
             "name": "file_id",
             "required": true,
             "schema": {
-              "example": "file_011CNha8iCJcU1wXNR6q4V8w",
+              "example": "or_file_011CNha8iCJcU1wXNR6q4V8w",
               "type": "string"
             }
           },
@@ -40143,6 +41269,16 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "Store or read this file on the named provider using your own API key for it. Omit to use OpenRouter storage.",
+            "example": "openai",
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/FileProvider"
+            }
           }
         ],
         "responses": {
@@ -40150,7 +41286,7 @@
             "content": {
               "application/json": {
                 "example": {
-                  "id": "file_011CNha8iCJcU1wXNR6q4V8w",
+                  "id": "or_file_011CNha8iCJcU1wXNR6q4V8w",
                   "type": "file_deleted"
                 },
                 "schema": {
@@ -40176,6 +41312,22 @@
             },
             "description": "Unauthorized - Authentication required or invalid credentials"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 403,
+                    "message": "Only management keys can perform this operation"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            },
+            "description": "Forbidden - Authentication successful but insufficient permissions"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -40223,6 +41375,38 @@
               }
             },
             "description": "Internal Server Error - Unexpected server error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 502,
+                    "message": "Provider returned error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadGatewayResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway - Provider/upstream API failure"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 503,
+                    "message": "Service temporarily unavailable"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailableResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable - Service temporarily unavailable"
           }
         },
         "summary": "Delete a file",
@@ -40241,7 +41425,7 @@
             "name": "file_id",
             "required": true,
             "schema": {
-              "example": "file_011CNha8iCJcU1wXNR6q4V8w",
+              "example": "or_file_011CNha8iCJcU1wXNR6q4V8w",
               "type": "string"
             }
           },
@@ -40256,6 +41440,16 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "Store or read this file on the named provider using your own API key for it. Omit to use OpenRouter storage.",
+            "example": "openai",
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/FileProvider"
+            }
           }
         ],
         "responses": {
@@ -40266,13 +41460,13 @@
                   "created_at": "2025-01-01T00:00:00Z",
                   "downloadable": false,
                   "filename": "document.pdf",
-                  "id": "file_011CNha8iCJcU1wXNR6q4V8w",
+                  "id": "or_file_011CNha8iCJcU1wXNR6q4V8w",
                   "mime_type": "application/pdf",
                   "size_bytes": 1024000,
                   "type": "file"
                 },
                 "schema": {
-                  "$ref": "#/components/schemas/FileMetadata"
+                  "$ref": "#/components/schemas/FileResponse"
                 }
               }
             },
@@ -40294,6 +41488,22 @@
             },
             "description": "Unauthorized - Authentication required or invalid credentials"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 403,
+                    "message": "Only management keys can perform this operation"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            },
+            "description": "Forbidden - Authentication successful but insufficient permissions"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -40341,6 +41551,38 @@
               }
             },
             "description": "Internal Server Error - Unexpected server error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 502,
+                    "message": "Provider returned error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadGatewayResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway - Provider/upstream API failure"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 503,
+                    "message": "Service temporarily unavailable"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailableResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable - Service temporarily unavailable"
           }
         },
         "summary": "Get file metadata",
@@ -40372,7 +41614,7 @@
             "name": "file_id",
             "required": true,
             "schema": {
-              "example": "file_011CNha8iCJcU1wXNR6q4V8w",
+              "example": "or_file_011CNha8iCJcU1wXNR6q4V8w",
               "type": "string"
             }
           },
@@ -40386,6 +41628,16 @@
               "example": "a103d8b6-42f0-4e50-9a3c-bf41e2c3c1a7",
               "format": "uuid",
               "type": "string"
+            }
+          },
+          {
+            "description": "Store or read this file on the named provider using your own API key for it. Omit to use OpenRouter storage.",
+            "example": "openai",
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/FileProvider"
             }
           }
         ],
@@ -40434,6 +41686,22 @@
             },
             "description": "Unauthorized - Authentication required or invalid credentials"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 403,
+                    "message": "Only management keys can perform this operation"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            },
+            "description": "Forbidden - Authentication successful but insufficient permissions"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -40481,6 +41749,38 @@
               }
             },
             "description": "Internal Server Error - Unexpected server error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 502,
+                    "message": "Provider returned error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadGatewayResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway - Provider/upstream API failure"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 503,
+                    "message": "Service temporarily unavailable"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailableResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable - Service temporarily unavailable"
           }
         },
         "summary": "Download file content",
@@ -41783,7 +43083,7 @@
                 }
               }
             },
-            "description": "Not Found - Resource does not exist"
+            "description": "Guardrail not found, or the workspace default guardrail has not been configured yet."
           },
           "500": {
             "content": {
@@ -41820,7 +43120,7 @@
         }
       ],
       "patch": {
-        "description": "Update an existing guardrail. Collection fields use replace semantics: send the full desired set on every update. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "description": "Update an existing guardrail, or materialize an unconfigured workspace default guardrail. Collection fields use replace semantics: send the full desired set on every update. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "updateGuardrail",
         "parameters": [
           {
@@ -41902,7 +43202,7 @@
                 }
               }
             },
-            "description": "Bad Request - Invalid request parameters or malformed input"
+            "description": "Invalid request, or an attempt to change a workspace default guardrail's name (which is derived from its workspace and not editable)."
           },
           "401": {
             "content": {
@@ -50336,12 +51636,705 @@
         },
         "summary": "Create a response",
         "tags": [
-          "responses",
+          "Responses",
           "beta.responses"
         ],
         "x-speakeasy-name-override": "send",
         "x-speakeasy-stream-request-field": "stream"
       }
+    },
+    "/scim/group-mappings": {
+      "get": {
+        "description": "List SCIM group-to-workspace mappings for the organization. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "operationId": "listScimGroupMappings",
+        "parameters": [
+          {
+            "description": "Number of records to skip for pagination",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Number of records to skip for pagination",
+              "example": 0,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            }
+          },
+          {
+            "description": "Maximum number of records to return (max 100)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "description": "Maximum number of records to return (max 100)",
+              "example": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListScimGroupMappingsResponse"
+                }
+              }
+            },
+            "description": "List of SCIM group mappings"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 404,
+                    "message": "Resource not found"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundResponse"
+                }
+              }
+            },
+            "description": "Not Found - Resource does not exist"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "summary": "List SCIM group mappings",
+        "tags": [
+          "SCIM"
+        ],
+        "x-speakeasy-name-override": "listMappings",
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "offset",
+              "type": "offset"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "results": "$.data"
+          },
+          "type": "offsetLimit"
+        }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
+      "post": {
+        "description": "Create a SCIM group-to-workspace role mapping. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "operationId": "createScimGroupMapping",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateScimGroupMappingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateScimGroupMappingResponse"
+                }
+              }
+            },
+            "description": "SCIM group mapping created"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 400,
+                    "message": "Invalid request parameters"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            },
+            "description": "Bad Request - Invalid request parameters or malformed input"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 404,
+                    "message": "Resource not found"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundResponse"
+                }
+              }
+            },
+            "description": "Not Found - Resource does not exist"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 409,
+                    "message": "Resource conflict. Please try again later."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictResponse"
+                }
+              }
+            },
+            "description": "Conflict - Resource conflict or concurrent modification"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "summary": "Create a SCIM group mapping",
+        "tags": [
+          "SCIM"
+        ],
+        "x-speakeasy-name-override": "create"
+      }
+    },
+    "/scim/group-mappings/{id}": {
+      "delete": {
+        "description": "Delete a SCIM group-to-workspace mapping. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "operationId": "deleteScimGroupMapping",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required. Whether to keep workspace members after deleting the mapping. `false` **removes** the members this mapping granted access to; `true` deletes the mapping while leaving membership intact as manually-managed. There is deliberately no default \u2014 omitting it returns `400` so the destructive path cannot be reached by accident. Mirrors the dashboard, whose `DeleteMappingSchema.keepMembers` is likewise required.",
+            "in": "query",
+            "name": "keep_members",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "true",
+                    "false"
+                  ],
+                  "type": "string",
+                  "x-speakeasy-unknown-values": "allow"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "Required. Whether to keep workspace members after deleting the mapping. `false` **removes** the members this mapping granted access to; `true` deletes the mapping while leaving membership intact as manually-managed. There is deliberately no default \u2014 omitting it returns `400` so the destructive path cannot be reached by accident. Mirrors the dashboard, whose `DeleteMappingSchema.keepMembers` is likewise required.",
+              "example": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteScimGroupMappingResponse"
+                }
+              }
+            },
+            "description": "SCIM group mapping deleted"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 400,
+                    "message": "Invalid request parameters"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            },
+            "description": "Bad Request - Invalid request parameters or malformed input"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 404,
+                    "message": "Resource not found"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundResponse"
+                }
+              }
+            },
+            "description": "Not Found - Resource does not exist"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "summary": "Delete a SCIM group mapping",
+        "tags": [
+          "SCIM"
+        ],
+        "x-speakeasy-name-override": "delete"
+      },
+      "get": {
+        "description": "Get a SCIM group-to-workspace mapping. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "operationId": "getScimGroupMapping",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetScimGroupMappingResponse"
+                }
+              }
+            },
+            "description": "SCIM group mapping"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 404,
+                    "message": "Resource not found"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundResponse"
+                }
+              }
+            },
+            "description": "Not Found - Resource does not exist"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "summary": "Get a SCIM group mapping",
+        "tags": [
+          "SCIM"
+        ],
+        "x-speakeasy-name-override": "read"
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
+      "patch": {
+        "description": "Update a SCIM group mapping role. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "operationId": "updateScimGroupMapping",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateScimGroupMappingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateScimGroupMappingResponse"
+                }
+              }
+            },
+            "description": "SCIM group mapping updated"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 400,
+                    "message": "Invalid request parameters"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            },
+            "description": "Bad Request - Invalid request parameters or malformed input"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 404,
+                    "message": "Resource not found"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundResponse"
+                }
+              }
+            },
+            "description": "Not Found - Resource does not exist"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "summary": "Update a SCIM group mapping",
+        "tags": [
+          "SCIM"
+        ],
+        "x-speakeasy-name-override": "update"
+      }
+    },
+    "/scim/groups": {
+      "get": {
+        "description": "List SCIM groups for the organization. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "operationId": "listScimGroups",
+        "parameters": [
+          {
+            "description": "Number of records to skip for pagination",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Number of records to skip for pagination",
+              "example": 0,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            }
+          },
+          {
+            "description": "Maximum number of records to return (max 100)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "description": "Maximum number of records to return (max 100)",
+              "example": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListScimGroupsResponse"
+                }
+              }
+            },
+            "description": "List of SCIM groups"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 404,
+                    "message": "Resource not found"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundResponse"
+                }
+              }
+            },
+            "description": "Not Found - Resource does not exist"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "summary": "List SCIM groups",
+        "tags": [
+          "SCIM"
+        ],
+        "x-speakeasy-name-override": "listGroups",
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "offset",
+              "type": "offset"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "results": "$.data"
+          },
+          "type": "offsetLimit"
+        }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
     },
     "/videos": {
       "parameters": [
@@ -50892,6 +52885,7 @@
                       "default_text_model": "openai/gpt-4o",
                       "description": "Production environment workspace",
                       "id": "550e8400-e29b-41d4-a716-446655440000",
+                      "include_byok_in_budgets": false,
                       "io_logging_api_key_ids": null,
                       "io_logging_sampling_rate": 1,
                       "is_data_discount_logging_enabled": true,
@@ -51014,6 +53008,7 @@
                     "default_text_model": "openai/gpt-4o",
                     "description": "Production environment workspace",
                     "id": "550e8400-e29b-41d4-a716-446655440000",
+                    "include_byok_in_budgets": false,
                     "io_logging_api_key_ids": null,
                     "io_logging_sampling_rate": 1,
                     "is_data_discount_logging_enabled": true,
@@ -51253,6 +53248,7 @@
                     "default_text_model": "openai/gpt-4o",
                     "description": "Production environment workspace",
                     "id": "550e8400-e29b-41d4-a716-446655440000",
+                    "include_byok_in_budgets": false,
                     "io_logging_api_key_ids": null,
                     "io_logging_sampling_rate": 1,
                     "is_data_discount_logging_enabled": true,
@@ -51381,6 +53377,7 @@
                     "default_text_model": "openai/gpt-4o",
                     "description": "Production environment workspace",
                     "id": "550e8400-e29b-41d4-a716-446655440000",
+                    "include_byok_in_budgets": false,
                     "io_logging_api_key_ids": null,
                     "io_logging_sampling_rate": 1,
                     "is_data_discount_logging_enabled": true,
@@ -51704,7 +53701,7 @@
         }
       ],
       "put": {
-        "description": "Create or update the budget for a given interval. Budget limits must strictly decrease as the interval narrows (lifetime > monthly > weekly > daily). [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "description": "Create or update the budget for a given interval. Budget limits must strictly decrease as the interval narrows (lifetime > monthly > weekly > daily). The optional `include_byok_in_budgets` flag is a workspace-wide setting: when provided it applies to every budget interval for the workspace, not just the interval in this request. Note that a change made here is applied to budget enforcement immediately, but an already-open workspace settings page in the web dashboard may keep showing the previous value until it is reloaded. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "upsertWorkspaceBudget",
         "parameters": [
           {
@@ -52416,6 +54413,14 @@
       "name": "Rerank"
     },
     {
+      "description": "OpenAI-compatible Responses API endpoints",
+      "name": "Responses"
+    },
+    {
+      "description": "SCIM endpoints",
+      "name": "SCIM"
+    },
+    {
       "description": "Speech-to-text endpoints",
       "name": "STT",
       "x-displayName": "Transcriptions"
@@ -52436,10 +54441,6 @@
     {
       "description": "beta.Analytics endpoints",
       "name": "beta.Analytics"
-    },
-    {
-      "description": "responses endpoints",
-      "name": "responses"
     },
     {
       "description": "Deprecated alias of responses. Use responses instead; scheduled for removal (sunset date TBD).",

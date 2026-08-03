@@ -825,6 +825,32 @@ async fn test_get_benchmarks_all_sources_omits_source_query() {
 }
 
 #[tokio::test]
+async fn test_get_benchmarks_deserializes_openrouter_rows() {
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":[{"source":"openrouter","model_permaslug":"openai/gpt-4o","display_name":"GPT-4o","benchmark_type":"gpqa_diamond","accuracy":0.72,"accuracy_stddev":0.03,"avg_cost_per_task":0.002,"total_tasks":300,"last_run_timestamp":"2026-06-03T12:00:00Z"}],"meta":{"as_of":"2026-06-03T12:00:00Z","version":"v1","source":"openrouter","source_url":null,"citation":null,"model_count":1,"task_type":null}}"#,
+    );
+
+    let response =
+        discovery::get_benchmarks(&base_url, "api-key", &UnifiedBenchmarksParams::openrouter())
+            .await
+            .expect("OpenRouter benchmarks should deserialize");
+
+    assert!(matches!(
+        &response.data[0],
+        UnifiedBenchmarkItem::OpenRouter(item)
+            if item.benchmark_type == "gpqa_diamond" && item.total_tasks == 300
+    ));
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("request should be captured");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/benchmarks?source=openrouter HTTP/1.1"
+    );
+    server.join().expect("server should finish");
+}
+
+#[tokio::test]
 async fn test_get_activity_without_date_uses_base_path() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":[]}"#);
 

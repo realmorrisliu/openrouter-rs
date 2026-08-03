@@ -108,6 +108,12 @@ pub struct Guardrail {
     #[serde(default)]
     pub include_byok_in_budgets: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub enable_free_model_publication: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enable_free_model_training: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enable_paid_model_training: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub reset_interval: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub allowed_providers: Option<Vec<String>>,
@@ -160,6 +166,15 @@ pub struct CreateGuardrailRequest {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     include_byok_in_budgets: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    enable_free_model_publication: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    enable_free_model_training: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    enable_paid_model_training: Option<bool>,
     #[builder(setter(into, strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     reset_interval: Option<String>,
@@ -224,6 +239,12 @@ pub struct UpdateGuardrailRequest {
     limit_usd: Option<f64>,
     #[builder(setter(strip_option), default)]
     include_byok_in_budgets: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    enable_free_model_publication: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    enable_free_model_training: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    enable_paid_model_training: Option<bool>,
     #[builder(setter(into, strip_option), default)]
     reset_interval: Option<String>,
     #[builder(setter(custom), default)]
@@ -277,6 +298,15 @@ impl Serialize for UpdateGuardrailRequest {
         }
         if let Some(value) = &self.include_byok_in_budgets {
             map.serialize_entry("include_byok_in_budgets", value)?;
+        }
+        if let Some(value) = &self.enable_free_model_publication {
+            map.serialize_entry("enable_free_model_publication", value)?;
+        }
+        if let Some(value) = &self.enable_free_model_training {
+            map.serialize_entry("enable_free_model_training", value)?;
+        }
+        if let Some(value) = &self.enable_paid_model_training {
+            map.serialize_entry("enable_paid_model_training", value)?;
         }
         if let Some(value) = &self.reset_interval {
             map.serialize_entry("reset_interval", value)?;

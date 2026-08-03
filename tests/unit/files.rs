@@ -6,7 +6,9 @@ use std::{
     time::Duration,
 };
 
-use openrouter_rs::api::files::{self, FileDeleteResponse, FileListResponse, FileMetadata};
+use openrouter_rs::api::files::{
+    self, FileDeleteResponse, FileListResponse, FileMetadata, FileQuery, ListFilesParams,
+};
 
 struct CapturedRequest {
     request_line: String,
@@ -140,6 +142,64 @@ fn test_file_payloads_deserialize() {
         serde_json::from_str(r#"{"id":"file_123","type":"file_deleted"}"#)
             .expect("file delete response should deserialize");
     assert_eq!(deleted.id, "file_123");
+}
+
+#[tokio::test]
+async fn test_list_provider_files_sends_provider_pagination_query() {
+    let (base_url, rx, server) = spawn_server(
+        br#"{"_shape":"openai","object":"list","data":[{"_shape":"openai","id":"file_123","object":"file","bytes":12,"created_at":1735689600,"filename":"data.jsonl","purpose":"batch","status":"processed"}],"has_more":false,"first_id":"file_123","last_id":"file_123"}"#,
+        "application/json",
+    );
+    let params = ListFilesParams::builder()
+        .provider("openai")
+        .limit(25)
+        .after("file_100")
+        .order("desc")
+        .build()
+        .expect("provider list params should build");
+
+    let files = files::list_provider_files(&base_url, "api-key", &params)
+        .await
+        .expect("provider file list should succeed");
+    assert_eq!(files.shape, "openai");
+    assert_eq!(files.data[0].bytes, Some(12));
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/files?limit=25&provider=openai&after=file_100&order=desc HTTP/1.1"
+    );
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_get_provider_file_sends_provider_and_workspace_query() {
+    let (base_url, rx, server) = spawn_server(
+        br#"{"_shape":"anthropic","id":"file/123","type":"file","filename":"notes.txt","mime_type":"text/plain","size_bytes":5,"created_at":"2026-08-03T00:00:00Z","downloadable":false}"#,
+        "application/json",
+    );
+    let query = FileQuery::builder()
+        .workspace_id("ws_123")
+        .provider("anthropic")
+        .build()
+        .expect("file query should build");
+
+    let file = files::get_provider_file_metadata(&base_url, "api-key", "file/123", &query)
+        .await
+        .expect("provider file metadata should succeed");
+    assert_eq!(file.shape, "anthropic");
+    assert_eq!(file.size_bytes, Some(5));
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/files/file%2F123?workspace_id=ws_123&provider=anthropic HTTP/1.1"
+    );
+    server.join().expect("server thread should finish");
 }
 
 #[tokio::test]

@@ -1,19 +1,20 @@
 # Official Endpoint Test Matrix
 
-Snapshot date: 2026-07-28
+Snapshot date: 2026-08-03
 Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)  
 Tracked baseline: `specs/openrouter/openapi-baseline.json`  
 Weekly drift workflow: `.github/workflows/openapi-drift.yml`
 
 ## Coverage Summary
 
-- Official OpenAPI endpoints: `89` method+path entries.
-- SDK implementation coverage (`src/api` + domain client): `89 / 89` (`100.0%`).
-- Live integration coverage (`tests/integration`): `24 / 89` endpoints currently exercised.
+- Official OpenAPI endpoints: `95` method+path entries.
+- SDK implementation coverage (`src/api` + domain client): `95 / 95` (`100.0%`).
+- Live integration coverage (`tests/integration`): `24 / 95` endpoints currently exercised.
   - Covered live now: `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `POST /rerank`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`, `GET /organization/members`
 
 Drift review note:
 
+- Upstream added six SCIM group and group-role mapping endpoints plus provider-native Files shapes and pagination. The SDK exposes SCIM through `client.management()`, provider-backed storage through `client.files().*_for_provider(...)`, and types the stable benchmark, audio, model, guardrail, and workspace fields. High-churn provider/plugin/Responses additions continue through existing flexible representations.
 - Upstream added assistant-message model annotations, BYOK-aware guardrail and workspace budget fields, workspace default guardrail IDs, transcription speaker labels, Anthropic compaction and dynamic-tool blocks, and more flexible plugin/server-tool/Responses fields. The SDK types the stable fields and continues to carry provider taxonomy, plugin options, server-tool options, and Responses payload growth through existing flexible representations.
 - Upstream added explicit chat prompt-cache controls, static predicted output, image provider routing preferences, conditional pricing overrides, detailed cache-creation usage, custom guardrail `flag` actions, namespace tools, and image-only video generation. The SDK types the stable fields and reuses its existing flexible server-tool, plugin, provider-taxonomy, and Responses payload handling for the remaining schema additions.
 - Upstream added `POST /generation/feedback`, new model/rankings filters, analytics classifier controls, verbose transcription fields, XAI ZDR policy, routed service tiers, server-tool reasoning details, and image text chunks. The SDK exposes stable fields and keeps flexible provider, Responses, and server-tool payloads where the upstream surface remains high-churn.
@@ -78,11 +79,11 @@ Legend:
 | `POST /embeddings` | `client.create_embedding(...)` / `client.models().create_embedding(...)` | Yes | Contract | Yes | Keep |
 | `GET /embeddings/models` | `client.list_embedding_models()` / `client.models().list_embedding_models()` | Yes | Path | Yes | Keep |
 | `GET /endpoints/zdr` | `client.models().list_zdr_endpoints(...)` | Yes | Contract | Yes | Keep |
-| `GET /files` | `client.files().list(...)` | Yes | Path | No | P1 |
-| `POST /files` | `client.files().upload(...)` | Yes | Path | No | P1 |
-| `GET /files/{file_id}` | `client.files().get_metadata(...)` | Yes | Path | No | P1 |
-| `DELETE /files/{file_id}` | `client.files().delete(...)` | Yes | Path | No | P1 |
-| `GET /files/{file_id}/content` | `client.files().download_content(...)` | Yes | Path | No | P1 |
+| `GET /files` | `client.files().list(...)` / `list_for_provider(...)` | Yes | Path | No | P1 |
+| `POST /files` | `client.files().upload(...)` / `upload_for_provider(...)` | Yes | Path | No | P1 |
+| `GET /files/{file_id}` | `client.files().get_metadata(...)` / `get_metadata_for_provider(...)` | Yes | Path | No | P1 |
+| `DELETE /files/{file_id}` | `client.files().delete(...)` / `delete_for_provider(...)` | Yes | Path | No | P1 |
+| `GET /files/{file_id}/content` | `client.files().download_content(...)` / `download_content_for_provider(...)` | Yes | Path | No | P1 |
 | `GET /generation` | `client.get_generation(...)` / `client.management().get_generation(...)` | Yes | Path | No | P2 |
 | `GET /generation/content` | `client.get_generation_content(...)` / `client.management().get_generation_content(...)` | Yes | Path | No | P2 |
 | `POST /generation/feedback` | `client.management().submit_generation_feedback(...)` | Yes | Path | No | P1 |
@@ -127,6 +128,12 @@ Legend:
 | `GET /presets/{slug}/versions` | `client.management().list_preset_versions(...)` | Yes | Path | No | P2 |
 | `GET /presets/{slug}/versions/{version}` | `client.management().get_preset_version(...)` | Yes | Path | No | P2 |
 | `GET /providers` | `client.list_providers()` / `client.models().list_providers()` | Yes | Contract | Yes | Keep |
+| `GET /scim/groups` | `client.management().list_scim_groups(...)` | Yes | Path | No | P1 |
+| `GET /scim/group-mappings` | `client.management().list_scim_group_mappings(...)` | Yes | Path | No | P1 |
+| `POST /scim/group-mappings` | `client.management().create_scim_group_mapping(...)` | Yes | Path | No | P1 |
+| `GET /scim/group-mappings/{id}` | `client.management().get_scim_group_mapping(...)` | Yes | Path | No | P1 |
+| `PATCH /scim/group-mappings/{id}` | `client.management().update_scim_group_mapping(...)` | Yes | Path | No | P1 |
+| `DELETE /scim/group-mappings/{id}` | `client.management().delete_scim_group_mapping(...)` | Yes | Path | No | P1 |
 | `GET /workspaces` | `client.management().list_workspaces(...)` | Yes | Path | No | P1 |
 | `GET /workspaces/{id}` | `client.management().get_workspace(...)` | Yes | Path | No | P1 |
 | `GET /workspaces/{id}/budgets` | `client.management().list_workspace_budgets(...)` | Yes | Path | No | P1 |
@@ -167,7 +174,7 @@ The endpoints below are intentionally kept as legacy compatibility and are not p
 4. P2: keep `/credits`, `/credits/coinbase`, `/generation`, `/generation/content`, `/datasets*`, `/benchmarks`, `/model/{author}/{slug}`, `/presets*`, and `/auth/keys*` as controlled scenarios (manual or mocked contract-first) due rate limits, cost, or side effects.
 5. P1/P2: add low-cost live or smoke coverage for `/audio/speech`, `/audio/transcriptions`, `/images*`, and `/videos*` once stable fixtures and cost controls are defined.
 6. P1: add management-key live validation for `/workspaces*`, plus targeted workspace-scoped read/write coverage for `/keys` and `/guardrails`.
-7. P1: add management-key live validation for `/byok*` and `/observability/destinations*` once safe test credentials and destination fixtures are defined.
+7. P1: add management-key live validation for `/byok*`, `/observability/destinations*`, and `/scim*` once safe credentials and fixtures are defined.
 
 ## Reproduce Snapshot
 

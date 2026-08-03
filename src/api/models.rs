@@ -46,8 +46,18 @@ pub struct Model {
     pub benchmarks: Option<ModelBenchmarks>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reasoning: Option<ModelReasoning>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub alias_target: Option<ModelAliasTarget>,
     #[serde(flatten)]
     pub extra: HashMap<String, Value>,
+}
+
+/// Concrete model targeted by a model alias.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct ModelAliasTarget {
+    pub slug: String,
+    pub name: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-07-28T01:40:56+00:00",
+  "captured_at": "2026-08-03T08:48:33+00:00",
   "info": {
     "contact": {
       "email": "support@openrouter.ai",
@@ -14,7 +14,7 @@
     "title": "OpenRouter API",
     "version": "1.0.0"
   },
-  "operation_count": 89,
+  "operation_count": 95,
   "operations": [
     {
       "deprecated": false,
@@ -29,7 +29,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "145ca3aeda928ae4",
+      "fingerprint": "6c8d1d471e3dfa9f",
       "id": "DELETE /files/{file_id}",
       "method": "DELETE",
       "operation_id": "deleteFile",
@@ -69,6 +69,17 @@
       "path": "/observability/destinations/{id}",
       "tags": [
         "Observability"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "9a1a8c53ab50a698",
+      "id": "DELETE /scim/group-mappings/{id}",
+      "method": "DELETE",
+      "operation_id": "deleteScimGroupMapping",
+      "path": "/scim/group-mappings/{id}",
+      "tags": [
+        "SCIM"
       ]
     },
     {
@@ -117,7 +128,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "6ccd145752d4520c",
+      "fingerprint": "68780109b64fca77",
       "id": "GET /benchmarks",
       "method": "GET",
       "operation_id": "getBenchmarks",
@@ -128,7 +139,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f9ffe89bf3759343",
+      "fingerprint": "d7f1970d9fd0a44f",
       "id": "GET /byok",
       "method": "GET",
       "operation_id": "listBYOKKeys",
@@ -139,7 +150,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "0c72446afeeb6d46",
+      "fingerprint": "bf86c4ce0329565e",
       "id": "GET /byok/{id}",
       "method": "GET",
       "operation_id": "getBYOKKey",
@@ -194,7 +205,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "14478b1cc8de7965",
+      "fingerprint": "8be9f718ce33e81c",
       "id": "GET /embeddings/models",
       "method": "GET",
       "operation_id": "listEmbeddingsModels",
@@ -205,7 +216,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "7183c24c3524d1d0",
+      "fingerprint": "a2ae33bc1f92deb8",
       "id": "GET /endpoints/zdr",
       "method": "GET",
       "operation_id": "listEndpointsZdr",
@@ -216,7 +227,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "8f0d2cd29aa6c327",
+      "fingerprint": "313da32f9ee6ae01",
       "id": "GET /files",
       "method": "GET",
       "operation_id": "listFiles",
@@ -227,7 +238,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f39182f2d14ea314",
+      "fingerprint": "2d38e3f0677b17b6",
       "id": "GET /files/{file_id}",
       "method": "GET",
       "operation_id": "getFileMetadata",
@@ -238,7 +249,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "cb8227219e5d8f23",
+      "fingerprint": "1e6c40baf7664561",
       "id": "GET /files/{file_id}/content",
       "method": "GET",
       "operation_id": "downloadFileContent",
@@ -249,7 +260,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "185f4431c8460e10",
+      "fingerprint": "379378aed4df90c4",
       "id": "GET /generation",
       "method": "GET",
       "operation_id": "getGeneration",
@@ -271,7 +282,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "0bf80e949ce80c57",
+      "fingerprint": "5bfdbef39fd4beb9",
       "id": "GET /guardrails",
       "method": "GET",
       "operation_id": "listGuardrails",
@@ -304,7 +315,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "c0b10709c316fe7f",
+      "fingerprint": "9c661d0c6383c8c0",
       "id": "GET /guardrails/{id}",
       "method": "GET",
       "operation_id": "getGuardrail",
@@ -392,7 +403,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "1443103dd307b550",
+      "fingerprint": "de8ac5738a46a47c",
       "id": "GET /model/{author}/{slug}",
       "method": "GET",
       "operation_id": "getModel",
@@ -403,7 +414,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "50b6ac4b9f523291",
+      "fingerprint": "87925f4eed9cbf51",
       "id": "GET /models",
       "method": "GET",
       "operation_id": "getModels",
@@ -425,7 +436,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "99d90081047dae88",
+      "fingerprint": "c99c3473508e66eb",
       "id": "GET /models/user",
       "method": "GET",
       "operation_id": "listModelsUser",
@@ -436,7 +447,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f4c01c2b71667e8d",
+      "fingerprint": "74885f24f41dac14",
       "id": "GET /models/{author}/{slug}/endpoints",
       "method": "GET",
       "operation_id": "listEndpoints",
@@ -535,7 +546,40 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b0271167246df379",
+      "fingerprint": "8ffa88ecb20e9013",
+      "id": "GET /scim/group-mappings",
+      "method": "GET",
+      "operation_id": "listScimGroupMappings",
+      "path": "/scim/group-mappings",
+      "tags": [
+        "SCIM"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "ad9585c702a510ea",
+      "id": "GET /scim/group-mappings/{id}",
+      "method": "GET",
+      "operation_id": "getScimGroupMapping",
+      "path": "/scim/group-mappings/{id}",
+      "tags": [
+        "SCIM"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "b849532aa7c047f9",
+      "id": "GET /scim/groups",
+      "method": "GET",
+      "operation_id": "listScimGroups",
+      "path": "/scim/groups",
+      "tags": [
+        "SCIM"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "18fbe6733f237dec",
       "id": "GET /videos/models",
       "method": "GET",
       "operation_id": "listVideosModels",
@@ -568,7 +612,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "2ce1418cb2a5b1a4",
+      "fingerprint": "692fa1df2934dfab",
       "id": "GET /workspaces",
       "method": "GET",
       "operation_id": "listWorkspaces",
@@ -579,7 +623,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "1daf328bed1552fc",
+      "fingerprint": "3746904ee98b0f48",
       "id": "GET /workspaces/{id}",
       "method": "GET",
       "operation_id": "getWorkspace",
@@ -590,7 +634,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "579f46650ccfe84c",
+      "fingerprint": "4ad2a1f59c8b2376",
       "id": "GET /workspaces/{id}/budgets",
       "method": "GET",
       "operation_id": "listWorkspaceBudgets",
@@ -612,7 +656,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "d1f3be28321c474c",
+      "fingerprint": "5a9f37ae61f88144",
       "id": "PATCH /byok/{id}",
       "method": "PATCH",
       "operation_id": "updateBYOKKey",
@@ -623,7 +667,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "1a8b03bcdd3d470e",
+      "fingerprint": "ab7f9c154c2ce23d",
       "id": "PATCH /guardrails/{id}",
       "method": "PATCH",
       "operation_id": "updateGuardrail",
@@ -656,7 +700,18 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "789f097907b8479b",
+      "fingerprint": "3c7aca0b0e7d49cd",
+      "id": "PATCH /scim/group-mappings/{id}",
+      "method": "PATCH",
+      "operation_id": "updateScimGroupMapping",
+      "path": "/scim/group-mappings/{id}",
+      "tags": [
+        "SCIM"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "4e55d3ea758b12da",
       "id": "PATCH /workspaces/{id}",
       "method": "PATCH",
       "operation_id": "updateWorkspace",
@@ -678,7 +733,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "4474f16b77c44bfb",
+      "fingerprint": "dbb2ba5e7e8bbfc9",
       "id": "POST /audio/speech",
       "method": "POST",
       "operation_id": "createAudioSpeech",
@@ -689,7 +744,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "37bc291d4719c045",
+      "fingerprint": "d80f756ac31de0e8",
       "id": "POST /audio/transcriptions",
       "method": "POST",
       "operation_id": "createAudioTranscriptions",
@@ -722,7 +777,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "e7c7ff195a04d7a9",
+      "fingerprint": "d12647d2de5bf349",
       "id": "POST /byok",
       "method": "POST",
       "operation_id": "createBYOKKey",
@@ -733,7 +788,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "574ff5ba68164e62",
+      "fingerprint": "6e742c5d1bf0f314",
       "id": "POST /chat/completions",
       "method": "POST",
       "operation_id": "sendChatCompletionRequest",
@@ -755,7 +810,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "2d1b0304b523a473",
+      "fingerprint": "0623a46d3ed59ab0",
       "id": "POST /embeddings",
       "method": "POST",
       "operation_id": "createEmbeddings",
@@ -766,7 +821,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "cec95bfa29c5fa3a",
+      "fingerprint": "7f6d42a9f7ec4ca2",
       "id": "POST /files",
       "method": "POST",
       "operation_id": "uploadFile",
@@ -788,7 +843,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f3795b1b801f3bcf",
+      "fingerprint": "01f012a21360e37b",
       "id": "POST /guardrails",
       "method": "POST",
       "operation_id": "createGuardrail",
@@ -843,7 +898,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "312e001d1b64cfc4",
+      "fingerprint": "52efb88ad0ccb401",
       "id": "POST /images",
       "method": "POST",
       "operation_id": "createImages",
@@ -865,7 +920,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "bd2a664b308335d4",
+      "fingerprint": "f7a7512bf65a35ad",
       "id": "POST /messages",
       "method": "POST",
       "operation_id": "createMessages",
@@ -887,7 +942,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "5f0e41417312d4e8",
+      "fingerprint": "ea47d16fc52c2045",
       "id": "POST /presets/{slug}/chat/completions",
       "method": "POST",
       "operation_id": "createPresetsChatCompletions",
@@ -898,7 +953,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "eaf8bdacd098ea32",
+      "fingerprint": "5506e45527506fb2",
       "id": "POST /presets/{slug}/messages",
       "method": "POST",
       "operation_id": "createPresetsMessages",
@@ -909,7 +964,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "c053f41120e25f22",
+      "fingerprint": "b402ecf58004f4bf",
       "id": "POST /presets/{slug}/responses",
       "method": "POST",
       "operation_id": "createPresetsResponses",
@@ -920,7 +975,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "dd7fdd75710d43d1",
+      "fingerprint": "dd368eafc36934a3",
       "id": "POST /rerank",
       "method": "POST",
       "operation_id": "createRerank",
@@ -931,19 +986,30 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "6649cc0e5f208525",
+      "fingerprint": "eb4c4e8be5e4f6f8",
       "id": "POST /responses",
       "method": "POST",
       "operation_id": "createResponses",
       "path": "/responses",
       "tags": [
-        "responses",
+        "Responses",
         "beta.responses"
       ]
     },
     {
       "deprecated": false,
-      "fingerprint": "cd6f7076c7ce8cc5",
+      "fingerprint": "14977f046c1f312f",
+      "id": "POST /scim/group-mappings",
+      "method": "POST",
+      "operation_id": "createScimGroupMapping",
+      "path": "/scim/group-mappings",
+      "tags": [
+        "SCIM"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "4665120d90ed9dcc",
       "id": "POST /videos",
       "method": "POST",
       "operation_id": "createVideos",
@@ -954,7 +1020,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "09fa7c795c50f15a",
+      "fingerprint": "4895d197ec875a7d",
       "id": "POST /workspaces",
       "method": "POST",
       "operation_id": "createWorkspace",
@@ -987,7 +1053,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b30971a50e5b4e36",
+      "fingerprint": "85f22e1415d3252a",
       "id": "PUT /workspaces/{id}/budgets/{interval}",
       "method": "PUT",
       "operation_id": "upsertWorkspaceBudget",

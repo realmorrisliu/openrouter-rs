@@ -21,7 +21,7 @@ Type-safe, async Rust SDK for the OpenRouter API.
 
 `openrouter-rs` is a community-maintained Rust SDK for OpenRouter. It exposes a domain-oriented client for chat, responses, messages, rerank, audio speech/transcription, image generation, video generation, models, embeddings, files, presets, analytics, and management APIs, plus a companion CLI in the same repository.
 
-The current repo snapshot implements `89 / 89` official OpenAPI method/path entries, with published live integration coverage tracked in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md).
+The current repo snapshot implements `95 / 95` official OpenAPI method/path entries, with published live integration coverage tracked in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md).
 
 ## Why `openrouter-rs`
 
@@ -32,7 +32,7 @@ The current repo snapshot implements `89 / 89` official OpenAPI method/path entr
 - Typed tools, manual JSON-schema tools, OpenRouter server tools, and multimodal chat content
 - Typed chat usage metadata for token counts, OpenRouter cost, provider cost breakdowns, and BYOK status
 - Opt-in OpenRouter response metadata for chat, Responses API, and Anthropic-compatible Messages requests
-- Discovery, rankings and benchmark datasets, task classifications, rerank, audio speech/transcription, image generation, video generation, files, embeddings, API-key management, preset creation/readback/versioning, analytics, BYOK provider credentials, observability destinations, workspace management, organization members, guardrails, activity, credits, and generation metadata/content coverage
+- Discovery, rankings and benchmark datasets, task classifications, rerank, audio speech/transcription, image generation, video generation, provider-backed files, embeddings, API-key management, preset creation/readback/versioning, analytics, BYOK provider credentials, observability destinations, workspace management, SCIM group mappings, organization members, guardrails, activity, credits, and generation metadata/content coverage
 - A companion CLI for profile resolution, discovery, management, and billing/usage workflows
 
 ## Installation
@@ -252,7 +252,7 @@ For copy-paste shell/CI recipes, see [`docs/operations/cli-automation-workflows.
 
 - Community-maintained third-party SDK; not affiliated with OpenRouter
 - Canonical docs and examples prefer the domain clients over older flat helpers
-- Accepted endpoint coverage is tracked against the current OpenAPI snapshot, and the current baseline is fully implemented at the SDK surface (`89 / 89`)
+- Accepted endpoint coverage is tracked against the current OpenAPI snapshot, and the current baseline is fully implemented at the SDK surface (`95 / 95`)
 - Live integration coverage and gaps are published in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md)
 - Migration guidance for the `0.9.x -> 0.10.0` public-model future-proofing release, the `0.8.x -> 0.9.0` audio speech release, the `0.7.x -> 0.8.0` transport/error-surface release, and the archived `0.5.x -> 0.6.x` naming guide lives in [`MIGRATION.md`](MIGRATION.md)
 - Legacy `POST /completions` support remains available behind the `legacy-completions` feature
@@ -356,6 +356,8 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 ### Unreleased
 
 - Tool-aware chat streaming now preserves provider-supplied tool-call indices without inventing missing values, and `FinishReason::Other` keeps unknown provider finish reasons forward-compatible.
+- Added SCIM group and group-role mapping management plus provider-aware Files API support.
+- Accepted the 2026-08-03 OpenAPI drift review and restored tracked endpoint coverage to `95 / 95`.
 
 ### Version 0.13.0 *(Latest)*
 
