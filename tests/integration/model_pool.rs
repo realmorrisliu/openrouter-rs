@@ -4,11 +4,11 @@ use std::{collections::HashSet, env, fs, path::PathBuf};
 const DEFAULT_MODEL_POOL_FILE: &str = "tests/integration/model_pool.json";
 const LEGACY_MODEL_POOL_FILE: &str = "tests/integration/hot_models.json";
 const DEFAULT_CHAT_MODEL: &str = "x-ai/grok-4.3";
-const DEFAULT_REASONING_MODEL: &str = "deepseek/deepseek-r1";
+const DEFAULT_REASONING_MODEL: &str = "deepseek/deepseek-v4-flash";
 const DEFAULT_STABLE_REGRESSION_MODELS: [&str; 3] = [
     "x-ai/grok-4.3",
     "openai/gpt-4o-mini",
-    "deepseek/deepseek-r1",
+    "deepseek/deepseek-v4-flash",
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

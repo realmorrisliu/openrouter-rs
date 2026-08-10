@@ -323,13 +323,13 @@ if [ -z "$stable_chat" ]; then
   stable_chat="x-ai/grok-4.3"
 fi
 if [ -z "$stable_reasoning" ]; then
-  stable_reasoning="deepseek/deepseek-r1"
+  stable_reasoning="deepseek/deepseek-v4-flash"
 fi
 if [ "${#stable_regression[@]}" -eq 0 ]; then
   stable_regression=(
     "x-ai/grok-4.3"
     "openai/gpt-4o-mini"
-    "deepseek/deepseek-r1"
+    "deepseek/deepseek-v4-flash"
   )
 fi
 
