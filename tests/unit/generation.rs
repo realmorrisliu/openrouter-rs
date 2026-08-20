@@ -235,3 +235,68 @@ fn test_generation_response_accepts_stt_origin() {
     assert_eq!(parsed.data.id, "gen_stt");
     assert_eq!(parsed.data.origin, "stt");
 }
+
+#[test]
+fn test_generation_response_deserializes_workspace_id() {
+    let raw = r#"{
+        "data": {
+            "id": "gen_ws",
+            "total_cost": 0.1,
+            "created_at": "2026-08-10T00:00:00Z",
+            "model": "openai/gpt-4o-mini",
+            "origin": "chat",
+            "usage": 42.0,
+            "is_byok": false,
+            "workspace_id": "ws_123"
+        }
+    }"#;
+
+    let parsed: ApiResponse<generation::GenerationData> =
+        serde_json::from_str(raw).expect("generation response should deserialize");
+    assert_eq!(parsed.data.workspace_id.as_deref(), Some("ws_123"));
+}
+
+#[test]
+fn test_generation_content_deserializes_stored_error() {
+    let raw = r#"{
+        "data": {
+            "input": {"messages": [{"role": "user", "content": "hi"}]},
+            "output": {"completion": null, "reasoning": null},
+            "error": {
+                "status": 504,
+                "message": "Timed out waiting for the provider",
+                "provider_name": "Vertex",
+                "raw": "{\"error\":{\"code\":504}}",
+                "previous_errors": [{
+                    "code": 429,
+                    "message": "Provider returned error",
+                    "provider_name": "Google",
+                    "raw": "{\"error\":{\"code\":429}}"
+                }]
+            }
+        }
+    }"#;
+
+    let parsed: ApiResponse<generation::GenerationContentData> =
+        serde_json::from_str(raw).expect("generation content should deserialize");
+    let error = parsed.data.error.expect("stored error should deserialize");
+    assert_eq!(error.status, Some(504));
+    assert_eq!(error.provider_name.as_deref(), Some("Vertex"));
+    assert_eq!(error.previous_errors.len(), 1);
+    assert_eq!(error.previous_errors[0].code, 429);
+}
+
+#[test]
+fn test_generation_content_deserializes_null_error() {
+    let raw = r#"{
+        "data": {
+            "input": {"prompt": "hi"},
+            "output": {"completion": "hello", "reasoning": null},
+            "error": null
+        }
+    }"#;
+
+    let parsed: ApiResponse<generation::GenerationContentData> =
+        serde_json::from_str(raw).expect("generation content should deserialize");
+    assert!(parsed.data.error.is_none());
+}

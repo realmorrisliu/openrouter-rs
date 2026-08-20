@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     error::OpenRouterError,
+    strip_option_vec_setter,
     transport::{request as transport_request, response as transport_response},
 };
 
@@ -59,11 +60,71 @@ pub struct SpeechRequest {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub speed: Option<f64>,
+    /// Reference content for stateless voice cloning: one `input_audio` part
+    /// carrying the voice sample, optionally accompanied by one `text` part with
+    /// its transcript. Only routed to endpoints that support voice cloning.
+    #[builder(setter(custom), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub input_references: Option<Vec<SpeechInputReference>>,
 }
 
 impl SpeechRequest {
     pub fn builder() -> SpeechRequestBuilder {
         SpeechRequestBuilder::default()
+    }
+}
+
+impl SpeechRequestBuilder {
+    strip_option_vec_setter!(input_references, SpeechInputReference);
+}
+
+/// Base64-encoded reference audio for stateless voice cloning.
+#[non_exhaustive]
+#[derive(Serialize, Deserialize, Debug, Clone, Builder)]
+#[builder(build_fn(error = "OpenRouterError"))]
+pub struct SpeechInputAudio {
+    /// Base64-encoded audio data (a `data:` URL is also accepted).
+    #[builder(setter(into))]
+    pub data: String,
+    /// Audio format of the sample (e.g. `wav`, `mp3`), when known.
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub format: Option<String>,
+}
+
+impl SpeechInputAudio {
+    pub fn builder() -> SpeechInputAudioBuilder {
+        SpeechInputAudioBuilder::default()
+    }
+}
+
+/// Reference content part for stateless voice cloning (`POST /audio/speech`).
+#[non_exhaustive]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(tag = "type")]
+pub enum SpeechInputReference {
+    /// Voice sample audio part.
+    #[serde(rename = "input_audio")]
+    InputAudio { input_audio: SpeechInputAudio },
+    /// Transcript of the voice sample.
+    #[serde(rename = "text")]
+    Text { text: String },
+}
+
+impl SpeechInputReference {
+    /// Build an `input_audio` reference part from base64-encoded audio data.
+    pub fn audio(data: impl Into<String>) -> Self {
+        Self::InputAudio {
+            input_audio: SpeechInputAudio {
+                data: data.into(),
+                format: None,
+            },
+        }
+    }
+
+    /// Build a `text` transcript reference part.
+    pub fn text(text: impl Into<String>) -> Self {
+        Self::Text { text: text.into() }
     }
 }
 

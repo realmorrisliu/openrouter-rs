@@ -95,6 +95,15 @@ pub struct ObservabilityDestination {
     #[serde(rename = "type")]
     pub destination_type: String,
     pub config: Value,
+    /// Whether generation cost is broadcast to this destination.
+    #[serde(default)]
+    pub broadcast_generation_cost: bool,
+    /// Whether generation identity is broadcast to this destination.
+    #[serde(default)]
+    pub broadcast_generation_identity: bool,
+    /// Whether generation request context is broadcast to this destination.
+    #[serde(default)]
+    pub broadcast_generation_request_context: bool,
 }
 
 /// Paginated observability destination list response.
@@ -134,6 +143,15 @@ pub struct CreateObservabilityDestinationRequest {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub filter_rules: Option<ObservabilityFilterRulesConfig>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub broadcast_generation_cost: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub broadcast_generation_identity: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub broadcast_generation_request_context: Option<bool>,
 }
 
 impl CreateObservabilityDestinationRequest {
@@ -171,6 +189,12 @@ pub struct UpdateObservabilityDestinationRequest {
     #[serde(skip)]
     #[builder(setter(custom), default)]
     clear_filter_rules: bool,
+    #[builder(setter(strip_option), default)]
+    pub broadcast_generation_cost: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    pub broadcast_generation_identity: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    pub broadcast_generation_request_context: Option<bool>,
 }
 
 impl Serialize for UpdateObservabilityDestinationRequest {
@@ -206,6 +230,15 @@ impl Serialize for UpdateObservabilityDestinationRequest {
             )?;
         } else if let Some(value) = &self.filter_rules {
             map.serialize_entry("filter_rules", value)?;
+        }
+        if let Some(value) = &self.broadcast_generation_cost {
+            map.serialize_entry("broadcast_generation_cost", value)?;
+        }
+        if let Some(value) = &self.broadcast_generation_identity {
+            map.serialize_entry("broadcast_generation_identity", value)?;
+        }
+        if let Some(value) = &self.broadcast_generation_request_context {
+            map.serialize_entry("broadcast_generation_request_context", value)?;
         }
         map.end()
     }

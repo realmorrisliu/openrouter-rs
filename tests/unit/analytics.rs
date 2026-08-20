@@ -197,6 +197,7 @@ async fn test_query_analytics_path_body_and_auth_header() {
             field: "model".to_string(),
             operator: "eq".to_string(),
             value: AnalyticsFilterValue::String("openai/gpt-5".to_string()),
+            include_unset: None,
         }])
         .granularity("day")
         .time_range(AnalyticsTimeRange {
@@ -224,6 +225,7 @@ async fn test_query_analytics_path_body_and_auth_header() {
                     field: "topic".to_string(),
                     operator: "eq".to_string(),
                     value: AnalyticsFilterValue::String("coding".to_string()),
+                    include_unset: None,
                 }])
                 .build()
                 .expect("classifier filters should build"),

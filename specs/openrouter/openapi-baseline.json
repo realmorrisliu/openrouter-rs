@@ -143,6 +143,11 @@
             "example": 0.015,
             "format": "double",
             "type": "number"
+          },
+          "workspace_id": {
+            "description": "ID of the workspace this activity is attributed to. Only present when `group_by=workspace` is passed; the response is then split per workspace. Activity recorded before workspace resolution existed is attributed to the account default workspace.",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "type": "string"
           }
         },
         "required": [
@@ -381,26 +386,6 @@
         ],
         "type": "object"
       },
-      "AdvisorNestedTool": {
-        "additionalProperties": {},
-        "description": "A tool made available to the advisor sub-agent. Only OpenRouter server tools (e.g. openrouter:web_search) are supported; function tools are rejected because the advisor has no way to execute them. The advisor tool may not list itself.",
-        "example": {
-          "type": "openrouter:web_search"
-        },
-        "properties": {
-          "parameters": {
-            "additionalProperties": {},
-            "type": "object"
-          },
-          "type": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "type"
-        ],
-        "type": "object"
-      },
       "AdvisorReasoning": {
         "description": "Reasoning configuration forwarded to the advisor call. Use this to control reasoning effort and token budget for models that support extended thinking.",
         "example": {
@@ -450,15 +435,8 @@
             "example": 2048,
             "type": "integer"
           },
-          "max_tool_calls": {
-            "description": "Maximum number of tool-calling steps the advisor sub-agent may take during its agentic loop. Capped at 25. Only relevant when the advisor is given tools.",
-            "example": 5,
-            "maximum": 25,
-            "minimum": 1,
-            "type": "integer"
-          },
           "model": {
-            "description": "Slug of the advisor model to consult (any OpenRouter model). When omitted, the executor can choose it via the tool call's `model` argument; if neither is set, the model from the outer API request is used. The advisor tool itself cannot be the advisor model.",
+            "description": "Slug of the advisor model to consult (any OpenRouter model). When omitted, the executor can choose it via the tool call's `model` argument; if neither is set, the model from the outer API request is used.",
             "example": "~anthropic/claude-opus-latest",
             "type": "string"
           },
@@ -483,19 +461,12 @@
             "example": 0.7,
             "format": "double",
             "type": "number"
-          },
-          "tools": {
-            "description": "Tools the advisor sub-agent may use while forming its advice. The advisor runs as an agentic sub-agent over these tools, then returns its text. Only OpenRouter server tools are supported \u2014 function tools are rejected \u2014 and the list must not include the advisor tool itself.",
-            "items": {
-              "$ref": "#/components/schemas/AdvisorNestedTool"
-            },
-            "type": "array"
           }
         },
         "type": "object"
       },
       "AdvisorServerTool_OpenRouter": {
-        "description": "OpenRouter built-in server tool: consults a higher-intelligence advisor model (any OpenRouter model) for guidance mid-generation and returns its response. The advisor may run as a sub-agent with its own tools. Include multiple entries to offer several named advisors; at most one entry may omit `name` to act as the default advisor.",
+        "description": "OpenRouter built-in server tool: consults a higher-intelligence advisor model (any OpenRouter model) for guidance mid-generation and returns its response. Include multiple entries to offer several named advisors; at most one entry may omit `name` to act as the default advisor.",
         "example": {
           "parameters": {
             "model": "~anthropic/claude-opus-latest",
@@ -2340,6 +2311,79 @@
           "type": "message"
         }
       },
+      "AnthropicMessagesErrorResponse": {
+        "description": "Error response from the Anthropic Messages API",
+        "example": {
+          "error": {
+            "error_type": "invalid_request",
+            "message": "Invalid request: messages field is required",
+            "type": "invalid_request_error"
+          },
+          "request_id": null,
+          "type": "error"
+        },
+        "properties": {
+          "error": {
+            "properties": {
+              "error_type": {
+                "$ref": "#/components/schemas/ApiErrorType"
+              },
+              "message": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "invalid_request_error",
+                  "authentication_error",
+                  "permission_error",
+                  "not_found_error",
+                  "rate_limit_error",
+                  "api_error",
+                  "overloaded_error",
+                  "billing_error",
+                  "timeout_error"
+                ],
+                "type": "string",
+                "x-speakeasy-unknown-values": "allow"
+              }
+            },
+            "required": [
+              "type",
+              "message"
+            ],
+            "type": "object"
+          },
+          "metadata": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "openrouter_metadata": {
+            "additionalProperties": {},
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "request_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": {
+            "enum": [
+              "error"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "error",
+          "request_id"
+        ],
+        "type": "object"
+      },
       "AnthropicOutputTokensDetails": {
         "example": {
           "thinking_tokens": 0
@@ -2421,6 +2465,9 @@
             "enum": [
               "cyber",
               "bio",
+              "frontier_llm",
+              "reasoning_extraction",
+              "general_harms",
               null
             ],
             "type": [
@@ -3908,7 +3955,7 @@
             }
           ],
           "meta": {
-            "as_of": "2026-05-12T02:00:00Z",
+            "as_of": "2026-05-12T02:00:00.000Z",
             "end_date": "2026-05-11",
             "start_date": "2026-04-12",
             "version": "v1"
@@ -4291,27 +4338,29 @@
         },
         "properties": {
           "allowed_models": {
-            "description": "List of model patterns to filter which models the auto-beta-router can route between. Supports wildcards (e.g., \"anthropic/*\" matches all Anthropic models). When not specified, uses the default supported models list.",
+            "description": "List of model patterns to filter which models the auto-beta-router can route between. Supports wildcards (e.g., \"anthropic/*\" matches all Anthropic models). Up to 1024 patterns, each at most 1024 characters, with 65536 total characters across all patterns. When not specified, every model ranked for the classified task type is a candidate, falling back to a default model set when rankings are unavailable.",
             "example": [
               "anthropic/*",
               "openai/gpt-4o",
               "google/*"
             ],
             "items": {
+              "maxLength": 1024,
               "type": "string"
             },
+            "maxItems": 1024,
             "type": "array"
           },
           "cost_quality_tradeoff": {
             "deprecated": true,
-            "description": "Deprecated: Use cost_tier instead. Balances routing between cost and quality on a 0-10 scale. The auto-beta-router ranks models for the classified task type by community spend share, then filters candidates by their average cost per generation for that task. Higher values favor cheaper models: 10 keeps only models around the cheapest 10th percentile, while 0 permits models up to the 90th percentile for cost. Defaults to 9. Numeric cost_quality_tradeoff remains supported, retains ceiling behavior, and takes precedence over cost_tier when both are provided.",
+            "description": "Deprecated: Use cost_tier instead. Balances routing between cost and quality on a 0-10 scale. The auto-beta-router ranks models for the classified task type by community spend share, then filters candidates by their average cost per generation for that task. Higher values favor cheaper models: 10 keeps only models around the cheapest 10th percentile, while 0 permits models up to the 90th percentile for cost. Defaults to 9 when no cost setting is provided. It remains supported and retains ceiling behavior, but cost_tier takes precedence when both are provided.",
             "example": 9,
             "maximum": 10,
             "minimum": 0,
             "type": "integer"
           },
           "cost_tier": {
-            "description": "Named cost/quality setting. For auto-beta-router, tiers select cost-percentile bands: low = [0, 20), medium = [20, 40), high = [40, 60), xhigh = [60, 80), and max = [80, 100]. Numeric cost_quality_tradeoff takes precedence and retains ceiling behavior.",
+            "description": "Named cost/quality setting. For auto-beta-router, tiers select cost-percentile bands: low = [0, 20), medium = [20, 40), high = [40, 60), xhigh = [60, 80), and max = [80, 100]. Takes precedence over the deprecated numeric cost_quality_tradeoff when both are provided.",
             "enum": [
               "low",
               "medium",
@@ -4328,14 +4377,16 @@
             "type": "boolean"
           },
           "excluded_models": {
-            "description": "List of model patterns to exclude from auto-beta-router selection. Supports wildcards (e.g., \"meta-llama/*\" excludes all Llama models). Applied after allowed_models, so an excluded pattern always wins over an allowed one.",
+            "description": "List of model patterns to exclude from auto-beta-router selection. Supports wildcards (e.g., \"meta-llama/*\" excludes all Llama models). Up to 1024 patterns, each at most 1024 characters, with 65536 total characters across all patterns. Applied after allowed_models, so an excluded pattern always wins over an allowed one.",
             "example": [
               "openai/gpt-4o",
               "meta-llama/*"
             ],
             "items": {
+              "maxLength": 1024,
               "type": "string"
             },
+            "maxItems": 1024,
             "type": "array"
           },
           "id": {
@@ -4356,7 +4407,7 @@
             "anthropic/*",
             "openai/*"
           ],
-          "cost_tier": "medium",
+          "cost_tier": "low",
           "enabled": true,
           "excluded_models": [
             "openai/gpt-4o"
@@ -4366,27 +4417,29 @@
         },
         "properties": {
           "allowed_models": {
-            "description": "List of model patterns to filter which models the auto-router can route between. Supports wildcards (e.g., \"anthropic/*\" matches all Anthropic models). When not specified, uses the default supported models list.",
+            "description": "List of model patterns to filter which models the auto-router can route between. Supports wildcards (e.g., \"anthropic/*\" matches all Anthropic models). Up to 1024 patterns, each at most 1024 characters, with 65536 total characters across all patterns. When not specified, every model ranked for the classified task type is a candidate, falling back to a default model set when rankings are unavailable.",
             "example": [
               "anthropic/*",
               "openai/gpt-4o",
               "google/*"
             ],
             "items": {
+              "maxLength": 1024,
               "type": "string"
             },
+            "maxItems": 1024,
             "type": "array"
           },
           "cost_quality_tradeoff": {
             "deprecated": true,
-            "description": "Deprecated: Use cost_tier instead. Controls cost vs. quality routing tradeoff (0\u201310). 0 = pure quality (best model regardless of cost), 10 = maximize for cost (cheapest model wins). Intermediate values blend quality and cost signals continuously. Defaults to 7. Numeric cost_quality_tradeoff remains supported and takes precedence over cost_tier when both are provided.",
-            "example": 7,
+            "description": "Deprecated: Use cost_tier instead. Balances routing between cost and quality on a 0-10 scale. The auto-router ranks models for the classified task type by community spend share, then filters candidates by their average cost per generation for that task. Higher values favor cheaper models: 10 keeps only models around the cheapest 10th percentile, while 0 permits models up to the 90th percentile for cost. Defaults to 9 when no cost setting is provided. It remains supported and retains ceiling behavior, but cost_tier takes precedence when both are provided.",
+            "example": 9,
             "maximum": 10,
             "minimum": 0,
             "type": "integer"
           },
           "cost_tier": {
-            "description": "Shorthand for cost_quality_tradeoff. Higher tiers spend more on better models: low = 9, medium = 7, high = 5, xhigh = 3, and max = 1. Numeric cost_quality_tradeoff takes precedence when both are provided.",
+            "description": "Named cost/quality setting. Tiers select cost-percentile bands: low = [0, 20), medium = [20, 40), high = [40, 60), xhigh = [60, 80), and max = [80, 100]. Takes precedence over the deprecated numeric cost_quality_tradeoff when both are provided.",
             "enum": [
               "low",
               "medium",
@@ -4394,7 +4447,7 @@
               "xhigh",
               "max"
             ],
-            "example": "medium",
+            "example": "low",
             "type": "string",
             "x-speakeasy-unknown-values": "allow"
           },
@@ -4403,14 +4456,16 @@
             "type": "boolean"
           },
           "excluded_models": {
-            "description": "List of model patterns to exclude from auto-router selection. Supports wildcards (e.g., \"meta-llama/*\" excludes all Llama models). Applied after allowed_models, so an excluded pattern always wins over an allowed one.",
+            "description": "List of model patterns to exclude from auto-router selection. Supports wildcards (e.g., \"meta-llama/*\" excludes all Llama models). Up to 1024 patterns, each at most 1024 characters, with 65536 total characters across all patterns. Applied after allowed_models, so an excluded pattern always wins over an allowed one.",
             "example": [
               "openai/gpt-4o",
               "meta-llama/*"
             ],
             "items": {
+              "maxLength": 1024,
               "type": "string"
             },
+            "maxItems": 1024,
             "type": "array"
           },
           "id": {
@@ -4527,10 +4582,13 @@
             "type": "integer"
           },
           "workspace_id": {
-            "description": "ID of the workspace this credential belongs to.",
+            "description": "The workspace this credential is scoped to, or `null` when it is global \u2014 usable across every workspace in the account. A `null` value does not mean the default workspace.",
             "example": "550e8400-e29b-41d4-a716-446655440000",
             "format": "uuid",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -4576,6 +4634,7 @@
           "coreweave",
           "crusoe",
           "darkbloom",
+          "databricks",
           "decart",
           "deepgram",
           "deepinfra",
@@ -5864,6 +5923,7 @@
               "discriminator": {
                 "mapping": {
                   "apply_patch_call": "#/components/schemas/OutputItemApplyPatchCall",
+                  "code_interpreter_call": "#/components/schemas/OutputItemCodeInterpreterCall",
                   "custom_tool_call": "#/components/schemas/OutputItemCustomToolCall",
                   "file_search_call": "#/components/schemas/OutputItemFileSearchCall",
                   "function_call": "#/components/schemas/OutputItemFunctionCall",
@@ -5898,6 +5958,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/OutputItemApplyPatchCall"
+                },
+                {
+                  "$ref": "#/components/schemas/OutputItemCodeInterpreterCall"
                 }
               ]
             },
@@ -8912,6 +8975,9 @@
             "example": 3,
             "type": "integer"
           },
+          "mode": {
+            "$ref": "#/components/schemas/WebSearchMode"
+          },
           "parameters": {
             "$ref": "#/components/schemas/WebSearchConfig"
           },
@@ -8937,7 +9003,109 @@
         ],
         "type": "object"
       },
+      "CodeInterpreterCallCodeDeltaEvent": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/OpenAIResponsesCodeInterpreterCallCodeDelta"
+          },
+          {
+            "properties": {},
+            "type": "object"
+          }
+        ],
+        "description": "Incremental chunk of code being streamed for a `code_interpreter_call`.",
+        "example": {
+          "delta": "print(\"hello\")",
+          "item_id": "ci-abc123",
+          "output_index": 0,
+          "sequence_number": 3,
+          "type": "response.code_interpreter_call_code.delta"
+        }
+      },
+      "CodeInterpreterCallCodeDoneEvent": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/OpenAIResponsesCodeInterpreterCallCodeDone"
+          },
+          {
+            "properties": {},
+            "type": "object"
+          }
+        ],
+        "description": "Emitted when code streaming completes for a `code_interpreter_call`.",
+        "example": {
+          "code": "print(\"hello\")",
+          "item_id": "ci-abc123",
+          "output_index": 0,
+          "sequence_number": 8,
+          "type": "response.code_interpreter_call_code.done"
+        }
+      },
+      "CodeInterpreterCallCompletedEvent": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/OpenAIResponsesCodeInterpreterCallCompleted"
+          },
+          {
+            "properties": {},
+            "type": "object"
+          }
+        ],
+        "description": "Code interpreter call completed",
+        "example": {
+          "item_id": "ci-abc123",
+          "output_index": 0,
+          "sequence_number": 10,
+          "type": "response.code_interpreter_call.completed"
+        }
+      },
+      "CodeInterpreterCallInProgressEvent": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/OpenAIResponsesCodeInterpreterCallInProgress"
+          },
+          {
+            "properties": {},
+            "type": "object"
+          }
+        ],
+        "description": "Code interpreter call in progress",
+        "example": {
+          "item_id": "ci-abc123",
+          "output_index": 0,
+          "sequence_number": 2,
+          "type": "response.code_interpreter_call.in_progress"
+        }
+      },
+      "CodeInterpreterCallInterpretingEvent": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/OpenAIResponsesCodeInterpreterCallInterpreting"
+          },
+          {
+            "properties": {},
+            "type": "object"
+          }
+        ],
+        "description": "Code interpreter is executing the code",
+        "example": {
+          "item_id": "ci-abc123",
+          "output_index": 0,
+          "sequence_number": 9,
+          "type": "response.code_interpreter_call.interpreting"
+        }
+      },
       "CodeInterpreterCallItem": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/OutputItemCodeInterpreterCall"
+          },
+          {
+            "additionalProperties": {},
+            "properties": {},
+            "type": "object"
+          }
+        ],
         "description": "A code interpreter execution call with outputs",
         "example": {
           "code": "print(\"Hello, World!\")",
@@ -8951,83 +9119,103 @@
           ],
           "status": "completed",
           "type": "code_interpreter_call"
+        }
+      },
+      "CodeInterpreterFileOutput": {
+        "example": {
+          "download_url": "https://example.com/download/file_abc123",
+          "filename": "summary.txt",
+          "id": "file_abc123",
+          "type": "file"
         },
         "properties": {
-          "code": {
+          "download_url": {
+            "description": "Provider-issued download URL for the generated file. Typically signed and time-limited (see `expires_at`); fetch promptly rather than persisting the URL.",
+            "type": "string"
+          },
+          "error_code": {
+            "description": "Provider error code when generating or persisting the file failed; null or absent on success.",
             "type": [
               "string",
               "null"
             ]
           },
-          "container_id": {
+          "expires_at": {
+            "description": "When the `download_url` stops working, as an ISO 8601 timestamp. After this time the file must be regenerated.",
+            "type": "string"
+          },
+          "filename": {
             "type": "string"
           },
           "id": {
             "type": "string"
           },
-          "outputs": {
-            "items": {
-              "anyOf": [
-                {
-                  "properties": {
-                    "type": {
-                      "enum": [
-                        "image"
-                      ],
-                      "type": "string"
-                    },
-                    "url": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "url"
-                  ],
-                  "type": "object"
-                },
-                {
-                  "properties": {
-                    "logs": {
-                      "type": "string"
-                    },
-                    "type": {
-                      "enum": [
-                        "logs"
-                      ],
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "logs"
-                  ],
-                  "type": "object"
-                }
-              ]
-            },
-            "type": [
-              "array",
-              "null"
-            ]
+          "media_type": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "size_bytes": {
+            "type": "integer"
           },
           "status": {
-            "$ref": "#/components/schemas/ToolCallStatus"
+            "description": "Provider-reported readiness of the generated file (e.g. `ready`). Values other than `ready` indicate the artifact may not be downloadable.",
+            "type": "string"
           },
           "type": {
             "enum": [
-              "code_interpreter_call"
+              "file"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "CodeInterpreterImageOutput": {
+        "example": {
+          "type": "image",
+          "url": "https://example.com/plot.png"
+        },
+        "properties": {
+          "type": {
+            "enum": [
+              "image"
+            ],
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "url"
+        ],
+        "type": "object"
+      },
+      "CodeInterpreterLogsOutput": {
+        "example": {
+          "logs": "hello\n",
+          "type": "logs"
+        },
+        "properties": {
+          "logs": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "logs"
             ],
             "type": "string"
           }
         },
         "required": [
           "type",
-          "id",
-          "code",
-          "outputs",
-          "status",
-          "container_id"
+          "logs"
         ],
         "type": "object"
       },
@@ -9918,7 +10106,7 @@
             "$ref": "#/components/schemas/BYOKProviderSlug"
           },
           "workspace_id": {
-            "description": "Optional workspace ID. Defaults to the authenticated entity's default workspace.",
+            "description": "Optional workspace ID to scope the credential to. When omitted, the credential is created in the account's default workspace; if that default has been deleted, the request returns a 400 and you must pass `workspace_id` explicitly.",
             "example": "550e8400-e29b-41d4-a716-446655440000",
             "format": "uuid",
             "type": "string"
@@ -10192,7 +10380,7 @@
             "$ref": "#/components/schemas/GuardrailInterval"
           },
           "workspace_id": {
-            "description": "The workspace to create the guardrail in. Defaults to the default workspace if not provided.",
+            "description": "The workspace to create the guardrail in. When omitted, the guardrail is created in the default workspace; if that default has been deleted, the request returns a 400 and you must pass `workspace_id` explicitly.",
             "example": "0df9e665-d932-5740-b2c7-b52af166bc11",
             "format": "uuid",
             "type": "string"
@@ -10279,6 +10467,24 @@
               "null"
             ]
           },
+          "broadcast_generation_cost": {
+            "default": false,
+            "description": "When true, include cost and billing generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_identity": {
+            "default": false,
+            "description": "When true, include identity generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_request_context": {
+            "default": false,
+            "description": "When true, include request-context generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
           "config": {
             "additionalProperties": {},
             "description": "Provider-specific configuration. The shape depends on `type` and is validated server-side.",
@@ -10358,6 +10564,9 @@
         "example": {
           "data": {
             "api_key_hashes": null,
+            "broadcast_generation_cost": false,
+            "broadcast_generation_identity": false,
+            "broadcast_generation_request_context": false,
             "config": {
               "baseUrl": "https://us.cloud.langfuse.com",
               "publicKey": "pk-l...EfGh",
@@ -11818,7 +12027,7 @@
         "type": "object"
       },
       "FilesServerTool": {
-        "description": "OpenRouter built-in server tool: read, write, edit, and list workspace files via the Files API. Requires the `x-openrouter-file-ids: openrouter` request header.",
+        "description": "OpenRouter built-in server tool: read, write, edit, and list workspace files via the Files API. Requires an authenticated request; files come from the API key's workspace (or the default workspace for keys without one).",
         "example": {
           "parameters": {},
           "type": "openrouter:files"
@@ -12764,7 +12973,7 @@
             "type": "string"
           },
           "max_tool_calls": {
-            "description": "Maximum number of tool-calling steps each panelist (analysis model) and the analyst model may take during their agentic web-research loop. Models with web_search/web_fetch enabled iterate until they produce a text response or hit this ceiling. Defaults to 8. Capped at 16.",
+            "description": "Maximum number of tool-calling steps each panelist (analysis model) and the analyst model may take during their agentic web-research loop. Models with web_search/web_fetch enabled iterate until they produce a text response or hit this ceiling. Defaults to 4. Capped at 16.",
             "example": 12,
             "maximum": 16,
             "minimum": 1,
@@ -12920,12 +13129,12 @@
             "$ref": "#/components/schemas/AnthropicCacheControlDirective"
           },
           "max_completion_tokens": {
-            "description": "Maximum number of output tokens (including reasoning tokens) each panelist and the analyst model may produce per inner call. Controls the total output budget so reasoning-heavy models like GPT-5.5 do not exhaust their token allowance before producing visible text. When omitted, panelists default to 32000 and the analyst to 20000.",
+            "description": "Maximum number of output tokens (including reasoning tokens) each panelist and the analyst model may produce per inner call. Controls the total output budget so reasoning-heavy models like GPT-5.5 do not exhaust their token allowance before producing visible text. Defaults to 16000 when omitted.",
             "example": 16384,
             "type": "integer"
           },
           "max_tool_calls": {
-            "description": "Maximum number of tool-calling steps each panelist (analysis model) and the analyst model may take during their agentic web-research loop. Models with web_search/web_fetch enabled iterate until they produce a text response or hit this ceiling. Defaults to 8. Capped at 16.",
+            "description": "Maximum number of tool-calling steps each panelist (analysis model) and the analyst model may take during their agentic web-research loop. Models with web_search/web_fetch enabled iterate until they produce a text response or hit this ceiling. Defaults to 4. Capped at 16.",
             "example": 12,
             "maximum": 16,
             "minimum": 1,
@@ -13054,8 +13263,9 @@
         "type": "object"
       },
       "GenerationContentData": {
-        "description": "Stored prompt and completion content",
+        "description": "Stored prompt and completion content, plus the failure error when one was stored",
         "example": {
+          "error": null,
           "input": {
             "messages": [
               {
@@ -13070,6 +13280,9 @@
           }
         },
         "properties": {
+          "error": {
+            "$ref": "#/components/schemas/GenerationContentError"
+          },
           "input": {
             "anyOf": [
               {
@@ -13134,7 +13347,121 @@
         },
         "required": [
           "input",
-          "output"
+          "output",
+          "error"
+        ],
+        "type": "object"
+      },
+      "GenerationContentError": {
+        "description": "The stored failure for this generation, or null when it succeeded",
+        "example": {
+          "message": "Timed out waiting for the provider",
+          "previous_errors": [
+            {
+              "code": 429,
+              "message": "Provider returned error",
+              "provider_name": "Google",
+              "raw": "{\"error\":{\"code\":429,\"message\":\"Resource exhausted\"}}"
+            }
+          ],
+          "provider_name": "Vertex",
+          "raw": "{\"error\":{\"code\":504,\"message\":\"Deadline exceeded\"}}",
+          "status": 504
+        },
+        "properties": {
+          "message": {
+            "description": "Error message returned to the client",
+            "example": "Timed out waiting for the provider",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "previous_errors": {
+            "description": "Every upstream attempt that failed before the returned error, in attempt order",
+            "items": {
+              "$ref": "#/components/schemas/GenerationContentErrorAttempt"
+            },
+            "type": "array"
+          },
+          "provider_name": {
+            "description": "Provider whose error was returned to the client, when known",
+            "example": "Vertex",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "raw": {
+            "description": "Raw error body behind the returned error, when stored",
+            "example": "{\"error\":{\"code\":504,\"message\":\"Deadline exceeded\"}}",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "description": "HTTP status returned to the client",
+            "example": 504,
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "message",
+          "provider_name",
+          "raw",
+          "previous_errors"
+        ],
+        "type": [
+          "object",
+          "null"
+        ]
+      },
+      "GenerationContentErrorAttempt": {
+        "description": "A single failed upstream attempt recorded for the generation",
+        "example": {
+          "code": 429,
+          "message": "Provider returned error",
+          "provider_name": "Google",
+          "raw": "{\"error\":{\"code\":429,\"message\":\"Resource exhausted\"}}"
+        },
+        "properties": {
+          "code": {
+            "description": "HTTP status returned by this attempt",
+            "example": 429,
+            "type": "integer"
+          },
+          "message": {
+            "description": "Error message returned by this attempt",
+            "example": "Provider returned error",
+            "type": "string"
+          },
+          "provider_name": {
+            "description": "Provider that served this attempt, when known",
+            "example": "Google",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "raw": {
+            "description": "Raw error body returned by the provider, when stored",
+            "example": "{\"error\":{\"code\":429,\"message\":\"Resource exhausted\"}}",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "provider_name",
+          "raw"
         ],
         "type": "object"
       },
@@ -13142,6 +13469,7 @@
         "description": "Stored prompt and completion content for a generation",
         "example": {
           "data": {
+            "error": null,
             "input": {
               "messages": [
                 {
@@ -13212,7 +13540,8 @@
             "upstream_inference_cost": 0.0012,
             "usage": 0.0015,
             "user_agent": "Mozilla/5.0",
-            "web_search_engine": "exa"
+            "web_search_engine": "exa",
+            "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
           }
         },
         "properties": {
@@ -13567,6 +13896,14 @@
                   "string",
                   "null"
                 ]
+              },
+              "workspace_id": {
+                "description": "ID of the workspace this generation is attributed to. Null for accounts without workspaces. Generations created before workspace resolution existed are attributed to the account default workspace.",
+                "example": "550e8400-e29b-41d4-a716-446655440000",
+                "type": [
+                  "string",
+                  "null"
+                ]
               }
             },
             "required": [
@@ -13610,7 +13947,8 @@
               "provider_responses",
               "user_agent",
               "http_referer",
-              "data_region"
+              "data_region",
+              "workspace_id"
             ],
             "type": "object"
           }
@@ -13711,6 +14049,9 @@
         "example": {
           "data": {
             "api_key_hashes": null,
+            "broadcast_generation_cost": false,
+            "broadcast_generation_identity": false,
+            "broadcast_generation_request_context": false,
             "config": {
               "baseUrl": "https://us.cloud.langfuse.com",
               "publicKey": "pk-l...EfGh",
@@ -13816,6 +14157,40 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/ScimGroupMapping"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "GetWorkspaceBudgetResponse": {
+        "example": {
+          "data": {
+            "created_at": "2025-08-24T10:30:00Z",
+            "id": "770e8400-e29b-41d4-a716-446655440000",
+            "limit_usd": 100,
+            "reset_interval": "monthly",
+            "updated_at": "2025-08-24T15:45:00Z",
+            "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "include_byok_in_budgets": true
+        },
+        "properties": {
+          "data": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkspaceBudget"
+              },
+              {
+                "description": "The budget for the requested interval"
+              }
+            ]
+          },
+          "include_byok_in_budgets": {
+            "description": "Whether BYOK (bring-your-own-key) spend is included when enforcing the workspace's budgets. This is a workspace-wide setting that applies to all budget intervals (daily, weekly, monthly, and lifetime).",
+            "example": true,
+            "type": "boolean"
           }
         },
         "required": [
@@ -14171,9 +14546,12 @@
             ]
           },
           "workspace_id": {
-            "description": "The workspace ID this guardrail belongs to.",
+            "description": "The workspace this guardrail is scoped to, or `null` for an unscoped legacy guardrail predating workspaces. A `null` value does not mean the default workspace, and does not apply the guardrail across every workspace.",
             "example": "0df9e665-d932-5740-b2c7-b52af166bc11",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -14741,7 +15119,7 @@
             "type": "string"
           },
           "n": {
-            "description": "Number of images to generate (1-10). Providers that only support single-image generation reject n > 1.",
+            "description": "Upper bound on the number of images to generate (1-10). Providers may return fewer images, and providers that only support single-image generation reject n > 1.",
             "example": 1,
             "type": "integer"
           },
@@ -15836,7 +16214,7 @@
         "x-speakeasy-unknown-values": "allow"
       },
       "InputReference": {
-        "description": "A reference asset used to guide video generation. Image references are supported by all providers; audio and video references are only honored by providers that support them (currently BytePlus Seedance 2.0).",
+        "description": "A reference asset used to guide video generation. Image references are supported by all providers; audio and video references are only honored by providers that support them (including BytePlus Seedance generation 2 and newer).",
         "discriminator": {
           "mapping": {
             "audio_url": "#/components/schemas/ContentPartAudio",
@@ -16113,6 +16491,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/OutputFilesServerToolItem"
+                },
+                {
+                  "$ref": "#/components/schemas/OutputShellServerToolItem"
                 },
                 {
                   "$ref": "#/components/schemas/LocalShellCallItem"
@@ -16419,6 +16800,9 @@
             "description": "Maximum number of web searches the model may perform in a single request. Once reached, further search calls return an error result instead of executing. Applies to the Exa, Firecrawl, Parallel, and Perplexity engines. With native provider search, forwarded only to Anthropic (as `max_uses`); other native search providers have no equivalent parameter and ignore it.",
             "example": 3,
             "type": "integer"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/WebSearchMode"
           },
           "search_context_size": {
             "$ref": "#/components/schemas/SearchContextSizeEnum"
@@ -16765,6 +17149,9 @@
           "data": [
             {
               "api_key_hashes": null,
+              "broadcast_generation_cost": false,
+              "broadcast_generation_identity": false,
+              "broadcast_generation_request_context": false,
               "config": {
                 "baseUrl": "https://us.cloud.langfuse.com",
                 "publicKey": "pk-l...EfGh",
@@ -17577,6 +17964,40 @@
         ],
         "type": "object"
       },
+      "MessagesBashToolResultBlock": {
+        "description": "Output of a sandbox-executed `openrouter:bash` call from a prior assistant turn. Accepted on replay and dropped before the provider request \u2014 Anthropic has no equivalent block.",
+        "example": {
+          "content": {
+            "command": "ls",
+            "exitCode": 0,
+            "stderr": "",
+            "stdout": "README.md\n"
+          },
+          "tool_use_id": "srvtoolu_01abc",
+          "type": "openrouter_bash_tool_result"
+        },
+        "properties": {
+          "content": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "tool_use_id": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "openrouter_bash_tool_result"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "tool_use_id",
+          "content"
+        ],
+        "type": "object"
+      },
       "MessagesContentBlockDeltaEvent": {
         "description": "Event sent when content is added to a content block",
         "example": {
@@ -17809,6 +18230,12 @@
                 "$ref": "#/components/schemas/AnthropicAdvisorToolResult"
               },
               {
+                "$ref": "#/components/schemas/ORAnthropicShellToolResult"
+              },
+              {
+                "$ref": "#/components/schemas/ORAnthropicBashToolResult"
+              },
+              {
                 "properties": {
                   "content": {
                     "type": [
@@ -18001,29 +18428,6 @@
         ],
         "type": "object"
       },
-      "MessagesErrorDetail": {
-        "example": {
-          "error_type": "invalid_request",
-          "message": "Invalid request parameters",
-          "type": "invalid_request_error"
-        },
-        "properties": {
-          "error_type": {
-            "$ref": "#/components/schemas/ApiErrorType"
-          },
-          "message": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "type",
-          "message"
-        ],
-        "type": "object"
-      },
       "MessagesErrorEvent": {
         "description": "Error event in the stream",
         "example": {
@@ -18055,31 +18459,6 @@
           },
           "openrouter_metadata": {
             "$ref": "#/components/schemas/OpenRouterMetadata"
-          },
-          "type": {
-            "enum": [
-              "error"
-            ],
-            "type": "string"
-          }
-        },
-        "required": [
-          "type",
-          "error"
-        ],
-        "type": "object"
-      },
-      "MessagesErrorResponse": {
-        "example": {
-          "error": {
-            "message": "Invalid request parameters",
-            "type": "invalid_request_error"
-          },
-          "type": "error"
-        },
-        "properties": {
-          "error": {
-            "$ref": "#/components/schemas/MessagesErrorDetail"
           },
           "type": {
             "enum": [
@@ -18393,6 +18772,12 @@
                     },
                     {
                       "$ref": "#/components/schemas/MessagesToolRemovalBlock"
+                    },
+                    {
+                      "$ref": "#/components/schemas/MessagesShellToolResultBlock"
+                    },
+                    {
+                      "$ref": "#/components/schemas/MessagesBashToolResultBlock"
                     }
                   ]
                 },
@@ -19268,6 +19653,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/AnthropicToolSearchToolRegex"
+                },
+                {
+                  "$ref": "#/components/schemas/ShellServerTool_OpenRouter"
                 }
               ]
             },
@@ -19443,6 +19831,46 @@
         ],
         "type": "object"
       },
+      "MessagesShellToolResultBlock": {
+        "description": "Output of an `openrouter:shell` call from a prior assistant turn. Accepted on replay and dropped before the provider request \u2014 Anthropic has no equivalent block.",
+        "example": {
+          "content": {
+            "output": [
+              {
+                "outcome": {
+                  "exit_code": 0,
+                  "type": "exit"
+                },
+                "stderr": "",
+                "stdout": "README.md\n"
+              }
+            ]
+          },
+          "tool_use_id": "srvtoolu_01abc",
+          "type": "openrouter_shell_tool_result"
+        },
+        "properties": {
+          "content": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "tool_use_id": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "openrouter_shell_tool_result"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "tool_use_id",
+          "content"
+        ],
+        "type": "object"
+      },
       "MessagesStartEvent": {
         "description": "Event sent at the start of a streaming message",
         "example": {
@@ -19545,6 +19973,7 @@
                   "Crucible",
                   "Crusoe",
                   "Darkbloom",
+                  "Databricks",
                   "Decart",
                   "Deepgram",
                   "DeepInfra",
@@ -19662,12 +20091,15 @@
                   }
                 ],
                 "example": {
-                  "cache_creation": null,
-                  "cache_creation_input_tokens": null,
-                  "cache_read_input_tokens": null,
+                  "cache_creation": {
+                    "ephemeral_1h_input_tokens": 0,
+                    "ephemeral_5m_input_tokens": 7381
+                  },
+                  "cache_creation_input_tokens": 7381,
+                  "cache_read_input_tokens": 0,
                   "inference_geo": null,
                   "input_tokens": 100,
-                  "output_tokens": 50,
+                  "output_tokens": 1,
                   "output_tokens_details": null,
                   "server_tool_use": null,
                   "service_tier": "standard"
@@ -20815,6 +21247,40 @@
         ],
         "type": "object"
       },
+      "ORAnthropicBashToolResult": {
+        "description": "Output of an `openrouter:bash` call executed in the OpenRouter sandbox (`engine: 'openrouter'`)",
+        "example": {
+          "content": {
+            "command": "ls",
+            "exitCode": 0,
+            "stderr": "",
+            "stdout": "README.md\n"
+          },
+          "tool_use_id": "srvtoolu_01abc",
+          "type": "openrouter_bash_tool_result"
+        },
+        "properties": {
+          "content": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "tool_use_id": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "openrouter_bash_tool_result"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "tool_use_id",
+          "content"
+        ],
+        "type": "object"
+      },
       "ORAnthropicContentBlock": {
         "discriminator": {
           "mapping": {
@@ -20823,6 +21289,8 @@
             "code_execution_tool_result": "#/components/schemas/AnthropicCodeExecutionToolResult",
             "compaction": "#/components/schemas/AnthropicCompactionBlock",
             "container_upload": "#/components/schemas/AnthropicContainerUpload",
+            "openrouter_bash_tool_result": "#/components/schemas/ORAnthropicBashToolResult",
+            "openrouter_shell_tool_result": "#/components/schemas/ORAnthropicShellToolResult",
             "redacted_thinking": "#/components/schemas/AnthropicRedactedThinkingBlock",
             "server_tool_use": "#/components/schemas/ORAnthropicServerToolUseBlock",
             "text": "#/components/schemas/AnthropicTextBlock",
@@ -20882,6 +21350,12 @@
           },
           {
             "$ref": "#/components/schemas/AnthropicAdvisorToolResult"
+          },
+          {
+            "$ref": "#/components/schemas/ORAnthropicShellToolResult"
+          },
+          {
+            "$ref": "#/components/schemas/ORAnthropicBashToolResult"
           }
         ]
       },
@@ -20947,6 +21421,46 @@
         ],
         "type": "object"
       },
+      "ORAnthropicShellToolResult": {
+        "description": "Output of an `openrouter:shell` call executed in the OpenRouter sandbox",
+        "example": {
+          "content": {
+            "output": [
+              {
+                "outcome": {
+                  "exit_code": 0,
+                  "type": "exit"
+                },
+                "stderr": "",
+                "stdout": "README.md\n"
+              }
+            ]
+          },
+          "tool_use_id": "srvtoolu_01abc",
+          "type": "openrouter_shell_tool_result"
+        },
+        "properties": {
+          "content": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "tool_use_id": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "openrouter_shell_tool_result"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "tool_use_id",
+          "content"
+        ],
+        "type": "object"
+      },
       "ORAnthropicStopReason": {
         "enum": [
           "end_turn",
@@ -20969,6 +21483,9 @@
       "ObservabilityArizeDestination": {
         "example": {
           "api_key_hashes": null,
+          "broadcast_generation_cost": false,
+          "broadcast_generation_identity": false,
+          "broadcast_generation_request_context": false,
           "config": {
             "apiKey": "arize_...AbCd",
             "baseUrl": "https://otlp.arize.com",
@@ -20997,6 +21514,21 @@
               "array",
               "null"
             ]
+          },
+          "broadcast_generation_cost": {
+            "description": "When true, include cost and billing generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_identity": {
+            "description": "When true, include identity generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_request_context": {
+            "description": "When true, include request-context generation metadata.",
+            "example": false,
+            "type": "boolean"
           },
           "config": {
             "properties": {
@@ -21094,6 +21626,9 @@
           "name",
           "enabled",
           "privacy_mode",
+          "broadcast_generation_cost",
+          "broadcast_generation_identity",
+          "broadcast_generation_request_context",
           "sampling_rate",
           "api_key_hashes",
           "filter_rules",
@@ -21107,6 +21642,9 @@
       "ObservabilityBraintrustDestination": {
         "example": {
           "api_key_hashes": null,
+          "broadcast_generation_cost": false,
+          "broadcast_generation_identity": false,
+          "broadcast_generation_request_context": false,
           "config": {
             "apiKey": "sk-...AbCd",
             "baseUrl": "https://api.braintrust.dev",
@@ -21134,6 +21672,21 @@
               "array",
               "null"
             ]
+          },
+          "broadcast_generation_cost": {
+            "description": "When true, include cost and billing generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_identity": {
+            "description": "When true, include identity generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_request_context": {
+            "description": "When true, include request-context generation metadata.",
+            "example": false,
+            "type": "boolean"
           },
           "config": {
             "properties": {
@@ -21225,6 +21778,9 @@
           "name",
           "enabled",
           "privacy_mode",
+          "broadcast_generation_cost",
+          "broadcast_generation_identity",
+          "broadcast_generation_request_context",
           "sampling_rate",
           "api_key_hashes",
           "filter_rules",
@@ -21238,6 +21794,9 @@
       "ObservabilityClickhouseDestination": {
         "example": {
           "api_key_hashes": null,
+          "broadcast_generation_cost": false,
+          "broadcast_generation_identity": false,
+          "broadcast_generation_request_context": false,
           "config": {
             "database": "analytics",
             "host": "https://clickhouse.example.com:8123",
@@ -21267,6 +21826,21 @@
               "array",
               "null"
             ]
+          },
+          "broadcast_generation_cost": {
+            "description": "When true, include cost and billing generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_identity": {
+            "description": "When true, include identity generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_request_context": {
+            "description": "When true, include request-context generation metadata.",
+            "example": false,
+            "type": "boolean"
           },
           "config": {
             "properties": {
@@ -21369,6 +21943,9 @@
           "name",
           "enabled",
           "privacy_mode",
+          "broadcast_generation_cost",
+          "broadcast_generation_identity",
+          "broadcast_generation_request_context",
           "sampling_rate",
           "api_key_hashes",
           "filter_rules",
@@ -21382,6 +21959,9 @@
       "ObservabilityDatadogDestination": {
         "example": {
           "api_key_hashes": null,
+          "broadcast_generation_cost": false,
+          "broadcast_generation_identity": false,
+          "broadcast_generation_request_context": false,
           "config": {
             "apiKey": "************...AbCd",
             "mlApp": "my-llm-app",
@@ -21409,6 +21989,21 @@
               "array",
               "null"
             ]
+          },
+          "broadcast_generation_cost": {
+            "description": "When true, include cost and billing generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_identity": {
+            "description": "When true, include identity generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_request_context": {
+            "description": "When true, include request-context generation metadata.",
+            "example": false,
+            "type": "boolean"
           },
           "config": {
             "properties": {
@@ -21503,6 +22098,9 @@
           "name",
           "enabled",
           "privacy_mode",
+          "broadcast_generation_cost",
+          "broadcast_generation_identity",
+          "broadcast_generation_request_context",
           "sampling_rate",
           "api_key_hashes",
           "filter_rules",
@@ -21538,6 +22136,9 @@
         },
         "example": {
           "api_key_hashes": null,
+          "broadcast_generation_cost": false,
+          "broadcast_generation_identity": false,
+          "broadcast_generation_request_context": false,
           "config": {
             "baseUrl": "https://us.cloud.langfuse.com",
             "publicKey": "pk-l...EfGh",
@@ -21743,6 +22344,9 @@
       "ObservabilityGrafanaDestination": {
         "example": {
           "api_key_hashes": null,
+          "broadcast_generation_cost": false,
+          "broadcast_generation_identity": false,
+          "broadcast_generation_request_context": false,
           "config": {
             "apiKey": "glc_...AbCd",
             "baseUrl": "https://otlp-gateway-prod-us-west-0.grafana.net",
@@ -21770,6 +22374,21 @@
               "array",
               "null"
             ]
+          },
+          "broadcast_generation_cost": {
+            "description": "When true, include cost and billing generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_identity": {
+            "description": "When true, include identity generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_request_context": {
+            "description": "When true, include request-context generation metadata.",
+            "example": false,
+            "type": "boolean"
           },
           "config": {
             "properties": {
@@ -21861,6 +22480,9 @@
           "name",
           "enabled",
           "privacy_mode",
+          "broadcast_generation_cost",
+          "broadcast_generation_identity",
+          "broadcast_generation_request_context",
           "sampling_rate",
           "api_key_hashes",
           "filter_rules",
@@ -21874,6 +22496,9 @@
       "ObservabilityLangfuseDestination": {
         "example": {
           "api_key_hashes": null,
+          "broadcast_generation_cost": false,
+          "broadcast_generation_identity": false,
+          "broadcast_generation_request_context": false,
           "config": {
             "baseUrl": "https://us.cloud.langfuse.com",
             "publicKey": "pk-l...EfGh",
@@ -21901,6 +22526,21 @@
               "array",
               "null"
             ]
+          },
+          "broadcast_generation_cost": {
+            "description": "When true, include cost and billing generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_identity": {
+            "description": "When true, include identity generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_request_context": {
+            "description": "When true, include request-context generation metadata.",
+            "example": false,
+            "type": "boolean"
           },
           "config": {
             "properties": {
@@ -21992,6 +22632,9 @@
           "name",
           "enabled",
           "privacy_mode",
+          "broadcast_generation_cost",
+          "broadcast_generation_identity",
+          "broadcast_generation_request_context",
           "sampling_rate",
           "api_key_hashes",
           "filter_rules",
@@ -22005,6 +22648,9 @@
       "ObservabilityLangsmithDestination": {
         "example": {
           "api_key_hashes": null,
+          "broadcast_generation_cost": false,
+          "broadcast_generation_identity": false,
+          "broadcast_generation_request_context": false,
           "config": {
             "apiKey": "lsv2_...AbCd",
             "endpoint": "https://api.smith.langchain.com",
@@ -22032,6 +22678,21 @@
               "array",
               "null"
             ]
+          },
+          "broadcast_generation_cost": {
+            "description": "When true, include cost and billing generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_identity": {
+            "description": "When true, include identity generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_request_context": {
+            "description": "When true, include request-context generation metadata.",
+            "example": false,
+            "type": "boolean"
           },
           "config": {
             "properties": {
@@ -22128,6 +22789,9 @@
           "name",
           "enabled",
           "privacy_mode",
+          "broadcast_generation_cost",
+          "broadcast_generation_identity",
+          "broadcast_generation_request_context",
           "sampling_rate",
           "api_key_hashes",
           "filter_rules",
@@ -22141,6 +22805,9 @@
       "ObservabilityNewrelicDestination": {
         "example": {
           "api_key_hashes": null,
+          "broadcast_generation_cost": false,
+          "broadcast_generation_identity": false,
+          "broadcast_generation_request_context": false,
           "config": {
             "licenseKey": "****...AbCd",
             "region": "us"
@@ -22167,6 +22834,21 @@
               "array",
               "null"
             ]
+          },
+          "broadcast_generation_cost": {
+            "description": "When true, include cost and billing generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_identity": {
+            "description": "When true, include identity generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_request_context": {
+            "description": "When true, include request-context generation metadata.",
+            "example": false,
+            "type": "boolean"
           },
           "config": {
             "properties": {
@@ -22258,6 +22940,9 @@
           "name",
           "enabled",
           "privacy_mode",
+          "broadcast_generation_cost",
+          "broadcast_generation_identity",
+          "broadcast_generation_request_context",
           "sampling_rate",
           "api_key_hashes",
           "filter_rules",
@@ -22271,6 +22956,9 @@
       "ObservabilityOpikDestination": {
         "example": {
           "api_key_hashes": null,
+          "broadcast_generation_cost": false,
+          "broadcast_generation_identity": false,
+          "broadcast_generation_request_context": false,
           "config": {
             "apiKey": "****...AbCd",
             "projectName": "openrouter-prod",
@@ -22298,6 +22986,21 @@
               "array",
               "null"
             ]
+          },
+          "broadcast_generation_cost": {
+            "description": "When true, include cost and billing generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_identity": {
+            "description": "When true, include identity generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_request_context": {
+            "description": "When true, include request-context generation metadata.",
+            "example": false,
+            "type": "boolean"
           },
           "config": {
             "properties": {
@@ -22390,6 +23093,9 @@
           "name",
           "enabled",
           "privacy_mode",
+          "broadcast_generation_cost",
+          "broadcast_generation_identity",
+          "broadcast_generation_request_context",
           "sampling_rate",
           "api_key_hashes",
           "filter_rules",
@@ -22403,6 +23109,9 @@
       "ObservabilityOtelCollectorDestination": {
         "example": {
           "api_key_hashes": null,
+          "broadcast_generation_cost": false,
+          "broadcast_generation_identity": false,
+          "broadcast_generation_request_context": false,
           "config": {
             "endpoint": "https://otel.example.com:4318"
           },
@@ -22428,6 +23137,21 @@
               "array",
               "null"
             ]
+          },
+          "broadcast_generation_cost": {
+            "description": "When true, include cost and billing generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_identity": {
+            "description": "When true, include identity generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_request_context": {
+            "description": "When true, include request-context generation metadata.",
+            "example": false,
+            "type": "boolean"
           },
           "config": {
             "properties": {
@@ -22509,6 +23233,9 @@
           "name",
           "enabled",
           "privacy_mode",
+          "broadcast_generation_cost",
+          "broadcast_generation_identity",
+          "broadcast_generation_request_context",
           "sampling_rate",
           "api_key_hashes",
           "filter_rules",
@@ -22522,6 +23249,9 @@
       "ObservabilityPosthogDestination": {
         "example": {
           "api_key_hashes": null,
+          "broadcast_generation_cost": false,
+          "broadcast_generation_identity": false,
+          "broadcast_generation_request_context": false,
           "config": {
             "apiKey": "phc_...AbCd",
             "endpoint": "https://us.i.posthog.com"
@@ -22548,6 +23278,21 @@
               "array",
               "null"
             ]
+          },
+          "broadcast_generation_cost": {
+            "description": "When true, include cost and billing generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_identity": {
+            "description": "When true, include identity generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_request_context": {
+            "description": "When true, include request-context generation metadata.",
+            "example": false,
+            "type": "boolean"
           },
           "config": {
             "properties": {
@@ -22634,6 +23379,9 @@
           "name",
           "enabled",
           "privacy_mode",
+          "broadcast_generation_cost",
+          "broadcast_generation_identity",
+          "broadcast_generation_request_context",
           "sampling_rate",
           "api_key_hashes",
           "filter_rules",
@@ -22647,6 +23395,9 @@
       "ObservabilityRampDestination": {
         "example": {
           "api_key_hashes": null,
+          "broadcast_generation_cost": false,
+          "broadcast_generation_identity": false,
+          "broadcast_generation_request_context": false,
           "config": {
             "apiKey": "rmp_...AbCd",
             "baseUrl": "https://api.ramp.com/developer/v1/ai-usage/openrouter"
@@ -22673,6 +23424,21 @@
               "array",
               "null"
             ]
+          },
+          "broadcast_generation_cost": {
+            "description": "When true, include cost and billing generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_identity": {
+            "description": "When true, include identity generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_request_context": {
+            "description": "When true, include request-context generation metadata.",
+            "example": false,
+            "type": "boolean"
           },
           "config": {
             "properties": {
@@ -22760,6 +23526,9 @@
           "name",
           "enabled",
           "privacy_mode",
+          "broadcast_generation_cost",
+          "broadcast_generation_identity",
+          "broadcast_generation_request_context",
           "sampling_rate",
           "api_key_hashes",
           "filter_rules",
@@ -22773,6 +23542,9 @@
       "ObservabilityS3Destination": {
         "example": {
           "api_key_hashes": null,
+          "broadcast_generation_cost": false,
+          "broadcast_generation_identity": false,
+          "broadcast_generation_request_context": false,
           "config": {
             "accessKeyId": "AKIA...AbCd",
             "bucketName": "openrouter-traces",
@@ -22800,6 +23572,21 @@
               "array",
               "null"
             ]
+          },
+          "broadcast_generation_cost": {
+            "description": "When true, include cost and billing generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_identity": {
+            "description": "When true, include identity generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_request_context": {
+            "description": "When true, include request-context generation metadata.",
+            "example": false,
+            "type": "boolean"
           },
           "config": {
             "properties": {
@@ -22912,6 +23699,9 @@
           "name",
           "enabled",
           "privacy_mode",
+          "broadcast_generation_cost",
+          "broadcast_generation_identity",
+          "broadcast_generation_request_context",
           "sampling_rate",
           "api_key_hashes",
           "filter_rules",
@@ -22925,6 +23715,9 @@
       "ObservabilitySentryDestination": {
         "example": {
           "api_key_hashes": null,
+          "broadcast_generation_cost": false,
+          "broadcast_generation_identity": false,
+          "broadcast_generation_request_context": false,
           "config": {
             "dsn": "https://abc123@o0.ingest.sentry.io/0",
             "otlpEndpoint": "https://o0.ingest.sentry.io/api/0/otlp"
@@ -22951,6 +23744,21 @@
               "array",
               "null"
             ]
+          },
+          "broadcast_generation_cost": {
+            "description": "When true, include cost and billing generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_identity": {
+            "description": "When true, include identity generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_request_context": {
+            "description": "When true, include request-context generation metadata.",
+            "example": false,
+            "type": "boolean"
           },
           "config": {
             "properties": {
@@ -23038,6 +23846,9 @@
           "name",
           "enabled",
           "privacy_mode",
+          "broadcast_generation_cost",
+          "broadcast_generation_identity",
+          "broadcast_generation_request_context",
           "sampling_rate",
           "api_key_hashes",
           "filter_rules",
@@ -23051,6 +23862,9 @@
       "ObservabilitySnowflakeDestination": {
         "example": {
           "api_key_hashes": null,
+          "broadcast_generation_cost": false,
+          "broadcast_generation_identity": false,
+          "broadcast_generation_request_context": false,
           "config": {
             "account": "xy12345.us-east-1",
             "token": "****...AbCd"
@@ -23078,10 +23892,27 @@
               "null"
             ]
           },
+          "broadcast_generation_cost": {
+            "description": "When true, include cost and billing generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_identity": {
+            "description": "When true, include identity generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_request_context": {
+            "description": "When true, include request-context generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
           "config": {
             "properties": {
               "account": {
+                "maxLength": 255,
                 "minLength": 1,
+                "pattern": "^[a-zA-Z0-9_]+(?:[.-][a-zA-Z0-9_]+)*$",
                 "type": "string"
               },
               "database": {
@@ -23180,6 +24011,9 @@
           "name",
           "enabled",
           "privacy_mode",
+          "broadcast_generation_cost",
+          "broadcast_generation_identity",
+          "broadcast_generation_request_context",
           "sampling_rate",
           "api_key_hashes",
           "filter_rules",
@@ -23193,6 +24027,9 @@
       "ObservabilityWeaveDestination": {
         "example": {
           "api_key_hashes": null,
+          "broadcast_generation_cost": false,
+          "broadcast_generation_identity": false,
+          "broadcast_generation_request_context": false,
           "config": {
             "apiKey": "****...AbCd",
             "baseUrl": "https://trace.wandb.ai",
@@ -23221,6 +24058,21 @@
               "array",
               "null"
             ]
+          },
+          "broadcast_generation_cost": {
+            "description": "When true, include cost and billing generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_identity": {
+            "description": "When true, include identity generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_request_context": {
+            "description": "When true, include request-context generation metadata.",
+            "example": false,
+            "type": "boolean"
           },
           "config": {
             "properties": {
@@ -23317,6 +24169,9 @@
           "name",
           "enabled",
           "privacy_mode",
+          "broadcast_generation_cost",
+          "broadcast_generation_identity",
+          "broadcast_generation_request_context",
           "sampling_rate",
           "api_key_hashes",
           "filter_rules",
@@ -23330,6 +24185,9 @@
       "ObservabilityWebhookDestination": {
         "example": {
           "api_key_hashes": null,
+          "broadcast_generation_cost": false,
+          "broadcast_generation_identity": false,
+          "broadcast_generation_request_context": false,
           "config": {
             "url": "https://example.com/openrouter-events"
           },
@@ -23355,6 +24213,21 @@
               "array",
               "null"
             ]
+          },
+          "broadcast_generation_cost": {
+            "description": "When true, include cost and billing generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_identity": {
+            "description": "When true, include identity generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_request_context": {
+            "description": "When true, include request-context generation metadata.",
+            "example": false,
+            "type": "boolean"
           },
           "config": {
             "properties": {
@@ -23444,6 +24317,9 @@
           "name",
           "enabled",
           "privacy_mode",
+          "broadcast_generation_cost",
+          "broadcast_generation_identity",
+          "broadcast_generation_request_context",
           "sampling_rate",
           "api_key_hashes",
           "filter_rules",
@@ -23744,6 +24620,26 @@
           "status": {
             "$ref": "#/components/schemas/ToolCallStatus"
           },
+          "subagent_id": {
+            "description": "EXPERIMENTAL \u2014 subject to change without notice. String id that matches the `call_id` of the `openrouter:subagent` server tool call that spawned the subagent. Present on every `function_call` item the subagent projects; absent on ordinary function calls.",
+            "type": "string"
+          },
+          "subagent_items": {
+            "description": "EXPERIMENTAL \u2014 subject to change without notice. The subagent's output items produced on this turn. Treat this as an opaque object; you must replay it in the request so that the subagent can continue execution of the tool with the same context. If a subagent created multiple parallel tool calls, only the first tool call will have this field. The other tool calls will only have `subagent_id`. Present only if the tool call originates from a subagent spawned by the `openrouter:subagent` server tool.",
+            "items": {
+              "additionalProperties": {},
+              "properties": {
+                "type": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
           "type": {
             "enum": [
               "function_call"
@@ -23928,6 +24824,176 @@
           "index": 0,
           "type": "file_citation"
         }
+      },
+      "OpenAIResponsesCodeInterpreterCallCodeDelta": {
+        "example": {
+          "delta": "print(\"hello\")",
+          "item_id": "ci_abc123",
+          "output_index": 0,
+          "sequence_number": 2,
+          "type": "response.code_interpreter_call_code.delta"
+        },
+        "properties": {
+          "delta": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "output_index": {
+            "type": "integer"
+          },
+          "sequence_number": {
+            "type": "integer"
+          },
+          "type": {
+            "enum": [
+              "response.code_interpreter_call_code.delta"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "delta"
+        ],
+        "type": "object"
+      },
+      "OpenAIResponsesCodeInterpreterCallCodeDone": {
+        "example": {
+          "code": "print(\"hello\")",
+          "item_id": "ci_abc123",
+          "output_index": 0,
+          "sequence_number": 3,
+          "type": "response.code_interpreter_call_code.done"
+        },
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "output_index": {
+            "type": "integer"
+          },
+          "sequence_number": {
+            "type": "integer"
+          },
+          "type": {
+            "enum": [
+              "response.code_interpreter_call_code.done"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "code"
+        ],
+        "type": "object"
+      },
+      "OpenAIResponsesCodeInterpreterCallCompleted": {
+        "example": {
+          "item_id": "ci_abc123",
+          "output_index": 0,
+          "sequence_number": 3,
+          "type": "response.code_interpreter_call.completed"
+        },
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "output_index": {
+            "type": "integer"
+          },
+          "sequence_number": {
+            "type": "integer"
+          },
+          "type": {
+            "enum": [
+              "response.code_interpreter_call.completed"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "item_id",
+          "output_index",
+          "sequence_number"
+        ],
+        "type": "object"
+      },
+      "OpenAIResponsesCodeInterpreterCallInProgress": {
+        "example": {
+          "item_id": "ci_abc123",
+          "output_index": 0,
+          "sequence_number": 1,
+          "type": "response.code_interpreter_call.in_progress"
+        },
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "output_index": {
+            "type": "integer"
+          },
+          "sequence_number": {
+            "type": "integer"
+          },
+          "type": {
+            "enum": [
+              "response.code_interpreter_call.in_progress"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "item_id",
+          "output_index",
+          "sequence_number"
+        ],
+        "type": "object"
+      },
+      "OpenAIResponsesCodeInterpreterCallInterpreting": {
+        "example": {
+          "item_id": "ci_abc123",
+          "output_index": 0,
+          "sequence_number": 2,
+          "type": "response.code_interpreter_call.interpreting"
+        },
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "output_index": {
+            "type": "integer"
+          },
+          "sequence_number": {
+            "type": "integer"
+          },
+          "type": {
+            "enum": [
+              "response.code_interpreter_call.interpreting"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "item_id",
+          "output_index",
+          "sequence_number"
+        ],
+        "type": "object"
       },
       "OpenAIResponsesImageGenCallCompleted": {
         "example": {
@@ -24974,11 +26040,17 @@
         "properties": {
           "arguments": {
             "description": "The raw tool-call arguments string as emitted by the model.",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "call_id": {
             "description": "The model-generated tool call id from the originating turn.",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "command": {
             "type": "string"
@@ -25051,6 +26123,7 @@
             "$ref": "#/components/schemas/CodeInterpreterCallItem"
           },
           {
+            "additionalProperties": {},
             "properties": {},
             "type": "object"
           }
@@ -25327,6 +26400,20 @@
           "type": "openrouter:files"
         },
         "properties": {
+          "arguments": {
+            "description": "The raw tool-call arguments string as emitted by the model.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "call_id": {
+            "description": "The model-generated tool call id from the originating turn.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "error": {
             "description": "Error message when the file operation failed.",
             "type": "string"
@@ -25372,7 +26459,28 @@
             "$ref": "#/components/schemas/OutputItemFunctionCall"
           },
           {
-            "properties": {},
+            "properties": {
+              "subagent_id": {
+                "description": "EXPERIMENTAL \u2014 subject to change without notice. String id that matches the `call_id` of the `openrouter:subagent` server tool call that spawned the subagent. Present on every `function_call` item the subagent projects; absent on ordinary function calls.",
+                "type": "string"
+              },
+              "subagent_items": {
+                "description": "EXPERIMENTAL \u2014 subject to change without notice. The subagent's output items produced on this turn. Treat this as an opaque object; you must replay it in the request so that the subagent can continue execution of the tool with the same context. If a subagent created multiple parallel tool calls, only the first tool call will have this field. The other tool calls will only have `subagent_id`. Present only if the tool call originates from a subagent spawned by the `openrouter:subagent` server tool.",
+                "items": {
+                  "additionalProperties": {},
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
             "type": "object"
           }
         ],
@@ -25426,7 +26534,7 @@
             "type": "array"
           },
           "failure_reason": {
-            "description": "Typed failure reason when the fusion run failed. Possible values include: all_panels_failed, insufficient_credits, rate_limited, judge_not_valid_json, judge_schema_mismatch, judge_upstream_error, judge_empty_completion. The four analysis-stage codes keep their pre-rename `judge_` spelling so existing consumers keep matching.",
+            "description": "Typed failure reason when the fusion run failed. Possible values include: all_panels_failed, insufficient_credits, rate_limited, invalid_model, judge_not_valid_json, judge_schema_mismatch, judge_upstream_error, judge_empty_completion. The four analysis-stage codes keep their pre-rename `judge_` spelling so existing consumers keep matching. The consumer-cancellation code is `cancelled`.",
             "type": "string"
           },
           "id": {
@@ -25563,6 +26671,7 @@
             "discriminator": {
               "mapping": {
                 "apply_patch_call": "#/components/schemas/OutputItemApplyPatchCall",
+                "code_interpreter_call": "#/components/schemas/OutputItemCodeInterpreterCall",
                 "custom_tool_call": "#/components/schemas/OutputItemCustomToolCall",
                 "file_search_call": "#/components/schemas/OutputItemFileSearchCall",
                 "function_call": "#/components/schemas/OutputItemFunctionCall",
@@ -25597,6 +26706,9 @@
               },
               {
                 "$ref": "#/components/schemas/OutputItemApplyPatchCall"
+              },
+              {
+                "$ref": "#/components/schemas/OutputItemCodeInterpreterCall"
               }
             ]
           },
@@ -25688,6 +26800,85 @@
         ],
         "type": "object"
       },
+      "OutputItemCodeInterpreterCall": {
+        "additionalProperties": {},
+        "example": {
+          "code": "print(\"hello\")",
+          "id": "ci_abc123",
+          "outputs": [
+            {
+              "logs": "hello\n",
+              "type": "logs"
+            }
+          ],
+          "status": "completed",
+          "type": "code_interpreter_call"
+        },
+        "properties": {
+          "code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "container_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "outputs": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "file": "#/components/schemas/CodeInterpreterFileOutput",
+                  "image": "#/components/schemas/CodeInterpreterImageOutput",
+                  "logs": "#/components/schemas/CodeInterpreterLogsOutput"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/CodeInterpreterLogsOutput"
+                },
+                {
+                  "$ref": "#/components/schemas/CodeInterpreterImageOutput"
+                },
+                {
+                  "$ref": "#/components/schemas/CodeInterpreterFileOutput"
+                }
+              ]
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "status": {
+            "enum": [
+              "in_progress",
+              "completed",
+              "incomplete",
+              "interpreting",
+              "failed"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "type": {
+            "enum": [
+              "code_interpreter_call"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "id",
+          "status"
+        ],
+        "type": "object"
+      },
       "OutputItemCustomToolCall": {
         "example": {
           "call_id": "call-abc123",
@@ -25753,6 +26944,7 @@
             "discriminator": {
               "mapping": {
                 "apply_patch_call": "#/components/schemas/OutputItemApplyPatchCall",
+                "code_interpreter_call": "#/components/schemas/OutputItemCodeInterpreterCall",
                 "custom_tool_call": "#/components/schemas/OutputItemCustomToolCall",
                 "file_search_call": "#/components/schemas/OutputItemFileSearchCall",
                 "function_call": "#/components/schemas/OutputItemFunctionCall",
@@ -25787,6 +26979,9 @@
               },
               {
                 "$ref": "#/components/schemas/OutputItemApplyPatchCall"
+              },
+              {
+                "$ref": "#/components/schemas/OutputItemCodeInterpreterCall"
               }
             ]
           },
@@ -26016,6 +27211,7 @@
         "type": "object"
       },
       "OutputItemWebSearchCall": {
+        "additionalProperties": {},
         "example": {
           "action": {
             "query": "OpenAI API",
@@ -26147,6 +27343,7 @@
             "openrouter:image_generation": "#/components/schemas/OutputImageGenerationServerToolItem",
             "openrouter:mcp": "#/components/schemas/OutputMcpServerToolItem",
             "openrouter:memory": "#/components/schemas/OutputMemoryServerToolItem",
+            "openrouter:shell": "#/components/schemas/OutputShellServerToolItem",
             "openrouter:subagent": "#/components/schemas/OutputSubagentServerToolItem",
             "openrouter:text_editor": "#/components/schemas/OutputTextEditorServerToolItem",
             "openrouter:tool_search": "#/components/schemas/OutputToolSearchServerToolItem",
@@ -26231,6 +27428,9 @@
           },
           {
             "$ref": "#/components/schemas/OutputShellCallOutputItem"
+          },
+          {
+            "$ref": "#/components/schemas/OutputShellServerToolItem"
           },
           {
             "$ref": "#/components/schemas/OutputWebFetchServerToolItem"
@@ -26615,6 +27815,13 @@
             ],
             "type": "object"
           },
+          "arguments": {
+            "description": "The raw tool-call arguments string as emitted by the model. Echo back unchanged when replaying history; used verbatim to preserve provider prompt-cache prefixes.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "call_id": {
             "type": "string"
           },
@@ -26672,56 +27879,7 @@
           },
           "output": {
             "items": {
-              "properties": {
-                "outcome": {
-                  "oneOf": [
-                    {
-                      "properties": {
-                        "exit_code": {
-                          "type": "integer"
-                        },
-                        "type": {
-                          "enum": [
-                            "exit"
-                          ],
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "type",
-                        "exit_code"
-                      ],
-                      "type": "object"
-                    },
-                    {
-                      "properties": {
-                        "type": {
-                          "enum": [
-                            "timeout"
-                          ],
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "type"
-                      ],
-                      "type": "object"
-                    }
-                  ]
-                },
-                "stderr": {
-                  "type": "string"
-                },
-                "stdout": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "stdout",
-                "stderr",
-                "outcome"
-              ],
-              "type": "object"
+              "$ref": "#/components/schemas/ShellCallOutputContent"
             },
             "type": "array"
           },
@@ -26744,6 +27902,97 @@
         ],
         "type": "object"
       },
+      "OutputShellServerToolItem": {
+        "description": "An openrouter:shell server tool output item",
+        "example": {
+          "action": {
+            "commands": [
+              "echo hello"
+            ],
+            "max_output_length": null,
+            "timeout_ms": null
+          },
+          "call_id": "call_abc123",
+          "id": "st_tmp_abc123",
+          "output": [
+            {
+              "outcome": {
+                "exit_code": 0,
+                "type": "exit"
+              },
+              "stderr": "",
+              "stdout": "hello\n"
+            }
+          ],
+          "status": "completed",
+          "type": "openrouter:shell"
+        },
+        "properties": {
+          "action": {
+            "properties": {
+              "commands": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "max_output_length": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "timeout_ms": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "commands"
+            ],
+            "type": "object"
+          },
+          "arguments": {
+            "description": "The raw tool-call arguments string as emitted by the model.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "call_id": {
+            "description": "The model-generated tool call id from the originating turn.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "output": {
+            "items": {
+              "$ref": "#/components/schemas/ShellCallOutputContent"
+            },
+            "type": "array"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ToolCallStatus"
+          },
+          "type": {
+            "enum": [
+              "openrouter:shell"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "type"
+        ],
+        "type": "object"
+      },
       "OutputSubagentServerToolItem": {
         "description": "An openrouter:subagent server tool output item",
         "example": {
@@ -26752,6 +28001,10 @@
           "type": "openrouter:subagent"
         },
         "properties": {
+          "call_id": {
+            "description": "EXPERIMENTAL \u2014 subject to change without notice. The `call_id` of the tool call that spawned this subagent. This id will also be included as the `subagent_id` on any `function_call` items created by the subagent. This must be returned in the request so the `function_call` can be matched with the correct subagent. A suspended `in_progress` item is announced once and never re-emitted or terminally closed \u2014 completion arrives as a new item with the same `call_id`.",
+            "type": "string"
+          },
           "error": {
             "description": "Error message when the subagent task did not produce an outcome.",
             "type": "string"
@@ -26927,6 +28180,7 @@
             "$ref": "#/components/schemas/OutputItemWebSearchCall"
           },
           {
+            "additionalProperties": {},
             "properties": {},
             "type": "object"
           }
@@ -27767,6 +29021,9 @@
             "example": 3,
             "type": "integer"
           },
+          "mode": {
+            "$ref": "#/components/schemas/WebSearchMode"
+          },
           "search_context_size": {
             "$ref": "#/components/schemas/SearchContextSizeEnum"
           },
@@ -27806,6 +29063,9 @@
             "description": "Maximum number of web searches the model may perform in a single request. Once reached, further search calls return an error result instead of executing. Applies to the Exa, Firecrawl, Parallel, and Perplexity engines. With native provider search, forwarded only to Anthropic (as `max_uses`); other native search providers have no equivalent parameter and ignore it.",
             "example": 3,
             "type": "integer"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/WebSearchMode"
           },
           "search_context_size": {
             "$ref": "#/components/schemas/SearchContextSizeEnum"
@@ -28016,6 +29276,7 @@
           "Crucible",
           "Crusoe",
           "Darkbloom",
+          "Databricks",
           "Decart",
           "Deepgram",
           "DeepInfra",
@@ -28128,6 +29389,10 @@
             "additionalProperties": {},
             "type": "object"
           },
+          "amazon-bedrock/claude-on-aws": {
+            "additionalProperties": {},
+            "type": "object"
+          },
           "amazon-nova": {
             "additionalProperties": {},
             "type": "object"
@@ -28137,6 +29402,10 @@
             "type": "object"
           },
           "anthropic": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "anthropic/2": {
             "additionalProperties": {},
             "type": "object"
           },
@@ -28229,6 +29498,10 @@
             "type": "object"
           },
           "darkbloom": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "databricks": {
             "additionalProperties": {},
             "type": "object"
           },
@@ -28966,6 +30239,7 @@
               "Crucible",
               "Crusoe",
               "Darkbloom",
+              "Databricks",
               "Decart",
               "Deepgram",
               "DeepInfra",
@@ -29152,6 +30426,7 @@
             "max_tokens"
           ],
           "supports_implicit_caching": true,
+          "supports_voice_cloning": false,
           "tag": "openai",
           "throughput_last_30m": {
             "p50": 45.2,
@@ -29293,6 +30568,11 @@
             "type": "array"
           },
           "supports_implicit_caching": {
+            "type": "boolean"
+          },
+          "supports_voice_cloning": {
+            "default": false,
+            "description": "Whether this TTS endpoint accepts inline reference audio (`input_references`) for stateless voice cloning. Requests carrying reference audio are only routed to endpoints where this is true.",
             "type": "boolean"
           },
           "tag": {
@@ -29516,7 +30796,7 @@
       },
       "RankingsDailyMeta": {
         "example": {
-          "as_of": "2026-05-12T02:00:00Z",
+          "as_of": "2026-05-12T02:00:00.000Z",
           "end_date": "2026-05-11",
           "start_date": "2026-04-12",
           "version": "v1"
@@ -29524,7 +30804,7 @@
         "properties": {
           "as_of": {
             "description": "ISO-8601 timestamp of when the response was generated. Reflects data-freshness because the underlying materialized view continuously ingests upstream events.",
-            "example": "2026-05-12T02:00:00Z",
+            "example": "2026-05-12T02:00:00.000Z",
             "type": "string"
           },
           "end_date": {
@@ -29568,7 +30848,7 @@
             }
           ],
           "meta": {
-            "as_of": "2026-05-12T02:00:00Z",
+            "as_of": "2026-05-12T02:00:00.000Z",
             "end_date": "2026-05-11",
             "start_date": "2026-04-12",
             "version": "v1"
@@ -31476,6 +32756,108 @@
         ],
         "type": "object"
       },
+      "SessionCostItem": {
+        "properties": {
+          "app_name": {
+            "description": "Published harness display label.",
+            "example": "Hermes Agent",
+            "type": "string"
+          },
+          "app_slug": {
+            "description": "Stable public slug of the harness.",
+            "example": "hermes-agent",
+            "type": "string"
+          },
+          "median_session_cost_usd": {
+            "description": "Median USD spend per sampled session.",
+            "example": 1.74,
+            "format": "double",
+            "type": "number"
+          },
+          "model_permaslug": {
+            "description": "Exact model permaslug.",
+            "example": "anthropic/claude-4.8-opus",
+            "type": "string"
+          },
+          "turn_range": {
+            "description": "Inclusive session turn-count range.",
+            "enum": [
+              "1-turn",
+              "2-9-turns",
+              "10-49-turns",
+              "50-plus-turns"
+            ],
+            "example": "10-49-turns",
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          }
+        },
+        "required": [
+          "app_slug",
+          "app_name",
+          "turn_range",
+          "model_permaslug",
+          "median_session_cost_usd"
+        ],
+        "type": "object"
+      },
+      "SessionCostMeta": {
+        "properties": {
+          "as_of": {
+            "description": "ISO-8601 timestamp when the response was generated.",
+            "example": "2026-05-12T02:00:00.000Z",
+            "type": "string"
+          },
+          "version": {
+            "description": "Dataset version.",
+            "enum": [
+              "v1"
+            ],
+            "type": "string"
+          },
+          "window_days": {
+            "description": "Number of days in the weekly session sample window, or null when no snapshot is published.",
+            "example": 30,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "window_end_date": {
+            "description": "UTC date of the final day in the session sample window, or null when no snapshot is published.",
+            "example": "2026-05-11",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "as_of",
+          "version",
+          "window_days",
+          "window_end_date"
+        ],
+        "type": "object"
+      },
+      "SessionCostResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/SessionCostItem"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/SessionCostMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
       "ShellCallItem": {
         "description": "A shell command execution call (newer variant)",
         "example": {
@@ -31517,6 +32899,13 @@
             ],
             "type": "object"
           },
+          "arguments": {
+            "description": "The raw tool-call arguments string as emitted by the model. Echo back unchanged when replaying history; used verbatim to preserve provider prompt-cache prefixes.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "call_id": {
             "type": "string"
           },
@@ -31551,14 +32940,82 @@
         ],
         "type": "object"
       },
+      "ShellCallOutputContent": {
+        "additionalProperties": {},
+        "description": "Captured stdout and stderr for one command of a shell call, with its exit or timeout outcome.",
+        "example": {
+          "outcome": {
+            "exit_code": 0,
+            "type": "exit"
+          },
+          "stderr": "",
+          "stdout": "total 0\n"
+        },
+        "properties": {
+          "outcome": {
+            "oneOf": [
+              {
+                "additionalProperties": {},
+                "properties": {
+                  "exit_code": {
+                    "type": "integer"
+                  },
+                  "type": {
+                    "enum": [
+                      "exit"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "exit_code"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": {},
+                "properties": {
+                  "type": {
+                    "enum": [
+                      "timeout"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "type": "object"
+              }
+            ]
+          },
+          "stderr": {
+            "type": "string"
+          },
+          "stdout": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "stdout",
+          "stderr",
+          "outcome"
+        ],
+        "type": "object"
+      },
       "ShellCallOutputItem": {
         "description": "Output from a shell command execution (newer variant)",
         "example": {
           "call_id": "call-abc123",
           "output": [
             {
-              "content": "total 0\n",
-              "type": "stdout"
+              "outcome": {
+                "exit_code": 0,
+                "type": "exit"
+              },
+              "stderr": "",
+              "stdout": "total 0\n"
             }
           ],
           "status": "completed",
@@ -31582,28 +33039,7 @@
           },
           "output": {
             "items": {
-              "additionalProperties": {},
-              "properties": {
-                "content": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "exit_code": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ]
-                },
-                "type": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "type"
-              ],
-              "type": "object"
+              "$ref": "#/components/schemas/ShellCallOutputContent"
             },
             "type": "array"
           },
@@ -31739,6 +33175,96 @@
         ],
         "type": "object"
       },
+      "SpeechInputReference": {
+        "description": "Reference content part for stateless voice cloning",
+        "discriminator": {
+          "mapping": {
+            "input_audio": "#/components/schemas/SpeechInputReferenceAudio",
+            "text": "#/components/schemas/SpeechInputReferenceText"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/SpeechInputReferenceAudio"
+          },
+          {
+            "$ref": "#/components/schemas/SpeechInputReferenceText"
+          }
+        ]
+      },
+      "SpeechInputReferenceAudio": {
+        "description": "Reference audio input for stateless voice cloning",
+        "example": {
+          "input_audio": {
+            "data": "data:audio/wav;base64,UklGRuQXDABXQVZF..."
+          },
+          "type": "input_audio"
+        },
+        "properties": {
+          "input_audio": {
+            "$ref": "#/components/schemas/SpeechInputReferenceAudioInput"
+          },
+          "type": {
+            "enum": [
+              "input_audio"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "input_audio"
+        ],
+        "type": "object"
+      },
+      "SpeechInputReferenceAudioInput": {
+        "description": "Reference audio input object",
+        "properties": {
+          "data": {
+            "description": "Base64-encoded reference audio (optionally a data URI). Supported audio formats are provider-specific. Limited to 20 MiB of base64 (15 MiB of decoded audio).",
+            "example": "data:audio/wav;base64,UklGRuQXDABXQVZF...",
+            "maxLength": 20971520,
+            "minLength": 1,
+            "type": "string"
+          },
+          "format": {
+            "description": "Audio format of the reference audio (e.g., wav, mp3). Optional; most providers detect the format from the audio bytes.",
+            "example": "wav",
+            "type": "string"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "SpeechInputReferenceText": {
+        "description": "Transcript of the accompanying reference audio",
+        "example": {
+          "text": "I used to rule the world.",
+          "type": "text"
+        },
+        "properties": {
+          "text": {
+            "description": "Transcript of the accompanying reference audio.",
+            "example": "I used to rule the world.",
+            "maxLength": 10000,
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "text"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "text"
+        ],
+        "type": "object"
+      },
       "SpeechRequest": {
         "description": "Text-to-speech request input",
         "example": {
@@ -31753,6 +33279,25 @@
             "description": "Text to synthesize",
             "example": "Hello world",
             "type": "string"
+          },
+          "input_references": {
+            "description": "Reference content for stateless voice cloning: one `input_audio` part carrying the voice sample, optionally accompanied by one `text` part with its transcript. Only routed to endpoints that support voice cloning.",
+            "example": [
+              {
+                "input_audio": {
+                  "data": "data:audio/wav;base64,UklGRuQXDABXQVZF..."
+                },
+                "type": "input_audio"
+              },
+              {
+                "text": "I used to rule the world.",
+                "type": "text"
+              }
+            ],
+            "items": {
+              "$ref": "#/components/schemas/SpeechInputReference"
+            },
+            "type": "array"
           },
           "model": {
             "description": "TTS model identifier",
@@ -32017,6 +33562,11 @@
             "error": "#/components/schemas/ErrorEvent",
             "response.apply_patch_call_operation_diff.delta": "#/components/schemas/ApplyPatchCallOperationDiffDeltaEvent",
             "response.apply_patch_call_operation_diff.done": "#/components/schemas/ApplyPatchCallOperationDiffDoneEvent",
+            "response.code_interpreter_call.completed": "#/components/schemas/CodeInterpreterCallCompletedEvent",
+            "response.code_interpreter_call.in_progress": "#/components/schemas/CodeInterpreterCallInProgressEvent",
+            "response.code_interpreter_call.interpreting": "#/components/schemas/CodeInterpreterCallInterpretingEvent",
+            "response.code_interpreter_call_code.delta": "#/components/schemas/CodeInterpreterCallCodeDeltaEvent",
+            "response.code_interpreter_call_code.done": "#/components/schemas/CodeInterpreterCallCodeDoneEvent",
             "response.completed": "#/components/schemas/StreamEventsResponseCompleted",
             "response.content_part.added": "#/components/schemas/ContentPartAddedEvent",
             "response.content_part.done": "#/components/schemas/ContentPartDoneEvent",
@@ -32167,6 +33717,21 @@
           },
           {
             "$ref": "#/components/schemas/ImageGenCallCompletedEvent"
+          },
+          {
+            "$ref": "#/components/schemas/CodeInterpreterCallInProgressEvent"
+          },
+          {
+            "$ref": "#/components/schemas/CodeInterpreterCallInterpretingEvent"
+          },
+          {
+            "$ref": "#/components/schemas/CodeInterpreterCallCompletedEvent"
+          },
+          {
+            "$ref": "#/components/schemas/CodeInterpreterCallCodeDeltaEvent"
+          },
+          {
+            "$ref": "#/components/schemas/CodeInterpreterCallCodeDoneEvent"
           },
           {
             "$ref": "#/components/schemas/WebSearchCallInProgressEvent"
@@ -32501,7 +34066,7 @@
             "x-speakeasy-unknown-values": "allow"
           },
           "max_tokens": {
-            "description": "Maximum number of reasoning tokens the subagent may use. Accepted and validated but not yet forwarded to the subagent call.",
+            "description": "Maximum number of reasoning tokens the subagent may use. Forwarded to the subagent call as `reasoning.max_tokens`.",
             "type": "integer"
           }
         },
@@ -32514,6 +34079,22 @@
           "name": "summarizer"
         },
         "properties": {
+          "inherit_functions": {
+            "description": "EXPERIMENTAL \u2014 subject to change without notice. When true, the subagent inherits every client function defined in the request's top-level `tools` list. Supported on the Responses API (`/api/v1/responses`) only; other APIs reject it with a `400`.",
+            "example": true,
+            "type": "boolean"
+          },
+          "inherited_function_names": {
+            "description": "EXPERIMENTAL \u2014 subject to change without notice. Names of the top-level function tools that the subagent will inherit. Any tool that matches by name will be copied fully into the tools array of the subagent. When `inherit_functions` is `true`, this list does nothing, because every client function will be inherited by default. Names are trimmed before validation, so a whitespace-only name is rejected with a `400`. Supported on the Responses API (`/api/v1/responses`) only; other APIs reject it with a `400`.",
+            "example": [
+              "lookup_order"
+            ],
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array"
+          },
           "instructions": {
             "description": "System instructions for the subagent. When omitted, the subagent responds with no system prompt of its own.",
             "example": "You are a fast, focused worker. Complete the task exactly as described.",
@@ -32525,7 +34106,7 @@
             "type": "integer"
           },
           "max_tool_calls": {
-            "description": "Maximum number of tool-calling steps the subagent may take during its agentic loop. Capped at 25. Only relevant when the subagent is given tools. Accepted and validated but not yet enforced on the subagent call.",
+            "description": "Maximum number of tool-calling steps the subagent may take during its agentic loop. Capped at 25. Only relevant when the subagent is given tools. Forwarded to the subagent call as `max_tool_calls`.",
             "example": 5,
             "maximum": 25,
             "minimum": 1,
@@ -33757,14 +35338,6 @@
         "properties": {
           "data": {
             "items": {
-              "discriminator": {
-                "mapping": {
-                  "artificial-analysis": "#/components/schemas/UnifiedBenchmarksAAItem",
-                  "design-arena": "#/components/schemas/UnifiedBenchmarksDAItem",
-                  "openrouter": "#/components/schemas/UnifiedBenchmarksORItem"
-                },
-                "propertyName": "source"
-              },
               "oneOf": [
                 {
                   "$ref": "#/components/schemas/UnifiedBenchmarksAAItem"
@@ -33774,6 +35347,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/UnifiedBenchmarksORItem"
+                },
+                {
+                  "$ref": "#/components/schemas/UnifiedBenchmarksSearchItem"
                 }
               ]
             },
@@ -33786,6 +35362,152 @@
         "required": [
           "data",
           "meta"
+        ],
+        "type": "object"
+      },
+      "UnifiedBenchmarksSearchItem": {
+        "properties": {
+          "avg_cost_per_task": {
+            "description": "Average cost per task in USD, or null if unavailable.",
+            "example": 0.031,
+            "format": "double",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "avg_latency_per_task_ms": {
+            "description": "Average wall-clock latency per task in milliseconds, or null if unavailable.",
+            "example": 45210,
+            "format": "double",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "benchmark_type": {
+            "description": "OpenRouter search benchmark.",
+            "enum": [
+              "search_browsecomp",
+              "search_hle",
+              "search_dsqa",
+              "search_widesearch"
+            ],
+            "example": "search_browsecomp",
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "display_name": {
+            "description": "Human-readable model name.",
+            "example": "GPT-4o",
+            "type": "string"
+          },
+          "last_run_timestamp": {
+            "description": "Timestamp of the newest qualifying run in the published configuration's lane.",
+            "example": "2026-07-28T13:38:18Z",
+            "type": "string"
+          },
+          "model_permaslug": {
+            "description": "Stable OpenRouter model identifier.",
+            "example": "openai/gpt-4o",
+            "type": "string"
+          },
+          "primary_metric": {
+            "description": "Identifies the meaning of `primary_score`: `f1_by_item` for WideSearch, `accuracy` for all other search benchmarks.",
+            "enum": [
+              "accuracy",
+              "f1_by_item"
+            ],
+            "example": "accuracy",
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "primary_score": {
+            "description": "The benchmark's headline score from 0 to 1. Its meaning is identified by `primary_metric`: item-weighted F1 for WideSearch or strict accuracy for the other search benchmarks. Higher is better.",
+            "example": 0.72,
+            "format": "double",
+            "type": "number"
+          },
+          "run_config": {
+            "$ref": "#/components/schemas/UnifiedBenchmarksSearchRunConfig"
+          },
+          "search_engine": {
+            "description": "Search engine the published configuration used.",
+            "example": "exa",
+            "type": "string"
+          },
+          "search_surface": {
+            "description": "Request surface the published configuration went through.",
+            "enum": [
+              "server-tool",
+              "plugin"
+            ],
+            "example": "server-tool",
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "source": {
+            "description": "Benchmark source discriminator.",
+            "enum": [
+              "openrouter"
+            ],
+            "type": "string"
+          },
+          "total_tasks": {
+            "description": "Tasks evaluated across the published configuration's runs.",
+            "example": 100,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "source",
+          "model_permaslug",
+          "display_name",
+          "benchmark_type",
+          "primary_metric",
+          "primary_score",
+          "total_tasks",
+          "avg_cost_per_task",
+          "avg_latency_per_task_ms",
+          "search_engine",
+          "search_surface",
+          "last_run_timestamp"
+        ],
+        "type": "object"
+      },
+      "UnifiedBenchmarksSearchRunConfig": {
+        "description": "Published lane configuration, included only when include_run_config=true. Only the agent turn count, reasoning effort, and temperature are exposed; other harness settings are intentionally not part of the public contract.",
+        "properties": {
+          "max_agent_turns": {
+            "description": "Agent-turn count for the published lane, or null for plugin lanes.",
+            "example": 25,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "reasoning_effort": {
+            "description": "Reasoning effort configured for the published lane, or null when omitted.",
+            "example": "high",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "temperature": {
+            "description": "Sampling temperature configured for the published lane, or null when omitted.",
+            "example": 0.2,
+            "format": "double",
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "max_agent_turns",
+          "reasoning_effort",
+          "temperature"
         ],
         "type": "object"
       },
@@ -34210,6 +35932,21 @@
               "null"
             ]
           },
+          "broadcast_generation_cost": {
+            "description": "Whether to include cost and billing generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_identity": {
+            "description": "Whether to include identity generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
+          "broadcast_generation_request_context": {
+            "description": "Whether to include request-context generation metadata.",
+            "example": false,
+            "type": "boolean"
+          },
           "config": {
             "additionalProperties": {},
             "description": "Provider-specific configuration fields to update. Masked values are ignored; unset fields keep their current value.",
@@ -34258,6 +35995,9 @@
         "example": {
           "data": {
             "api_key_hashes": null,
+            "broadcast_generation_cost": false,
+            "broadcast_generation_identity": false,
+            "broadcast_generation_request_context": false,
             "config": {
               "baseUrl": "https://us.cloud.langfuse.com",
               "publicKey": "pk-l...EfGh",
@@ -34612,6 +36352,11 @@
             "format": "uri",
             "type": "string"
           },
+          "creativity": {
+            "description": "Creativity level for video upscaling models only. This parameter is not supported by video generation models.",
+            "example": 1,
+            "type": "integer"
+          },
           "duration": {
             "description": "Duration of the generated video in seconds",
             "example": 8,
@@ -34631,7 +36376,7 @@
             "type": "boolean"
           },
           "input_references": {
-            "description": "Reference assets to guide video generation. Accepts image, audio, and video references. Audio and video references are only honored by providers that support them (currently BytePlus Seedance 2.0); other providers use image references and ignore the rest.",
+            "description": "Reference assets to guide video generation. Accepts image, audio, and video references. Audio and video references are only honored by providers that support them (including BytePlus Seedance generation 2 and newer); other providers use image references and ignore the rest.",
             "items": {
               "$ref": "#/components/schemas/InputReference"
             },
@@ -34690,6 +36435,11 @@
             "description": "Exact pixel dimensions of the generated video in \"WIDTHxHEIGHT\" format (e.g. \"1280x720\"). Interchangeable with resolution + aspect_ratio.",
             "example": "1280x720",
             "type": "string"
+          },
+          "upscale_factor": {
+            "description": "Upscale factor for video upscaling models only. This parameter is not supported by video generation models.",
+            "example": 2,
+            "type": "number"
           }
         },
         "required": [
@@ -34816,6 +36566,16 @@
             "example": 1692901234,
             "type": "integer"
           },
+          "creativity": {
+            "description": "Supported creativity levels for video upscaling models",
+            "items": {
+              "type": "integer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "description": {
             "description": "Description of the model",
             "example": "GPT-4 is a large multimodal model that can solve difficult problems with greater accuracy.",
@@ -34939,20 +36699,26 @@
                 "480x720",
                 "480x854",
                 "480x1120",
+                "560x752",
                 "640x480",
+                "640x640",
                 "720x480",
                 "720x720",
                 "720x960",
                 "720x1080",
                 "720x1280",
                 "720x1680",
+                "752x560",
                 "768x768",
                 "768x1024",
                 "768x1152",
                 "768x1366",
                 "768x1792",
+                "834x1112",
                 "854x480",
                 "960x720",
+                "960x960",
+                "992x432",
                 "1024x768",
                 "1080x720",
                 "1080x1080",
@@ -34960,6 +36726,7 @@
                 "1080x1620",
                 "1080x1920",
                 "1080x2520",
+                "1112x834",
                 "1120x480",
                 "1152x768",
                 "1280x720",
@@ -34970,6 +36737,7 @@
                 "1440x2160",
                 "1440x2560",
                 "1440x3360",
+                "1470x630",
                 "1620x1080",
                 "1680x720",
                 "1792x768",
@@ -34996,6 +36764,29 @@
               "array",
               "null"
             ]
+          },
+          "upscale_factor": {
+            "description": "Supported upscale factor range for video upscaling models",
+            "properties": {
+              "max": {
+                "format": "double",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "min": {
+                "format": "double",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            },
+            "type": [
+              "object",
+              "null"
+            ]
           }
         },
         "required": [
@@ -35008,6 +36799,8 @@
           "supported_sizes",
           "supported_durations",
           "supported_frame_images",
+          "upscale_factor",
+          "creativity",
           "generate_audio",
           "seed",
           "allowed_passthrough_parameters"
@@ -35272,6 +37065,9 @@
             "example": 3,
             "type": "integer"
           },
+          "mode": {
+            "$ref": "#/components/schemas/WebSearchMode"
+          },
           "search_context_size": {
             "$ref": "#/components/schemas/SearchQualityLevel"
           },
@@ -35354,6 +37150,23 @@
         "type": "string",
         "x-speakeasy-unknown-values": "allow"
       },
+      "WebSearchMode": {
+        "description": "Engine-native search mode. Exa supports instant, fast, auto (default), deep-lite, deep, and deep-reasoning. Parallel supports turbo, fast, basic (default), and advanced. Modes unsupported by the selected engine are ignored.",
+        "enum": [
+          "instant",
+          "fast",
+          "auto",
+          "deep-lite",
+          "deep",
+          "deep-reasoning",
+          "turbo",
+          "basic",
+          "advanced"
+        ],
+        "example": "auto",
+        "type": "string",
+        "x-speakeasy-unknown-values": "allow"
+      },
       "WebSearchPlugin": {
         "example": {
           "enabled": true,
@@ -35404,6 +37217,9 @@
           "max_uses": {
             "description": "Maximum number of times the model can invoke web search in a single turn. Passed through to native providers that support it (e.g. Anthropic).",
             "type": "integer"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/WebSearchMode"
           },
           "search_prompt": {
             "type": "string"
@@ -35461,6 +37277,9 @@
             "description": "Maximum number of web searches the model may perform in a single request. Once reached, further search calls return an error result instead of executing. Applies to the Exa, Firecrawl, Parallel, and Perplexity engines. With native provider search, forwarded only to Anthropic (as `max_uses`); other native search providers have no equivalent parameter and ignore it.",
             "example": 3,
             "type": "integer"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/WebSearchMode"
           },
           "search_context_size": {
             "$ref": "#/components/schemas/SearchContextSizeEnum"
@@ -35523,6 +37342,9 @@
             "description": "Maximum number of web searches the model may perform in a single request. Once reached, further search calls return an error result instead of executing. Applies to the Exa, Firecrawl, Parallel, and Perplexity engines. With native provider search, forwarded only to Anthropic (as `max_uses`); other native search providers have no equivalent parameter and ignore it.",
             "example": 3,
             "type": "integer"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/WebSearchMode"
           },
           "search_context_size": {
             "$ref": "#/components/schemas/SearchQualityLevel"
@@ -35992,7 +37814,7 @@
   "paths": {
     "/activity": {
       "get": {
-        "description": "Returns user activity data grouped by endpoint for the last 30 (completed) UTC days. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "description": "Returns user activity data grouped by endpoint for the last 30 (completed) UTC days. Pass `workspace_id` to scope the response to a single workspace. Pass `group_by=workspace` to split each row per workspace and include `workspace_id` on every item; by default rows are aggregated across workspaces and `workspace_id` is not returned. Activity recorded before workspace resolution existed is permanently attributed to the account default workspace (no backfill is possible). [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "getUserActivity",
         "parameters": [
           {
@@ -36025,6 +37847,31 @@
             "schema": {
               "description": "Filter by org member user ID. Only applicable for organization accounts.",
               "example": "user_abc123",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Set to 'workspace' to split each row per workspace and include `workspace_id` on every item. Omitted by default, in which case rows are aggregated across workspaces (by date, model, and endpoint) and `workspace_id` is not returned \u2014 preserving the historical response shape.",
+            "in": "query",
+            "name": "group_by",
+            "required": false,
+            "schema": {
+              "description": "Set to 'workspace' to split each row per workspace and include `workspace_id` on every item. Omitted by default, in which case rows are aggregated across workspaces (by date, model, and endpoint) and `workspace_id` is not returned \u2014 preserving the historical response shape.",
+              "enum": [
+                "workspace"
+              ],
+              "example": "workspace",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by workspace ID (UUID). Returns only activity attributed to that workspace. The workspace must belong to the authenticated account.",
+            "in": "query",
+            "name": "workspace_id",
+            "required": false,
+            "schema": {
+              "description": "Filter by workspace ID (UUID). Returns only activity attributed to that workspace. The workspace must belong to the authenticated account.",
+              "example": "550e8400-e29b-41d4-a716-446655440000",
               "type": "string"
             }
           }
@@ -36141,7 +37988,8 @@
         "summary": "Get user activity grouped by endpoint",
         "tags": [
           "Analytics"
-        ]
+        ],
+        "x-speakeasy-max-method-params": 5
       },
       "parameters": [
         {
@@ -36457,11 +38305,11 @@
                       },
                       "dimension_names": {
                         "items": {
-                          "description": "Classifier dimension name (snake_case identifier). When exactly one name is provided, the response uses it as the column key; with multiple names or none, the response uses `clf_dimension_name`/`clf_dimension_value` columns.",
+                          "description": "Classifier dimension name (snake_case identifier). Each name becomes its own column key in the response; providing two names cross-groups results by both dimensions. With no names, the response uses `clf_dimension_name`/`clf_dimension_value` columns (one row per dimension/value pair).",
                           "example": "department",
                           "type": "string"
                         },
-                        "maxItems": 10,
+                        "maxItems": 2,
                         "type": "array"
                       },
                       "include_nulls": {
@@ -36559,6 +38407,10 @@
                           "example": "model",
                           "type": "string"
                         },
+                        "include_unset": {
+                          "description": "Include rows where the dimension has no value. Applies only to the `in` and `not_in` operators and dimensions that have an unset bucket.",
+                          "type": "boolean"
+                        },
                         "operator": {
                           "description": "Filter operator",
                           "example": "eq",
@@ -36588,7 +38440,7 @@
                               "type": "array"
                             }
                           ],
-                          "description": "Filter value (scalar or array depending on operator). Several dimensions are enriched in responses (returned as human-readable labels), but filters must use the underlying ID: `api_key_id` \u2014 numeric ID (from generation metadata) or key hash (64-char hex from GET /api/v1/keys, resolved server-side); `user` \u2014 Clerk user ID (e.g. \"user_abc123\"), not the display name; `workspace` \u2014 workspace UUID, not the workspace name; `app` \u2014 numeric app ID, not the app title; `model` \u2014 permaslug (e.g. \"openai/gpt-4o\"), not the display name. Other dimensions (provider, origin, country, etc.) are not enriched and accept the value as returned."
+                          "description": "Filter value (scalar or array depending on operator). Several dimensions are enriched in responses (returned as human-readable labels), but filters must use the underlying ID: `api_key_id` \u2014 numeric ID (from generation metadata) or key hash (64-char hex from GET /api/v1/keys, resolved server-side); `user` \u2014 Clerk user ID (e.g. \"user_abc123\"), not the display name; `workspace` \u2014 workspace UUID, not the workspace name (filtering or grouping by the account default workspace also covers activity recorded before workspace resolution existed, which is attributed to that default workspace); `app` \u2014 numeric app ID, not the app title; `model` \u2014 permaslug (e.g. \"openai/gpt-4o\"), not the display name. Other dimensions (provider, origin, country, etc.) are not enriched and accept the value as returned."
                         }
                       },
                       "required": [
@@ -37752,7 +39604,7 @@
     },
     "/benchmarks": {
       "get": {
-        "description": "Unified benchmark endpoint that aggregates scores from multiple benchmark sources (Artificial Analysis, Design Arena, and OpenRouter's own tau-bench and GPQA evals). Filter by source to reproduce the exact shapes from the legacy per-source endpoints, or use task_type to find models suited for specific workloads. Authenticate with any valid OpenRouter API key. Rate-limited to 30 requests/minute per key and 500 requests/day per account.",
+        "description": "Unified benchmark endpoint that aggregates scores from multiple benchmark sources (Artificial Analysis, Design Arena, and OpenRouter's own tau-bench, GPQA, and web-search evals). Filter by source to reproduce the exact shapes from the legacy per-source endpoints, or use task_type to find models suited for specific workloads. Use task_type=search (or a search_* benchmark_type) for OpenRouter's search benchmarks, which publish each model's highest-scoring eligible evaluation configuration with same-configuration runs combined by task-weighted mean. Authenticate with any valid OpenRouter API key. Rate-limited to 30 requests/minute per key and 500 requests/day per account.",
         "operationId": "getBenchmarks",
         "parameters": [
           {
@@ -37773,18 +39625,78 @@
             }
           },
           {
-            "description": "Filter results by task type. For Artificial Analysis, maps to the corresponding index. For Design Arena, maps to the matching category.",
+            "description": "Filter results by task type. For Artificial Analysis, maps to the corresponding index. For Design Arena, maps to the matching category. `search` returns OpenRouter search benchmark results only.",
             "in": "query",
             "name": "task_type",
             "required": false,
             "schema": {
-              "description": "Filter results by task type. For Artificial Analysis, maps to the corresponding index. For Design Arena, maps to the matching category.",
+              "description": "Filter results by task type. For Artificial Analysis, maps to the corresponding index. For Design Arena, maps to the matching category. `search` returns OpenRouter search benchmark results only.",
               "enum": [
                 "coding",
                 "intelligence",
-                "agentic"
+                "agentic",
+                "search"
               ],
               "example": "coding",
+              "type": "string",
+              "x-speakeasy-unknown-values": "allow"
+            }
+          },
+          {
+            "description": "Return results for one exact OpenRouter benchmark. A `search_*` value narrows the response to search results only; a classic value narrows the OpenRouter items and leaves other sources' items as they are.",
+            "in": "query",
+            "name": "benchmark_type",
+            "required": false,
+            "schema": {
+              "description": "Return results for one exact OpenRouter benchmark. A `search_*` value narrows the response to search results only; a classic value narrows the OpenRouter items and leaves other sources' items as they are.",
+              "enum": [
+                "gpqa_diamond",
+                "tau_bench_verified_airline",
+                "search_browsecomp",
+                "search_hle",
+                "search_dsqa",
+                "search_widesearch"
+              ],
+              "example": "search_widesearch",
+              "type": "string",
+              "x-speakeasy-unknown-values": "allow"
+            }
+          },
+          {
+            "description": "Search benchmarks only: include the published lane configuration whitelist in each search item. Defaults to false. The whitelist is limited to agent turn count, reasoning effort, and temperature so future harness configuration changes do not change the public contract.",
+            "in": "query",
+            "name": "include_run_config",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "Search benchmarks only: include the published lane configuration whitelist in each search item. Defaults to false. The whitelist is limited to agent turn count, reasoning effort, and temperature so future harness configuration changes do not change the public contract.",
+              "example": true,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "OpenRouter search benchmarks only: filter by the search engine used.",
+            "in": "query",
+            "name": "search_engine",
+            "required": false,
+            "schema": {
+              "description": "OpenRouter search benchmarks only: filter by the search engine used.",
+              "example": "exa",
+              "type": "string"
+            }
+          },
+          {
+            "description": "OpenRouter search benchmarks only: filter by the request surface the lane ran on.",
+            "in": "query",
+            "name": "search_surface",
+            "required": false,
+            "schema": {
+              "description": "OpenRouter search benchmarks only: filter by the request surface the lane ran on.",
+              "enum": [
+                "server-tool",
+                "plugin"
+              ],
+              "example": "server-tool",
               "type": "string",
               "x-speakeasy-unknown-values": "allow"
             }
@@ -37995,12 +39907,12 @@
             }
           },
           {
-            "description": "Optional workspace ID to filter by. Defaults to the authenticated entity's default workspace.",
+            "description": "Optional workspace ID to filter by. When omitted, resolves to the account\u2019s default workspace; if that default has been deleted, the request returns a 400 and you must pass `workspace_id` explicitly.",
             "in": "query",
             "name": "workspace_id",
             "required": false,
             "schema": {
-              "description": "Optional workspace ID to filter by. Defaults to the authenticated entity's default workspace.",
+              "description": "Optional workspace ID to filter by. When omitted, resolves to the account\u2019s default workspace; if that default has been deleted, the request returns a 400 and you must pass `workspace_id` explicitly.",
               "example": "550e8400-e29b-41d4-a716-446655440000",
               "format": "uuid",
               "type": "string"
@@ -38039,6 +39951,7 @@
                 "coreweave",
                 "crusoe",
                 "darkbloom",
+                "databricks",
                 "decart",
                 "deepgram",
                 "deepinfra",
@@ -38236,7 +40149,7 @@
         }
       ],
       "post": {
-        "description": "Create a new bring-your-own-key (BYOK) provider credential. The raw key is encrypted at rest and never returned in API responses. Defaults to the authenticated entity's default workspace; use the `workspace_id` body field to scope to a different workspace. Treat the raw key as write-only; it is never returned after creation. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "description": "Create a new bring-your-own-key (BYOK) provider credential. The raw key is encrypted at rest and never returned in API responses. When `workspace_id` is omitted, the credential is created in the default workspace; if that default has been deleted, the request returns a 400 and you must pass `workspace_id` explicitly. Treat the raw key as write-only; it is never returned after creation. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "createBYOKKey",
         "requestBody": {
           "content": {
@@ -39398,7 +41311,7 @@
     },
     "/datasets/app-rankings": {
       "get": {
-        "description": "Returns the top public apps on OpenRouter ranked by token usage inside the requested\ndate window, matching the public apps marketplace on openrouter.ai/apps. Token totals\nare `prompt_tokens + completion_tokens`; hidden and private apps are excluded and\ntraffic from related app aliases is merged into the canonical visible app.\n\n`sort=popular` (default) ranks by total token volume inside the window.\n`sort=trending` ranks by absolute excess token growth: window volume minus the average\nvolume of the three equal-length periods immediately preceding the window. Apps with\nno excess growth are omitted, so `trending` may return fewer than `limit` rows.\n\nFilter with `category` (marketplace category group, e.g. `coding`) or `subcategory`\n(e.g. `cli-agent`). Ranks are re-numbered 1..N after filtering. Page with `offset` \u2014\n`rank` stays absolute, so the first row of `offset=50` is `rank: 51`.\n\nAuthenticate with any valid OpenRouter API key (same key used for inference).\nRate-limited to 30 requests/minute per key and 500 requests/day per account.\n\nWhen republishing or quoting this dataset, OpenRouter must be cited as:\n\"Source: OpenRouter (openrouter.ai/apps), as of {as_of}.\"\n\nToken counts come from each upstream provider's own tokenizer, so a token attributed\nto one app is not directly comparable to a token attributed to another app whose\ntraffic flows through a different provider.",
+        "description": "Returns the top public apps on OpenRouter ranked by token usage inside the requested\ndate window, matching the public apps marketplace on openrouter.ai/apps. Token totals\nare `prompt_tokens + completion_tokens`; hidden and private apps are excluded and\ntraffic from related app aliases is merged into the canonical visible app.\n\n`sort=popular` (default) ranks by total token volume inside the window.\n`sort=trending` ranks by absolute excess token growth: window volume minus the average\nvolume of the three equal-length periods immediately preceding the window. Apps with\nno excess growth are omitted, so `trending` may return fewer than `limit` rows.\n\nFilter with `category` (marketplace category group, e.g. `coding`) or `subcategory`\n(e.g. `cli-agent`). Ranks are re-numbered 1..N after filtering. Page with `offset` \u2014\n`rank` stays absolute, so the first row of `offset=50` is `rank: 51`.\n\nAuthenticate with any valid OpenRouter API key (same key used for inference).\nRate-limited to 30 requests/minute per key and 500 requests/day per account.\n\nWhen republishing or quoting this dataset, OpenRouter must be cited as:\n\"Source: OpenRouter (openrouter.ai/apps), as of {as_of}.\"\n\nToken counts come from each upstream provider's own tokenizer, so a token attributed\nto one app is not directly comparable to a token attributed to another app whose\ntraffic flows through a different provider.\n\nLicensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/): reuse and republish with attribution to OpenRouter.",
         "operationId": "getAppRankings",
         "parameters": [
           {
@@ -39658,7 +41571,7 @@
     },
     "/datasets/rankings-daily": {
       "get": {
-        "description": "Returns the top 50 public models per day by total token usage on OpenRouter, plus a\nsingle aggregated `other` row per day that sums every model outside that top 50.\nToken totals are `prompt_tokens + completion_tokens`, matching the public rankings\nchart on openrouter.ai/rankings.\n\nEach row is a distinct `(date, model_permaslug)` pair. The `other` row uses the\nreserved permaslug `other` and is always returned last within its date, so callers\ncan compute `top-50 traffic / total daily traffic` without a second request.\n\nOptional filters slice the dataset. `period` (`day`/`week`/`month`) sets the time\ngrain. `modality` and `context_bucket` narrow the exact dataset by output/input\nmodality (or tool-calling activity) and request context length. `category` and\n`language_type` instead read a sampled, upsampled dataset whose `total_tokens` are\nweekly-grain estimates \u2014 they cannot be combined with each other or with the exact\nfilters, and reject `period=day` with a 400.\n\nAuthenticate with any valid OpenRouter API key (same key used for inference).\nRate-limited to 30 requests/minute per key and 500 requests/day per account.\n\nWhen republishing or quoting this dataset, OpenRouter must be cited as:\n\"Source: OpenRouter (openrouter.ai/rankings), as of {as_of}.\"\n\nToken counts come from each upstream provider's own tokenizer (Anthropic counts\nare as reported by Anthropic, OpenAI counts are as reported by OpenAI, etc.), so\na token in one row is not directly comparable to a token in another row from a\ndifferent provider.",
+        "description": "Returns the top 50 public models per day by total token usage on OpenRouter, plus a\nsingle aggregated `other` row per day that sums every model outside that top 50.\nToken totals are `prompt_tokens + completion_tokens`, matching the public rankings\nchart on openrouter.ai/rankings.\n\nEach row is a distinct `(date, model_permaslug)` pair. The `other` row uses the\nreserved permaslug `other` and is always returned last within its date, so callers\ncan compute `top-50 traffic / total daily traffic` without a second request.\n\nOptional filters slice the dataset. `period` (`day`/`week`/`month`) sets the time\ngrain. `modality` and `context_bucket` narrow the exact dataset by output/input\nmodality (or tool-calling activity) and request context length. `category` and\n`language_type` instead read a sampled, upsampled dataset whose `total_tokens` are\nweekly-grain estimates \u2014 they cannot be combined with each other or with the exact\nfilters, and reject `period=day` with a 400.\n\nAuthenticate with any valid OpenRouter API key (same key used for inference).\nRate-limited to 30 requests/minute per key and 500 requests/day per account.\n\nWhen republishing or quoting this dataset, OpenRouter must be cited as:\n\"Source: OpenRouter (openrouter.ai/rankings), as of {as_of}.\"\n\nToken counts come from each upstream provider's own tokenizer (Anthropic counts\nare as reported by Anthropic, OpenAI counts are as reported by OpenAI, etc.), so\na token in one row is not directly comparable to a token in another row from a\ndifferent provider.\n\nLicensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/): reuse and republish with attribution to OpenRouter.",
         "operationId": "getRankingsDaily",
         "parameters": [
           {
@@ -39888,6 +41801,211 @@
         "tags": [
           "Datasets"
         ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ]
+    },
+    "/datasets/session-cost": {
+      "get": {
+        "description": "Returns weekly refreshed, aggregated cost-per-session cells for the published harnesses.\nSessions are never pooled across apps. Medians are of per-session USD spend, and\nprivacy-preserving aggregation never exposes clerk_user_id values or per-session rows.\n\nFilter by `app_slug`, `model`, or `turn_range`. Filtering by `model` alone works across apps\nfor harness-vs-harness comparison at a fixed model. Results refresh weekly and include the source snapshot\nwindow in `meta`.\n\nLicensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/): reuse and republish with attribution to OpenRouter.",
+        "operationId": "getSessionCost",
+        "parameters": [
+          {
+            "description": "Filter to one published harness slug.",
+            "in": "query",
+            "name": "app_slug",
+            "required": false,
+            "schema": {
+              "description": "Filter to one published harness slug.",
+              "example": "hermes-agent",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Exact model permaslug filter. Works across all harness apps.",
+            "in": "query",
+            "name": "model",
+            "required": false,
+            "schema": {
+              "description": "Exact model permaslug filter. Works across all harness apps.",
+              "example": "anthropic/claude-4.8-opus",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by the inclusive number of turns in a session.",
+            "in": "query",
+            "name": "turn_range",
+            "required": false,
+            "schema": {
+              "description": "Filter by the inclusive number of turns in a session.",
+              "enum": [
+                "1-turn",
+                "2-9-turns",
+                "10-49-turns",
+                "50-plus-turns"
+              ],
+              "example": "10-49-turns",
+              "type": "string",
+              "x-speakeasy-unknown-values": "allow"
+            }
+          },
+          {
+            "description": "Maximum number of cells to return (1-500). Defaults to 100.",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "description": "Maximum number of cells to return (1-500). Defaults to 100.",
+              "example": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of sorted cells to skip (0-5000). Defaults to 0.",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Number of sorted cells to skip (0-5000). Defaults to 0.",
+              "example": 0,
+              "maximum": 5000,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": [
+                    {
+                      "app_name": "Hermes Agent",
+                      "app_slug": "hermes-agent",
+                      "median_session_cost_usd": 1.74,
+                      "model_permaslug": "anthropic/claude-4.8-opus",
+                      "turn_range": "10-49-turns"
+                    }
+                  ],
+                  "meta": {
+                    "as_of": "2026-05-12T02:00:00.000Z",
+                    "version": "v1",
+                    "window_days": 30,
+                    "window_end_date": "2026-05-11"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SessionCostResponse"
+                }
+              }
+            },
+            "description": "Aggregated cost-per-session cells for the requested filters."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 400,
+                    "message": "Invalid request parameters"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            },
+            "description": "Bad Request - Invalid request parameters or malformed input"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 429,
+                    "message": "Rate limit exceeded"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests - Rate limit exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "summary": "Cost per session by harness and model",
+        "tags": [
+          "Datasets"
+        ],
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "offset",
+              "type": "offset"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "results": "$.data"
+          },
+          "type": "offsetLimit"
+        }
       },
       "parameters": [
         {
@@ -40639,6 +42757,7 @@
                         "max_tokens"
                       ],
                       "supports_implicit_caching": true,
+                      "supports_voice_cloning": false,
                       "tag": "openai",
                       "throughput_last_30m": {
                         "p50": 45.2,
@@ -40683,6 +42802,7 @@
                           "max_tokens"
                         ],
                         "supports_implicit_caching": true,
+                        "supports_voice_cloning": false,
                         "tag": "openai",
                         "throughput_last_30m": {
                           "p50": 45.2,
@@ -41039,7 +43159,7 @@
         }
       ],
       "post": {
-        "description": "Uploads a file to be referenced in future API calls. The file is stored under the workspace of the authenticating API key. Maximum file size: 100 MB.",
+        "description": "Uploads a file to be referenced in future API calls. The file is stored under the workspace of the authenticating API key. Maximum file size: 100 MB; empty files are rejected. The file type is determined from the file contents \u2014 not the filename or the declared content type \u2014 and must be a PDF, a PNG/JPEG/GIF/WebP image, a DOCX/XLSX/PPTX document, an MP3/WAV/FLAC/OGG audio file, or UTF-8 text. Text is reported by its structure as `application/json`, `application/x-ndjson`, `text/csv`, `text/markdown`, or `text/plain`.",
         "operationId": "uploadFile",
         "parameters": [
           {
@@ -42046,6 +44166,7 @@
               "application/json": {
                 "example": {
                   "data": {
+                    "error": null,
                     "input": {
                       "messages": [
                         {
@@ -42065,7 +44186,7 @@
                 }
               }
             },
-            "description": "Returns the stored prompt and completion content"
+            "description": "Returns the stored prompt and completion content, plus the failure error when the generation failed"
           },
           "401": {
             "content": {
@@ -42196,7 +44317,7 @@
             "description": "Provider Overloaded - Provider is temporarily overloaded"
           }
         },
-        "summary": "Get stored prompt and completion content for a generation",
+        "summary": "Get stored prompt, completion, and error content for a generation",
         "tags": [
           "Generations"
         ]
@@ -46665,10 +48786,11 @@
                     "message": "Invalid request: messages is required",
                     "type": "invalid_request_error"
                   },
+                  "request_id": null,
                   "type": "error"
                 },
                 "schema": {
-                  "$ref": "#/components/schemas/MessagesErrorResponse"
+                  "$ref": "#/components/schemas/AnthropicMessagesErrorResponse"
                 }
               }
             },
@@ -46682,10 +48804,11 @@
                     "message": "Invalid API key",
                     "type": "authentication_error"
                   },
+                  "request_id": null,
                   "type": "error"
                 },
                 "schema": {
-                  "$ref": "#/components/schemas/MessagesErrorResponse"
+                  "$ref": "#/components/schemas/AnthropicMessagesErrorResponse"
                 }
               }
             },
@@ -46699,69 +48822,40 @@
                     "summary": "Guardrail blocked the request",
                     "value": {
                       "error": {
-                        "code": 403,
                         "message": "Request blocked: prompt injection patterns detected",
-                        "metadata": {
-                          "patterns": [
-                            "ignore all previous instructions"
-                          ]
-                        }
+                        "type": "permission_error"
                       },
                       "openrouter_metadata": {
-                        "attempt": 1,
-                        "endpoints": {
-                          "available": [
-                            {
-                              "model": "openai/gpt-4o",
-                              "provider": "OpenAI",
-                              "selected": false
-                            }
-                          ],
-                          "total": 1
-                        },
-                        "is_byok": false,
                         "pipeline": [
                           {
-                            "data": {
-                              "action": "blocked",
-                              "detected": true,
-                              "engines": [
-                                "regex"
-                              ],
-                              "patterns": [
-                                "ignore all previous instructions"
-                              ]
-                            },
-                            "guardrail_id": "grd_abc123",
-                            "guardrail_scope": "api-key",
                             "name": "regex_pi_detection",
                             "summary": "Blocked: prompt injection detected (1 pattern matched)",
                             "type": "guardrail"
                           }
-                        ],
-                        "region": "iad",
-                        "requested": "openai/gpt-4o",
-                        "strategy": "direct",
-                        "summary": "available=1"
-                      }
+                        ]
+                      },
+                      "request_id": null,
+                      "type": "error"
                     }
                   },
                   "insufficient-permissions": {
                     "summary": "Insufficient permissions",
                     "value": {
                       "error": {
-                        "code": 403,
-                        "message": "Only management keys can perform this operation"
-                      }
+                        "message": "Only management keys can perform this operation",
+                        "type": "permission_error"
+                      },
+                      "request_id": null,
+                      "type": "error"
                     }
                   }
                 },
                 "schema": {
-                  "$ref": "#/components/schemas/ForbiddenResponse"
+                  "$ref": "#/components/schemas/AnthropicMessagesErrorResponse"
                 }
               }
             },
-            "description": "Forbidden - Authentication successful but insufficient permissions, or a guardrail blocked the request. When guardrails block and the `X-OpenRouter-Metadata: enabled` header is present, the response includes `openrouter_metadata` with full routing context and a `pipeline` array containing guardrail stage details."
+            "description": "Forbidden error"
           },
           "404": {
             "content": {
@@ -46771,10 +48865,11 @@
                     "message": "Model not found",
                     "type": "not_found_error"
                   },
+                  "request_id": "gen-xxxxxxxxxxxxxxxxxxxxxxxx",
                   "type": "error"
                 },
                 "schema": {
-                  "$ref": "#/components/schemas/MessagesErrorResponse"
+                  "$ref": "#/components/schemas/AnthropicMessagesErrorResponse"
                 }
               }
             },
@@ -46788,10 +48883,11 @@
                     "message": "Rate limit exceeded",
                     "type": "rate_limit_error"
                   },
+                  "request_id": "gen-xxxxxxxxxxxxxxxxxxxxxxxx",
                   "type": "error"
                 },
                 "schema": {
-                  "$ref": "#/components/schemas/MessagesErrorResponse"
+                  "$ref": "#/components/schemas/AnthropicMessagesErrorResponse"
                 }
               }
             },
@@ -46805,10 +48901,11 @@
                     "message": "Internal server error",
                     "type": "api_error"
                   },
+                  "request_id": "gen-xxxxxxxxxxxxxxxxxxxxxxxx",
                   "type": "error"
                 },
                 "schema": {
-                  "$ref": "#/components/schemas/MessagesErrorResponse"
+                  "$ref": "#/components/schemas/AnthropicMessagesErrorResponse"
                 }
               }
             },
@@ -46822,10 +48919,11 @@
                     "message": "Service temporarily overloaded",
                     "type": "overloaded_error"
                   },
+                  "request_id": "gen-xxxxxxxxxxxxxxxxxxxxxxxx",
                   "type": "error"
                 },
                 "schema": {
-                  "$ref": "#/components/schemas/MessagesErrorResponse"
+                  "$ref": "#/components/schemas/AnthropicMessagesErrorResponse"
                 }
               }
             },
@@ -46839,10 +48937,11 @@
                     "message": "Provider is temporarily overloaded",
                     "type": "overloaded_error"
                   },
+                  "request_id": "gen-xxxxxxxxxxxxxxxxxxxxxxxx",
                   "type": "error"
                 },
                 "schema": {
-                  "$ref": "#/components/schemas/MessagesErrorResponse"
+                  "$ref": "#/components/schemas/AnthropicMessagesErrorResponse"
                 }
               }
             },
@@ -47245,17 +49344,19 @@
             }
           },
           {
-            "description": "Filter to models with endpoints in the given data region. Currently only \"eu\" is supported.",
+            "description": "Filter to models with endpoints in the given data region (\"eu\" or \"us\").",
             "in": "query",
             "name": "region",
             "required": false,
             "schema": {
-              "description": "Filter to models with endpoints in the given data region. Currently only \"eu\" is supported.",
+              "description": "Filter to models with endpoints in the given data region (\"eu\" or \"us\").",
               "enum": [
-                "eu"
+                "eu",
+                "us"
               ],
               "example": "eu",
-              "type": "string"
+              "type": "string",
+              "x-speakeasy-unknown-values": "allow"
             }
           },
           {
@@ -47685,7 +49786,7 @@
     },
     "/models/user": {
       "get": {
-        "description": "List models filtered by user provider preferences, [privacy settings](https://openrouter.ai/docs/guides/privacy/provider-logging), and [guardrails](https://openrouter.ai/docs/guides/features/guardrails). If requesting through `eu.openrouter.ai/api/v1/...` the results will be filtered to models that satisfy [EU in-region routing](https://openrouter.ai/docs/guides/privacy/provider-logging#enterprise-eu-in-region-routing).",
+        "description": "List models filtered by user provider preferences, [privacy settings](https://openrouter.ai/docs/guides/privacy/provider-logging), and [guardrails](https://openrouter.ai/docs/guides/features/guardrails). If requesting through a regional hostname, the results will be filtered to models that satisfy in-region routing for that region.",
         "operationId": "listModelsUser",
         "parameters": [
           {
@@ -48132,6 +50233,9 @@
                   "data": [
                     {
                       "api_key_hashes": null,
+                      "broadcast_generation_cost": false,
+                      "broadcast_generation_identity": false,
+                      "broadcast_generation_request_context": false,
                       "config": {
                         "baseUrl": "https://us.cloud.langfuse.com",
                         "publicKey": "pk-l...EfGh",
@@ -48271,6 +50375,9 @@
                 "example": {
                   "data": {
                     "api_key_hashes": null,
+                    "broadcast_generation_cost": false,
+                    "broadcast_generation_identity": false,
+                    "broadcast_generation_request_context": false,
                     "config": {
                       "baseUrl": "https://us.cloud.langfuse.com",
                       "publicKey": "pk-l...EfGh",
@@ -48494,6 +50601,9 @@
                 "example": {
                   "data": {
                     "api_key_hashes": null,
+                    "broadcast_generation_cost": false,
+                    "broadcast_generation_identity": false,
+                    "broadcast_generation_request_context": false,
                     "config": {
                       "baseUrl": "https://us.cloud.langfuse.com",
                       "publicKey": "pk-l...EfGh",
@@ -48622,6 +50732,9 @@
                 "example": {
                   "data": {
                     "api_key_hashes": null,
+                    "broadcast_generation_cost": false,
+                    "broadcast_generation_identity": false,
+                    "broadcast_generation_request_context": false,
                     "config": {
                       "baseUrl": "https://us.cloud.langfuse.com",
                       "publicKey": "pk-l...EfGh",
@@ -48677,6 +50790,16 @@
               }
             },
             "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            },
+            "description": "Privacy settings are locked"
           },
           "404": {
             "content": {
@@ -53100,7 +55223,7 @@
     },
     "/workspaces/{id}": {
       "delete": {
-        "description": "Delete an existing workspace. The default workspace cannot be deleted. Workspaces with active API keys cannot be deleted; remove the keys first. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "description": "Delete an existing workspace. Workspaces with active API keys cannot be deleted; remove the keys first. Deleting the default workspace is not yet generally available; callers not enabled for it receive a 403 while the capability rolls out. Deleting any workspace permanently deletes its budgets and guardrails and disables its classifiers and broadcast destinations. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "deleteWorkspace",
         "parameters": [
           {
@@ -53634,6 +55757,22 @@
             },
             "description": "Budget deleted successfully"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 400,
+                    "message": "Invalid request parameters"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            },
+            "description": "Bad Request - Invalid request parameters or malformed input"
+          },
           "401": {
             "content": {
               "application/json": {
@@ -53688,6 +55827,126 @@
           "Workspaces"
         ],
         "x-speakeasy-name-override": "deleteBudget"
+      },
+      "get": {
+        "description": "Retrieve the budget for a given interval. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "operationId": "getWorkspaceBudget",
+        "parameters": [
+          {
+            "description": "The workspace ID (UUID) or slug",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The workspace ID (UUID) or slug",
+              "example": "production",
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "description": "Budget reset interval. Use \"lifetime\" for a one-time budget that never resets.",
+            "example": "monthly",
+            "in": "path",
+            "name": "interval",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/WorkspaceBudgetInterval"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": {
+                    "created_at": "2025-08-24T10:30:00Z",
+                    "id": "770e8400-e29b-41d4-a716-446655440000",
+                    "limit_usd": 100,
+                    "reset_interval": "monthly",
+                    "updated_at": "2025-08-24T15:45:00Z",
+                    "workspace_id": "550e8400-e29b-41d4-a716-446655440000"
+                  },
+                  "include_byok_in_budgets": true
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/GetWorkspaceBudgetResponse"
+                }
+              }
+            },
+            "description": "Budget retrieved successfully"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 400,
+                    "message": "Invalid request parameters"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            },
+            "description": "Bad Request - Invalid request parameters or malformed input"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 404,
+                    "message": "Resource not found"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundResponse"
+                }
+              }
+            },
+            "description": "Not Found - Resource does not exist"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          }
+        },
+        "summary": "Get a workspace budget",
+        "tags": [
+          "Workspaces"
+        ],
+        "x-speakeasy-name-override": "getBudget"
       },
       "parameters": [
         {
@@ -54357,7 +56616,7 @@
       "name": "Credits"
     },
     {
-      "description": "Datasets endpoints",
+      "description": "Public OpenRouter usage datasets. Data returned by these endpoints is licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/): reuse and republish it, including commercially, with attribution to OpenRouter.",
       "name": "Datasets"
     },
     {

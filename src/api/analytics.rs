@@ -109,6 +109,9 @@ pub struct AnalyticsFilter {
     pub field: String,
     pub operator: String,
     pub value: AnalyticsFilterValue,
+    /// Include rows where the filtered field is unset.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub include_unset: Option<bool>,
 }
 
 /// Analytics time range.

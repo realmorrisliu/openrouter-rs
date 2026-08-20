@@ -961,7 +961,7 @@ async fn run(cli: Cli) -> Result<()> {
                 }
                 WorkspacesCommands::Delete(args) => {
                     require_yes(args.yes, "delete workspace")?;
-                    let deleted = management.delete_workspace(&args.id).await?;
+                    let deleted = management.delete_workspace(&args.id, None).await?;
                     print_value(
                         &serde_json::json!({
                             "id": args.id,

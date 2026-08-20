@@ -373,3 +373,27 @@ async fn test_get_update_delete_byok_key_paths() {
     assert_management_auth_header(&captured.request_text);
     server.join().expect("server thread should finish");
 }
+
+#[test]
+fn test_byok_key_with_null_workspace_id_deserializes() {
+    let raw = r#"{
+        "data": {
+            "id": "11111111-2222-3333-4444-555555555555",
+            "provider": "databricks",
+            "workspace_id": null,
+            "label": "sk-...AbCd",
+            "name": null,
+            "disabled": false,
+            "is_fallback": false,
+            "allowed_models": null,
+            "allowed_api_key_hashes": null,
+            "allowed_user_ids": null,
+            "sort_order": 0,
+            "created_at": "2025-08-24T10:30:00Z"
+        }
+    }"#;
+
+    let parsed: ApiResponse<ByokKey> =
+        serde_json::from_str(raw).expect("BYOK response with null workspace_id should deserialize");
+    assert_eq!(parsed.data.workspace_id, None);
+}

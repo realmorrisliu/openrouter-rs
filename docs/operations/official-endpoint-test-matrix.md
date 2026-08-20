@@ -1,19 +1,20 @@
 # Official Endpoint Test Matrix
 
-Snapshot date: 2026-08-03
+Snapshot date: 2026-08-17
 Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)  
 Tracked baseline: `specs/openrouter/openapi-baseline.json`  
 Weekly drift workflow: `.github/workflows/openapi-drift.yml`
 
 ## Coverage Summary
 
-- Official OpenAPI endpoints: `95` method+path entries.
-- SDK implementation coverage (`src/api` + domain client): `95 / 95` (`100.0%`).
-- Live integration coverage (`tests/integration`): `24 / 95` endpoints currently exercised.
+- Official OpenAPI endpoints: `97` method+path entries.
+- SDK implementation coverage (`src/api` + domain client): `97 / 97` (`100.0%`).
+- Live integration coverage (`tests/integration`): `24 / 97` endpoints currently exercised.
   - Covered live now: `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `POST /rerank`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`, `GET /organization/members`
 
 Drift review note:
 
+- Upstream added `GET /datasets/session-cost` and `GET /workspaces/{id}/budgets/{interval}`, activity workspace filters/grouping, benchmark search filters, workspace deletion confirmation, BYOK/guardrail nullable workspace IDs, speech voice-cloning references with endpoint `supports_voice_cloning`, generation `workspace_id` and stored content errors, observability generation broadcast flags, analytics `include_unset`, and the `us` model region. The SDK types the stable fields, makes `ByokKey::workspace_id` optional, and keeps dynamic provider/resolution taxonomy on flexible string surfaces.
 - Upstream added six SCIM group and group-role mapping endpoints plus provider-native Files shapes and pagination. The SDK exposes SCIM through `client.management()`, provider-backed storage through `client.files().*_for_provider(...)`, and types the stable benchmark, audio, model, guardrail, and workspace fields. High-churn provider/plugin/Responses additions continue through existing flexible representations.
 - Upstream added assistant-message model annotations, BYOK-aware guardrail and workspace budget fields, workspace default guardrail IDs, transcription speaker labels, Anthropic compaction and dynamic-tool blocks, and more flexible plugin/server-tool/Responses fields. The SDK types the stable fields and continues to carry provider taxonomy, plugin options, server-tool options, and Responses payload growth through existing flexible representations.
 - Upstream added explicit chat prompt-cache controls, static predicted output, image provider routing preferences, conditional pricing overrides, detailed cache-creation usage, custom guardrail `flag` actions, namespace tools, and image-only video generation. The SDK types the stable fields and reuses its existing flexible server-tool, plugin, provider-taxonomy, and Responses payload handling for the remaining schema additions.
@@ -76,6 +77,7 @@ Legend:
 | `POST /credits/coinbase` | `client.create_coinbase_charge(...)` / `client.management().create_coinbase_charge(...)` | Yes | Path | No | P2 |
 | `GET /datasets/app-rankings` | `client.models().get_app_rankings(...)` | Yes | Path | No | P2 |
 | `GET /datasets/rankings-daily` | `client.models().get_rankings_daily(...)` | Yes | Path | No | P2 |
+| `GET /datasets/session-cost` | `client.models().get_session_cost(...)` | Yes | Path | No | P2 |
 | `POST /embeddings` | `client.create_embedding(...)` / `client.models().create_embedding(...)` | Yes | Contract | Yes | Keep |
 | `GET /embeddings/models` | `client.list_embedding_models()` / `client.models().list_embedding_models()` | Yes | Path | Yes | Keep |
 | `GET /endpoints/zdr` | `client.models().list_zdr_endpoints(...)` | Yes | Contract | Yes | Keep |
@@ -152,6 +154,7 @@ Legend:
 | `GET /videos/{jobId}/content` | `client.videos().get_content(...)` | Yes | Path | No | P2 |
 | `PATCH /workspaces/{id}` | `client.management().update_workspace(...)` | Yes | Path | No | P1 |
 | `DELETE /workspaces/{id}` | `client.management().delete_workspace(...)` | Yes | Path | No | P1 |
+| `GET /workspaces/{id}/budgets/{interval}` | `client.management().get_workspace_budget(...)` | Yes | Path | No | P1 |
 | `PUT /workspaces/{id}/budgets/{interval}` | `client.management().upsert_workspace_budget(...)` | Yes | Path | No | P1 |
 | `DELETE /workspaces/{id}/budgets/{interval}` | `client.management().delete_workspace_budget(...)` | Yes | Path | No | P1 |
 

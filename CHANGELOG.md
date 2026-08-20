@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added `GET /datasets/session-cost` via `client.models().get_session_cost(...)` and `GET /workspaces/{id}/budgets/{interval}` via `client.management().get_workspace_budget(...)`.
+- Added `GET /activity` workspace filters/grouping via `client.management().get_activity_with_params(...)` and typed `ActivityItem::workspace_id`.
+- Added benchmark search filters (`benchmark_type`, `include_run_config`, `search_engine`, `search_surface`) to `UnifiedBenchmarksParams`.
+- Added stateless voice-cloning support for `POST /audio/speech` via `SpeechRequest::input_references`, plus typed `supports_voice_cloning` on model and ZDR endpoints.
+- Added typed `GenerationData::workspace_id`, stored `GenerationContentData::error` details, observability destination `broadcast_generation_*` flags, analytics filter `include_unset`, and the `DELETE /workspaces/{id}` `confirm_default_settings_deletion` option.
+
+### Changed
+- **Breaking:** `ByokKey::workspace_id` is now `Option<String>` because upstream returns `null` for account-level credentials.
+- **Breaking:** `delete_workspace(...)` now takes a `confirm_default_settings_deletion: Option<bool>` argument; pass `None` to keep the previous behavior.
+- Accepted the 2026-08-17 OpenAPI drift review, restoring the official endpoint snapshot to `97 / 97`.
+
 ## [0.14.0] - 2026-08-03
 
 ### Added
