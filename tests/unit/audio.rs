@@ -766,3 +766,28 @@ async fn test_create_speech_falls_back_for_plain_text_404_page_not_found() {
 
     server.join().expect("server thread should finish");
 }
+
+#[test]
+fn test_speech_request_with_input_references() {
+    let request = SpeechRequest::builder()
+        .model("mistralai/voxtral-mini-tts-2603")
+        .input("Hello world")
+        .input_references(vec![
+            audio::SpeechInputReference::audio("UklGRuQXDABXQVZF"),
+            audio::SpeechInputReference::text("I used to rule the world."),
+        ])
+        .build()
+        .expect("speech request should build");
+
+    let value = serde_json::to_value(&request).expect("speech request should serialize");
+    assert_eq!(value["input_references"][0]["type"], "input_audio");
+    assert_eq!(
+        value["input_references"][0]["input_audio"]["data"],
+        "UklGRuQXDABXQVZF"
+    );
+    assert_eq!(value["input_references"][1]["type"], "text");
+    assert_eq!(
+        value["input_references"][1]["text"],
+        "I used to rule the world."
+    );
+}

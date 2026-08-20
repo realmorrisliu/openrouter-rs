@@ -95,6 +95,8 @@ pub struct GenerationData {
     pub response_cache_source_id: Option<String>,
     pub service_tier: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workspace_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub provider_responses: Option<Vec<ProviderResponse>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub status: Option<i32>,
@@ -134,6 +136,37 @@ pub(crate) async fn submit_generation_feedback_with_client(
     }
 }
 
+/// One failed upstream attempt recorded behind a stored generation error.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct GenerationContentErrorAttempt {
+    pub code: i64,
+    pub message: String,
+    pub provider_name: Option<String>,
+    pub raw: Option<String>,
+    #[serde(flatten)]
+    pub extra: HashMap<String, Value>,
+}
+
+/// The stored failure for a generation, or `None` when it succeeded.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct GenerationContentError {
+    /// HTTP status returned to the client.
+    pub status: Option<i64>,
+    /// Error message returned to the client.
+    pub message: Option<String>,
+    /// Provider whose error was returned to the client, when known.
+    pub provider_name: Option<String>,
+    /// Raw error body behind the returned error, when stored.
+    pub raw: Option<String>,
+    /// Every upstream attempt that failed before the returned error, in attempt order.
+    #[serde(default)]
+    pub previous_errors: Vec<GenerationContentErrorAttempt>,
+    #[serde(flatten)]
+    pub extra: HashMap<String, Value>,
+}
+
 /// Stored prompt/input and completion/output content returned by `GET /generation/content`.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
@@ -142,6 +175,9 @@ pub struct GenerationContentData {
     pub input: HashMap<String, Value>,
     #[serde(default)]
     pub output: HashMap<String, Value>,
+    /// The stored failure for this generation, when one was recorded.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<GenerationContentError>,
 }
 
 /// Returns metadata about a specific generation request

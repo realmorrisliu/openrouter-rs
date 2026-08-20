@@ -326,6 +326,12 @@ async fn test_models_domain_renamed_methods_require_api_key() {
         Err(OpenRouterError::KeyNotConfigured)
     ));
 
+    let session_cost = client.models().get_session_cost(None).await;
+    assert!(matches!(
+        session_cost,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+
     let task_classifications = client.models().get_task_classifications(Some("7d")).await;
     assert!(matches!(
         task_classifications,
@@ -840,6 +846,10 @@ async fn test_management_domain_remaining_methods_require_configured_key() {
         Err(OpenRouterError::KeyNotConfigured)
     ));
     assert!(matches!(
+        client.management().get_activity_with_params(None).await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
         client.management().get_analytics_meta().await,
         Err(OpenRouterError::KeyNotConfigured)
     ));
@@ -1034,11 +1044,18 @@ async fn test_management_domain_remaining_methods_require_configured_key() {
         Err(OpenRouterError::KeyNotConfigured)
     ));
     assert!(matches!(
-        client.management().delete_workspace("ws_123").await,
+        client.management().delete_workspace("ws_123", None).await,
         Err(OpenRouterError::KeyNotConfigured)
     ));
     assert!(matches!(
         client.management().list_workspace_budgets("ws_123").await,
+        Err(OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        client
+            .management()
+            .get_workspace_budget("ws_123", "monthly")
+            .await,
         Err(OpenRouterError::KeyNotConfigured)
     ));
     assert!(matches!(

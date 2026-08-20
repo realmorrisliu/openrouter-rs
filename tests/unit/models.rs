@@ -561,3 +561,37 @@ async fn test_list_models_with_extended_filter_params() {
 
     server.join().expect("server thread should finish");
 }
+
+#[test]
+fn test_endpoint_deserializes_supports_voice_cloning() {
+    let raw = r#"{
+        "data": {
+            "id": "author/slug",
+            "name": "Voice Model",
+            "created": 1735689600,
+            "description": "desc",
+            "architecture": {
+                "tokenizer": "test-tokenizer",
+                "instruct_type": "chat",
+                "modality": "text->audio"
+            },
+            "endpoints": [{
+                "name": "Voice Endpoint",
+                "context_length": 4096,
+                "pricing": {"prompt": "0", "completion": "0"},
+                "provider_name": "Mistral",
+                "supported_parameters": [],
+                "quantization": null,
+                "max_completion_tokens": null,
+                "max_prompt_tokens": null,
+                "status": 0,
+                "supports_implicit_caching": false,
+                "supports_voice_cloning": true
+            }]
+        }
+    }"#;
+
+    let parsed: ApiResponse<EndpointData> =
+        serde_json::from_str(raw).expect("endpoint payload should deserialize");
+    assert_eq!(parsed.data.endpoints[0].supports_voice_cloning, Some(true));
+}

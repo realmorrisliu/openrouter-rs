@@ -8,10 +8,10 @@ use std::{
 
 use openrouter_rs::{
     api::discovery::{
-        self, ActivityItem, AppRankingsParams, AppRankingsResponse, BenchmarksAAResponse,
-        BenchmarksDAResponse, BigNumber, ModelsCountData, Provider, PublicEndpoint,
-        RankingsDailyParams, RankingsDailyResponse, TaskClassificationsResponse,
-        UnifiedBenchmarkItem, UnifiedBenchmarksParams, UserModel,
+        self, ActivityItem, ActivityParams, AppRankingsParams, AppRankingsResponse,
+        BenchmarksAAResponse, BenchmarksDAResponse, BigNumber, ModelsCountData, Provider,
+        PublicEndpoint, RankingsDailyParams, RankingsDailyResponse, SessionCostParams,
+        TaskClassificationsResponse, UnifiedBenchmarkItem, UnifiedBenchmarksParams, UserModel,
     },
     types::{ApiResponse, Effort},
 };
@@ -870,6 +870,116 @@ async fn test_get_activity_without_date_uses_base_path() {
             || request_lower.contains("authorization:bearer mgmt-key"),
         "authorization header should include management key, request:\n{}",
         captured.request_text
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_get_activity_with_workspace_filters() {
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":[{"date":"2026-08-10","model":"openai/gpt-5","model_permaslug":"openai/gpt-5","endpoint_id":"ep_1","provider_name":"OpenAI","usage":1.5,"byok_usage_inference":0.0,"requests":3.0,"prompt_tokens":10.0,"completion_tokens":20.0,"reasoning_tokens":0.0,"workspace_id":"ws_123"}]}"#,
+    );
+    let params = ActivityParams::builder()
+        .date("2026-08-10")
+        .group_by("workspace")
+        .workspace_id("ws_123")
+        .build()
+        .expect("activity params should build");
+
+    let items = discovery::get_activity_with_params(&base_url, "mgmt-key", Some(&params))
+        .await
+        .expect("activity request should succeed");
+    assert_eq!(items[0].workspace_id.as_deref(), Some("ws_123"));
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/activity?date=2026-08-10&group_by=workspace&workspace_id=ws_123 HTTP/1.1"
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_get_benchmarks_search_filters() {
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":[],"meta":{"as_of":"2026-08-10T12:00:00Z","version":"v1","source":"openrouter","source_url":null,"citation":null,"model_count":0,"task_type":"search"}}"#,
+    );
+    let params = UnifiedBenchmarksParams::builder()
+        .source("openrouter")
+        .benchmark_type("search_widesearch")
+        .include_run_config(true)
+        .search_engine("exa")
+        .search_surface("server-tool")
+        .build()
+        .expect("benchmark params should build");
+
+    discovery::get_benchmarks(&base_url, "api-key", &params)
+        .await
+        .expect("benchmark request should succeed");
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/benchmarks?source=openrouter&benchmark_type=search_widesearch&include_run_config=true&search_engine=exa&search_surface=server-tool HTTP/1.1"
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_get_session_cost_with_filters() {
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":[{"app_slug":"hermes-agent","app_name":"Hermes Agent","turn_range":"10-49-turns","model_permaslug":"anthropic/claude-4.8-opus","median_session_cost_usd":1.74}],"meta":{"as_of":"2026-05-12T02:00:00.000Z","version":"v1","window_days":30,"window_end_date":"2026-05-11"}}"#,
+    );
+    let params = SessionCostParams::builder()
+        .app_slug("hermes-agent")
+        .turn_range("10-49-turns")
+        .limit(10)
+        .build()
+        .expect("session cost params should build");
+
+    let response = discovery::get_session_cost(&base_url, "api-key", Some(&params))
+        .await
+        .expect("session cost request should succeed");
+    assert_eq!(response.data[0].app_slug, "hermes-agent");
+    assert_eq!(response.data[0].median_session_cost_usd, 1.74);
+    assert_eq!(response.meta.window_days, Some(30));
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/datasets/session-cost?app_slug=hermes-agent&turn_range=10-49-turns&limit=10 HTTP/1.1"
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_get_session_cost_without_params_uses_base_path() {
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":[],"meta":{"as_of":"2026-05-12T02:00:00.000Z","version":"v1","window_days":null,"window_end_date":null}}"#,
+    );
+
+    let response = discovery::get_session_cost(&base_url, "api-key", None)
+        .await
+        .expect("session cost request should succeed");
+    assert!(response.data.is_empty());
+    assert_eq!(response.meta.window_days, None);
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/datasets/session-cost HTTP/1.1"
     );
 
     server.join().expect("server thread should finish");

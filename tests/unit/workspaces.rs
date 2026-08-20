@@ -494,7 +494,7 @@ async fn test_update_workspace_can_clear_io_logging_api_key_filters() {
 async fn test_delete_workspace_encodes_id_path() {
     let (base_url, rx, server) = spawn_json_server(r#"{"deleted":true}"#);
 
-    let deleted = workspaces::delete_workspace(&base_url, "mgmt-key", "team/prod 1")
+    let deleted = workspaces::delete_workspace(&base_url, "mgmt-key", "team/prod 1", None)
         .await
         .expect("delete workspace should succeed");
     assert!(deleted);
@@ -687,6 +687,50 @@ async fn test_remove_workspace_members_encodes_id_and_sends_body() {
             .and_then(serde_json::Value::as_array)
             .map(Vec::len),
         Some(1)
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_get_workspace_budget_request_path_and_response() {
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"data":{"id":"770e8400-e29b-41d4-a716-446655440000","workspace_id":"ws_123","limit_usd":100.0,"reset_interval":"monthly","created_at":"2025-08-24T10:30:00Z","updated_at":"2025-08-24T15:45:00Z"},"include_byok_in_budgets":true}"#,
+    );
+
+    let response = workspaces::get_workspace_budget(&base_url, "mgmt-key", "ws_123", "monthly")
+        .await
+        .expect("get workspace budget should succeed");
+    assert_eq!(response.data.limit_usd, 100.0);
+    assert_eq!(response.data.reset_interval.as_deref(), Some("monthly"));
+    assert!(response.include_byok_in_budgets);
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/workspaces/ws_123/budgets/monthly HTTP/1.1"
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_delete_workspace_with_confirm_query() {
+    let (base_url, rx, server) = spawn_json_server(r#"{"deleted":true}"#);
+
+    let deleted = workspaces::delete_workspace(&base_url, "mgmt-key", "ws_123", Some(true))
+        .await
+        .expect("delete workspace should succeed");
+    assert!(deleted);
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "DELETE /api/v1/workspaces/ws_123?confirm_default_settings_deletion=true HTTP/1.1"
     );
 
     server.join().expect("server thread should finish");

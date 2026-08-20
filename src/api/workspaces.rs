@@ -293,6 +293,14 @@ pub struct UpsertWorkspaceBudgetResponse {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct GetWorkspaceBudgetResponse {
+    pub data: WorkspaceBudget,
+    #[serde(default)]
+    pub include_byok_in_budgets: bool,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct DeleteWorkspaceBudgetResponse {
     deleted: bool,
 }
@@ -480,9 +488,17 @@ pub async fn delete_workspace(
     base_url: &str,
     management_key: &str,
     id: &str,
+    confirm_default_settings_deletion: Option<bool>,
 ) -> Result<bool, OpenRouterError> {
     let http_client = crate::transport::new_client()?;
-    delete_workspace_with_client(&http_client, base_url, management_key, id).await
+    delete_workspace_with_client(
+        &http_client,
+        base_url,
+        management_key,
+        id,
+        confirm_default_settings_deletion,
+    )
+    .await
 }
 
 pub(crate) async fn delete_workspace_with_client(
@@ -490,14 +506,21 @@ pub(crate) async fn delete_workspace_with_client(
     base_url: &str,
     management_key: &str,
     id: &str,
+    confirm_default_settings_deletion: Option<bool>,
 ) -> Result<bool, OpenRouterError> {
     let url = format!("{base_url}/workspaces/{}", encode(id));
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::delete(http_client, &url),
         management_key,
-    )
-    .send()
-    .await?;
+    );
+    let response = match confirm_default_settings_deletion {
+        Some(confirm) => {
+            req.query(&[("confirm_default_settings_deletion", confirm)])
+                .send()
+                .await?
+        }
+        None => req.send().await?,
+    };
 
     if response.status().is_success() {
         let payload: DeleteWorkspaceResponse =
@@ -534,6 +557,44 @@ pub(crate) async fn list_workspace_budgets_with_client(
 
     if response.status().is_success() {
         transport_response::parse_json_response(response, "workspace budget list").await
+    } else {
+        transport_response::handle_error(response).await?;
+        unreachable!()
+    }
+}
+
+/// Retrieve the budget for one interval (`GET /workspaces/{id}/budgets/{interval}`).
+pub async fn get_workspace_budget(
+    base_url: &str,
+    management_key: &str,
+    id: &str,
+    interval: &str,
+) -> Result<GetWorkspaceBudgetResponse, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    get_workspace_budget_with_client(&http_client, base_url, management_key, id, interval).await
+}
+
+pub(crate) async fn get_workspace_budget_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    management_key: &str,
+    id: &str,
+    interval: &str,
+) -> Result<GetWorkspaceBudgetResponse, OpenRouterError> {
+    let url = format!(
+        "{base_url}/workspaces/{}/budgets/{}",
+        encode(id),
+        encode(interval)
+    );
+    let response = transport_request::with_bearer_auth(
+        transport_request::get(http_client, &url),
+        management_key,
+    )
+    .send()
+    .await?;
+
+    if response.status().is_success() {
+        transport_response::parse_json_response(response, "workspace budget").await
     } else {
         transport_response::handle_error(response).await?;
         unreachable!()

@@ -2,8 +2,21 @@
 
 This document keeps historical migration guides intact because the repo still smoke-tests older domain/naming transitions.
 
-> Latest breaking release target: `0.12.x -> 0.13.0`.
-> `0.13.0` preserves the official workspace-budget response wrapper and adds prompt-cache metadata to text content parts.
+## Unreleased: 0.14.x -> next
+
+Two management-surface changes match the upstream OpenRouter schema.
+
+### Quick Checklist For The Next Release
+
+- Treat `ByokKey::workspace_id` as optional: account-level BYOK credentials now deserialize with `None`.
+- Pass a third argument to `delete_workspace(...)`: `Some(true)` confirms deleting the workspace's default settings, `None` preserves the previous behavior.
+
+### Breaking-Change Mapping For The Next Release
+
+| Area | Old Usage (`0.14.x`) | New Usage |
+| --- | --- | --- |
+| BYOK credential workspace | `key.workspace_id` is `String` | `key.workspace_id` is `Option<String>` |
+| Workspace deletion | `client.management().delete_workspace("ws_123").await?` | `client.management().delete_workspace("ws_123", None).await?` |
 
 ## Latest: 0.12.x -> 0.13.0
 

@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use derive_builder::Builder;
 use reqwest::Client as HttpClient;
 use serde::{Deserialize, Serialize};
-use urlencoding::encode;
 
 use crate::{
     api::models::{ModelReasoning, PricingOverride},
@@ -179,6 +178,9 @@ pub struct PublicEndpoint {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub uptime_last_30m: Option<f64>,
     pub supports_implicit_caching: bool,
+    /// Whether the endpoint supports stateless voice cloning for speech requests.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub supports_voice_cloning: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub latency_last_30m: Option<PercentileStats>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -202,8 +204,52 @@ pub struct ActivityItem {
     pub prompt_tokens: f64,
     pub completion_tokens: f64,
     pub reasoning_tokens: f64,
+    /// Workspace attribution, present only when `group_by=workspace` is requested.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workspace_id: Option<String>,
     #[serde(flatten)]
     pub extra: HashMap<String, serde_json::Value>,
+}
+
+/// Query parameters for `GET /activity`.
+#[derive(Serialize, Deserialize, Debug, Clone, Default, Builder)]
+#[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
+pub struct ActivityParams {
+    /// Filter by a single UTC date in the last 30 days (`YYYY-MM-DD`).
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub date: Option<String>,
+    /// Filter by API key hash (SHA-256 hex string, as returned by the keys API).
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_key_hash: Option<String>,
+    /// Filter by org member user ID (organization accounts only).
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
+    /// Set to `workspace` to split each row per workspace.
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub group_by: Option<String>,
+    /// Filter by workspace ID (UUID).
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workspace_id: Option<String>,
+}
+
+impl ActivityParams {
+    pub fn builder() -> ActivityParamsBuilder {
+        ActivityParamsBuilder::default()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.date.is_none()
+            && self.api_key_hash.is_none()
+            && self.user_id.is_none()
+            && self.group_by.is_none()
+            && self.workspace_id.is_none()
+    }
 }
 
 /// One daily model-ranking row returned by `GET /datasets/rankings-daily`.
@@ -268,6 +314,90 @@ pub struct RankingsDailyParams {
 impl RankingsDailyParams {
     pub fn builder() -> RankingsDailyParamsBuilder {
         RankingsDailyParamsBuilder::default()
+    }
+}
+
+/// One aggregated cost-per-session cell returned by `GET /datasets/session-cost`.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct SessionCostItem {
+    /// Stable public slug of the harness.
+    pub app_slug: String,
+    /// Published harness display label.
+    pub app_name: String,
+    /// Inclusive session turn-count range (e.g. `10-49-turns`).
+    pub turn_range: String,
+    /// Exact model permaslug.
+    pub model_permaslug: String,
+    /// Median USD spend per sampled session.
+    pub median_session_cost_usd: f64,
+    #[serde(flatten)]
+    pub extra: HashMap<String, serde_json::Value>,
+}
+
+/// Metadata for a session-cost dataset response.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct SessionCostMeta {
+    /// ISO-8601 timestamp when the response was generated.
+    pub as_of: String,
+    /// Dataset version.
+    pub version: String,
+    /// Number of days in the weekly session sample window, if published.
+    pub window_days: Option<u64>,
+    /// UTC date of the final day in the session sample window, if published.
+    pub window_end_date: Option<String>,
+    #[serde(flatten)]
+    pub extra: HashMap<String, serde_json::Value>,
+}
+
+/// Aggregated cost-per-session cells returned by `GET /datasets/session-cost`.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct SessionCostResponse {
+    pub data: Vec<SessionCostItem>,
+    pub meta: SessionCostMeta,
+}
+
+/// Query parameters for `GET /datasets/session-cost`.
+#[derive(Serialize, Deserialize, Debug, Clone, Default, Builder)]
+#[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
+pub struct SessionCostParams {
+    /// Filter to one published harness slug.
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub app_slug: Option<String>,
+    /// Exact model permaslug filter. Works across all harness apps.
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    /// Filter by the inclusive number of turns in a session
+    /// (`1-turn`, `2-9-turns`, `10-49-turns`, `50-plus-turns`).
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub turn_range: Option<String>,
+    /// Maximum number of cells to return (1-500). Defaults to 100.
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u32>,
+    /// Number of sorted cells to skip (0-5000). Defaults to 0.
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub offset: Option<u32>,
+}
+
+impl SessionCostParams {
+    pub fn builder() -> SessionCostParamsBuilder {
+        SessionCostParamsBuilder::default()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.app_slug.is_none()
+            && self.model.is_none()
+            && self.turn_range.is_none()
+            && self.limit.is_none()
+            && self.offset.is_none()
     }
 }
 
@@ -516,6 +646,24 @@ pub struct UnifiedBenchmarksParams {
     #[builder(setter(into, strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub task_type: Option<String>,
+    /// Return results for one exact OpenRouter benchmark (e.g. `gpqa_diamond`,
+    /// `search_widesearch`).
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub benchmark_type: Option<String>,
+    /// Search benchmarks only: include the published lane configuration whitelist.
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_run_config: Option<bool>,
+    /// OpenRouter search benchmarks only: filter by the search engine used.
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub search_engine: Option<String>,
+    /// OpenRouter search benchmarks only: filter by request surface (`server-tool`
+    /// or `plugin`).
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub search_surface: Option<String>,
     #[builder(setter(into, strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub arena: Option<String>,
@@ -535,30 +683,21 @@ impl UnifiedBenchmarksParams {
     pub fn artificial_analysis() -> Self {
         Self {
             source: Some("artificial-analysis".to_string()),
-            task_type: None,
-            arena: None,
-            category: None,
-            max_results: None,
+            ..Default::default()
         }
     }
 
     pub fn design_arena() -> Self {
         Self {
             source: Some("design-arena".to_string()),
-            task_type: None,
-            arena: None,
-            category: None,
-            max_results: None,
+            ..Default::default()
         }
     }
 
     pub fn openrouter() -> Self {
         Self {
             source: Some("openrouter".to_string()),
-            task_type: None,
-            arena: None,
-            category: None,
-            max_results: None,
+            ..Default::default()
         }
     }
 }
@@ -788,6 +927,41 @@ pub(crate) async fn get_rankings_daily_with_params_and_client(
 
     if response.status().is_success() {
         transport_response::parse_json_response(response, "rankings daily").await
+    } else {
+        transport_response::handle_error(response).await?;
+        unreachable!()
+    }
+}
+
+/// Return aggregated cost-per-session cells (`GET /datasets/session-cost`).
+///
+/// Weekly refreshed, privacy-preserving medians of per-session USD spend for the
+/// published harnesses. Licensed under CC BY 4.0 by OpenRouter.
+pub async fn get_session_cost(
+    base_url: &str,
+    api_key: &str,
+    params: Option<&SessionCostParams>,
+) -> Result<SessionCostResponse, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    get_session_cost_with_client(&http_client, base_url, api_key, params).await
+}
+
+pub(crate) async fn get_session_cost_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    params: Option<&SessionCostParams>,
+) -> Result<SessionCostResponse, OpenRouterError> {
+    let url = format!("{base_url}/datasets/session-cost");
+    let req =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
+    let response = match params {
+        Some(params) if !params.is_empty() => req.query(params).send().await?,
+        _ => req.send().await?,
+    };
+
+    if response.status().is_success() {
+        transport_response::parse_json_response(response, "session cost").await
     } else {
         transport_response::handle_error(response).await?;
         unreachable!()
@@ -1041,18 +1215,38 @@ pub(crate) async fn get_activity_with_client(
     management_key: &str,
     date: Option<&str>,
 ) -> Result<Vec<ActivityItem>, OpenRouterError> {
-    let url = if let Some(date) = date {
-        format!("{base_url}/activity?date={}", encode(date))
-    } else {
-        format!("{base_url}/activity")
+    let params = ActivityParams {
+        date: date.map(str::to_owned),
+        ..Default::default()
     };
+    get_activity_with_params_and_client(http_client, base_url, management_key, Some(&params)).await
+}
 
-    let response = transport_request::with_bearer_auth(
+/// Get endpoint-grouped activity with the full filter surface (`GET /activity`).
+pub async fn get_activity_with_params(
+    base_url: &str,
+    management_key: &str,
+    params: Option<&ActivityParams>,
+) -> Result<Vec<ActivityItem>, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    get_activity_with_params_and_client(&http_client, base_url, management_key, params).await
+}
+
+pub(crate) async fn get_activity_with_params_and_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    management_key: &str,
+    params: Option<&ActivityParams>,
+) -> Result<Vec<ActivityItem>, OpenRouterError> {
+    let url = format!("{base_url}/activity");
+    let req = transport_request::with_bearer_auth(
         transport_request::get(http_client, &url),
         management_key,
-    )
-    .send()
-    .await?;
+    );
+    let response = match params {
+        Some(params) if !params.is_empty() => req.query(params).send().await?,
+        _ => req.send().await?,
+    };
 
     if response.status().is_success() {
         let parsed: ApiResponse<Vec<ActivityItem>> =

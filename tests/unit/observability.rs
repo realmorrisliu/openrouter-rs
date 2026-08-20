@@ -398,3 +398,47 @@ async fn test_get_update_delete_observability_destination_paths() {
     assert_management_auth_header(&captured.request_text);
     server.join().expect("server thread should finish");
 }
+
+#[test]
+fn test_observability_destination_deserializes_broadcast_flags() {
+    let body = destination_body().replace(
+        r#""type": "langfuse","#,
+        r#""type": "langfuse","broadcast_generation_cost": true,"broadcast_generation_identity": false,"broadcast_generation_request_context": true,"#,
+    );
+    let parsed: ApiResponse<ObservabilityDestination> =
+        serde_json::from_str(&body).expect("destination with broadcast flags should deserialize");
+    assert!(parsed.data.broadcast_generation_cost);
+    assert!(!parsed.data.broadcast_generation_identity);
+    assert!(parsed.data.broadcast_generation_request_context);
+
+    // Older payloads without the flags still deserialize with defaults.
+    let parsed: ApiResponse<ObservabilityDestination> =
+        serde_json::from_str(destination_body()).expect("destination should deserialize");
+    assert!(!parsed.data.broadcast_generation_cost);
+    assert!(!parsed.data.broadcast_generation_identity);
+    assert!(!parsed.data.broadcast_generation_request_context);
+}
+
+#[test]
+fn test_create_and_update_destination_serialize_broadcast_flags() {
+    let request = CreateObservabilityDestinationRequest::builder()
+        .destination_type("langfuse")
+        .name("Production Langfuse")
+        .config(serde_json::json!({"baseUrl": "https://us.cloud.langfuse.com"}))
+        .broadcast_generation_cost(true)
+        .broadcast_generation_request_context(true)
+        .build()
+        .expect("create request should build");
+    let value = serde_json::to_value(&request).expect("create request should serialize");
+    assert_eq!(value["broadcast_generation_cost"], true);
+    assert_eq!(value["broadcast_generation_request_context"], true);
+    assert!(value.get("broadcast_generation_identity").is_none());
+
+    let update = UpdateObservabilityDestinationRequest::builder()
+        .broadcast_generation_identity(true)
+        .build()
+        .expect("update request should build");
+    let value = serde_json::to_value(&update).expect("update request should serialize");
+    assert_eq!(value["broadcast_generation_identity"], true);
+    assert!(value.get("broadcast_generation_cost").is_none());
+}

@@ -28,7 +28,9 @@ struct ListByokKeysQuery {
 pub struct ByokKey {
     pub id: String,
     pub provider: String,
-    pub workspace_id: String,
+    /// Owning workspace ID, or `None` for account-level credentials.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workspace_id: Option<String>,
     pub label: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,

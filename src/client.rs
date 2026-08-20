@@ -1980,6 +1980,27 @@ impl OpenRouterClient {
         }
     }
 
+    /// Return aggregated cost-per-session cells (`GET /datasets/session-cost`).
+    ///
+    /// Weekly refreshed, privacy-preserving medians of per-session USD spend for
+    /// the published harnesses. Licensed under CC BY 4.0 by OpenRouter.
+    pub async fn get_session_cost(
+        &self,
+        params: Option<&discovery::SessionCostParams>,
+    ) -> Result<discovery::SessionCostResponse, OpenRouterError> {
+        if let Some(api_key) = &self.api_key {
+            discovery::get_session_cost_with_client(
+                self.http_client(),
+                &self.base_url,
+                api_key,
+                params,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
     /// Return ranked applications over a date window.
     pub async fn get_app_rankings(
         &self,
@@ -2114,6 +2135,27 @@ impl OpenRouterClient {
                 &self.base_url,
                 management_key,
                 date,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Get activity grouped by endpoint with the full filter surface (`GET /activity`).
+    ///
+    /// Requires a management API key. In this SDK, configure that via
+    /// `OpenRouterClientBuilder::management_key(...)`.
+    pub async fn get_activity_with_params(
+        &self,
+        params: Option<&discovery::ActivityParams>,
+    ) -> Result<Vec<discovery::ActivityItem>, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            discovery::get_activity_with_params_and_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                params,
             )
             .await
         } else {
@@ -2442,13 +2484,21 @@ impl OpenRouterClient {
     }
 
     /// Delete a workspace (`DELETE /workspaces/{id}`).
-    pub async fn delete_workspace(&self, id: &str) -> Result<bool, OpenRouterError> {
+    ///
+    /// Pass `Some(true)` for `confirm_default_settings_deletion` to confirm
+    /// deleting the workspace's default settings along with it.
+    pub async fn delete_workspace(
+        &self,
+        id: &str,
+        confirm_default_settings_deletion: Option<bool>,
+    ) -> Result<bool, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
             workspaces::delete_workspace_with_client(
                 self.http_client(),
                 &self.base_url,
                 management_key,
                 id,
+                confirm_default_settings_deletion,
             )
             .await
         } else {
@@ -2467,6 +2517,26 @@ impl OpenRouterClient {
                 &self.base_url,
                 management_key,
                 id,
+            )
+            .await
+        } else {
+            Err(OpenRouterError::KeyNotConfigured)
+        }
+    }
+
+    /// Retrieve the budget for one interval (`GET /workspaces/{id}/budgets/{interval}`).
+    pub async fn get_workspace_budget(
+        &self,
+        id: &str,
+        interval: &str,
+    ) -> Result<workspaces::GetWorkspaceBudgetResponse, OpenRouterError> {
+        if let Some(management_key) = &self.management_key {
+            workspaces::get_workspace_budget_with_client(
+                self.http_client(),
+                &self.base_url,
+                management_key,
+                id,
+                interval,
             )
             .await
         } else {
@@ -3062,6 +3132,14 @@ impl<'a> ModelsClient<'a> {
         self.client.get_rankings_daily_filtered(params).await
     }
 
+    /// Return aggregated cost-per-session cells (`GET /datasets/session-cost`).
+    pub async fn get_session_cost(
+        &self,
+        params: Option<&discovery::SessionCostParams>,
+    ) -> Result<discovery::SessionCostResponse, OpenRouterError> {
+        self.client.get_session_cost(params).await
+    }
+
     /// Return ranked applications (`GET /datasets/app-rankings`).
     pub async fn get_app_rankings(
         &self,
@@ -3437,6 +3515,14 @@ impl<'a> ManagementClient<'a> {
         self.client.get_activity(date).await
     }
 
+    /// Get endpoint usage activity using the full filter surface (`GET /activity`).
+    pub async fn get_activity_with_params(
+        &self,
+        params: Option<&discovery::ActivityParams>,
+    ) -> Result<Vec<discovery::ActivityItem>, OpenRouterError> {
+        self.client.get_activity_with_params(params).await
+    }
+
     /// Get analytics metadata (`GET /analytics/meta`).
     pub async fn get_analytics_meta(&self) -> Result<analytics::AnalyticsMeta, OpenRouterError> {
         self.client.get_analytics_meta().await
@@ -3711,8 +3797,17 @@ impl<'a> ManagementClient<'a> {
     }
 
     /// Delete a workspace (`DELETE /workspaces/{id}`).
-    pub async fn delete_workspace(&self, id: &str) -> Result<bool, OpenRouterError> {
-        self.client.delete_workspace(id).await
+    ///
+    /// Pass `Some(true)` for `confirm_default_settings_deletion` to confirm
+    /// deleting the workspace's default settings along with it.
+    pub async fn delete_workspace(
+        &self,
+        id: &str,
+        confirm_default_settings_deletion: Option<bool>,
+    ) -> Result<bool, OpenRouterError> {
+        self.client
+            .delete_workspace(id, confirm_default_settings_deletion)
+            .await
     }
 
     /// List budgets for a workspace (`GET /workspaces/{id}/budgets`).
@@ -3721,6 +3816,15 @@ impl<'a> ManagementClient<'a> {
         id: &str,
     ) -> Result<workspaces::ListWorkspaceBudgetsResponse, OpenRouterError> {
         self.client.list_workspace_budgets(id).await
+    }
+
+    /// Retrieve the budget for one interval (`GET /workspaces/{id}/budgets/{interval}`).
+    pub async fn get_workspace_budget(
+        &self,
+        id: &str,
+        interval: &str,
+    ) -> Result<workspaces::GetWorkspaceBudgetResponse, OpenRouterError> {
+        self.client.get_workspace_budget(id, interval).await
     }
 
     /// Create or update a workspace budget (`PUT /workspaces/{id}/budgets/{interval}`).

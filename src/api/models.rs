@@ -199,6 +199,9 @@ pub struct Endpoint {
     pub max_completion_tokens: Option<f64>,
     pub max_prompt_tokens: Option<f64>,
     pub status: Option<serde_json::Value>,
+    /// Whether the endpoint supports stateless voice cloning for speech requests.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub supports_voice_cloning: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
