@@ -56,6 +56,8 @@ impl ReasoningDetail {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
 pub struct ResponseCostDetails {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub server_tool_cost: Option<f64>,
     /// Upstream provider cost attributed to completion tokens.
     pub upstream_inference_completions_cost: f64,
     /// Upstream provider cost attributed to prompt tokens.

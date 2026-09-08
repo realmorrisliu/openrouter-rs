@@ -8,15 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added container file list/metadata/download/promotion through `files()`, public OAuth signing keys and workload token exchange through `management()`, and SCIM sync job creation/status through `management()`.
+- Added regional guardrails and observability destinations, the `secrets` filter, BYOK API-key allowlists with explicit clearing, external API-key identities, user-model pagination/modality filters, pricing weekdays, endpoint tool-choice/workload performance metadata, server-tool cost, image user identifiers, video processing, chat configuration updates, and Anthropic message/thinking/container-result controls.
 - Added `GET /datasets/session-cost` via `client.models().get_session_cost(...)` and `GET /workspaces/{id}/budgets/{interval}` via `client.management().get_workspace_budget(...)`.
 - Added `GET /activity` workspace filters/grouping via `client.management().get_activity_with_params(...)` and typed `ActivityItem::workspace_id`.
 - Added benchmark search filters (`benchmark_type`, `include_run_config`, `search_engine`, `search_surface`) to `UnifiedBenchmarksParams`.
 - Added stateless voice-cloning support for `POST /audio/speech` via `SpeechRequest::input_references`, plus typed `supports_voice_cloning` on model and ZDR endpoints.
-- Added typed `GenerationData::workspace_id`, stored `GenerationContentData::error` details, observability destination `broadcast_generation_*` flags, analytics filter `include_unset`, and the `DELETE /workspaces/{id}` `confirm_default_settings_deletion` option.
+- Added typed `GenerationData::workspace_id`, stored `GenerationContentData::error` details, observability destination `broadcast_generation_*` flags, analytics filter `include_unset`, and the `DELETE /workspaces/{id}` `confirm_default_workspace_deletion` option.
 
 ### Changed
+- Accepted issue #248 against the 2026-09-08 upstream snapshot (`105 / 105` operations); `POST /organization` from the issue report was withdrawn upstream before review.
+- Corrected the workspace deletion confirmation query to `confirm_default_workspace_deletion`; the positional Rust method signature is unchanged.
 - **Breaking:** `ByokKey::workspace_id` is now `Option<String>` because upstream returns `null` for account-level credentials.
-- **Breaking:** `delete_workspace(...)` now takes a `confirm_default_settings_deletion: Option<bool>` argument; pass `None` to keep the previous behavior.
+- **Breaking:** `delete_workspace(...)` now takes a `confirm_default_workspace_deletion: Option<bool>` argument; pass `None` to keep the previous behavior.
 - Accepted the 2026-08-17 OpenAPI drift review, restoring the official endpoint snapshot to `97 / 97`.
 
 ## [0.14.0] - 2026-08-03

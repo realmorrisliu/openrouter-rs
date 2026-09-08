@@ -79,6 +79,8 @@ impl ObservabilityFilterRule {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
 pub struct ObservabilityDestination {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub regions: Option<Vec<String>>,
     pub id: String,
     pub workspace_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -119,6 +121,9 @@ pub struct ObservabilityDestinationListResponse {
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
 pub struct CreateObservabilityDestinationRequest {
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub regions: Option<Vec<String>>,
     #[serde(rename = "type")]
     #[builder(setter(into))]
     pub destination_type: String,
@@ -169,6 +174,9 @@ impl CreateObservabilityDestinationRequestBuilder {
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
 pub struct UpdateObservabilityDestinationRequest {
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub regions: Option<Vec<String>>,
     #[builder(setter(into, strip_option), default)]
     pub name: Option<String>,
     #[builder(setter(strip_option), default)]
@@ -203,6 +211,9 @@ impl Serialize for UpdateObservabilityDestinationRequest {
         S: Serializer,
     {
         let mut map = serializer.serialize_map(None)?;
+        if let Some(value) = &self.regions {
+            map.serialize_entry("regions", value)?;
+        }
         if let Some(value) = &self.name {
             map.serialize_entry("name", value)?;
         }

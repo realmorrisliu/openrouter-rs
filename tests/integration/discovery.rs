@@ -147,3 +147,19 @@ async fn test_list_model_endpoints_live() -> Result<(), OpenRouterError> {
         last_failure.unwrap_or_else(|| "no parseable model ids were found".to_string()),
     );
 }
+
+#[tokio::test]
+#[allow(clippy::result_large_err)]
+async fn test_oauth_public_signing_keys_live() -> Result<(), OpenRouterError> {
+    let client = openrouter_rs::OpenRouterClient::builder()
+        .base_url("https://openrouter.ai/api/v1")
+        .build()?;
+    let jwks = client.management().get_oauth_jwks().await?;
+    assert!(!jwks.keys.is_empty());
+    assert!(
+        jwks.keys
+            .iter()
+            .all(|key| !key.kid.is_empty() && !key.x.is_empty() && !key.y.is_empty())
+    );
+    Ok(())
+}

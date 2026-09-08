@@ -2485,12 +2485,12 @@ impl OpenRouterClient {
 
     /// Delete a workspace (`DELETE /workspaces/{id}`).
     ///
-    /// Pass `Some(true)` for `confirm_default_settings_deletion` to confirm
+    /// Pass `Some(true)` for `confirm_default_workspace_deletion` to confirm
     /// deleting the workspace's default settings along with it.
     pub async fn delete_workspace(
         &self,
         id: &str,
-        confirm_default_settings_deletion: Option<bool>,
+        confirm_default_workspace_deletion: Option<bool>,
     ) -> Result<bool, OpenRouterError> {
         if let Some(management_key) = &self.management_key {
             workspaces::delete_workspace_with_client(
@@ -2498,7 +2498,7 @@ impl OpenRouterClient {
                 &self.base_url,
                 management_key,
                 id,
-                confirm_default_settings_deletion,
+                confirm_default_workspace_deletion,
             )
             .await
         } else {
@@ -2914,6 +2914,72 @@ pub struct FilesClient<'a> {
 }
 
 impl<'a> FilesClient<'a> {
+    /// POST `/containers/{}/files/{}/promote`.
+    pub async fn promote_container_file(
+        &self,
+        container_id: &str,
+        file_id: &str,
+    ) -> Result<files::ProviderFileMetadata, OpenRouterError> {
+        files::promote_container_file_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.api_key()?,
+            container_id,
+            file_id,
+        )
+        .await
+    }
+
+    /// GET `/containers/{}/files/{}/content`.
+    pub async fn download_container_file(
+        &self,
+        container_id: &str,
+        file_id: &str,
+    ) -> Result<Vec<u8>, OpenRouterError> {
+        files::download_container_file_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.api_key()?,
+            container_id,
+            file_id,
+        )
+        .await
+    }
+
+    /// GET `/containers/{}/files/{}`.
+    pub async fn get_container_file(
+        &self,
+        container_id: &str,
+        file_id: &str,
+    ) -> Result<files::ContainerFile, OpenRouterError> {
+        files::get_container_file_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.api_key()?,
+            container_id,
+            file_id,
+        )
+        .await
+    }
+
+    /// GET `/containers/{}/files`.
+    pub async fn list_container_files(
+        &self,
+        container_id: &str,
+        after: Option<&str>,
+        limit: Option<u32>,
+    ) -> Result<files::ContainerFileListResponse, OpenRouterError> {
+        files::list_container_files_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.api_key()?,
+            container_id,
+            after,
+            limit,
+        )
+        .await
+    }
+
     fn api_key(&self) -> Result<&str, OpenRouterError> {
         self.client
             .api_key
@@ -3055,6 +3121,25 @@ pub struct ModelsClient<'a> {
 }
 
 impl<'a> ModelsClient<'a> {
+    /// List user models with pagination and output modality filters.
+    pub async fn list_for_user_with_params(
+        &self,
+        params: &discovery::ListUserModelsParams,
+    ) -> Result<Vec<discovery::UserModel>, OpenRouterError> {
+        let api_key = self
+            .client
+            .api_key
+            .as_deref()
+            .ok_or(OpenRouterError::KeyNotConfigured)?;
+        discovery::list_models_for_user_with_params_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            api_key,
+            params,
+        )
+        .await
+    }
+
     /// List all models (`GET /models`).
     pub async fn list(&self) -> Result<Vec<models::Model>, OpenRouterError> {
         self.client.list_models().await
@@ -3218,6 +3303,58 @@ pub struct ManagementClient<'a> {
 }
 
 impl<'a> ManagementClient<'a> {
+    /// Create an API key with external identity and workspace options.
+    pub async fn create_api_key_with_options(
+        &self,
+        request: &api_keys::CreateApiKeyRequest,
+    ) -> Result<api_keys::ApiKey, OpenRouterError> {
+        api_keys::create_api_key_with_options_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.management_key()?,
+            request,
+        )
+        .await
+    }
+
+    /// Fetch public OAuth signing keys. Does not require a management key.
+    pub async fn get_oauth_jwks(&self) -> Result<auth::OAuthJwksResponse, OpenRouterError> {
+        auth::get_oauth_jwks_with_client(self.client.http_client(), &self.client.base_url).await
+    }
+    /// Exchange a workload JWT. Authentication is supplied by the subject token.
+    pub async fn exchange_oauth_token(
+        &self,
+        request: &auth::OAuthTokenExchangeRequest,
+    ) -> Result<auth::OAuthTokenResponse, OpenRouterError> {
+        auth::exchange_oauth_token_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            request,
+        )
+        .await
+    }
+
+    /// GET `/scim/sync-jobs/{}`.
+    pub async fn get_scim_sync_job(&self, id: &str) -> Result<scim::ScimSyncJob, OpenRouterError> {
+        scim::get_scim_sync_job_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.management_key()?,
+            id,
+        )
+        .await
+    }
+
+    /// POST `/scim/sync-jobs`.
+    pub async fn create_scim_sync_job(&self) -> Result<scim::ScimSyncJob, OpenRouterError> {
+        scim::create_scim_sync_job_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.management_key()?,
+        )
+        .await
+    }
+
     fn management_key(&self) -> Result<&str, OpenRouterError> {
         self.client
             .management_key
@@ -3798,15 +3935,15 @@ impl<'a> ManagementClient<'a> {
 
     /// Delete a workspace (`DELETE /workspaces/{id}`).
     ///
-    /// Pass `Some(true)` for `confirm_default_settings_deletion` to confirm
+    /// Pass `Some(true)` for `confirm_default_workspace_deletion` to confirm
     /// deleting the workspace's default settings along with it.
     pub async fn delete_workspace(
         &self,
         id: &str,
-        confirm_default_settings_deletion: Option<bool>,
+        confirm_default_workspace_deletion: Option<bool>,
     ) -> Result<bool, OpenRouterError> {
         self.client
-            .delete_workspace(id, confirm_default_settings_deletion)
+            .delete_workspace(id, confirm_default_workspace_deletion)
             .await
     }
 

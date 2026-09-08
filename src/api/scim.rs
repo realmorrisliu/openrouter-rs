@@ -328,3 +328,76 @@ pub(crate) async fn delete_scim_group_mapping_with_client(
         unreachable!()
     }
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct ScimSyncJob {
+    pub id: String,
+    pub status: String,
+    pub created_at: String,
+    pub started_at: Option<String>,
+    pub finished_at: Option<String>,
+    pub error_message: Option<String>,
+    pub synced_groups: Option<u64>,
+    pub deleted_groups: Option<u64>,
+}
+
+/// POST `/scim/sync-jobs`.
+pub async fn create_scim_sync_job(
+    base_url: &str,
+    management_key: &str,
+) -> Result<ScimSyncJob, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    create_scim_sync_job_with_client(&http_client, base_url, management_key).await
+}
+pub(crate) async fn create_scim_sync_job_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    management_key: &str,
+) -> Result<ScimSyncJob, OpenRouterError> {
+    let url = format!("{base_url}/scim/sync-jobs");
+    let req = transport_request::with_bearer_auth(
+        transport_request::post(http_client, &url),
+        management_key,
+    );
+
+    let response = req.send().await?;
+    if response.status().is_success() {
+        let payload: ApiResponse<ScimSyncJob> =
+            transport_response::parse_json_response(response, "create_scim_sync_job").await?;
+        Ok(payload.data)
+    } else {
+        Err(transport_response::error_from_response(response).await)
+    }
+}
+
+/// GET `/scim/sync-jobs/{}`.
+pub async fn get_scim_sync_job(
+    base_url: &str,
+    management_key: &str,
+    id: &str,
+) -> Result<ScimSyncJob, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    get_scim_sync_job_with_client(&http_client, base_url, management_key, id).await
+}
+pub(crate) async fn get_scim_sync_job_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    management_key: &str,
+    id: &str,
+) -> Result<ScimSyncJob, OpenRouterError> {
+    let url = format!("{base_url}/scim/sync-jobs/{}", encode(id));
+    let req = transport_request::with_bearer_auth(
+        transport_request::get(http_client, &url),
+        management_key,
+    );
+
+    let response = req.send().await?;
+    if response.status().is_success() {
+        let payload: ApiResponse<ScimSyncJob> =
+            transport_response::parse_json_response(response, "get_scim_sync_job").await?;
+        Ok(payload.data)
+    } else {
+        Err(transport_response::error_from_response(response).await)
+    }
+}

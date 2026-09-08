@@ -21,7 +21,9 @@ Type-safe, async Rust SDK for the OpenRouter API.
 
 `openrouter-rs` is a community-maintained Rust SDK for OpenRouter. It exposes a domain-oriented client for chat, responses, messages, rerank, audio speech/transcription, image generation, video generation, models, embeddings, files, presets, analytics, and management APIs, plus a companion CLI in the same repository.
 
-The current repo snapshot implements `97 / 97` official OpenAPI method/path entries, with published live integration coverage tracked in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md).
+The current repo snapshot implements `105 / 105` official OpenAPI method/path entries, with published live integration coverage tracked in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md).
+
+The September OpenAPI update adds container file listing, metadata, downloads and promotion via `files()`, OAuth workload token exchange/public signing keys and SCIM sync jobs via `management()`. It also supports regional guardrails/observability, BYOK key allowlists, external API-key identities, user-model modality filters, and expanded message/model metadata. See [`domain_container_files`](examples/domain_container_files.rs) for container storage usage.
 
 ## Why `openrouter-rs`
 
@@ -108,8 +110,11 @@ The canonical public surface is domain-oriented:
 | `images()` | `create`, `stream`, `list_models`, `list_model_endpoints` | `/images*` | API key |
 | `videos()` | `create`, `list_models`, `get_generation`, `get_content` | `/videos*` | API key |
 | `files()` | `list`, `upload`, `get_metadata`, `download_content`, `delete` | `/files*` | API key |
-| `models()` | `list`, `list_filtered`, `list_by_category`, `list_by_parameters`, `get`, `list_endpoints`, `list_providers`, `list_user_models`, `get_model_count`, `get_rankings_daily`, `get_rankings_daily_filtered`, `get_app_rankings`, `get_session_cost`, `get_task_classifications`, `get_benchmarks`, `list_zdr_endpoints`, `create_embedding`, `list_embedding_models` | `/model*`, `/models*`, `/providers`, `/datasets/*`, `/classifications/task`, `/benchmarks`, `/endpoints/zdr`, `/embeddings*` | API key |
-| `management()` | `create_api_key`, `create_api_key_in_workspace`, `list_api_keys`, `list_api_keys_in_workspace`, `list_presets`, `get_preset`, `list_preset_versions`, `get_preset_version`, `create_chat_completion_preset`, `create_response_preset`, `create_message_preset`, `get_analytics_meta`, `query_analytics`, `list_byok_keys`, `create_byok_key`, `get_byok_key`, `update_byok_key`, `delete_byok_key`, `list_observability_destinations`, `create_observability_destination`, `get_observability_destination`, `update_observability_destination`, `delete_observability_destination`, `create_auth_code`, `create_api_key_from_auth_code`, `list_guardrails`, `list_guardrails_in_workspace`, `create_guardrail`, `list_organization_members`, `list_workspaces`, `create_workspace`, `get_workspace`, `update_workspace`, `delete_workspace`, `list_workspace_budgets`, `get_workspace_budget`, `upsert_workspace_budget`, `delete_workspace_budget`, `list_workspace_members`, `add_workspace_members`, `remove_workspace_members`, `get_activity`, `get_activity_with_params`, `get_credits`, `create_coinbase_charge`, `get_generation`, `get_generation_content`, `submit_generation_feedback` | `/keys*`, `/presets*`, `/analytics*`, `/byok*`, `/observability/destinations*`, `/auth/keys*`, `/guardrails*`, `/organization/members`, `/workspaces*`, `/activity`, `/credits*`, `/generation*`, `/key` | Governed endpoints require a management key; billing/session endpoints still use the normal API key because that is how OpenRouter authenticates them |
+| `files()` | `list_container_files`, `get_container_file`, `download_container_file`, `promote_container_file` | `/containers/*/files*` | API key |
+| `models()` | `list`, `list_filtered`, `list_by_category`, `list_by_parameters`, `get`, `list_endpoints`, `list_providers`, `list_user_models`, `list_for_user_with_params`, `get_model_count`, `get_rankings_daily`, `get_rankings_daily_filtered`, `get_app_rankings`, `get_session_cost`, `get_task_classifications`, `get_benchmarks`, `list_zdr_endpoints`, `create_embedding`, `list_embedding_models` | `/model*`, `/models*`, `/providers`, `/datasets/*`, `/classifications/task`, `/benchmarks`, `/endpoints/zdr`, `/embeddings*` | API key |
+| `management()` | `create_api_key`, `create_api_key_in_workspace`, `create_api_key_with_options`, `list_api_keys`, `list_api_keys_in_workspace`, `list_presets`, `get_preset`, `list_preset_versions`, `get_preset_version`, `create_chat_completion_preset`, `create_response_preset`, `create_message_preset`, `get_analytics_meta`, `query_analytics`, `list_byok_keys`, `create_byok_key`, `get_byok_key`, `update_byok_key`, `delete_byok_key`, `list_observability_destinations`, `create_observability_destination`, `get_observability_destination`, `update_observability_destination`, `delete_observability_destination`, `create_auth_code`, `create_api_key_from_auth_code`, `list_guardrails`, `list_guardrails_in_workspace`, `create_guardrail`, `list_organization_members`, `list_workspaces`, `create_workspace`, `get_workspace`, `update_workspace`, `delete_workspace`, `list_workspace_budgets`, `get_workspace_budget`, `upsert_workspace_budget`, `delete_workspace_budget`, `list_workspace_members`, `add_workspace_members`, `remove_workspace_members`, `get_activity`, `get_activity_with_params`, `get_credits`, `create_coinbase_charge`, `get_generation`, `get_generation_content`, `submit_generation_feedback` | `/keys*`, `/presets*`, `/analytics*`, `/byok*`, `/observability/destinations*`, `/auth/keys*`, `/guardrails*`, `/organization/members`, `/workspaces*`, `/activity`, `/credits*`, `/generation*`, `/key` | Governed endpoints require a management key; billing/session endpoints still use the normal API key because that is how OpenRouter authenticates them |
+| `management()` | `get_oauth_jwks`, `exchange_oauth_token` | `/oauth/jwks`, `/oauth/token` | Public signing keys; token exchange authenticates with the workload JWT |
+| `management()` | `list_scim_groups`, `list_scim_group_mappings`, `create_scim_group_mapping`, `get_scim_group_mapping`, `update_scim_group_mapping`, `delete_scim_group_mapping`, `create_scim_sync_job`, `get_scim_sync_job` | `/scim/groups`, `/scim/group-mappings*`, `/scim/sync-jobs*` | Management key |
 | `legacy()` | `completions().create` | `/completions` | `legacy-completions` feature + API key |
 
 At runtime, the builder/client exposes the values the SDK directly consumes:
@@ -252,7 +257,7 @@ For copy-paste shell/CI recipes, see [`docs/operations/cli-automation-workflows.
 
 - Community-maintained third-party SDK; not affiliated with OpenRouter
 - Canonical docs and examples prefer the domain clients over older flat helpers
-- Accepted endpoint coverage is tracked against the current OpenAPI snapshot, and the current baseline is fully implemented at the SDK surface (`97 / 97`)
+- Accepted endpoint coverage is tracked against the current OpenAPI snapshot, and the current baseline is fully implemented at the SDK surface (`105 / 105`)
 - Live integration coverage and gaps are published in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md)
 - Migration guidance for the `0.9.x -> 0.10.0` public-model future-proofing release, the `0.8.x -> 0.9.0` audio speech release, the `0.7.x -> 0.8.0` transport/error-surface release, and the archived `0.5.x -> 0.6.x` naming guide lives in [`MIGRATION.md`](MIGRATION.md)
 - Legacy `POST /completions` support remains available behind the `legacy-completions` feature
@@ -355,8 +360,10 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 ### Unreleased
 
+- Added container files, workload OAuth token exchange/signing keys, SCIM sync jobs, regional management controls, and expanded message/model fields. Accepted the 2026-09-08 OpenAPI review with `105 / 105` tracked operations.
+
 - Added session-cost datasets, single-interval workspace budgets, activity workspace filters, benchmark search filters, speech voice cloning, observability generation broadcast flags, and stored generation content errors.
-- **Breaking:** `ByokKey::workspace_id` is now optional, and `delete_workspace(...)` takes an optional `confirm_default_settings_deletion` argument.
+- **Breaking:** `ByokKey::workspace_id` is now optional, and `delete_workspace(...)` takes an optional `confirm_default_workspace_deletion` argument.
 - Accepted the 2026-08-17 OpenAPI drift review and restored tracked endpoint coverage to `97 / 97`.
 
 ### Version 0.14.0 *(Latest)*

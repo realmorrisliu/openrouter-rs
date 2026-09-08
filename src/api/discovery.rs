@@ -158,6 +158,10 @@ pub struct PercentileStats {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
 pub struct PublicEndpoint {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub supports_tool_choice: Option<crate::api::models::ToolChoiceSupport>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub perf_last_30m_by_workload: Option<HashMap<String, serde_json::Value>>,
     pub name: String,
     pub model_id: String,
     pub model_name: String,
@@ -830,9 +834,58 @@ pub(crate) async fn list_models_for_user_with_client(
     base_url: &str,
     api_key: &str,
 ) -> Result<Vec<UserModel>, OpenRouterError> {
+    list_models_for_user_with_params_with_client(
+        http_client,
+        base_url,
+        api_key,
+        &ListUserModelsParams::default(),
+    )
+    .await
+}
+
+/// Filter and paginate models available to the authenticated user.
+#[derive(Serialize, Deserialize, Debug, Clone, Default, Builder)]
+#[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
+pub struct ListUserModelsParams {
+    #[builder(default, setter(strip_option))]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u32>,
+    #[builder(default, setter(strip_option))]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub offset: Option<u32>,
+    #[builder(default, setter(into, strip_option))]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub output_modalities: Option<String>,
+}
+impl ListUserModelsParams {
+    pub fn builder() -> ListUserModelsParamsBuilder {
+        ListUserModelsParamsBuilder::default()
+    }
+}
+pub async fn list_models_for_user_with_params(
+    base_url: &str,
+    api_key: &str,
+    params: &ListUserModelsParams,
+) -> Result<Vec<UserModel>, OpenRouterError> {
+    list_models_for_user_with_params_with_client(
+        &crate::transport::new_client()?,
+        base_url,
+        api_key,
+        params,
+    )
+    .await
+}
+pub(crate) async fn list_models_for_user_with_params_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    params: &ListUserModelsParams,
+) -> Result<Vec<UserModel>, OpenRouterError> {
     let url = format!("{base_url}/models/user");
     let response =
         transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
+            .query(params)
             .send()
             .await?;
 

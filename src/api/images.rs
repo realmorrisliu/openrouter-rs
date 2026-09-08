@@ -124,6 +124,9 @@ impl ImageProviderOptions {
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
 pub struct ImageGenerationRequest {
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user: Option<String>,
     #[builder(setter(into))]
     pub model: String,
     #[builder(setter(into))]

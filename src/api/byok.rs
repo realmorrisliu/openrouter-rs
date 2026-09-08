@@ -74,6 +74,9 @@ pub struct CreateByokKeyRequest {
     pub allowed_models: Option<Vec<String>>,
     #[builder(setter(custom), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub allowed_api_key_hashes: Option<Vec<String>>,
+    #[builder(setter(custom), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub allowed_user_ids: Option<Vec<String>>,
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -91,6 +94,7 @@ impl CreateByokKeyRequest {
 
 impl CreateByokKeyRequestBuilder {
     strip_option_vec_setter!(allowed_models, String);
+    strip_option_vec_setter!(allowed_api_key_hashes, String);
     strip_option_vec_setter!(allowed_user_ids, String);
 }
 
@@ -111,6 +115,11 @@ pub struct UpdateByokKeyRequest {
     #[serde(skip)]
     #[builder(setter(custom), default)]
     clear_allowed_models: bool,
+    #[builder(setter(custom), default)]
+    pub allowed_api_key_hashes: Option<Vec<String>>,
+    #[serde(skip)]
+    #[builder(setter(custom), default)]
+    clear_allowed_api_key_hashes: bool,
     #[builder(setter(custom), default)]
     pub allowed_user_ids: Option<Vec<String>>,
     #[serde(skip)]
@@ -140,6 +149,11 @@ impl Serialize for UpdateByokKeyRequest {
             map.serialize_entry("allowed_models", &Option::<Vec<String>>::None)?;
         } else if let Some(value) = &self.allowed_models {
             map.serialize_entry("allowed_models", value)?;
+        }
+        if self.clear_allowed_api_key_hashes {
+            map.serialize_entry("allowed_api_key_hashes", &Option::<Vec<String>>::None)?;
+        } else if let Some(value) = &self.allowed_api_key_hashes {
+            map.serialize_entry("allowed_api_key_hashes", value)?;
         }
         if self.clear_allowed_user_ids {
             map.serialize_entry("allowed_user_ids", &Option::<Vec<String>>::None)?;
@@ -185,6 +199,16 @@ impl UpdateByokKeyRequestBuilder {
         self
     }
 
+    pub fn allowed_api_key_hashes<T, S>(&mut self, items: T) -> &mut Self
+    where
+        T: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.allowed_api_key_hashes = Some(Some(items.into_iter().map(Into::into).collect()));
+        self.clear_allowed_api_key_hashes = Some(false);
+        self
+    }
+
     pub fn allowed_user_ids<T, S>(&mut self, items: T) -> &mut Self
     where
         T: IntoIterator<Item = S>,
@@ -198,6 +222,12 @@ impl UpdateByokKeyRequestBuilder {
     pub fn clear_allowed_models(&mut self) -> &mut Self {
         self.allowed_models = Some(None);
         self.clear_allowed_models = Some(true);
+        self
+    }
+
+    pub fn clear_allowed_api_key_hashes(&mut self) -> &mut Self {
+        self.allowed_api_key_hashes = Some(None);
+        self.clear_allowed_api_key_hashes = Some(true);
         self
     }
 

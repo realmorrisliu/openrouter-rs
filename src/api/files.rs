@@ -576,3 +576,166 @@ pub(crate) async fn delete_provider_file_with_client(
         unreachable!()
     }
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct ContainerFile {
+    pub id: String,
+    pub object: String,
+    pub container_id: String,
+    pub created_at: i64,
+    pub bytes: u64,
+    pub path: String,
+    pub source: String,
+}
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct ContainerFileListResponse {
+    pub object: String,
+    pub data: Vec<ContainerFile>,
+    pub first_id: Option<String>,
+    pub last_id: Option<String>,
+    pub has_more: bool,
+}
+
+/// GET `/containers/{}/files`.
+pub async fn list_container_files(
+    base_url: &str,
+    api_key: &str,
+    container_id: &str,
+    after: Option<&str>,
+    limit: Option<u32>,
+) -> Result<ContainerFileListResponse, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    list_container_files_with_client(&http_client, base_url, api_key, container_id, after, limit)
+        .await
+}
+pub(crate) async fn list_container_files_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    container_id: &str,
+    after: Option<&str>,
+    limit: Option<u32>,
+) -> Result<ContainerFileListResponse, OpenRouterError> {
+    let url = format!("{base_url}/containers/{}/files", encode(container_id));
+    let req =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
+    let req = if let Some(after) = after {
+        req.query(&[("after", after)])
+    } else {
+        req
+    };
+    let req = if let Some(limit) = limit {
+        req.query(&[("limit", limit)])
+    } else {
+        req
+    };
+
+    let response = req.send().await?;
+    if response.status().is_success() {
+        transport_response::parse_json_response(response, "list_container_files").await
+    } else {
+        Err(transport_response::error_from_response(response).await)
+    }
+}
+
+/// GET `/containers/{}/files/{}`.
+pub async fn get_container_file(
+    base_url: &str,
+    api_key: &str,
+    container_id: &str,
+    file_id: &str,
+) -> Result<ContainerFile, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    get_container_file_with_client(&http_client, base_url, api_key, container_id, file_id).await
+}
+pub(crate) async fn get_container_file_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    container_id: &str,
+    file_id: &str,
+) -> Result<ContainerFile, OpenRouterError> {
+    let url = format!(
+        "{base_url}/containers/{}/files/{}",
+        encode(container_id),
+        encode(file_id)
+    );
+    let req =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
+
+    let response = req.send().await?;
+    if response.status().is_success() {
+        transport_response::parse_json_response(response, "get_container_file").await
+    } else {
+        Err(transport_response::error_from_response(response).await)
+    }
+}
+
+/// GET `/containers/{}/files/{}/content`.
+pub async fn download_container_file(
+    base_url: &str,
+    api_key: &str,
+    container_id: &str,
+    file_id: &str,
+) -> Result<Vec<u8>, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    download_container_file_with_client(&http_client, base_url, api_key, container_id, file_id)
+        .await
+}
+pub(crate) async fn download_container_file_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    container_id: &str,
+    file_id: &str,
+) -> Result<Vec<u8>, OpenRouterError> {
+    let url = format!(
+        "{base_url}/containers/{}/files/{}/content",
+        encode(container_id),
+        encode(file_id)
+    );
+    let req =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
+
+    let response = req.send().await?;
+    if response.status().is_success() {
+        Ok(response.bytes().await?.to_vec())
+    } else {
+        Err(transport_response::error_from_response(response).await)
+    }
+}
+
+/// POST `/containers/{}/files/{}/promote`.
+pub async fn promote_container_file(
+    base_url: &str,
+    api_key: &str,
+    container_id: &str,
+    file_id: &str,
+) -> Result<ProviderFileMetadata, OpenRouterError> {
+    let http_client = crate::transport::new_client()?;
+    promote_container_file_with_client(&http_client, base_url, api_key, container_id, file_id).await
+}
+pub(crate) async fn promote_container_file_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    container_id: &str,
+    file_id: &str,
+) -> Result<ProviderFileMetadata, OpenRouterError> {
+    let url = format!(
+        "{base_url}/containers/{}/files/{}/promote",
+        encode(container_id),
+        encode(file_id)
+    );
+    let req =
+        transport_request::with_bearer_auth(transport_request::post(http_client, &url), api_key);
+
+    let response = req.send().await?;
+    if response.status().is_success() {
+        transport_response::parse_json_response(response, "promote_container_file").await
+    } else {
+        Err(transport_response::error_from_response(response).await)
+    }
+}

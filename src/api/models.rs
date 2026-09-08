@@ -108,6 +108,8 @@ pub struct Pricing {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
 pub struct PricingOverride {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub utc_days: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub audio: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -190,6 +192,10 @@ pub struct ModelReasoning {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
 pub struct Endpoint {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub supports_tool_choice: Option<ToolChoiceSupport>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub perf_last_30m_by_workload: Option<HashMap<String, Value>>,
     pub name: String,
     pub context_length: f64,
     pub pricing: EndpointPricing,
@@ -527,4 +533,14 @@ pub(crate) async fn list_model_endpoints_with_client(
         transport_response::handle_error(response).await?;
         unreachable!()
     }
+}
+
+/// Tool choice modes supported by a model endpoint.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct ToolChoiceSupport {
+    pub auto: bool,
+    pub none: bool,
+    pub required: bool,
+    pub function: bool,
 }

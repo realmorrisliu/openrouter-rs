@@ -1,18 +1,22 @@
 # Official Endpoint Test Matrix
 
-Snapshot date: 2026-08-17
+Snapshot date: 2026-09-08
 Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)  
 Tracked baseline: `specs/openrouter/openapi-baseline.json`  
 Weekly drift workflow: `.github/workflows/openapi-drift.yml`
 
 ## Coverage Summary
 
-- Official OpenAPI endpoints: `97` method+path entries.
-- SDK implementation coverage (`src/api` + domain client): `97 / 97` (`100.0%`).
-- Live integration coverage (`tests/integration`): `24 / 97` endpoints currently exercised.
-  - Covered live now: `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `POST /rerank`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`, `GET /organization/members`
+- Official OpenAPI endpoints: `105` method+path entries.
+- SDK implementation coverage (`src/api` + domain client): `105 / 105` (`100.0%`).
+- Live integration coverage (`tests/integration`): `25 / 105` endpoints currently exercised.
+  - Covered live now: `GET /oauth/jwks`, `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `POST /rerank`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`, `GET /organization/members`
 
 Drift review note:
+
+- Issue #248 (2026-09-08): accepted all eight operations still present upstream. `POST /organization`, present in the September 7 issue report, was withdrawn before this review and is not implemented. Added container files, OAuth and SCIM sync jobs, and the stable request/response fields summarized in the changelog. OAuth uses public signing-key discovery and JWT-authenticated form token exchange; it does not require an existing API/management key.
+- Reviewed remaining schema changes: provider/output/pricing-unit/reasoning-format taxonomy remains string-based; Responses, plugins, server-tool options, Anthropic response metadata/usage and generation timing retain existing flexible payloads. New error statuses use the existing error parser. File-ID/audio-format/video-upscale constraints remain server-validated. Analytics tag changes have no runtime effect. No CLI flags or default request payloads change; SDK consumers and CLI snapshots are checked by `just quality-ci`.
+- New endpoints have local HTTP contract tests in `tests/unit/openapi_september.rs`. Public OAuth signing keys have a live test. Container reads require `OPENROUTER_TEST_CONTAINER_ID`; SCIM job reads require `OPENROUTER_TEST_SCIM_SYNC_JOB_ID` plus the existing management test opt-in. Provisioning JWTs, starting directory syncs, and promoting files are not part of unattended live tests.
 
 - Upstream added `GET /datasets/session-cost` and `GET /workspaces/{id}/budgets/{interval}`, activity workspace filters/grouping, benchmark search filters, workspace deletion confirmation, BYOK/guardrail nullable workspace IDs, speech voice-cloning references with endpoint `supports_voice_cloning`, generation `workspace_id` and stored content errors, observability generation broadcast flags, analytics `include_unset`, and the `us` model region. The SDK types the stable fields, makes `ByokKey::workspace_id` optional, and keeps dynamic provider/resolution taxonomy on flexible string surfaces.
 - Upstream added six SCIM group and group-role mapping endpoints plus provider-native Files shapes and pagination. The SDK exposes SCIM through `client.management()`, provider-backed storage through `client.files().*_for_provider(...)`, and types the stable benchmark, audio, model, guardrail, and workspace fields. High-churn provider/plugin/Responses additions continue through existing flexible representations.
@@ -73,6 +77,14 @@ Legend:
 | `GET /benchmarks` | `client.models().get_benchmarks(...)` | Yes | Path | No | P2 |
 | `POST /chat/completions` | `client.chat().create(...)` / `client.chat().stream(...)` | Yes | Contract | Yes | Keep |
 | `GET /classifications/task` | `client.models().get_task_classifications(...)` | Yes | Path | No | P2 |
+| `GET /containers/{container_id}/files` | `client.files().list_container_files(...)` | Yes | Path | Conditional | P1 |
+| `GET /containers/{container_id}/files/{file_id}` | `client.files().get_container_file(...)` | Yes | Path | Conditional | P1 |
+| `GET /containers/{container_id}/files/{file_id}/content` | `client.files().download_container_file(...)` | Yes | Path | Conditional | P1 |
+| `POST /containers/{container_id}/files/{file_id}/promote` | `client.files().promote_container_file(...)` | Yes | Path | No | P1 |
+| `GET /oauth/jwks` | `client.management().get_oauth_jwks(...)` | Yes | Path | Yes | P1 |
+| `POST /oauth/token` | `client.management().exchange_oauth_token(...)` | Yes | Path | No | P1 |
+| `POST /scim/sync-jobs` | `client.management().create_scim_sync_job(...)` | Yes | Path | No | P1 |
+| `GET /scim/sync-jobs/{id}` | `client.management().get_scim_sync_job(...)` | Yes | Path | Conditional | P1 |
 | `GET /credits` | `client.get_credits()` / `client.management().get_credits()` | Yes | Path | No | P2 |
 | `POST /credits/coinbase` | `client.create_coinbase_charge(...)` / `client.management().create_coinbase_charge(...)` | Yes | Path | No | P2 |
 | `GET /datasets/app-rankings` | `client.models().get_app_rankings(...)` | Yes | Path | No | P2 |

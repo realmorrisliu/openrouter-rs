@@ -488,7 +488,7 @@ pub async fn delete_workspace(
     base_url: &str,
     management_key: &str,
     id: &str,
-    confirm_default_settings_deletion: Option<bool>,
+    confirm_default_workspace_deletion: Option<bool>,
 ) -> Result<bool, OpenRouterError> {
     let http_client = crate::transport::new_client()?;
     delete_workspace_with_client(
@@ -496,7 +496,7 @@ pub async fn delete_workspace(
         base_url,
         management_key,
         id,
-        confirm_default_settings_deletion,
+        confirm_default_workspace_deletion,
     )
     .await
 }
@@ -506,16 +506,16 @@ pub(crate) async fn delete_workspace_with_client(
     base_url: &str,
     management_key: &str,
     id: &str,
-    confirm_default_settings_deletion: Option<bool>,
+    confirm_default_workspace_deletion: Option<bool>,
 ) -> Result<bool, OpenRouterError> {
     let url = format!("{base_url}/workspaces/{}", encode(id));
     let req = transport_request::with_bearer_auth(
         transport_request::delete(http_client, &url),
         management_key,
     );
-    let response = match confirm_default_settings_deletion {
+    let response = match confirm_default_workspace_deletion {
         Some(confirm) => {
-            req.query(&[("confirm_default_settings_deletion", confirm)])
+            req.query(&[("confirm_default_workspace_deletion", confirm)])
                 .send()
                 .await?
         }
