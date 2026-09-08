@@ -358,6 +358,8 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 ## 📈 Release History
 
+### Unreleased
+
 ### Version 0.15.0 *(Latest)*
 
 - Added container files, workload OAuth token exchange/signing keys, SCIM sync jobs, regional management controls, and expanded message/model fields. Accepted the 2026-09-08 OpenAPI review with `105 / 105` tracked operations.
