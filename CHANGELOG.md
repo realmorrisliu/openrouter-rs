@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-09-08
+
 ### Added
 - Added container file list/metadata/download/promotion through `files()`, public OAuth signing keys and workload token exchange through `management()`, and SCIM sync job creation/status through `management()`.
 - Added regional guardrails and observability destinations, the `secrets` filter, BYOK API-key allowlists with explicit clearing, external API-key identities, user-model pagination/modality filters, pricing weekdays, endpoint tool-choice/workload performance metadata, server-tool cost, image user identifiers, video processing, chat configuration updates, and Anthropic message/thinking/container-result controls.
@@ -18,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Accepted issue #248 against the 2026-09-08 upstream snapshot (`105 / 105` operations); `POST /organization` from the issue report was withdrawn upstream before review.
-- Corrected the workspace deletion confirmation query to `confirm_default_workspace_deletion`; the positional Rust method signature is unchanged.
+- Workspace deletion confirmation now uses the upstream query name `confirm_default_workspace_deletion`.
 - **Breaking:** `ByokKey::workspace_id` is now `Option<String>` because upstream returns `null` for account-level credentials.
 - **Breaking:** `delete_workspace(...)` now takes a `confirm_default_workspace_deletion: Option<bool>` argument; pass `None` to keep the previous behavior.
 - Accepted the 2026-08-17 OpenAPI drift review, restoring the official endpoint snapshot to `97 / 97`.

@@ -41,7 +41,7 @@ The September OpenAPI update adds container file listing, metadata, downloads an
 
 ```toml
 [dependencies]
-openrouter-rs = "0.14.0"
+openrouter-rs = "0.15.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -49,7 +49,7 @@ Legacy text completions are opt-in:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.14.0", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.15.0", features = ["legacy-completions"] }
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -360,13 +360,15 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 ### Unreleased
 
+### Version 0.15.0 *(Latest)*
+
 - Added container files, workload OAuth token exchange/signing keys, SCIM sync jobs, regional management controls, and expanded message/model fields. Accepted the 2026-09-08 OpenAPI review with `105 / 105` tracked operations.
 
 - Added session-cost datasets, single-interval workspace budgets, activity workspace filters, benchmark search filters, speech voice cloning, observability generation broadcast flags, and stored generation content errors.
 - **Breaking:** `ByokKey::workspace_id` is now optional, and `delete_workspace(...)` takes an optional `confirm_default_workspace_deletion` argument.
 - Accepted the 2026-08-17 OpenAPI drift review and restored tracked endpoint coverage to `97 / 97`.
 
-### Version 0.14.0 *(Latest)*
+### Version 0.14.0
 
 - Tool-aware chat streaming now preserves provider-supplied tool-call indices without inventing missing values, and `FinishReason::Other` keeps unknown provider finish reasons forward-compatible.
 - Added SCIM group and group-role mapping management plus provider-aware Files API support.
