@@ -69,13 +69,22 @@ impl InputAudio {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
 pub struct VideoUrl {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub processing: Option<String>,
     /// URL of the input video.
     pub url: String,
 }
 
 impl VideoUrl {
+    pub fn processing(mut self, processing: impl Into<String>) -> Self {
+        self.processing = Some(processing.into());
+        self
+    }
     pub fn new(url: impl Into<String>) -> Self {
-        Self { url: url.into() }
+        Self {
+            url: url.into(),
+            processing: None,
+        }
     }
 }
 
@@ -408,6 +417,8 @@ impl Prediction {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
 pub struct Message {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub configuration_update: Option<Value>,
     pub role: Role,
     pub content: Content,
     /// Model that generated an assistant message.
@@ -427,6 +438,7 @@ pub struct Message {
 impl Message {
     pub fn new(role: Role, content: impl Into<Content>) -> Self {
         Self {
+            configuration_update: None,
             role,
             content: content.into(),
             model: None,
@@ -439,6 +451,7 @@ impl Message {
     /// Create a message with multi-part content (text and images).
     pub fn with_parts(role: Role, parts: Vec<ContentPart>) -> Self {
         Self {
+            configuration_update: None,
             role,
             content: Content::Parts(parts),
             model: None,
@@ -451,6 +464,7 @@ impl Message {
     /// Create a tool response message
     pub fn tool_response(tool_call_id: &str, content: impl Into<Content>) -> Self {
         Self {
+            configuration_update: None,
             role: Role::Tool,
             content: content.into(),
             model: None,
@@ -467,6 +481,7 @@ impl Message {
         content: impl Into<Content>,
     ) -> Self {
         Self {
+            configuration_update: None,
             role: Role::Tool,
             content: content.into(),
             model: None,
@@ -479,6 +494,7 @@ impl Message {
     /// Create a message with a specific name
     pub fn named(role: Role, name: &str, content: impl Into<Content>) -> Self {
         Self {
+            configuration_update: None,
             role,
             content: content.into(),
             model: None,
@@ -494,6 +510,7 @@ impl Message {
         tool_calls: Vec<crate::types::ToolCall>,
     ) -> Self {
         Self {
+            configuration_update: None,
             role: Role::Assistant,
             content: content.into(),
             model: None,

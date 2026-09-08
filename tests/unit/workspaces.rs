@@ -730,7 +730,7 @@ async fn test_delete_workspace_with_confirm_query() {
         .expect("should capture request");
     assert_eq!(
         captured.request_line,
-        "DELETE /api/v1/workspaces/ws_123?confirm_default_settings_deletion=true HTTP/1.1"
+        "DELETE /api/v1/workspaces/ws_123?confirm_default_workspace_deletion=true HTTP/1.1"
     );
 
     server.join().expect("server thread should finish");

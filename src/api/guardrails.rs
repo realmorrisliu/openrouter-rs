@@ -43,6 +43,7 @@ pub enum ContentFilterBuiltinSlug {
     PersonName,
     Address,
     RegexPromptInjection,
+    Secrets,
 }
 
 /// Built-in content filter entry used by guardrail create/update requests and responses.
@@ -120,6 +121,8 @@ pub struct Guardrail {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub allowed_models: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub allowed_data_regions: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub content_filter_builtins: Option<Vec<ContentFilterBuiltinEntry>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub content_filters: Option<Vec<ContentFilterEntry>>,
@@ -186,6 +189,9 @@ pub struct CreateGuardrailRequest {
     allowed_models: Option<Vec<String>>,
     #[builder(setter(custom), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
+    allowed_data_regions: Option<Vec<String>>,
+    #[builder(setter(custom), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     content_filter_builtins: Option<Vec<ContentFilterBuiltinEntry>>,
     #[builder(setter(custom), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -216,6 +222,7 @@ pub struct CreateGuardrailRequest {
 impl CreateGuardrailRequestBuilder {
     strip_option_vec_setter!(allowed_providers, String);
     strip_option_vec_setter!(allowed_models, String);
+    strip_option_vec_setter!(allowed_data_regions, String);
     strip_option_vec_setter!(content_filter_builtins, ContentFilterBuiltinEntry);
     strip_option_vec_setter!(content_filters, ContentFilterEntry);
 }
@@ -257,6 +264,11 @@ pub struct UpdateGuardrailRequest {
     #[serde(skip)]
     #[builder(setter(custom), default)]
     clear_allowed_models: bool,
+    #[builder(setter(custom), default)]
+    allowed_data_regions: Option<Vec<String>>,
+    #[serde(skip)]
+    #[builder(setter(custom), default)]
+    clear_allowed_data_regions: bool,
     #[builder(setter(custom), default)]
     content_filter_builtins: Option<Vec<ContentFilterBuiltinEntry>>,
     #[serde(skip)]
@@ -321,6 +333,11 @@ impl Serialize for UpdateGuardrailRequest {
         } else if let Some(value) = &self.allowed_models {
             map.serialize_entry("allowed_models", value)?;
         }
+        if self.clear_allowed_data_regions {
+            map.serialize_entry("allowed_data_regions", &Option::<Vec<String>>::None)?;
+        } else if let Some(value) = &self.allowed_data_regions {
+            map.serialize_entry("allowed_data_regions", value)?;
+        }
         if self.clear_content_filter_builtins {
             map.serialize_entry(
                 "content_filter_builtins",
@@ -377,6 +394,16 @@ impl UpdateGuardrailRequestBuilder {
         self
     }
 
+    pub fn allowed_data_regions<T, S>(&mut self, items: T) -> &mut Self
+    where
+        T: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.allowed_data_regions = Some(Some(items.into_iter().map(Into::into).collect()));
+        self.clear_allowed_data_regions = Some(false);
+        self
+    }
+
     pub fn clear_allowed_providers(&mut self) -> &mut Self {
         self.allowed_providers = Some(None);
         self.clear_allowed_providers = Some(true);
@@ -386,6 +413,12 @@ impl UpdateGuardrailRequestBuilder {
     pub fn clear_allowed_models(&mut self) -> &mut Self {
         self.allowed_models = Some(None);
         self.clear_allowed_models = Some(true);
+        self
+    }
+
+    pub fn clear_allowed_data_regions(&mut self) -> &mut Self {
+        self.allowed_data_regions = Some(None);
+        self.clear_allowed_data_regions = Some(true);
         self
     }
 

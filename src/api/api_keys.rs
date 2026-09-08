@@ -10,6 +10,8 @@ use crate::{
 #[derive(Serialize, Deserialize, Debug)]
 #[non_exhaustive]
 pub struct ApiKey {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub external_user: Option<String>,
     pub name: Option<String>,
     pub label: Option<String>,
     pub limit: Option<f64>,
@@ -76,13 +78,42 @@ pub struct RateLimit {
     pub interval: String,
 }
 
-#[derive(Serialize)]
-struct CreateApiKeyRequest {
-    name: String,
+/// API key creation options, including external identity binding.
+#[derive(Serialize, Deserialize, Debug, Clone, derive_builder::Builder)]
+#[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
+pub struct CreateApiKeyRequest {
+    #[builder(setter(into))]
+    pub name: String,
+    #[builder(default, setter(strip_option))]
     #[serde(skip_serializing_if = "Option::is_none")]
-    limit: Option<f64>,
+    pub limit: Option<f64>,
+    #[builder(default, setter(into, strip_option))]
     #[serde(skip_serializing_if = "Option::is_none")]
-    workspace_id: Option<String>,
+    pub workspace_id: Option<String>,
+    #[builder(default, setter(strip_option))]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub external: Option<ExternalApiKeyIdentity>,
+}
+impl CreateApiKeyRequest {
+    pub fn builder() -> CreateApiKeyRequestBuilder {
+        CreateApiKeyRequestBuilder::default()
+    }
+}
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct ExternalApiKeyIdentity {
+    pub user: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_key: Option<String>,
+}
+impl ExternalApiKeyIdentity {
+    pub fn new(user: impl Into<String>) -> Self {
+        Self {
+            user: user.into(),
+            api_key: None,
+        }
+    }
 }
 
 #[derive(Serialize)]
@@ -321,18 +352,41 @@ pub(crate) async fn create_api_key_in_workspace_with_client(
     limit: Option<f64>,
     workspace_id: Option<&str>,
 ) -> Result<ApiKey, OpenRouterError> {
-    let url = format!("{base_url}/keys");
     let request = CreateApiKeyRequest {
         name: name.to_string(),
         limit,
         workspace_id: workspace_id.map(ToOwned::to_owned),
+        external: None,
     };
+    create_api_key_with_options_with_client(http_client, base_url, management_key, &request).await
+}
+
+pub async fn create_api_key_with_options(
+    base_url: &str,
+    management_key: &str,
+    request: &CreateApiKeyRequest,
+) -> Result<ApiKey, OpenRouterError> {
+    create_api_key_with_options_with_client(
+        &crate::transport::new_client()?,
+        base_url,
+        management_key,
+        request,
+    )
+    .await
+}
+pub(crate) async fn create_api_key_with_options_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    management_key: &str,
+    request: &CreateApiKeyRequest,
+) -> Result<ApiKey, OpenRouterError> {
+    let url = format!("{base_url}/keys");
 
     let response = transport_request::with_bearer_auth(
         transport_request::post(http_client, &url),
         management_key,
     )
-    .json(&request)
+    .json(request)
     .send()
     .await?;
 

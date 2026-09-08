@@ -184,3 +184,108 @@ pub(crate) async fn create_auth_code_with_client(
         unreachable!()
     }
 }
+
+/// RFC 8693 workload identity token exchange request.
+#[derive(Serialize, Deserialize, Debug, Clone, Builder)]
+#[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
+pub struct OAuthTokenExchangeRequest {
+    #[builder(setter(into))]
+    pub federation_policy_id: String,
+    #[builder(setter(into))]
+    pub subject_token: String,
+    #[builder(
+        default = "String::from(\"urn:ietf:params:oauth:grant-type:token-exchange\")",
+        setter(into)
+    )]
+    pub grant_type: String,
+    #[builder(
+        default = "String::from(\"urn:ietf:params:oauth:token-type:jwt\")",
+        setter(into)
+    )]
+    pub subject_token_type: String,
+    #[builder(default, setter(into, strip_option))]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub requested_token_type: Option<String>,
+    #[builder(default, setter(into, strip_option))]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scope: Option<String>,
+}
+
+impl OAuthTokenExchangeRequest {
+    pub fn builder() -> OAuthTokenExchangeRequestBuilder {
+        OAuthTokenExchangeRequestBuilder::default()
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct OAuthTokenResponse {
+    pub access_token: String,
+    pub expires_in: u64,
+    pub issued_token_type: String,
+    pub scope: String,
+    pub token_type: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct OAuthJwk {
+    pub alg: String,
+    pub crv: String,
+    pub kid: String,
+    pub kty: String,
+    #[serde(rename = "use")]
+    pub key_use: String,
+    pub x: String,
+    pub y: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct OAuthJwksResponse {
+    pub keys: Vec<OAuthJwk>,
+}
+
+/// Fetch the public signing keys (`GET /oauth/jwks`).
+pub async fn get_oauth_jwks(base_url: &str) -> Result<OAuthJwksResponse, OpenRouterError> {
+    get_oauth_jwks_with_client(&crate::transport::new_client()?, base_url).await
+}
+
+pub(crate) async fn get_oauth_jwks_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+) -> Result<OAuthJwksResponse, OpenRouterError> {
+    let response = transport_request::get(http_client, &format!("{base_url}/oauth/jwks"))
+        .send()
+        .await?;
+    if response.status().is_success() {
+        transport_response::parse_json_response(response, "OAuth signing keys").await
+    } else {
+        Err(transport_response::error_from_response(response).await)
+    }
+}
+
+/// Exchange a workload JWT for an access token (`POST /oauth/token`).
+pub async fn exchange_oauth_token(
+    base_url: &str,
+    request: &OAuthTokenExchangeRequest,
+) -> Result<OAuthTokenResponse, OpenRouterError> {
+    exchange_oauth_token_with_client(&crate::transport::new_client()?, base_url, request).await
+}
+
+pub(crate) async fn exchange_oauth_token_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    request: &OAuthTokenExchangeRequest,
+) -> Result<OAuthTokenResponse, OpenRouterError> {
+    let response = transport_request::post(http_client, &format!("{base_url}/oauth/token"))
+        .form(request)
+        .send()
+        .await?;
+    if response.status().is_success() {
+        transport_response::parse_json_response(response, "OAuth token exchange").await
+    } else {
+        Err(transport_response::error_from_response(response).await)
+    }
+}

@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-08-20T02:30:35+00:00",
+  "captured_at": "2026-09-08T03:47:53+00:00",
   "info": {
     "contact": {
       "email": "support@openrouter.ai",
@@ -14,7 +14,7 @@
     "title": "OpenRouter API",
     "version": "1.0.0"
   },
-  "operation_count": 97,
+  "operation_count": 105,
   "operations": [
     {
       "deprecated": false,
@@ -29,7 +29,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "6c8d1d471e3dfa9f",
+      "fingerprint": "950bd2465579f5a4",
       "id": "DELETE /files/{file_id}",
       "method": "DELETE",
       "operation_id": "deleteFile",
@@ -84,7 +84,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "5af7abb453900b48",
+      "fingerprint": "d6e5f75a68c89fb8",
       "id": "DELETE /workspaces/{id}",
       "method": "DELETE",
       "operation_id": "deleteWorkspace",
@@ -117,13 +117,13 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "23abd46490f4298d",
+      "fingerprint": "5a94a8f1f0791579",
       "id": "GET /analytics/meta",
       "method": "GET",
       "operation_id": "getAnalyticsMeta",
       "path": "/analytics/meta",
       "tags": [
-        "beta.Analytics"
+        "Analytics"
       ]
     },
     {
@@ -139,7 +139,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b2fb1f05cb742923",
+      "fingerprint": "64c02a608fecf6db",
       "id": "GET /byok",
       "method": "GET",
       "operation_id": "listBYOKKeys",
@@ -150,7 +150,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "857b9b31ffdf87d5",
+      "fingerprint": "1e9d8b3ef96dbaeb",
       "id": "GET /byok/{id}",
       "method": "GET",
       "operation_id": "getBYOKKey",
@@ -168,6 +168,39 @@
       "path": "/classifications/task",
       "tags": [
         "Classifications"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "361a2a88711d8ba5",
+      "id": "GET /containers/{container_id}/files",
+      "method": "GET",
+      "operation_id": "listContainerFiles",
+      "path": "/containers/{container_id}/files",
+      "tags": [
+        "Containers"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "10b68fc06a733ef6",
+      "id": "GET /containers/{container_id}/files/{file_id}",
+      "method": "GET",
+      "operation_id": "getContainerFile",
+      "path": "/containers/{container_id}/files/{file_id}",
+      "tags": [
+        "Containers"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "76f2ead6a50211a6",
+      "id": "GET /containers/{container_id}/files/{file_id}/content",
+      "method": "GET",
+      "operation_id": "downloadContainerFileContent",
+      "path": "/containers/{container_id}/files/{file_id}/content",
+      "tags": [
+        "Containers"
       ]
     },
     {
@@ -216,7 +249,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "8be9f718ce33e81c",
+      "fingerprint": "9a03ceaeece78aff",
       "id": "GET /embeddings/models",
       "method": "GET",
       "operation_id": "listEmbeddingsModels",
@@ -227,7 +260,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "bfd19a17ff062fad",
+      "fingerprint": "92bfb6fe33d058a4",
       "id": "GET /endpoints/zdr",
       "method": "GET",
       "operation_id": "listEndpointsZdr",
@@ -249,7 +282,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "2d38e3f0677b17b6",
+      "fingerprint": "7be5466dfdbacd6d",
       "id": "GET /files/{file_id}",
       "method": "GET",
       "operation_id": "getFileMetadata",
@@ -260,7 +293,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "1e6c40baf7664561",
+      "fingerprint": "21f6973d6d6a41aa",
       "id": "GET /files/{file_id}/content",
       "method": "GET",
       "operation_id": "downloadFileContent",
@@ -271,7 +304,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b5fd8bbbacdd9a4d",
+      "fingerprint": "2b4fbf0f3c9d5796",
       "id": "GET /generation",
       "method": "GET",
       "operation_id": "getGeneration",
@@ -293,7 +326,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f9113e9205b2b876",
+      "fingerprint": "2b8860c84846aaea",
       "id": "GET /guardrails",
       "method": "GET",
       "operation_id": "listGuardrails",
@@ -326,7 +359,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "60df6fac9cfc258c",
+      "fingerprint": "f4950fde9cee654a",
       "id": "GET /guardrails/{id}",
       "method": "GET",
       "operation_id": "getGuardrail",
@@ -370,7 +403,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "31bd67af0db8b83d",
+      "fingerprint": "b1eb96698f97e07e",
       "id": "GET /images/models/{author}/{slug}/endpoints",
       "method": "GET",
       "operation_id": "listImageModelEndpoints",
@@ -392,7 +425,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "7d89ca7293034a15",
+      "fingerprint": "e2d8fd736c1ee7eb",
       "id": "GET /keys",
       "method": "GET",
       "operation_id": "list",
@@ -403,7 +436,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "40ae282a77cbf187",
+      "fingerprint": "3ac990c922b51e18",
       "id": "GET /keys/{hash}",
       "method": "GET",
       "operation_id": "getKey",
@@ -414,7 +447,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "de8ac5738a46a47c",
+      "fingerprint": "849ab50cdb530cfa",
       "id": "GET /model/{author}/{slug}",
       "method": "GET",
       "operation_id": "getModel",
@@ -425,7 +458,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b4ac48e7e1af0fb9",
+      "fingerprint": "a7b0a205adcd1f20",
       "id": "GET /models",
       "method": "GET",
       "operation_id": "getModels",
@@ -447,7 +480,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "c99c3473508e66eb",
+      "fingerprint": "8e55b49b486b01e5",
       "id": "GET /models/user",
       "method": "GET",
       "operation_id": "listModelsUser",
@@ -458,7 +491,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "77cc6809d06c9599",
+      "fingerprint": "66b64f44317d71f0",
       "id": "GET /models/{author}/{slug}/endpoints",
       "method": "GET",
       "operation_id": "listEndpoints",
@@ -469,7 +502,18 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "a9a1bfd9885fd279",
+      "fingerprint": "b7a1a4a8ea2f0aa4",
+      "id": "GET /oauth/jwks",
+      "method": "GET",
+      "operation_id": "listOauthJwks",
+      "path": "/oauth/jwks",
+      "tags": [
+        "OAuth"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "823c73409accd239",
       "id": "GET /observability/destinations",
       "method": "GET",
       "operation_id": "listObservabilityDestinations",
@@ -480,7 +524,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "4e6d0821223346df",
+      "fingerprint": "9831bd43a18ca078",
       "id": "GET /observability/destinations/{id}",
       "method": "GET",
       "operation_id": "getObservabilityDestination",
@@ -590,6 +634,17 @@
     },
     {
       "deprecated": false,
+      "fingerprint": "aeccfc931c6b0987",
+      "id": "GET /scim/sync-jobs/{id}",
+      "method": "GET",
+      "operation_id": "getScimSyncJob",
+      "path": "/scim/sync-jobs/{id}",
+      "tags": [
+        "SCIM"
+      ]
+    },
+    {
+      "deprecated": false,
       "fingerprint": "66a54697501e7219",
       "id": "GET /videos/models",
       "method": "GET",
@@ -601,7 +656,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "72c2e695dbaecd46",
+      "fingerprint": "692c7eb227da7ea1",
       "id": "GET /videos/{jobId}",
       "method": "GET",
       "operation_id": "getVideos",
@@ -612,7 +667,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "884080e8679caeea",
+      "fingerprint": "3d3e4f6ed3b80ee6",
       "id": "GET /videos/{jobId}/content",
       "method": "GET",
       "operation_id": "listVideosContent",
@@ -678,7 +733,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "159bf0d69e9cad4b",
+      "fingerprint": "50df4e81be83b9e2",
       "id": "PATCH /byok/{id}",
       "method": "PATCH",
       "operation_id": "updateBYOKKey",
@@ -689,7 +744,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f93e3f468e19c85e",
+      "fingerprint": "0dc4521bc9d0a4ce",
       "id": "PATCH /guardrails/{id}",
       "method": "PATCH",
       "operation_id": "updateGuardrail",
@@ -700,7 +755,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "5f6dabc3dd1e5db1",
+      "fingerprint": "395fadcf1ddd3117",
       "id": "PATCH /keys/{hash}",
       "method": "PATCH",
       "operation_id": "updateKeys",
@@ -711,7 +766,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "2e772365433523f3",
+      "fingerprint": "737b6e6008608879",
       "id": "PATCH /observability/destinations/{id}",
       "method": "PATCH",
       "operation_id": "updateObservabilityDestination",
@@ -744,18 +799,18 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "34dd1c2162b9d916",
+      "fingerprint": "6f05b0c4de1a1b2c",
       "id": "POST /analytics/query",
       "method": "POST",
       "operation_id": "queryAnalytics",
       "path": "/analytics/query",
       "tags": [
-        "beta.Analytics"
+        "Analytics"
       ]
     },
     {
       "deprecated": false,
-      "fingerprint": "447d61253b3f2211",
+      "fingerprint": "dcf76707c2b778e6",
       "id": "POST /audio/speech",
       "method": "POST",
       "operation_id": "createAudioSpeech",
@@ -766,7 +821,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "5bedd17843f1180f",
+      "fingerprint": "f18acf7cfec40802",
       "id": "POST /audio/transcriptions",
       "method": "POST",
       "operation_id": "createAudioTranscriptions",
@@ -799,7 +854,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "ee00674b45871517",
+      "fingerprint": "4ac00e69e6bab161",
       "id": "POST /byok",
       "method": "POST",
       "operation_id": "createBYOKKey",
@@ -810,13 +865,24 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "38432ddc4fc61d7a",
+      "fingerprint": "bc1403fd9c3cdc91",
       "id": "POST /chat/completions",
       "method": "POST",
       "operation_id": "sendChatCompletionRequest",
       "path": "/chat/completions",
       "tags": [
         "Chat"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "3574f6c6abc0381a",
+      "id": "POST /containers/{container_id}/files/{file_id}/promote",
+      "method": "POST",
+      "operation_id": "promoteContainerFile",
+      "path": "/containers/{container_id}/files/{file_id}/promote",
+      "tags": [
+        "Containers"
       ]
     },
     {
@@ -832,7 +898,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "8938b6231142e883",
+      "fingerprint": "e482d24eb73cb6df",
       "id": "POST /embeddings",
       "method": "POST",
       "operation_id": "createEmbeddings",
@@ -865,7 +931,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "fe558652b59d7ef3",
+      "fingerprint": "a8d11988f381d8b6",
       "id": "POST /guardrails",
       "method": "POST",
       "operation_id": "createGuardrail",
@@ -920,7 +986,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "78196d340d4e4f7a",
+      "fingerprint": "ba492dfd3d050873",
       "id": "POST /images",
       "method": "POST",
       "operation_id": "createImages",
@@ -931,7 +997,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "bbbcb1e3dd783253",
+      "fingerprint": "c273a79653c1e15e",
       "id": "POST /keys",
       "method": "POST",
       "operation_id": "createKeys",
@@ -942,7 +1008,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "7417eeaef1cb8229",
+      "fingerprint": "043506ad3e852a72",
       "id": "POST /messages",
       "method": "POST",
       "operation_id": "createMessages",
@@ -953,7 +1019,18 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "1154e8c73200283c",
+      "fingerprint": "baee276765efc860",
+      "id": "POST /oauth/token",
+      "method": "POST",
+      "operation_id": "createOauthToken",
+      "path": "/oauth/token",
+      "tags": [
+        "OAuth"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "13beddf40576f261",
       "id": "POST /observability/destinations",
       "method": "POST",
       "operation_id": "createObservabilityDestination",
@@ -964,7 +1041,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "0809e4cfac2080ac",
+      "fingerprint": "7671a4580abe9e6d",
       "id": "POST /presets/{slug}/chat/completions",
       "method": "POST",
       "operation_id": "createPresetsChatCompletions",
@@ -975,7 +1052,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "a2787025e6c556c4",
+      "fingerprint": "04f2651406ee2778",
       "id": "POST /presets/{slug}/messages",
       "method": "POST",
       "operation_id": "createPresetsMessages",
@@ -986,7 +1063,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "144a3506d348cf0c",
+      "fingerprint": "7b101e56f8d9966e",
       "id": "POST /presets/{slug}/responses",
       "method": "POST",
       "operation_id": "createPresetsResponses",
@@ -997,7 +1074,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f259205795eca45e",
+      "fingerprint": "90347357a670590b",
       "id": "POST /rerank",
       "method": "POST",
       "operation_id": "createRerank",
@@ -1008,7 +1085,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "ecd3a1956dd59c16",
+      "fingerprint": "26ea837a35608816",
       "id": "POST /responses",
       "method": "POST",
       "operation_id": "createResponses",
@@ -1031,7 +1108,18 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "aaecf50a60d7b244",
+      "fingerprint": "f82db984c31b8134",
+      "id": "POST /scim/sync-jobs",
+      "method": "POST",
+      "operation_id": "createScimSyncJob",
+      "path": "/scim/sync-jobs",
+      "tags": [
+        "SCIM"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "9fc466d42f790e9f",
       "id": "POST /videos",
       "method": "POST",
       "operation_id": "createVideos",

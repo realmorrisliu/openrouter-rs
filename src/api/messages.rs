@@ -103,6 +103,22 @@ impl From<Vec<AnthropicContentPart>> for AnthropicMessageContent {
 #[non_exhaustive]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum AnthropicContentPart {
+    OpenrouterBashToolResult {
+        tool_use_id: String,
+        content: Value,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        container_id: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        files: Option<Vec<Value>>,
+    },
+    OpenrouterShellToolResult {
+        tool_use_id: String,
+        content: Value,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        container_id: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        files: Option<Vec<Value>>,
+    },
     Text {
         text: String,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -283,6 +299,10 @@ impl AnthropicContentPart {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
 pub struct AnthropicMessage {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub clear_at: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub output_config: Option<AnthropicOutputConfig>,
     pub role: AnthropicRole,
     pub content: AnthropicMessageContent,
 }
@@ -290,6 +310,8 @@ pub struct AnthropicMessage {
 impl AnthropicMessage {
     pub fn new(role: AnthropicRole, content: impl Into<AnthropicMessageContent>) -> Self {
         Self {
+            clear_at: None,
+            output_config: None,
             role,
             content: content.into(),
         }
@@ -309,6 +331,8 @@ impl AnthropicMessage {
 
     pub fn with_parts(role: AnthropicRole, parts: Vec<AnthropicContentPart>) -> Self {
         Self {
+            clear_at: None,
+            output_config: None,
             role,
             content: AnthropicMessageContent::Parts(parts),
         }
@@ -431,13 +455,18 @@ impl AnthropicToolChoice {
 }
 
 /// Thinking control for Anthropic-compatible messages.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Debug, Clone)]
 #[non_exhaustive]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum AnthropicThinking {
-    Enabled { budget_tokens: u32 },
+    Enabled {
+        budget_tokens: u32,
+    },
     Disabled,
     Adaptive,
+    /// Provider thinking controls including display and block_binding.
+    #[serde(untagged)]
+    Configured(Value),
 }
 
 impl AnthropicThinking {
@@ -463,6 +492,7 @@ pub enum AnthropicOutputEffort {
     Medium,
     High,
     Max,
+    Xhigh,
 }
 
 /// Output config for Anthropic messages.
@@ -1062,5 +1092,36 @@ pub(crate) async fn stream_messages_with_client(
     } else {
         transport_response::handle_error(response).await?;
         unreachable!()
+    }
+}
+
+impl<'de> Deserialize<'de> for AnthropicThinking {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = Value::deserialize(deserializer)?;
+        let kind = value.get("type").and_then(Value::as_str);
+        match kind {
+            Some("enabled") => {
+                let budget = value
+                    .get("budget_tokens")
+                    .and_then(Value::as_u64)
+                    .and_then(|n| u32::try_from(n).ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::custom("enabled thinking requires budget_tokens")
+                    })?;
+                if value.as_object().is_some_and(|o| o.len() == 2) {
+                    Ok(Self::enabled(budget))
+                } else {
+                    Ok(Self::Configured(value))
+                }
+            }
+            Some("adaptive") if value.as_object().is_some_and(|o| o.len() == 1) => {
+                Ok(Self::Adaptive)
+            }
+            Some("disabled") if value.as_object().is_some_and(|o| o.len() == 1) => {
+                Ok(Self::Disabled)
+            }
+            Some(_) => Ok(Self::Configured(value)),
+            None => Err(serde::de::Error::custom("thinking requires a type")),
+        }
     }
 }

@@ -245,6 +245,8 @@ pub struct EmbeddingPromptTokensDetails {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
 pub struct EmbeddingCostDetails {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub server_tool_cost: Option<f64>,
     pub upstream_inference_completions_cost: f64,
     pub upstream_inference_prompt_cost: f64,
     #[serde(default, skip_serializing_if = "Option::is_none")]

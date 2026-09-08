@@ -279,3 +279,22 @@ async fn test_management_organization_members_read_smoke() -> Result<(), OpenRou
     );
     Ok(())
 }
+
+#[tokio::test]
+#[allow(clippy::result_large_err)]
+async fn test_scim_sync_job_live() -> Result<(), OpenRouterError> {
+    if !should_run_management_tests() {
+        return Ok(());
+    }
+    let Some(client) = create_management_test_client()? else {
+        return Ok(());
+    };
+    let Ok(id) = std::env::var("OPENROUTER_TEST_SCIM_SYNC_JOB_ID") else {
+        println!("Skipping SCIM sync job: OPENROUTER_TEST_SCIM_SYNC_JOB_ID is not set");
+        return Ok(());
+    };
+    let job = client.management().get_scim_sync_job(&id).await?;
+    assert_eq!(job.id, id);
+    assert!(!job.status.is_empty());
+    Ok(())
+}
