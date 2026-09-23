@@ -709,8 +709,12 @@ def is_repo_supported_generic_error_response(response: Any) -> bool:
         error_properties = error.get("properties") if isinstance(error, dict) else None
         if (
             not isinstance(properties, dict)
+            or schema.get("type") != "object"
             or "error" not in schema.get("required", [])
             or not isinstance(error_properties, dict)
+            or error.get("type") != "object"
+            or not isinstance(error.get("required"), list)
+            or "message" not in error["required"]
             or not {"code", "message"}.issubset(error_properties)
             or not isinstance(error_properties.get("code"), dict)
             or not isinstance(error_properties.get("message"), dict)

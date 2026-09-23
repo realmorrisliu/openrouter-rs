@@ -63,6 +63,30 @@ def build_spec(
     }
 
 
+def generic_error_response():
+    return {
+        "description": "Too many requests",
+        "content": {
+            "application/json": {
+                "schema": {
+                    "type": "object",
+                    "required": ["error"],
+                    "properties": {
+                        "error": {
+                            "type": "object",
+                            "required": ["code", "message"],
+                            "properties": {
+                                "code": {"type": "integer"},
+                                "message": {"type": "string"},
+                            },
+                        }
+                    },
+                }
+            }
+        },
+    }
+
+
 class OpenApiDriftReportTests(unittest.TestCase):
     def test_path_parameter_renames_do_not_change_operation_identity(self):
         baseline = build_spec(
@@ -136,29 +160,6 @@ class OpenApiDriftReportTests(unittest.TestCase):
         )
 
     def test_generic_error_normalization_preserves_response_headers(self):
-        def generic_error_response():
-            return {
-                "description": "Too many requests",
-                "content": {
-                    "application/json": {
-                        "schema": {
-                            "type": "object",
-                            "required": ["error"],
-                            "properties": {
-                                "error": {
-                                    "type": "object",
-                                    "required": ["code", "message"],
-                                    "properties": {
-                                        "code": {"type": "integer"},
-                                        "message": {"type": "string"},
-                                    },
-                                }
-                            },
-                        }
-                    }
-                },
-            }
-
         baseline = build_spec()
         candidate = build_spec()
         baseline["paths"]["/models"]["get"]["responses"]["429"] = generic_error_response()
@@ -166,6 +167,30 @@ class OpenApiDriftReportTests(unittest.TestCase):
         candidate_response["headers"] = {
             "Retry-After": {"schema": {"type": "string"}}
         }
+        candidate["paths"]["/models"]["get"]["responses"]["429"] = candidate_response
+
+        report = openapi_drift.build_report(
+            baseline_spec=baseline,
+            candidate_spec=candidate,
+            baseline_label="baseline",
+            candidate_label="candidate",
+            source_url="https://example.com/openapi.json",
+            max_diff_lines=20,
+        )
+
+        self.assertTrue(report["has_drift"])
+        self.assertTrue(report["has_actionable_drift"])
+        self.assertEqual(report["repo_summary"]["actionable_changed"], 1)
+        self.assertEqual(report["changed"][0]["repo_impact"]["category"], "actionable")
+
+    def test_generic_error_required_message_drift_remains_actionable(self):
+        baseline = build_spec()
+        candidate = build_spec()
+        baseline["paths"]["/models"]["get"]["responses"]["429"] = generic_error_response()
+        candidate_response = generic_error_response()
+        candidate_response["content"]["application/json"]["schema"]["properties"][
+            "error"
+        ]["required"].remove("message")
         candidate["paths"]["/models"]["get"]["responses"]["429"] = candidate_response
 
         report = openapi_drift.build_report(
