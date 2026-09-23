@@ -88,27 +88,27 @@ REPO_FLEXIBLE_PLUGIN_OPERATION_KEYS = frozenset(
     {
         "POST /chat/completions",
         "POST /messages",
-        "POST /presets/{slug}/chat/completions",
-        "POST /presets/{slug}/messages",
-        "POST /presets/{slug}/responses",
+        "POST /presets/{path_param_0}/chat/completions",
+        "POST /presets/{path_param_0}/messages",
+        "POST /presets/{path_param_0}/responses",
         "POST /responses",
     }
 )
 REPO_FLEXIBLE_CHAT_TOOL_OPERATION_KEYS = frozenset(
     {
         "POST /chat/completions",
-        "POST /presets/{slug}/chat/completions",
+        "POST /presets/{path_param_0}/chat/completions",
     }
 )
 REPO_FLEXIBLE_MESSAGES_TOOL_OPERATION_KEYS = frozenset(
     {
         "POST /messages",
-        "POST /presets/{slug}/messages",
+        "POST /presets/{path_param_0}/messages",
     }
 )
 REPO_FLEXIBLE_RESPONSES_TOOL_OPERATION_KEYS = frozenset(
     {
-        "POST /presets/{slug}/responses",
+        "POST /presets/{path_param_0}/responses",
         "POST /responses",
     }
 )
@@ -696,6 +696,57 @@ def is_repo_supported_responses_output_payload(
     ) and schema_has_type(value, "array")
 
 
+def is_repo_supported_generic_error_response(response: Any) -> bool:
+    if not isinstance(response, dict):
+        return False
+    content = response.get("content")
+    if not isinstance(content, dict) or not content:
+        return False
+    for media in content.values():
+        schema = media.get("schema") if isinstance(media, dict) else None
+        properties = schema.get("properties") if isinstance(schema, dict) else None
+        error = properties.get("error") if isinstance(properties, dict) else None
+        error_properties = error.get("properties") if isinstance(error, dict) else None
+        if (
+            not isinstance(properties, dict)
+            or "error" not in schema.get("required", [])
+            or not isinstance(error_properties, dict)
+            or not {"code", "message"}.issubset(error_properties)
+            or not isinstance(error_properties.get("code"), dict)
+            or not isinstance(error_properties.get("message"), dict)
+            or error_properties["code"].get("type") != "integer"
+            or error_properties["message"].get("type") != "string"
+        ):
+            return False
+        for key, field in properties.items():
+            if key == "error":
+                continue
+            if key == "user_id" and schema_has_type(field, "string"):
+                continue
+            if key == "openrouter_metadata" and schema_has_type(field, "object"):
+                continue
+            return False
+    return True
+
+
+def strip_repo_supported_generic_error_responses(operation: Any) -> Any:
+    if not isinstance(operation, dict):
+        return operation
+    stripped = copy.deepcopy(operation)
+    responses = stripped.get("responses")
+    if isinstance(responses, dict):
+        stripped["responses"] = {
+            status: response
+            for status, response in responses.items()
+            if not (
+                isinstance(status, str)
+                and status[:1] in {"4", "5"}
+                and is_repo_supported_generic_error_response(response)
+            )
+        }
+    return stripped
+
+
 def strip_repo_supported_schema_details(
     operation_key: str,
     value: Any,
@@ -754,6 +805,15 @@ def strip_repo_supported_schema_details(
 
 def collect_repo_supported_schema_rules(operation_key: str, value: Any) -> list[str]:
     rules: set[str] = set()
+
+    responses = value.get("responses", {}) if isinstance(value, dict) else {}
+    if isinstance(responses, dict) and any(
+        isinstance(status, str)
+        and status[:1] in {"4", "5"}
+        and is_repo_supported_generic_error_response(response)
+        for status, response in responses.items()
+    ):
+        rules.add("generic error response envelope")
 
     def collect(item: Any, path: tuple[Any, ...] = ()) -> None:
         if isinstance(item, dict):
@@ -830,6 +890,12 @@ def classify_repo_impact_for_changed_operation(
             *collect_repo_supported_schema_rules(operation_key, baseline_without_supported),
             *collect_repo_supported_schema_rules(operation_key, candidate_without_supported),
         }
+    )
+    baseline_without_supported = strip_repo_supported_generic_error_responses(
+        baseline_without_supported
+    )
+    candidate_without_supported = strip_repo_supported_generic_error_responses(
+        candidate_without_supported
     )
 
     baseline_without_supported = strip_repo_supported_schema_details(
@@ -1016,6 +1082,25 @@ def normalize_operation(raw_operation: dict[str, Any], path_item: dict[str, Any]
     return canonicalize_unordered_schema_collections(normalized_operation)
 
 
+def normalize_path_parameter_names(path: str, operation: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    names = re.findall(r"\{([^{}]+)\}", path)
+    canonical_names: dict[str, str] = {}
+    for index, name in enumerate(names):
+        canonical_names.setdefault(name, f"path_param_{index}")
+    normalized_path = re.sub(
+        r"\{([^{}]+)\}",
+        lambda match: "{" + canonical_names[match.group(1)] + "}",
+        path,
+    )
+    normalized_operation = copy.deepcopy(operation)
+    for parameter in normalized_operation.get("parameters", []):
+        if isinstance(parameter, dict) and parameter.get("in") == "path":
+            parameter["name"] = canonical_names.get(parameter.get("name"), parameter.get("name"))
+    if isinstance(normalized_operation.get("parameters"), list):
+        normalized_operation["parameters"] = normalize_parameter_order(normalized_operation["parameters"])
+    return normalized_path, normalized_operation
+
+
 def collect_operations(spec: dict[str, Any]) -> dict[str, dict[str, Any]]:
     operations: dict[str, dict[str, Any]] = {}
 
@@ -1030,11 +1115,12 @@ def collect_operations(spec: dict[str, Any]) -> dict[str, dict[str, Any]]:
                 continue
 
             normalized = normalize_operation(raw_operation, path_item, spec)
-            operation_key = f"{method.upper()} {path}"
+            normalized_path, normalized = normalize_path_parameter_names(path, normalized)
+            operation_key = f"{method.upper()} {normalized_path}"
             operations[operation_key] = {
                 "id": operation_key,
                 "method": method.upper(),
-                "path": path,
+                "path": normalized_path,
                 "operation_id": raw_operation.get("operationId"),
                 "tags": raw_operation.get("tags", []),
                 "deprecated": raw_operation.get("deprecated", False),

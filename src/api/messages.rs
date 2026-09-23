@@ -585,6 +585,9 @@ pub struct AnthropicMessagesRequest {
 
     #[builder(setter(strip_option), default)]
     output_config: Option<AnthropicOutputConfig>,
+
+    #[builder(setter(custom), default)]
+    safeguards: Option<Vec<Value>>,
 }
 
 #[derive(Deserialize)]
@@ -613,6 +616,7 @@ struct AnthropicMessagesRequestWire {
     trace: Option<TraceOptions>,
     models: Option<Vec<String>>,
     output_config: Option<AnthropicOutputConfig>,
+    safeguards: Option<Vec<Value>>,
 }
 
 type SplitAnthropicMessageTools = (
@@ -655,6 +659,7 @@ impl<'de> Deserialize<'de> for AnthropicMessagesRequest {
             trace: wire.trace,
             models: wire.models,
             output_config: wire.output_config,
+            safeguards: wire.safeguards,
         })
     }
 }
@@ -766,6 +771,7 @@ impl Serialize for AnthropicMessagesRequest {
         insert_json_option::<_, S::Error>(&mut map, "trace", &self.trace)?;
         insert_json_option::<_, S::Error>(&mut map, "models", &self.models)?;
         insert_json_option::<_, S::Error>(&mut map, "output_config", &self.output_config)?;
+        insert_json_option::<_, S::Error>(&mut map, "safeguards", &self.safeguards)?;
 
         Value::Object(map).serialize(serializer)
     }
@@ -777,6 +783,7 @@ impl AnthropicMessagesRequestBuilder {
     strip_option_vec_setter!(server_tools, crate::types::ServerTool);
     strip_option_vec_setter!(plugins, Plugin);
     strip_option_vec_setter!(models, String);
+    strip_option_vec_setter!(safeguards, Value);
 
     pub fn tool(&mut self, tool: AnthropicTool) -> &mut Self {
         if let Some(Some(ref mut existing_tools)) = self.tools {

@@ -36,6 +36,12 @@ pub struct ByokKey {
     pub name: Option<String>,
     pub disabled: bool,
     pub is_fallback: bool,
+    #[serde(default)]
+    pub is_byok_only: bool,
+    #[serde(default)]
+    pub is_required: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub declared_zdr: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub allowed_models: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -84,6 +90,15 @@ pub struct CreateByokKeyRequest {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub is_fallback: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_byok_only: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_required: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub declared_zdr: Option<bool>,
 }
 
 impl CreateByokKeyRequest {
@@ -129,6 +144,15 @@ pub struct UpdateByokKeyRequest {
     pub disabled: Option<bool>,
     #[builder(setter(strip_option), default)]
     pub is_fallback: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    pub is_byok_only: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    pub is_required: Option<bool>,
+    #[builder(setter(custom), default)]
+    pub declared_zdr: Option<bool>,
+    #[serde(skip)]
+    #[builder(setter(custom), default)]
+    clear_declared_zdr: bool,
 }
 
 impl Serialize for UpdateByokKeyRequest {
@@ -166,6 +190,17 @@ impl Serialize for UpdateByokKeyRequest {
         if let Some(value) = &self.is_fallback {
             map.serialize_entry("is_fallback", value)?;
         }
+        if let Some(value) = &self.is_byok_only {
+            map.serialize_entry("is_byok_only", value)?;
+        }
+        if let Some(value) = &self.is_required {
+            map.serialize_entry("is_required", value)?;
+        }
+        if self.clear_declared_zdr {
+            map.serialize_entry("declared_zdr", &Option::<bool>::None)?;
+        } else if let Some(value) = &self.declared_zdr {
+            map.serialize_entry("declared_zdr", value)?;
+        }
         map.end()
     }
 }
@@ -177,6 +212,18 @@ impl UpdateByokKeyRequest {
 }
 
 impl UpdateByokKeyRequestBuilder {
+    pub fn declared_zdr(&mut self, value: Option<bool>) -> &mut Self {
+        self.declared_zdr = Some(value);
+        self.clear_declared_zdr = Some(false);
+        self
+    }
+
+    pub fn clear_declared_zdr(&mut self) -> &mut Self {
+        self.declared_zdr = Some(None);
+        self.clear_declared_zdr = Some(true);
+        self
+    }
+
     pub fn name(&mut self, value: impl Into<String>) -> &mut Self {
         self.name = Some(Some(value.into()));
         self.clear_name = Some(false);

@@ -193,6 +193,7 @@ pub struct OAuthTokenExchangeRequest {
     #[builder(setter(into))]
     pub federation_policy_id: String,
     #[builder(setter(into))]
+    /// Compact three-part JWT validated by the workload federation policy.
     pub subject_token: String,
     #[builder(
         default = "String::from(\"urn:ietf:params:oauth:grant-type:token-exchange\")",

@@ -11,6 +11,7 @@ use serde_json::Value;
 use urlencoding::encode;
 
 use crate::{
+    api::chat::TraceOptions,
     error::OpenRouterError,
     strip_option_vec_setter,
     transport::{
@@ -167,6 +168,12 @@ pub struct ImageGenerationRequest {
     #[builder(setter(skip), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     stream: Option<bool>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trace: Option<TraceOptions>,
 }
 
 impl ImageGenerationRequestBuilder {

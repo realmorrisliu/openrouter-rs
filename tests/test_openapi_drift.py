@@ -64,6 +64,77 @@ def build_spec(
 
 
 class OpenApiDriftReportTests(unittest.TestCase):
+    def test_path_parameter_renames_do_not_change_operation_identity(self):
+        baseline = build_spec(
+            path="/workspaces/{id}/budgets/{interval}",
+            parameters=[
+                {"in": "path", "name": "id", "required": True, "schema": {"type": "string"}},
+                {"in": "path", "name": "interval", "required": True, "schema": {"type": "string"}},
+            ],
+        )
+        candidate = build_spec(
+            path="/workspaces/{workspace_ref}/budgets/{interval}",
+            parameters=[
+                {"in": "path", "name": "workspace_ref", "required": True, "schema": {"type": "string"}},
+                {"in": "path", "name": "interval", "required": True, "schema": {"type": "string"}},
+            ],
+        )
+
+        report = openapi_drift.build_report(
+            baseline_spec=baseline,
+            candidate_spec=candidate,
+            baseline_label="baseline",
+            candidate_label="candidate",
+            source_url="https://example.com/openapi.json",
+            max_diff_lines=20,
+        )
+
+        self.assertFalse(report["has_drift"])
+
+    def test_standard_error_responses_are_already_supported(self):
+        baseline = build_spec()
+        candidate = build_spec()
+        candidate["paths"]["/models"]["get"]["responses"]["403"] = {
+            "description": "Forbidden",
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "type": "object",
+                        "required": ["error"],
+                        "properties": {
+                            "error": {
+                                "type": "object",
+                                "required": ["code", "message"],
+                                "properties": {
+                                    "code": {"type": "integer"},
+                                    "message": {"type": "string"},
+                                    "metadata": {"type": ["object", "null"]},
+                                },
+                            },
+                            "user_id": {"type": ["string", "null"]},
+                        },
+                    }
+                }
+            },
+        }
+
+        report = openapi_drift.build_report(
+            baseline_spec=baseline,
+            candidate_spec=candidate,
+            baseline_label="baseline",
+            candidate_label="candidate",
+            source_url="https://example.com/openapi.json",
+            max_diff_lines=20,
+        )
+
+        self.assertTrue(report["has_drift"])
+        self.assertFalse(report["has_actionable_drift"])
+        self.assertEqual(report["repo_summary"]["actionable_changed"], 0)
+        self.assertEqual(
+            report["changed"][0]["repo_impact"]["schema_rules"],
+            ["generic error response envelope"],
+        )
+
     def test_nullable_dialect_change_is_not_reported_as_drift(self):
         baseline = build_spec(
             response_properties={

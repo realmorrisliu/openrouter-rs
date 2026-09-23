@@ -44,6 +44,8 @@ pub struct Workspace {
     pub is_observability_io_logging_enabled: bool,
     pub is_observability_broadcast_enabled: bool,
     pub is_data_discount_logging_enabled: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub disabled_server_tools: Option<Vec<String>>,
     pub created_at: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<String>,
@@ -94,6 +96,9 @@ pub struct CreateWorkspaceRequest {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub is_observability_io_logging_enabled: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub disabled_server_tools: Option<Vec<String>>,
 }
 
 impl CreateWorkspaceRequest {
@@ -139,6 +144,37 @@ pub struct UpdateWorkspaceRequest {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub is_observability_io_logging_enabled: Option<bool>,
+    #[builder(setter(custom), default)]
+    #[serde(
+        default,
+        deserialize_with = "deserialize_nullable_option",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub disabled_server_tools: Option<Option<Vec<String>>>,
+}
+
+fn deserialize_nullable_option<'de, D, T>(deserializer: D) -> Result<Option<Option<T>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    Option::<T>::deserialize(deserializer).map(Some)
+}
+
+impl UpdateWorkspaceRequestBuilder {
+    pub fn disabled_server_tools<T, S>(&mut self, tools: T) -> &mut Self
+    where
+        T: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.disabled_server_tools = Some(Some(Some(tools.into_iter().map(Into::into).collect())));
+        self
+    }
+
+    pub fn clear_disabled_server_tools(&mut self) -> &mut Self {
+        self.disabled_server_tools = Some(Some(None));
+        self
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -182,6 +218,9 @@ impl Serialize for UpdateWorkspaceRequestWithClearedIoLoggingApiKeyIds<'_> {
         }
         if let Some(value) = &self.request.is_observability_io_logging_enabled {
             map.serialize_entry("is_observability_io_logging_enabled", value)?;
+        }
+        if let Some(value) = &self.request.disabled_server_tools {
+            map.serialize_entry("disabled_server_tools", value)?;
         }
         map.end()
     }

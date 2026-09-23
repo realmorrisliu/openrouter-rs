@@ -3,7 +3,7 @@ use reqwest::Client as HttpClient;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    api::models,
+    api::{chat::TraceOptions, models},
     error::OpenRouterError,
     transport::{request as transport_request, response as transport_response},
     types::{ApiResponse, ProviderPreferences},
@@ -192,6 +192,14 @@ pub struct EmbeddingRequest {
     #[builder(setter(into, strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub input_type: Option<String>,
+
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
+
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trace: Option<TraceOptions>,
 }
 
 impl EmbeddingRequest {

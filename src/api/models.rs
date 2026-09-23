@@ -240,6 +240,10 @@ pub struct EndpointArchitecture {
     pub tokenizer: Option<String>,
     pub instruct_type: Option<String>,
     pub modality: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub input_modalities: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub output_modalities: Option<Vec<String>>,
 }
 
 /// Extended query parameters for `GET /models`.

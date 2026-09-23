@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use urlencoding::encode;
 
 use crate::{
+    api::chat::TraceOptions,
     error::OpenRouterError,
     transport::{request as transport_request, response as transport_response},
 };
@@ -146,6 +147,24 @@ pub struct VideoGenerationRequest {
     #[builder(setter(into, strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub size: Option<String>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub previous_job_id: Option<String>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trace: Option<TraceOptions>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user: Option<String>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub creativity: Option<i64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub upscale_factor: Option<f64>,
 }
 
 impl VideoGenerationRequest {

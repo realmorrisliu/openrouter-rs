@@ -19,8 +19,10 @@ This keeps `openrouter-rs` aligned with upstream changes without blocking releas
 - Normalized operation snapshot: `specs/openrouter/openapi-baseline.operations.json`
 - Weekly workflow: `.github/workflows/openapi-drift.yml`
 
-The comparison is operation-level (`METHOD /path`). It first resolves local `#/components/...`
-references, including referenced Path Item objects, then folds in effective defaults before hashing:
+The comparison is operation-level (`METHOD /path`). It canonicalizes path parameter names by
+position (`{path_param_0}`, `{path_param_1}`, and so on), so a placeholder rename does not look
+like a removed route plus a new route. It then resolves local `#/components/...` references,
+including referenced Path Item objects, and folds in effective defaults before hashing:
 
 - Path Item inheritance: `parameters`, `servers`
 - OpenAPI root defaults: `servers`, `security`
