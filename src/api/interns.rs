@@ -89,6 +89,9 @@ pub struct CreateInternRequest {
     pub name: String,
     #[builder(setter(into, strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub instructions: Option<String>,
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -114,6 +117,8 @@ pub struct UpdateInternRequest {
     #[builder(setter(into, strip_option), default)]
     name: Option<String>,
     #[builder(setter(custom), default)]
+    description: Option<Option<String>>,
+    #[builder(setter(custom), default)]
     instructions: Option<Option<String>>,
     #[builder(setter(custom), default)]
     model: Option<Option<String>>,
@@ -127,6 +132,9 @@ impl Serialize for UpdateInternRequest {
         let mut map = serializer.serialize_map(None)?;
         if let Some(value) = &self.name {
             map.serialize_entry("name", value)?;
+        }
+        if let Some(value) = &self.description {
+            map.serialize_entry("description", value)?;
         }
         if let Some(value) = &self.instructions {
             map.serialize_entry("instructions", value)?;
@@ -145,6 +153,16 @@ impl UpdateInternRequest {
 }
 
 impl UpdateInternRequestBuilder {
+    pub fn description(&mut self, value: impl Into<String>) -> &mut Self {
+        self.description = Some(Some(Some(value.into())));
+        self
+    }
+
+    pub fn clear_description(&mut self) -> &mut Self {
+        self.description = Some(Some(None));
+        self
+    }
+
     pub fn instructions(&mut self, value: impl Into<String>) -> &mut Self {
         self.instructions = Some(Some(Some(value.into())));
         self
@@ -385,10 +403,9 @@ pub(crate) async fn delete_intern_with_client(
     request: Option<&DeleteInternRequest>,
 ) -> Result<DeleteInternResponse, OpenRouterError> {
     let url = format!("{base_url}/interns/{}", encode(intern_id));
-    let mut builder = with_auth(transport_request::delete(http_client, &url), api_key);
-    if let Some(request) = request {
-        builder = builder.json(request);
-    }
+    let default_request = DeleteInternRequest::default();
+    let request = request.unwrap_or(&default_request);
+    let builder = with_auth(transport_request::delete(http_client, &url), api_key).json(request);
     parse_result(builder.send().await?, "delete intern").await
 }
 

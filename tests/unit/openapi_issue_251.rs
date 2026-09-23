@@ -201,10 +201,22 @@ fn issue_251_request_types_round_trip_upstream_fields() {
 
     let update = UpdateInternRequest::builder()
         .clear_model()
+        .description("Researches customer questions")
         .build()
         .expect("build intern update");
     let update = serde_json::to_value(update).expect("serialize intern update");
-    assert_eq!(update, json!({"model": null}));
+    assert_eq!(
+        update,
+        json!({"description": "Researches customer questions", "model": null})
+    );
+    let cleared_description = UpdateInternRequest::builder()
+        .clear_description()
+        .build()
+        .expect("build intern description clear");
+    assert_eq!(
+        serde_json::to_value(cleared_description).unwrap(),
+        json!({"description": null})
+    );
 
     let speech = SpeechRequest::builder()
         .model("openai/tts-1")
@@ -340,11 +352,12 @@ fn issue_251_request_types_round_trip_upstream_fields() {
 
     let create_intern = CreateInternRequest::builder()
         .name("worker")
+        .description("Runs research tasks")
         .build()
         .expect("build intern request");
     assert_eq!(
-        serde_json::to_value(create_intern).unwrap()["name"],
-        "worker"
+        serde_json::to_value(create_intern).unwrap(),
+        json!({"name": "worker", "description": "Runs research tasks"})
     );
     let chat = InternChatRequest::builder()
         .messages([json!({"role":"user","content":"hi"})])
@@ -468,6 +481,7 @@ async fn intern_and_vault_mutations_cover_all_documented_routes() {
         (200, intern.to_string()),
         (200, intern.to_string()),
         (202, r#"{"deleting":true}"#.to_string()),
+        (202, r#"{"deleting":true}"#.to_string()),
         (202, r#"{"provisioning":true}"#.to_string()),
         (200, r#"{"suspended":true}"#.to_string()),
         (200, r#"{"data":[],"has_more":false}"#.to_string()),
@@ -484,6 +498,7 @@ async fn intern_and_vault_mutations_cover_all_documented_routes() {
         .create(
             &CreateInternRequest::builder()
                 .name("worker")
+                .description("Runs research tasks")
                 .instructions("instructions")
                 .build()
                 .unwrap(),
@@ -497,6 +512,7 @@ async fn intern_and_vault_mutations_cover_all_documented_routes() {
         .update(
             "intern-1",
             &UpdateInternRequest::builder()
+                .clear_description()
                 .clear_model()
                 .build()
                 .unwrap(),
@@ -516,6 +532,7 @@ async fn intern_and_vault_mutations_cover_all_documented_routes() {
         )
         .await
         .unwrap();
+    client.interns().delete("intern-1", None).await.unwrap();
     client.interns().provision("intern-1").await.unwrap();
     client.interns().suspend("intern-1").await.unwrap();
     client.vault().list(Some(10), Some(2)).await.unwrap();
@@ -549,7 +566,7 @@ async fn intern_and_vault_mutations_cover_all_documented_routes() {
         .await
         .unwrap();
 
-    let requests: Vec<_> = (0..12)
+    let requests: Vec<_> = (0..13)
         .map(|_| rx.recv().expect("capture intern or vault request"))
         .collect();
     let paths: Vec<_> = requests
@@ -562,6 +579,7 @@ async fn intern_and_vault_mutations_cover_all_documented_routes() {
             "POST /api/v1/interns HTTP/1.1",
             "GET /api/v1/interns/intern-1 HTTP/1.1",
             "PATCH /api/v1/interns/intern-1 HTTP/1.1",
+            "DELETE /api/v1/interns/intern-1 HTTP/1.1",
             "DELETE /api/v1/interns/intern-1 HTTP/1.1",
             "POST /api/v1/interns/intern-1/provision HTTP/1.1",
             "POST /api/v1/interns/intern-1/suspend HTTP/1.1",
@@ -586,15 +604,27 @@ async fn intern_and_vault_mutations_cover_all_documented_routes() {
             .contains("idempotency-key: issue-251-create")
     );
     assert_eq!(
-        serde_json::from_str::<serde_json::Value>(&requests[2].body).unwrap(),
-        json!({"model": null})
+        serde_json::from_str::<serde_json::Value>(&requests[0].body).unwrap()["description"],
+        "Runs research tasks"
     );
     assert_eq!(
-        serde_json::from_str::<serde_json::Value>(&requests[7].body).unwrap()["hosts"],
+        serde_json::from_str::<serde_json::Value>(&requests[2].body).unwrap(),
+        json!({"description": null, "model": null})
+    );
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&requests[3].body).unwrap(),
+        json!({"acknowledge_workspace_loss": true})
+    );
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&requests[4].body).unwrap(),
+        json!({})
+    );
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&requests[8].body).unwrap()["hosts"],
         json!(["api.example.com"])
     );
     assert_eq!(
-        serde_json::from_str::<serde_json::Value>(&requests[11].body).unwrap()["names"],
+        serde_json::from_str::<serde_json::Value>(&requests[12].body).unwrap()["names"],
         json!(["token"])
     );
     server.join().expect("finish intern and vault server");
