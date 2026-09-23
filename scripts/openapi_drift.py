@@ -729,21 +729,31 @@ def is_repo_supported_generic_error_response(response: Any) -> bool:
     return True
 
 
-def strip_repo_supported_generic_error_responses(operation: Any) -> Any:
+def strip_repo_supported_generic_error_body_schemas(operation: Any) -> Any:
     if not isinstance(operation, dict):
         return operation
     stripped = copy.deepcopy(operation)
     responses = stripped.get("responses")
     if isinstance(responses, dict):
-        stripped["responses"] = {
-            status: response
-            for status, response in responses.items()
-            if not (
-                isinstance(status, str)
-                and status[:1] in {"4", "5"}
-                and is_repo_supported_generic_error_response(response)
-            )
-        }
+        for status, response in list(responses.items()):
+            if (
+                not isinstance(status, str)
+                or status[:1] not in {"4", "5"}
+                or not is_repo_supported_generic_error_response(response)
+            ):
+                continue
+
+            content = response["content"]
+            for media in content.values():
+                if isinstance(media, dict):
+                    media.pop("schema", None)
+
+            if (
+                set(response) == {"content"}
+                and set(content) == {"application/json"}
+                and content["application/json"] == {}
+            ):
+                del responses[status]
     return stripped
 
 
@@ -891,10 +901,10 @@ def classify_repo_impact_for_changed_operation(
             *collect_repo_supported_schema_rules(operation_key, candidate_without_supported),
         }
     )
-    baseline_without_supported = strip_repo_supported_generic_error_responses(
+    baseline_without_supported = strip_repo_supported_generic_error_body_schemas(
         baseline_without_supported
     )
-    candidate_without_supported = strip_repo_supported_generic_error_responses(
+    candidate_without_supported = strip_repo_supported_generic_error_body_schemas(
         candidate_without_supported
     )
 

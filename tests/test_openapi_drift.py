@@ -135,6 +135,53 @@ class OpenApiDriftReportTests(unittest.TestCase):
             ["generic error response envelope"],
         )
 
+    def test_generic_error_normalization_preserves_response_headers(self):
+        def generic_error_response():
+            return {
+                "description": "Too many requests",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "required": ["error"],
+                            "properties": {
+                                "error": {
+                                    "type": "object",
+                                    "required": ["code", "message"],
+                                    "properties": {
+                                        "code": {"type": "integer"},
+                                        "message": {"type": "string"},
+                                    },
+                                }
+                            },
+                        }
+                    }
+                },
+            }
+
+        baseline = build_spec()
+        candidate = build_spec()
+        baseline["paths"]["/models"]["get"]["responses"]["429"] = generic_error_response()
+        candidate_response = generic_error_response()
+        candidate_response["headers"] = {
+            "Retry-After": {"schema": {"type": "string"}}
+        }
+        candidate["paths"]["/models"]["get"]["responses"]["429"] = candidate_response
+
+        report = openapi_drift.build_report(
+            baseline_spec=baseline,
+            candidate_spec=candidate,
+            baseline_label="baseline",
+            candidate_label="candidate",
+            source_url="https://example.com/openapi.json",
+            max_diff_lines=20,
+        )
+
+        self.assertTrue(report["has_drift"])
+        self.assertTrue(report["has_actionable_drift"])
+        self.assertEqual(report["repo_summary"]["actionable_changed"], 1)
+        self.assertEqual(report["changed"][0]["repo_impact"]["category"], "actionable")
+
     def test_nullable_dialect_change_is_not_reported_as_drift(self):
         baseline = build_spec(
             response_properties={
