@@ -41,7 +41,7 @@ The September OpenAPI update adds intern lifecycle/chat operations via `interns(
 
 ```toml
 [dependencies]
-openrouter-rs = "0.15.0"
+openrouter-rs = "0.16.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -49,7 +49,7 @@ Legacy text completions are opt-in:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.15.0", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.16.0", features = ["legacy-completions"] }
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -365,10 +365,12 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 ### Unreleased
 
-- Added intern lifecycle and streaming chat, scoped vault secrets, and Decisions/System One domain clients and examples; accepted issue #251 with all 122 upstream operations implemented.
-- Added current BYOK, workspace, audio, embedding, image, rerank, video, API-key, generation, and model-endpoint schema fields from the September 23 OpenAPI snapshot.
+### Version 0.16.0 *(Latest)*
 
-### Version 0.15.0 *(Latest)*
+- Added typed Intern lifecycle and streaming chat, workspace/intern vault secrets, and Decisions/System One domain clients, with runnable examples.
+- Accepted the 2026-09-23 OpenAPI drift across all `122 / 122` operations, including current API-key, BYOK, audio, embedding, image, message, rerank, video, workspace, generation, and model-endpoint schemas.
+
+### Version 0.15.0
 
 - Added container files, workload OAuth token exchange/signing keys, SCIM sync jobs, regional management controls, and expanded message/model fields. Accepted the 2026-09-08 OpenAPI review with `105 / 105` tracked operations.
 

@@ -7,9 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-09-23
+
 ### Added
-- Added intern lifecycle and streaming chat, workspace/intern vault secrets, and Decisions/System One domain clients.
-- Added examples for intern listing and Decisions requests.
+- Added typed Intern lifecycle and streaming chat, workspace/intern vault secrets, and Decisions/System One domain clients.
+- Added runnable examples for intern listing and Decisions requests.
 
 ### Changed
 - Accepted issue #251 against the 2026-09-23 OpenAPI snapshot (`122 / 122` operations), including current API-key, BYOK, audio, embedding, image, message, rerank, video, workspace, generation, and model-endpoint schema updates.
