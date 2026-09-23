@@ -100,6 +100,8 @@ pub struct GenerationData {
     pub provider_responses: Option<Vec<ProviderResponse>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub status: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub api_type: Option<String>,
 }
 
 pub async fn submit_generation_feedback(

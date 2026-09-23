@@ -5,6 +5,7 @@ use reqwest::{Client as HttpClient, StatusCode};
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    api::chat::TraceOptions,
     error::OpenRouterError,
     strip_option_vec_setter,
     transport::{request as transport_request, response as transport_response},
@@ -66,6 +67,15 @@ pub struct SpeechRequest {
     #[builder(setter(custom), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub input_references: Option<Vec<SpeechInputReference>>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trace: Option<TraceOptions>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user: Option<String>,
 }
 
 impl SpeechRequest {
@@ -191,6 +201,15 @@ pub struct TranscriptionRequest {
     #[builder(setter(custom), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timestamp_granularities: Option<Vec<String>>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trace: Option<TraceOptions>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user: Option<String>,
 }
 
 impl TranscriptionRequestBuilder {
@@ -215,6 +234,8 @@ impl TranscriptionRequest {
 #[non_exhaustive]
 pub struct TranscriptionResponse {
     pub text: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub confidence: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub language: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -258,6 +279,8 @@ pub struct TranscriptionWord {
     pub word: String,
     pub start: f64,
     pub end: f64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub confidence: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub speaker: Option<i64>,
 }

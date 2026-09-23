@@ -3,6 +3,7 @@ use reqwest::Client as HttpClient;
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    api::chat::TraceOptions,
     error::OpenRouterError,
     transport::{request as transport_request, response as transport_response},
     types::ProviderPreferences,
@@ -68,6 +69,15 @@ pub struct RerankRequest {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub provider: Option<ProviderPreferences>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trace: Option<TraceOptions>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user: Option<String>,
 }
 
 impl RerankRequest {

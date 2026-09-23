@@ -5,9 +5,9 @@ use futures_util::stream::BoxStream;
 use crate::api::legacy::completion;
 use crate::{
     api::{
-        analytics, api_keys, audio, auth, byok, chat, credits, discovery, embeddings, files,
-        generation, guardrails, images, messages, models, observability, organization, presets,
-        rerank, responses, scim, videos, workspaces,
+        analytics, api_keys, audio, auth, byok, chat, credits, decisions, discovery, embeddings,
+        files, generation, guardrails, images, interns, messages, models, observability,
+        organization, presets, rerank, responses, scim, vault, videos, workspaces,
     },
     error::OpenRouterError,
     strip_option_vec_setter,
@@ -172,6 +172,21 @@ impl OpenRouterClient {
         ManagementClient { client: self }
     }
 
+    /// Domain client for intern lifecycle and chat operations.
+    pub fn interns(&self) -> InternsClient<'_> {
+        InternsClient { client: self }
+    }
+
+    /// Domain client for workspace and intern vault secrets.
+    pub fn vault(&self) -> VaultClient<'_> {
+        VaultClient { client: self }
+    }
+
+    /// Domain client for Decisions and System One requests.
+    pub fn decisions(&self) -> DecisionsClient<'_> {
+        DecisionsClient { client: self }
+    }
+
     /// Domain client for legacy endpoint access (`legacy-completions` feature).
     #[cfg(feature = "legacy-completions")]
     pub fn legacy(&self) -> LegacyClient<'_> {
@@ -180,6 +195,12 @@ impl OpenRouterClient {
 
     pub(crate) fn http_client(&self) -> &reqwest::Client {
         &self.http_client
+    }
+
+    fn require_api_key(&self) -> Result<&str, OpenRouterError> {
+        self.api_key
+            .as_deref()
+            .ok_or(OpenRouterError::KeyNotConfigured)
     }
 }
 
@@ -2644,6 +2665,282 @@ impl OpenRouterClient {
         } else {
             Err(OpenRouterError::KeyNotConfigured)
         }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct InternsClient<'a> {
+    client: &'a OpenRouterClient,
+}
+
+impl InternsClient<'_> {
+    pub async fn list(
+        &self,
+        params: &interns::ListInternsParams,
+    ) -> Result<interns::InternListResponse, OpenRouterError> {
+        interns::list_interns_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            params,
+        )
+        .await
+    }
+
+    pub async fn create(
+        &self,
+        request: &interns::CreateInternRequest,
+        idempotency_key: Option<&str>,
+    ) -> Result<interns::Intern, OpenRouterError> {
+        interns::create_intern_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            idempotency_key,
+            request,
+        )
+        .await
+    }
+
+    pub async fn get(&self, intern_id: &str) -> Result<interns::Intern, OpenRouterError> {
+        interns::get_intern_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            intern_id,
+        )
+        .await
+    }
+
+    pub async fn update(
+        &self,
+        intern_id: &str,
+        request: &interns::UpdateInternRequest,
+    ) -> Result<interns::Intern, OpenRouterError> {
+        interns::update_intern_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            intern_id,
+            request,
+        )
+        .await
+    }
+
+    pub async fn delete(
+        &self,
+        intern_id: &str,
+        request: Option<&interns::DeleteInternRequest>,
+    ) -> Result<interns::DeleteInternResponse, OpenRouterError> {
+        interns::delete_intern_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            intern_id,
+            request,
+        )
+        .await
+    }
+
+    pub async fn provision(
+        &self,
+        intern_id: &str,
+    ) -> Result<interns::ProvisionInternResponse, OpenRouterError> {
+        interns::action_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            intern_id,
+            "provision",
+        )
+        .await
+    }
+
+    pub async fn suspend(
+        &self,
+        intern_id: &str,
+    ) -> Result<interns::SuspendInternResponse, OpenRouterError> {
+        interns::action_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            intern_id,
+            "suspend",
+        )
+        .await
+    }
+
+    pub async fn chat_completion(
+        &self,
+        intern_id: &str,
+        request: &interns::InternChatRequest,
+    ) -> Result<interns::InternChatResult, OpenRouterError> {
+        interns::chat_completion_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
+            intern_id,
+            request,
+        )
+        .await
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct VaultClient<'a> {
+    client: &'a OpenRouterClient,
+}
+
+impl VaultClient<'_> {
+    pub async fn list(
+        &self,
+        limit: Option<u32>,
+        offset: Option<u32>,
+    ) -> Result<vault::VaultSecretListResponse, OpenRouterError> {
+        vault::list_secrets_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            None,
+            limit,
+            offset,
+        )
+        .await
+    }
+
+    pub async fn list_for_intern(
+        &self,
+        intern_id: &str,
+        limit: Option<u32>,
+        offset: Option<u32>,
+    ) -> Result<vault::VaultSecretListResponse, OpenRouterError> {
+        vault::list_secrets_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            Some(intern_id),
+            limit,
+            offset,
+        )
+        .await
+    }
+
+    pub async fn store(
+        &self,
+        name: &str,
+        request: &vault::VaultSecretWriteRequest,
+    ) -> Result<vault::VaultSecretResponse, OpenRouterError> {
+        vault::store_secret_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            None,
+            name,
+            request,
+        )
+        .await
+    }
+
+    pub async fn store_for_intern(
+        &self,
+        intern_id: &str,
+        name: &str,
+        request: &vault::VaultSecretWriteRequest,
+    ) -> Result<vault::VaultSecretResponse, OpenRouterError> {
+        vault::store_secret_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            Some(intern_id),
+            name,
+            request,
+        )
+        .await
+    }
+
+    pub async fn delete(&self, name: &str) -> Result<(), OpenRouterError> {
+        vault::delete_secret_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            None,
+            name,
+        )
+        .await
+    }
+
+    pub async fn delete_for_intern(
+        &self,
+        intern_id: &str,
+        name: &str,
+    ) -> Result<(), OpenRouterError> {
+        vault::delete_secret_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            Some(intern_id),
+            name,
+        )
+        .await
+    }
+
+    pub async fn copy_to_intern(
+        &self,
+        intern_id: &str,
+        request: &vault::VaultSecretCopyRequest,
+    ) -> Result<vault::VaultSecretCopyResponse, OpenRouterError> {
+        vault::copy_secrets_to_intern_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            intern_id,
+            request,
+        )
+        .await
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct DecisionsClient<'a> {
+    client: &'a OpenRouterClient,
+}
+
+impl DecisionsClient<'_> {
+    pub async fn create(
+        &self,
+        request: &decisions::DecisionsRequest,
+    ) -> Result<decisions::DecisionsResponse, OpenRouterError> {
+        decisions::create_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            &self.client.x_title,
+            &self.client.http_referer,
+            &self.client.app_categories,
+            request,
+        )
+        .await
+    }
+
+    pub async fn create_system_one(
+        &self,
+        request: &decisions::DecisionsRequest,
+    ) -> Result<decisions::DecisionsResponse, OpenRouterError> {
+        decisions::create_system_one_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            &self.client.x_title,
+            &self.client.http_referer,
+            &self.client.app_categories,
+            request,
+        )
+        .await
     }
 }
 

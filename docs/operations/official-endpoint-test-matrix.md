@@ -1,21 +1,23 @@
 # Official Endpoint Test Matrix
 
-Snapshot date: 2026-09-08
+Snapshot date: 2026-09-23
 Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)  
 Tracked baseline: `specs/openrouter/openapi-baseline.json`  
 Weekly drift workflow: `.github/workflows/openapi-drift.yml`
 
 ## Coverage Summary
 
-- Official OpenAPI endpoints: `105` method+path entries.
-- SDK implementation coverage (`src/api` + domain client): `105 / 105` (`100.0%`).
-- Live integration coverage (`tests/integration`): `25 / 105` endpoints currently exercised.
+- Official OpenAPI endpoints: `122` method+path entries.
+- SDK implementation coverage (`src/api` + domain client): `122 / 122` (`100.0%`).
+- Live integration coverage (`tests/integration`): `25 / 122` endpoints currently exercised.
   - Covered live now: `GET /oauth/jwks`, `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `POST /rerank`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`, `GET /organization/members`
 
 Drift review note:
 
 - Issue #248 (2026-09-08): accepted all eight operations still present upstream. `POST /organization`, present in the September 7 issue report, was withdrawn before this review and is not implemented. Added container files, OAuth and SCIM sync jobs, and the stable request/response fields summarized in the changelog. OAuth uses public signing-key discovery and JWT-authenticated form token exchange; it does not require an existing API/management key.
-- Reviewed remaining schema changes: provider/output/pricing-unit/reasoning-format taxonomy remains string-based; Responses, plugins, server-tool options, Anthropic response metadata/usage and generation timing retain existing flexible payloads. New error statuses use the existing error parser. File-ID/audio-format/video-upscale constraints remain server-validated. Analytics tag changes have no runtime effect. No CLI flags or default request payloads change; SDK consumers and CLI snapshots are checked by `just quality-ci`.
+- Issue #251 (2026-09-23): added eight intern operations, seven vault operations, and Decisions/System One. Workspace-budget path parameters now compare by position, so upstream `{workspace_ref}` naming does not appear as a removed-and-added route. Updated current BYOK, workspace, audio, embedding, image, rerank, video, API-key, generation, and model-endpoint fields.
+- All new intern, vault, Decisions, and System One routes have local HTTP path/auth coverage in `tests/unit/openapi_issue_251.rs`; new endpoints do not have live integration coverage yet.
+- Reviewed remaining schema changes: provider/output/pricing-unit/reasoning-format taxonomy remains string-based; Responses, plugins, server-tool options, Anthropic response metadata/usage and generation timing retain existing flexible payloads. New error statuses use the existing error parser. JWT, file-ID, audio-format, and video-upscale constraints remain server-validated. Analytics tag changes have no runtime effect. No CLI flags or default request payloads change; SDK consumers and CLI snapshots are checked by `just quality-ci`.
 - New endpoints have local HTTP contract tests in `tests/unit/openapi_september.rs`. Public OAuth signing keys have a live test. Container reads require `OPENROUTER_TEST_CONTAINER_ID`; SCIM job reads require `OPENROUTER_TEST_SCIM_SYNC_JOB_ID` plus the existing management test opt-in. Provisioning JWTs, starting directory syncs, and promoting files are not part of unattended live tests.
 
 - Upstream added `GET /datasets/session-cost` and `GET /workspaces/{id}/budgets/{interval}`, activity workspace filters/grouping, benchmark search filters, workspace deletion confirmation, BYOK/guardrail nullable workspace IDs, speech voice-cloning references with endpoint `supports_voice_cloning`, generation `workspace_id` and stored content errors, observability generation broadcast flags, analytics `include_unset`, and the `us` model region. The SDK types the stable fields, makes `ByokKey::workspace_id` optional, and keeps dynamic provider/resolution taxonomy on flexible string surfaces.
@@ -52,7 +54,7 @@ Drift review note:
 Legend:
 
 - `SDK`: endpoint implemented in `openrouter-rs`.
-- Canonical surface note: docs and examples prefer domain clients (`chat()`, `responses()`, `messages()`, `rerank()`, `audio().speech()`, `audio().transcriptions()`, `images()`, `videos()`, `files()`, `models()`, `management()`). Some rows still mention retained flat `OpenRouterClient::*` wrappers when they exist.
+- Canonical surface note: docs and examples prefer domain clients (`chat()`, `responses()`, `messages()`, `rerank()`, `audio().speech()`, `audio().transcriptions()`, `images()`, `videos()`, `files()`, `models()`, `management()`, `interns()`, `vault()`, `decisions()`). Some rows still mention retained flat `OpenRouterClient::*` wrappers when they exist.
 - `Unit`: unit coverage depth.
   - `Path` = test asserts HTTP method/path (often with header/body checks).
   - `Contract` = serde/request-shape/parser coverage only.
@@ -67,6 +69,7 @@ Legend:
 | `GET /activity` | `client.management().get_activity(...)` | Yes | Path | No | P1 |
 | `GET /analytics/meta` | `client.management().get_analytics_meta()` | Yes | Path | No | P1 |
 | `POST /analytics/query` | `client.management().query_analytics(...)` | Yes | Path | No | P1 |
+| `POST /api/alpha/decisions` | `client.decisions().create(...)` | Yes | Path | No | P2 |
 | `POST /auth/keys` | `client.management().create_api_key_from_auth_code(...)` | Yes | Path | No | P2 |
 | `POST /auth/keys/code` | `client.management().create_auth_code(...)` | Yes | Path | No | P2 |
 | `GET /byok` | `client.management().list_byok_keys(...)` | Yes | Path | No | P1 |
@@ -117,6 +120,14 @@ Legend:
 | `POST /images` | `client.images().create(...)` / `client.images().stream(...)` | Yes | Path | No | P2 |
 | `GET /images/models` | `client.images().list_models()` | Yes | Path | No | P2 |
 | `GET /images/models/{author}/{slug}/endpoints` | `client.images().list_model_endpoints(...)` | Yes | Path | No | P2 |
+| `DELETE /interns/{internId}` | `client.interns().delete(...)` | Yes | Path | No | P1 |
+| `GET /interns` | `client.interns().list(...)` | Yes | Path | No | P1 |
+| `GET /interns/{internId}` | `client.interns().get(...)` | Yes | Path | No | P1 |
+| `PATCH /interns/{internId}` | `client.interns().update(...)` | Yes | Path | No | P1 |
+| `POST /interns` | `client.interns().create(...)` | Yes | Path | No | P1 |
+| `POST /interns/{internId}/chat/completions` | `client.interns().chat_completion(...)` | Yes | Path | No | P1 |
+| `POST /interns/{internId}/provision` | `client.interns().provision(...)` | Yes | Path | No | P1 |
+| `POST /interns/{internId}/suspend` | `client.interns().suspend(...)` | Yes | Path | No | P1 |
 | `GET /key` | `client.get_current_api_key_info()` / `client.management().get_current_api_key_info()` | Yes | Contract | Yes | Keep |
 | `GET /keys` | `client.management().list_api_keys(...)` / `client.management().list_api_keys_in_workspace(...)` | Yes | Path | Yes | Keep |
 | `POST /keys` | `client.create_api_key(...)` / `client.create_api_key_in_workspace(...)` / `client.management().create_api_key(...)` / `client.management().create_api_key_in_workspace(...)` | Yes | Path | Yes | Keep |
@@ -149,8 +160,16 @@ Legend:
 | `PATCH /scim/group-mappings/{id}` | `client.management().update_scim_group_mapping(...)` | Yes | Path | No | P1 |
 | `DELETE /scim/group-mappings/{id}` | `client.management().delete_scim_group_mapping(...)` | Yes | Path | No | P1 |
 | `GET /workspaces` | `client.management().list_workspaces(...)` | Yes | Path | No | P1 |
+| `POST /systemone` | `client.decisions().create_system_one(...)` | Yes | Path | No | P2 |
+| `DELETE /vault/interns/{internId}/secrets/{name}` | `client.vault().delete_for_intern(...)` | Yes | Path | No | P1 |
+| `GET /vault/interns/{internId}/secrets` | `client.vault().list_for_intern(...)` | Yes | Path | No | P1 |
+| `POST /vault/interns/{internId}/secrets/copy` | `client.vault().copy_to_intern(...)` | Yes | Path | No | P1 |
+| `PUT /vault/interns/{internId}/secrets/{name}` | `client.vault().store_for_intern(...)` | Yes | Path | No | P1 |
+| `DELETE /vault/secrets/{name}` | `client.vault().delete(...)` | Yes | Path | No | P1 |
+| `GET /vault/secrets` | `client.vault().list(...)` | Yes | Path | No | P1 |
+| `PUT /vault/secrets/{name}` | `client.vault().store(...)` | Yes | Path | No | P1 |
 | `GET /workspaces/{id}` | `client.management().get_workspace(...)` | Yes | Path | No | P1 |
-| `GET /workspaces/{id}/budgets` | `client.management().list_workspace_budgets(...)` | Yes | Path | No | P1 |
+| `GET /workspaces/{workspace_ref}/budgets` | `client.management().list_workspace_budgets(...)` | Yes | Path | No | P1 |
 | `GET /workspaces/{id}/members` | `client.management().list_workspace_members(...)` | Yes | Path | No | P1 |
 | `POST /messages` | `client.messages().create(...)` / `client.messages().stream(...)` | Yes | Path | Yes | Keep |
 | `POST /rerank` | `client.rerank().create(...)` | Yes | Path | Yes | Keep |
@@ -166,9 +185,9 @@ Legend:
 | `GET /videos/{jobId}/content` | `client.videos().get_content(...)` | Yes | Path | No | P2 |
 | `PATCH /workspaces/{id}` | `client.management().update_workspace(...)` | Yes | Path | No | P1 |
 | `DELETE /workspaces/{id}` | `client.management().delete_workspace(...)` | Yes | Path | No | P1 |
-| `GET /workspaces/{id}/budgets/{interval}` | `client.management().get_workspace_budget(...)` | Yes | Path | No | P1 |
-| `PUT /workspaces/{id}/budgets/{interval}` | `client.management().upsert_workspace_budget(...)` | Yes | Path | No | P1 |
-| `DELETE /workspaces/{id}/budgets/{interval}` | `client.management().delete_workspace_budget(...)` | Yes | Path | No | P1 |
+| `GET /workspaces/{workspace_ref}/budgets/{interval}` | `client.management().get_workspace_budget(...)` | Yes | Path | No | P1 |
+| `PUT /workspaces/{workspace_ref}/budgets/{interval}` | `client.management().upsert_workspace_budget(...)` | Yes | Path | No | P1 |
+| `DELETE /workspaces/{workspace_ref}/budgets/{interval}` | `client.management().delete_workspace_budget(...)` | Yes | Path | No | P1 |
 
 ## Supplemental (Legacy)
 

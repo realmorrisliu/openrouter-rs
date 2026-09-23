@@ -19,11 +19,11 @@ Type-safe, async Rust SDK for the OpenRouter API.
 
 </div>
 
-`openrouter-rs` is a community-maintained Rust SDK for OpenRouter. It exposes a domain-oriented client for chat, responses, messages, rerank, audio speech/transcription, image generation, video generation, models, embeddings, files, presets, analytics, and management APIs, plus a companion CLI in the same repository.
+`openrouter-rs` is a community-maintained Rust SDK for OpenRouter. It exposes a domain-oriented client for chat, responses, messages, rerank, audio speech/transcription, image generation, video generation, models, embeddings, files, presets, analytics, management, intern lifecycle/chat, vault secrets, and Decisions/System One APIs, plus a companion CLI in the same repository.
 
-The current repo snapshot implements `105 / 105` official OpenAPI method/path entries, with published live integration coverage tracked in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md).
+The current repo snapshot implements `122 / 122` official OpenAPI method/path entries, with published live integration coverage tracked in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md).
 
-The September OpenAPI update adds container file listing, metadata, downloads and promotion via `files()`, OAuth workload token exchange/public signing keys and SCIM sync jobs via `management()`. It also supports regional guardrails/observability, BYOK key allowlists, external API-key identities, user-model modality filters, and expanded message/model metadata. See [`domain_container_files`](examples/domain_container_files.rs) for container storage usage.
+The September OpenAPI update adds intern lifecycle/chat operations via `interns()`, scoped secret storage via `vault()`, and Decisions/System One via `decisions()`. It also adds container file listing, metadata, downloads and promotion via `files()`, OAuth workload token exchange/public signing keys and SCIM sync jobs via `management()`. See [`domain_interns`](examples/domain_interns.rs), [`domain_decisions`](examples/domain_decisions.rs), and [`domain_container_files`](examples/domain_container_files.rs) for usage.
 
 ## Why `openrouter-rs`
 
@@ -113,6 +113,9 @@ The canonical public surface is domain-oriented:
 | `files()` | `list_container_files`, `get_container_file`, `download_container_file`, `promote_container_file` | `/containers/*/files*` | API key |
 | `models()` | `list`, `list_filtered`, `list_by_category`, `list_by_parameters`, `get`, `list_endpoints`, `list_providers`, `list_user_models`, `list_for_user_with_params`, `get_model_count`, `get_rankings_daily`, `get_rankings_daily_filtered`, `get_app_rankings`, `get_session_cost`, `get_task_classifications`, `get_benchmarks`, `list_zdr_endpoints`, `create_embedding`, `list_embedding_models` | `/model*`, `/models*`, `/providers`, `/datasets/*`, `/classifications/task`, `/benchmarks`, `/endpoints/zdr`, `/embeddings*` | API key |
 | `management()` | `create_api_key`, `create_api_key_in_workspace`, `create_api_key_with_options`, `list_api_keys`, `list_api_keys_in_workspace`, `list_presets`, `get_preset`, `list_preset_versions`, `get_preset_version`, `create_chat_completion_preset`, `create_response_preset`, `create_message_preset`, `get_analytics_meta`, `query_analytics`, `list_byok_keys`, `create_byok_key`, `get_byok_key`, `update_byok_key`, `delete_byok_key`, `list_observability_destinations`, `create_observability_destination`, `get_observability_destination`, `update_observability_destination`, `delete_observability_destination`, `create_auth_code`, `create_api_key_from_auth_code`, `list_guardrails`, `list_guardrails_in_workspace`, `create_guardrail`, `list_organization_members`, `list_workspaces`, `create_workspace`, `get_workspace`, `update_workspace`, `delete_workspace`, `list_workspace_budgets`, `get_workspace_budget`, `upsert_workspace_budget`, `delete_workspace_budget`, `list_workspace_members`, `add_workspace_members`, `remove_workspace_members`, `get_activity`, `get_activity_with_params`, `get_credits`, `create_coinbase_charge`, `get_generation`, `get_generation_content`, `submit_generation_feedback` | `/keys*`, `/presets*`, `/analytics*`, `/byok*`, `/observability/destinations*`, `/auth/keys*`, `/guardrails*`, `/organization/members`, `/workspaces*`, `/activity`, `/credits*`, `/generation*`, `/key` | Governed endpoints require a management key; billing/session endpoints still use the normal API key because that is how OpenRouter authenticates them |
+| `interns()` | `list`, `create`, `get`, `update`, `delete`, `provision`, `suspend`, `chat_completion` | `/interns*` | API key |
+| `vault()` | `list`, `list_for_intern`, `store`, `store_for_intern`, `delete`, `delete_for_intern`, `copy_to_intern` | `/vault*` | API key |
+| `decisions()` | `create`, `create_system_one` | `/api/alpha/decisions`, `/systemone` | API key |
 | `management()` | `get_oauth_jwks`, `exchange_oauth_token` | `/oauth/jwks`, `/oauth/token` | Public signing keys; token exchange authenticates with the workload JWT |
 | `management()` | `list_scim_groups`, `list_scim_group_mappings`, `create_scim_group_mapping`, `get_scim_group_mapping`, `update_scim_group_mapping`, `delete_scim_group_mapping`, `create_scim_sync_job`, `get_scim_sync_job` | `/scim/groups`, `/scim/group-mappings*`, `/scim/sync-jobs*` | Management key |
 | `legacy()` | `completions().create` | `/completions` | `legacy-completions` feature + API key |
@@ -203,6 +206,8 @@ The repo includes runnable examples for the highest-value workflows:
 | [`examples/create_image_generation.rs`](examples/create_image_generation.rs) | `images().create(...)` |
 | [`examples/create_video_generation.rs`](examples/create_video_generation.rs) | `videos().create(...)` |
 | [`examples/create_embedding.rs`](examples/create_embedding.rs) | `models().create_embedding(...)` |
+| [`examples/domain_interns.rs`](examples/domain_interns.rs) | `interns().list(...)` |
+| [`examples/domain_decisions.rs`](examples/domain_decisions.rs) | `decisions().create(...)` |
 | [`examples/domain_management_api_keys.rs`](examples/domain_management_api_keys.rs) | API-key management via `management()` |
 | [`examples/list_byok_keys.rs`](examples/list_byok_keys.rs) | `management().list_byok_keys(...)` |
 | [`examples/list_observability_destinations.rs`](examples/list_observability_destinations.rs) | `management().list_observability_destinations(...)` |
@@ -257,7 +262,7 @@ For copy-paste shell/CI recipes, see [`docs/operations/cli-automation-workflows.
 
 - Community-maintained third-party SDK; not affiliated with OpenRouter
 - Canonical docs and examples prefer the domain clients over older flat helpers
-- Accepted endpoint coverage is tracked against the current OpenAPI snapshot, and the current baseline is fully implemented at the SDK surface (`105 / 105`)
+- Accepted endpoint coverage is tracked against the current OpenAPI snapshot, and the current baseline is fully implemented at the SDK surface (`122 / 122`)
 - Live integration coverage and gaps are published in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md)
 - Migration guidance for the `0.9.x -> 0.10.0` public-model future-proofing release, the `0.8.x -> 0.9.0` audio speech release, the `0.7.x -> 0.8.0` transport/error-surface release, and the archived `0.5.x -> 0.6.x` naming guide lives in [`MIGRATION.md`](MIGRATION.md)
 - Legacy `POST /completions` support remains available behind the `legacy-completions` feature
@@ -359,6 +364,9 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 ## 📈 Release History
 
 ### Unreleased
+
+- Added intern lifecycle and streaming chat, scoped vault secrets, and Decisions/System One domain clients and examples; accepted issue #251 with all 122 upstream operations implemented.
+- Added current BYOK, workspace, audio, embedding, image, rerank, video, API-key, generation, and model-endpoint schema fields from the September 23 OpenAPI snapshot.
 
 ### Version 0.15.0 *(Latest)*
 

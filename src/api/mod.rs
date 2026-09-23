@@ -14,6 +14,9 @@
 //! - `client.videos()` -> [`videos`]
 //! - `client.models()` -> [`models`], [`embeddings`], [`discovery`]
 //! - `client.management()` -> [`api_keys`], [`auth`], [`byok`], [`credits`], [`generation`], [`guardrails`], [`observability`], [`organization`], [`presets`], [`scim`], [`workspaces`]
+//! - `client.interns()` -> [`interns`]
+//! - `client.vault()` -> [`vault`]
+//! - `client.decisions()` -> [`decisions`]
 //! - `client.legacy()` -> [`legacy`] (feature `legacy-completions`)
 //!
 //! Endpoint families currently implemented here:
@@ -24,8 +27,10 @@
 //! - rerank
 //! - audio speech generation and transcription
 //! - image generation and streaming
-//! - image generation and streaming
 //! - video generation and polling
+//! - intern lifecycle and streaming chat
+//! - workspace and intern vault secret management
+//! - Decisions and System One inference
 //! - model discovery, providers, user model filters, model counts, rankings, and ZDR endpoints
 //! - embeddings
 //! - API-key and auth-code flows
@@ -127,6 +132,7 @@ pub mod auth;
 pub mod byok;
 pub mod chat;
 pub mod credits;
+pub mod decisions;
 pub mod discovery;
 pub mod embeddings;
 pub mod errors;
@@ -134,6 +140,7 @@ pub mod files;
 pub mod generation;
 pub mod guardrails;
 pub mod images;
+pub mod interns;
 pub mod messages;
 pub mod models;
 pub mod observability;
@@ -144,6 +151,7 @@ pub mod responses;
 pub mod scim;
 #[deprecated(note = "use api::audio for the canonical /audio/speech surface")]
 pub mod tts;
+pub mod vault;
 pub mod videos;
 pub mod workspaces;
 

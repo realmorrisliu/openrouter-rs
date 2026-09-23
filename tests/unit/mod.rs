@@ -42,4 +42,5 @@ pub mod unified_stream;
 pub mod videos;
 pub mod workspaces;
 
+pub mod openapi_issue_251;
 pub mod openapi_september;

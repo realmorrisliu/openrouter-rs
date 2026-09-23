@@ -34,6 +34,19 @@ pub struct ApiKeyDetails {
     pub rate_limit: RateLimit,
     pub limit: Option<f64>,
     pub limit_remaining: Option<f64>,
+    pub allowed_data_regions: Vec<String>,
+    pub free_model_daily_requests: Option<FreeModelDailyRequests>,
+    pub organization_id: Option<String>,
+    pub workspace_id: Option<String>,
+    pub limit_reset: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[non_exhaustive]
+pub struct FreeModelDailyRequests {
+    pub limit: u32,
+    pub remaining: u32,
+    pub used: u32,
 }
 
 #[derive(Deserialize)]
@@ -48,6 +61,16 @@ struct ApiKeyDetailsWire {
     rate_limit: RateLimit,
     limit: Option<f64>,
     limit_remaining: Option<f64>,
+    #[serde(default)]
+    allowed_data_regions: Vec<String>,
+    #[serde(default)]
+    free_model_daily_requests: Option<FreeModelDailyRequests>,
+    #[serde(default)]
+    organization_id: Option<String>,
+    #[serde(default)]
+    workspace_id: Option<String>,
+    #[serde(default)]
+    limit_reset: Option<String>,
 }
 
 impl<'de> Deserialize<'de> for ApiKeyDetails {
@@ -67,6 +90,11 @@ impl<'de> Deserialize<'de> for ApiKeyDetails {
             rate_limit: wire.rate_limit,
             limit: wire.limit,
             limit_remaining: wire.limit_remaining,
+            allowed_data_regions: wire.allowed_data_regions,
+            free_model_daily_requests: wire.free_model_daily_requests,
+            organization_id: wire.organization_id,
+            workspace_id: wire.workspace_id,
+            limit_reset: wire.limit_reset,
         })
     }
 }
@@ -76,6 +104,8 @@ impl<'de> Deserialize<'de> for ApiKeyDetails {
 pub struct RateLimit {
     pub requests: f64,
     pub interval: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
 }
 
 /// API key creation options, including external identity binding.
