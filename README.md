@@ -43,7 +43,7 @@ The September OpenAPI update adds intern lifecycle/chat operations via `interns(
 
 ```toml
 [dependencies]
-openrouter-rs = "0.16.0"
+openrouter-rs = "0.17.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -51,7 +51,7 @@ Legacy text completions are opt-in:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.16.0", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.17.0", features = ["legacy-completions"] }
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -369,7 +369,13 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 ### Unreleased
 
-### Version 0.16.0 *(Latest)*
+### Version 0.17.0 *(Latest)*
+
+- Added asynchronous Batch APIs, Intern invocation/daemon access, shared provider options, audio URL/image references, transcription metadata, and SCIM filters.
+- Hardened credential response errors, forwarded Batch/Intern/SCIM attribution headers, and rejected empty audio URLs.
+- Deprecated daemon-access and Coinbase charge aliases with documented replacements; retained compatibility entry points. Accepted the September 30 OpenAPI review with `129 / 142` operations implemented and 13 explicitly deferred.
+
+### Version 0.16.0
 
 - Added typed Intern lifecycle and streaming chat, workspace/intern vault secrets, and Decisions/System One domain clients, with runnable examples.
 - Accepted the 2026-09-23 OpenAPI drift across all `122 / 122` operations, including current API-key, BYOK, audio, embedding, image, message, rerank, video, workspace, generation, and model-endpoint schemas.
