@@ -1627,6 +1627,7 @@ impl OpenRouterClient {
     /// # Ok(())
     /// # }
     /// ```
+    #[deprecated(note = "upstream deprecated Coinbase charges; use the web credits purchase flow")]
     pub async fn create_coinbase_charge(
         &self,
         request: &credits::CoinbaseChargeRequest,
@@ -2793,6 +2794,7 @@ impl InternsClient<'_> {
     }
 
     /// Deprecated upstream alias; prefer `daemon`.
+    #[deprecated(note = "use daemon")]
     pub async fn daemon_access(
         &self,
         intern_id: &str,
@@ -4066,6 +4068,8 @@ impl<'a> ManagementClient<'a> {
     }
 
     /// Create a Coinbase charge (`POST /credits/coinbase`).
+    #[deprecated(note = "upstream deprecated Coinbase charges; use the web credits purchase flow")]
+    #[allow(deprecated)]
     pub async fn create_coinbase_charge(
         &self,
         request: &credits::CoinbaseChargeRequest,

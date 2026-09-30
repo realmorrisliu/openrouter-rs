@@ -508,6 +508,7 @@ async fn run(cli: Cli) -> Result<()> {
                         .sender(args.sender)
                         .chain_id(args.chain_id)
                         .build()?;
+                    #[allow(deprecated)]
                     let charge = management.create_coinbase_charge(&request).await?;
                     match cli.global.output {
                         OutputFormat::Json => print_json(&charge)?,

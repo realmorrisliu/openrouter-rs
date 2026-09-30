@@ -94,7 +94,7 @@ Legend:
 | `POST /scim/sync-jobs` | `client.management().create_scim_sync_job(...)` | Yes | Path | No | P1 |
 | `GET /scim/sync-jobs/{id}` | `client.management().get_scim_sync_job(...)` | Yes | Path | Conditional | P1 |
 | `GET /credits` | `client.get_credits()` / `client.management().get_credits()` | Yes | Path | No | P2 |
-| `POST /credits/coinbase` | `client.create_coinbase_charge(...)` / `client.management().create_coinbase_charge(...)` | Yes | Path | No | P2 |
+| `POST /credits/coinbase` | `client.create_coinbase_charge(...)` / `client.management().create_coinbase_charge(...)` (deprecated upstream; use web credits purchase) | Yes (compatibility) | Path | No | P2 |
 | `GET /datasets/app-rankings` | `client.models().get_app_rankings(...)` | Yes | Path | No | P2 |
 | `GET /datasets/rankings-daily` | `client.models().get_rankings_daily(...)` | Yes | Path | No | P2 |
 | `GET /datasets/session-cost` | `client.models().get_session_cost(...)` | Yes | Path | No | P2 |

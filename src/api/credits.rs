@@ -63,6 +63,7 @@ pub struct CreditsData {
 /// # Returns
 ///
 /// * `Result<CoinbaseChargeResponse, OpenRouterError>` - The response data containing the charge details.
+#[deprecated(note = "upstream deprecated Coinbase charges; use the web credits purchase flow")]
 pub async fn create_coinbase_charge(
     base_url: &str,
     api_key: &str,

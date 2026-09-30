@@ -23,7 +23,7 @@ Type-safe, async Rust SDK for the OpenRouter API.
 
 The current repo snapshot implements `129 / 142` official OpenAPI method/path entries, with published live integration coverage tracked in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md).
 
-The September 30 review adds `batches()` for asynchronous submission/list/get/delete, Intern invocation and daemon access, URL audio/image references, SCIM group filters, and shared `ProviderPreferences::options`. Private Endpoints, Tools discovery, and effective vault secrets remain deferred; see the endpoint matrix. See [`domain_batches`](examples/domain_batches.rs) for batch submission.
+The September 30 review adds `batches()` for asynchronous submission/list/get/delete, Intern invocation and daemon access, URL audio/image references, SCIM group filters, and shared `ProviderPreferences::options`. Private Endpoints, Tools discovery, and effective vault secrets remain deferred; see the endpoint matrix. See [`domain_batches`](examples/domain_batches.rs) for batch submission. The upstream Coinbase charge endpoint is deprecated; use the OpenRouter web credits purchase flow.
 
 The September OpenAPI update adds intern lifecycle/chat operations via `interns()`, scoped secret storage via `vault()`, and Decisions/System One via `decisions()`. It also adds container file listing, metadata, downloads and promotion via `files()`, OAuth workload token exchange/public signing keys and SCIM sync jobs via `management()`. See [`domain_interns`](examples/domain_interns.rs), [`domain_decisions`](examples/domain_decisions.rs), and [`domain_container_files`](examples/domain_container_files.rs) for usage.
 

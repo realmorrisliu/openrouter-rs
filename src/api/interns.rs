@@ -609,6 +609,7 @@ pub async fn daemon(
 }
 
 /// Get daemon origin and bearer token using the deprecated upstream alias.
+#[deprecated(note = "use daemon")]
 pub async fn daemon_access(
     base_url: &str,
     api_key: &str,

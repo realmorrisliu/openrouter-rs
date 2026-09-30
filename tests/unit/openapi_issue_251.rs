@@ -794,6 +794,7 @@ async fn issue_254_batches_cover_paths_repeated_status_and_errors() {
 }
 
 #[tokio::test]
+#[allow(deprecated)]
 async fn issue_254_intern_invoke_daemon_and_scim_filters() {
     use openrouter_rs::api::{interns::InternInvokeRequest, scim::ListScimGroupsParams};
     let (base_url, rx, server) = spawn_server_sequence(vec![
@@ -1069,6 +1070,7 @@ fn issue_254_audio_builders_reject_empty_url_alongside_data() {
 }
 
 #[tokio::test]
+#[allow(deprecated)]
 async fn issue_254_malformed_credential_responses_do_not_leak_payloads() {
     use openrouter_rs::api::auth::OAuthTokenExchangeRequest;
     let (base_url, rx, server) = spawn_server_sequence(vec![
@@ -1146,6 +1148,7 @@ async fn issue_254_malformed_credential_responses_do_not_leak_payloads() {
 }
 
 #[tokio::test]
+#[allow(deprecated)]
 async fn issue_254_credential_error_statuses_do_not_echo_raw_bodies() {
     use openrouter_rs::api::auth::OAuthTokenExchangeRequest;
     let (base_url, rx, server) = spawn_server_sequence(vec![

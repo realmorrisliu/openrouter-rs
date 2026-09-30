@@ -640,6 +640,7 @@ fn test_client_accessors_and_key_mutators_cover_public_surface() {
 }
 
 #[tokio::test]
+#[allow(deprecated)]
 async fn test_management_domain_remaining_methods_require_configured_key() {
     let client = OpenRouterClient::builder()
         .build()

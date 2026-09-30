@@ -1,7 +1,9 @@
+//! Legacy compatibility example. Upstream removed Coinbase charges; use the web credits purchase flow.
 use openrouter_rs::OpenRouterClient;
 use openrouter_rs::api::credits::CoinbaseChargeRequest;
 
 #[tokio::main]
+#[allow(deprecated)]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let api_key = std::env::var("OPENROUTER_API_KEY").expect("OPENROUTER_API_KEY must be set");
     let client = OpenRouterClient::builder().api_key(api_key).build()?;
