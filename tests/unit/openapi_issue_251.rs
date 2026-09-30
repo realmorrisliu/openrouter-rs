@@ -1204,3 +1204,35 @@ async fn issue_254_credential_error_statuses_do_not_echo_raw_bodies() {
     }
     server.join().unwrap();
 }
+
+#[tokio::test]
+async fn issue_254_credential_body_read_failure_preserves_error_context() {
+    for status in [429, 503] {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let base_url = format!("http://{}/api/v1", listener.local_addr().unwrap());
+        let server = thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut request = Vec::new();
+            let mut chunk = [0; 1024];
+            while !request.windows(4).any(|part| part == b"\r\n\r\n") {
+                let count = stream.read(&mut chunk).unwrap();
+                assert_ne!(count, 0);
+                request.extend_from_slice(&chunk[..count]);
+            }
+            // Close before the advertised body length to reproduce a transport read failure.
+            stream.write_all(format!("HTTP/1.1 {status} Error\r\nContent-Type: application/json\r\nContent-Length: 1000\r\nX-Request-Id: truncated-credential\r\nConnection: close\r\n\r\n{{\"token\":\"partial-secret\"}}").as_bytes()).unwrap();
+        });
+        let error = client(base_url)
+            .interns()
+            .daemon("intern-1")
+            .await
+            .err()
+            .unwrap();
+        assert!(
+            matches!(error, openrouter_rs::error::OpenRouterError::Api(ref context) if context.status.as_u16() == status && context.request_id.as_deref() == Some("truncated-credential") && context.is_retryable() && context.metadata.as_ref().unwrap().get("body_read_error").is_some())
+        );
+        assert!(!error.to_string().contains("partial-secret"));
+        assert!(!format!("{error:?}").contains("partial-secret"));
+        server.join().unwrap();
+    }
+}

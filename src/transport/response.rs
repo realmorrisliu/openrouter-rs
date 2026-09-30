@@ -80,7 +80,16 @@ pub(crate) async fn parse_credential_response<T: DeserializeOwned>(
     }
     let status = response.status();
     let request_id = response_request_id(&response);
-    let body = response.text().await?;
+    let body = match response.text().await {
+        Ok(body) => body,
+        Err(error) => {
+            return Err(unreadable_error_response(
+                status,
+                request_id,
+                &error.to_string(),
+            ));
+        }
+    };
     Err(
         try_parse_api_error(status, request_id.clone(), &body).unwrap_or_else(|| {
             parse_api_error(
