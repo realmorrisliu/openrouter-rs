@@ -2687,6 +2687,11 @@ impl BatchesClient<'_> {
             self.client.http_client(),
             &self.client.base_url,
             self.client.require_api_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
             params,
         )
         .await
@@ -2699,6 +2704,11 @@ impl BatchesClient<'_> {
             self.client.http_client(),
             &self.client.base_url,
             self.client.require_api_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
             request,
         )
         .await
@@ -2708,6 +2718,11 @@ impl BatchesClient<'_> {
             self.client.http_client(),
             &self.client.base_url,
             self.client.require_api_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
             batch_id,
         )
         .await
@@ -2720,6 +2735,11 @@ impl BatchesClient<'_> {
             self.client.http_client(),
             &self.client.base_url,
             self.client.require_api_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
             batch_id,
         )
         .await
@@ -2742,6 +2762,11 @@ impl InternsClient<'_> {
             self.client.http_client(),
             &self.client.base_url,
             self.client.require_api_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
             intern_id,
             request,
         )
@@ -2756,6 +2781,11 @@ impl InternsClient<'_> {
             self.client.http_client(),
             &self.client.base_url,
             self.client.require_api_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
             intern_id,
             "daemon",
         )
@@ -2771,6 +2801,11 @@ impl InternsClient<'_> {
             self.client.http_client(),
             &self.client.base_url,
             self.client.require_api_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
             intern_id,
             "daemon-access",
         )

@@ -699,7 +699,14 @@ async fn issue_254_batches_cover_paths_repeated_status_and_errors() {
         (200, json!({"id":"batch-1","object":"batch","deletion":{"openrouter":"deleted","upstream":{"provider":"future-provider","status":"unsupported"}}}).to_string()),
         (402, json!({"error":{"code":402,"message":"Add credits to unlock results"},"results":null}).to_string()),
     ]);
-    let client = client(base_url);
+    let client = OpenRouterClient::builder()
+        .base_url(base_url)
+        .api_key("test-key")
+        .x_title("review-tests")
+        .http_referer("https://example.com")
+        .app_categories(["cli-agent", "cloud-agent"])
+        .build()
+        .unwrap();
     let body = json!({"input":"hello"}).as_object().unwrap().clone();
     let request = CreateBatchRequest::builder()
         .endpoint("/v1/responses")
@@ -752,6 +759,15 @@ async fn issue_254_batches_cover_paths_repeated_status_and_errors() {
         "DELETE /api/v1/batches/batch%2F1 HTTP/1.1"
     );
     for request in requests {
+        let headers = request.headers.to_ascii_lowercase();
+        for expected in [
+            "x-title: review-tests",
+            "x-openrouter-title: review-tests",
+            "http-referer: https://example.com",
+            "x-openrouter-categories: cli-agent,cloud-agent",
+        ] {
+            assert!(headers.contains(expected), "missing {expected}: {headers}");
+        }
         assert!(
             request
                 .headers
@@ -803,6 +819,9 @@ async fn issue_254_intern_invoke_daemon_and_scim_filters() {
         .base_url(base_url)
         .api_key("test-key")
         .management_key("management-key")
+        .x_title("review-tests")
+        .http_referer("https://example.com")
+        .app_categories(["cli-agent", "cloud-agent"])
         .build()
         .unwrap();
     let request = InternInvokeRequest::builder()
@@ -884,6 +903,15 @@ async fn issue_254_intern_invoke_daemon_and_scim_filters() {
         "GET /api/v1/scim/groups?offset=2&limit=10&display_name=R%26D&external_id=external%2F1 HTTP/1.1"
     );
     for request in &requests[..4] {
+        let headers = request.headers.to_ascii_lowercase();
+        for expected in [
+            "x-title: review-tests",
+            "x-openrouter-title: review-tests",
+            "http-referer: https://example.com",
+            "x-openrouter-categories: cli-agent,cloud-agent",
+        ] {
+            assert!(headers.contains(expected), "missing {expected}: {headers}");
+        }
         assert!(
             request
                 .headers
@@ -1005,4 +1033,103 @@ fn issue_254_shared_provider_options_and_endpoint_capabilities() {
     assert_eq!(endpoint.supports_multiple_audio_references, Some(false));
     let minimal = serde_json::to_value(ProviderPreferences::default()).unwrap();
     assert!(minimal.get("options").is_none());
+}
+
+#[test]
+fn issue_254_audio_builders_reject_empty_url_alongside_data() {
+    use openrouter_rs::api::audio::SpeechInputAudio;
+    assert!(SpeechInputAudio::builder().url("").build().is_err());
+    assert!(TranscriptionInputAudio::builder().url("").build().is_err());
+    assert!(
+        SpeechInputAudio::builder()
+            .data("base64")
+            .url("")
+            .build()
+            .is_err()
+    );
+    assert!(
+        TranscriptionInputAudio::builder()
+            .data("base64")
+            .format("wav")
+            .url("")
+            .build()
+            .is_err()
+    );
+}
+
+#[tokio::test]
+async fn issue_254_malformed_credential_responses_do_not_leak_payloads() {
+    use openrouter_rs::api::auth::OAuthTokenExchangeRequest;
+    let (base_url, rx, server) = spawn_server_sequence(vec![
+        (200, r#"{"token":"daemon-secret"}"#.into()),
+        (200, r#"{"origin":123,"token":"alias-secret"}"#.into()),
+        (200, r#"{"token":"truncated-secret""#.into()),
+        (200, r#"{"token":"envelope-secret","error":{}}"#.into()),
+        (
+            200,
+            r#"{"access_token":"oauth-secret","expires_in":"serde-secret"}"#.into(),
+        ),
+        (
+            200,
+            r#"{"data":{"key":"created-key-secret","limit":"serde-api-secret"}}"#.into(),
+        ),
+        (
+            200,
+            r#"{"error":{"code":403,"message":"Forbidden"},"token":"ignored-secret"}"#.into(),
+        ),
+    ]);
+    let client = OpenRouterClient::builder()
+        .base_url(base_url)
+        .api_key("test-key")
+        .management_key("management-key")
+        .build()
+        .unwrap();
+    let errors = [
+        client.interns().daemon("intern-1").await.err().unwrap(),
+        client
+            .interns()
+            .daemon_access("intern-1")
+            .await
+            .err()
+            .unwrap(),
+        client.interns().daemon("intern-1").await.err().unwrap(),
+        client.interns().daemon("intern-1").await.err().unwrap(),
+        client
+            .management()
+            .exchange_oauth_token(
+                &OAuthTokenExchangeRequest::builder()
+                    .federation_policy_id("policy-1")
+                    .subject_token("test-jwt")
+                    .build()
+                    .unwrap(),
+            )
+            .await
+            .unwrap_err(),
+        client
+            .management()
+            .create_api_key("test", None)
+            .await
+            .unwrap_err(),
+    ];
+    for error in errors {
+        assert!(matches!(
+            error,
+            openrouter_rs::error::OpenRouterError::Unknown(_)
+        ));
+        for message in [error.to_string(), format!("{error:?}")] {
+            assert!(message.contains("status 200"), "{message}");
+            assert!(message.contains("error at line"), "{message}");
+            assert!(!message.contains("secret"), "{message}");
+            assert!(!message.contains("body preview"), "{message}");
+        }
+    }
+    let error = client.interns().daemon("intern-1").await.err().unwrap();
+    assert!(
+        matches!(error, openrouter_rs::error::OpenRouterError::Api(ref context) if context.status.as_u16() == 403 && context.message == "Forbidden")
+    );
+    assert!(!format!("{error:?}").contains("ignored-secret"));
+    for _ in 0..7 {
+        rx.recv().unwrap();
+    }
+    server.join().unwrap();
 }

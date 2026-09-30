@@ -174,13 +174,21 @@ pub async fn list(
     api_key: &str,
     params: &ListBatchesParams,
 ) -> Result<ListBatchesResponse, OpenRouterError> {
-    list_with_client(&crate::transport::new_client()?, base_url, api_key, params).await
+    list_with_client(
+        &crate::transport::new_client()?,
+        base_url,
+        api_key,
+        (&None, &None, &None),
+        params,
+    )
+    .await
 }
 
 pub(crate) async fn list_with_client(
     http_client: &HttpClient,
     base_url: &str,
     api_key: &str,
+    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
     params: &ListBatchesParams,
 ) -> Result<ListBatchesResponse, OpenRouterError> {
     let mut query = Vec::new();
@@ -200,10 +208,13 @@ pub(crate) async fn list_with_client(
         query.extend(statuses.iter().map(|status| ("status", status.clone())));
     }
     parse(
-        request::with_bearer_auth(
+        request::with_client_request_headers(
             request::get(http_client, &format!("{base_url}/batches")),
             api_key,
-        )
+            metadata.0,
+            metadata.1,
+            metadata.2,
+        )?
         .query(&query)
         .send()
         .await?,
@@ -216,20 +227,31 @@ pub async fn create(
     api_key: &str,
     body: &CreateBatchRequest,
 ) -> Result<Batch, OpenRouterError> {
-    create_with_client(&crate::transport::new_client()?, base_url, api_key, body).await
+    create_with_client(
+        &crate::transport::new_client()?,
+        base_url,
+        api_key,
+        (&None, &None, &None),
+        body,
+    )
+    .await
 }
 
 pub(crate) async fn create_with_client(
     http_client: &HttpClient,
     base_url: &str,
     api_key: &str,
+    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
     body: &CreateBatchRequest,
 ) -> Result<Batch, OpenRouterError> {
     parse(
-        request::with_bearer_auth(
+        request::with_client_request_headers(
             request::post(http_client, &format!("{base_url}/batches")),
             api_key,
-        )
+            metadata.0,
+            metadata.1,
+            metadata.2,
+        )?
         .json(body)
         .send()
         .await?,
@@ -242,6 +264,7 @@ pub async fn get(base_url: &str, api_key: &str, batch_id: &str) -> Result<Batch,
         &crate::transport::new_client()?,
         base_url,
         api_key,
+        (&None, &None, &None),
         batch_id,
     )
     .await
@@ -251,13 +274,20 @@ pub(crate) async fn get_with_client(
     http_client: &HttpClient,
     base_url: &str,
     api_key: &str,
+    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
     batch_id: &str,
 ) -> Result<Batch, OpenRouterError> {
     let url = format!("{base_url}/batches/{}", encode(batch_id));
     parse(
-        request::with_bearer_auth(request::get(http_client, &url), api_key)
-            .send()
-            .await?,
+        request::with_client_request_headers(
+            request::get(http_client, &url),
+            api_key,
+            metadata.0,
+            metadata.1,
+            metadata.2,
+        )?
+        .send()
+        .await?,
     )
     .await
 }
@@ -271,6 +301,7 @@ pub async fn delete(
         &crate::transport::new_client()?,
         base_url,
         api_key,
+        (&None, &None, &None),
         batch_id,
     )
     .await
@@ -280,13 +311,20 @@ pub(crate) async fn delete_with_client(
     http_client: &HttpClient,
     base_url: &str,
     api_key: &str,
+    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
     batch_id: &str,
 ) -> Result<DeleteBatchResponse, OpenRouterError> {
     let url = format!("{base_url}/batches/{}", encode(batch_id));
     parse(
-        request::with_bearer_auth(request::delete(http_client, &url), api_key)
-            .send()
-            .await?,
+        request::with_client_request_headers(
+            request::delete(http_client, &url),
+            api_key,
+            metadata.0,
+            metadata.1,
+            metadata.2,
+        )?
+        .send()
+        .await?,
     )
     .await
 }

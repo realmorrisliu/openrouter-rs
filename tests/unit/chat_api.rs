@@ -400,8 +400,9 @@ async fn test_send_chat_completion_returns_contextual_parse_error_on_invalid_jso
     match error {
         openrouter_rs::error::OpenRouterError::Unknown(message) => {
             assert!(message.contains("Failed to deserialize chat completion response"));
-            assert!(message.contains("body preview"));
-            assert!(message.contains("{\"id\":\"broken\""));
+            assert!(message.contains("error at line"));
+            assert!(!message.contains("body preview"));
+            assert!(!message.contains("broken"));
         }
         other => panic!("expected contextual parse error, got {other:?}"),
     }

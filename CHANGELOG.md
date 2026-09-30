@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Reviewed issue #254 against the 2026-09-30 OpenAPI snapshot: `129 / 142` operations implemented. Thirteen later additions (Private Endpoints, Tools discovery and effective intern vault secrets) are explicitly deferred in the endpoint matrix. Existing base64 audio constructors, SCIM pagination methods and omitted-field defaults remain compatible.
 
+### Fixed
+- Removed response payloads and value-bearing serde messages from shared JSON deserialization errors, protecting malformed daemon, OAuth and API-key responses while retaining context, status and error location.
+- Forwarded configured attribution headers for all Batch calls and new Intern invoke/daemon calls.
+- Rejected explicitly empty audio URLs in both audio input builders, including empty URLs supplied alongside base64 data.
+
 ## [0.16.0] - 2026-09-23
 
 ### Added

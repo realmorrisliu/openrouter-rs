@@ -564,12 +564,8 @@ pub struct TranscriptionEntity {
 impl SpeechInputAudioBuilder {
     fn validate(&self) -> Result<(), OpenRouterError> {
         let has_data = self.data.as_ref().is_some_and(|value| !value.is_empty());
-        let has_url = self
-            .url
-            .as_ref()
-            .and_then(Option::as_ref)
-            .is_some_and(|value| !value.is_empty());
-        if has_data == has_url {
+        let url = self.url.as_ref().and_then(Option::as_ref);
+        if has_data == url.is_some() || url.is_some_and(String::is_empty) {
             return Err(OpenRouterError::ConfigError(
                 "Supply exactly one of audio data or URL".into(),
             ));
@@ -581,12 +577,8 @@ impl SpeechInputAudioBuilder {
 impl TranscriptionInputAudioBuilder {
     fn validate(&self) -> Result<(), OpenRouterError> {
         let has_data = self.data.as_ref().is_some_and(|value| !value.is_empty());
-        let has_url = self
-            .url
-            .as_ref()
-            .and_then(Option::as_ref)
-            .is_some_and(|value| !value.is_empty());
-        if has_data == has_url {
+        let url = self.url.as_ref().and_then(Option::as_ref);
+        if has_data == url.is_some() || url.is_some_and(String::is_empty) {
             return Err(OpenRouterError::ConfigError(
                 "Supply exactly one of audio data or URL".into(),
             ));

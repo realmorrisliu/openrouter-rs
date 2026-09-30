@@ -1,31 +1,11 @@
 use http::StatusCode;
 use reqwest::Response;
 use serde::de::DeserializeOwned;
-use serde_json::Value;
 
 use crate::{
-    api::errors::{parse_api_error, unreadable_error_response},
+    api::errors::{parse_api_error, try_parse_api_error, unreadable_error_response},
     error::OpenRouterError,
 };
-
-fn body_preview(body_text: &str, limit: usize) -> String {
-    let normalized = body_text.replace('\r', "\\r").replace('\n', "\\n");
-    let mut preview = String::new();
-    let mut chars = normalized.chars();
-
-    for _ in 0..limit {
-        match chars.next() {
-            Some(ch) => preview.push(ch),
-            None => return preview,
-        }
-    }
-
-    if chars.next().is_some() {
-        preview.push_str("...");
-    }
-
-    preview
-}
 
 fn response_request_id(response: &Response) -> Option<String> {
     response
@@ -42,22 +22,16 @@ fn response_request_id(response: &Response) -> Option<String> {
         })
 }
 
-fn body_contains_api_error(body_text: &str) -> bool {
-    serde_json::from_str::<Value>(body_text)
-        .ok()
-        .and_then(|value| value.get("error").cloned())
-        .is_some()
-}
-
 pub(crate) fn response_deserialization_error(
     context: &str,
     status: StatusCode,
     error: &serde_json::Error,
-    body_text: &str,
 ) -> OpenRouterError {
     OpenRouterError::Unknown(format!(
-        "Failed to deserialize {context} response (status {status}): {error}; body preview: {}",
-        body_preview(body_text, 240)
+        "Failed to deserialize {context} response (status {status}): {:?} error at line {} column {}",
+        error.classify(),
+        error.line(),
+        error.column()
     ))
 }
 
@@ -72,12 +46,10 @@ pub(crate) async fn parse_json_response<T: DeserializeOwned>(
     match serde_json::from_str(&body_text) {
         Ok(parsed) => Ok(parsed),
         Err(error) => {
-            if body_contains_api_error(&body_text) {
-                Err(parse_api_error(status, request_id, &body_text))
+            if let Some(api_error) = try_parse_api_error(status, request_id, &body_text) {
+                Err(api_error)
             } else {
-                Err(response_deserialization_error(
-                    context, status, &error, &body_text,
-                ))
+                Err(response_deserialization_error(context, status, &error))
             }
         }
     }

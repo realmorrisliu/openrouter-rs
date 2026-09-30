@@ -559,6 +559,7 @@ pub async fn invoke(
         &crate::transport::new_client()?,
         base_url,
         api_key,
+        (&None, &None, &None),
         intern_id,
         request,
     )
@@ -569,15 +570,22 @@ pub(crate) async fn invoke_with_client(
     http_client: &HttpClient,
     base_url: &str,
     api_key: &str,
+    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
     intern_id: &str,
     request: &InternInvokeRequest,
 ) -> Result<InternInvokeResponse, OpenRouterError> {
     let url = format!("{base_url}/interns/{}/invoke", encode(intern_id));
     parse_result(
-        with_auth(transport_request::post(http_client, &url), api_key)
-            .json(request)
-            .send()
-            .await?,
+        transport_request::with_client_request_headers(
+            transport_request::post(http_client, &url),
+            api_key,
+            metadata.0,
+            metadata.1,
+            metadata.2,
+        )?
+        .json(request)
+        .send()
+        .await?,
         "invoke intern",
     )
     .await
@@ -593,6 +601,7 @@ pub async fn daemon(
         &crate::transport::new_client()?,
         base_url,
         api_key,
+        (&None, &None, &None),
         intern_id,
         "daemon",
     )
@@ -609,6 +618,7 @@ pub async fn daemon_access(
         &crate::transport::new_client()?,
         base_url,
         api_key,
+        (&None, &None, &None),
         intern_id,
         "daemon-access",
     )
@@ -619,14 +629,21 @@ pub(crate) async fn daemon_with_client(
     http_client: &HttpClient,
     base_url: &str,
     api_key: &str,
+    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
     intern_id: &str,
     path: &str,
 ) -> Result<InternDaemonAccess, OpenRouterError> {
     let url = format!("{base_url}/interns/{}/{path}", encode(intern_id));
     parse_result(
-        with_auth(transport_request::get(http_client, &url), api_key)
-            .send()
-            .await?,
+        transport_request::with_client_request_headers(
+            transport_request::get(http_client, &url),
+            api_key,
+            metadata.0,
+            metadata.1,
+            metadata.2,
+        )?
+        .send()
+        .await?,
         "intern daemon access",
     )
     .await
