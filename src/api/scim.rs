@@ -134,13 +134,21 @@ pub async fn list_scim_groups(
     pagination: Option<PaginationOptions>,
 ) -> Result<ListScimGroupsResponse, OpenRouterError> {
     let http_client = crate::transport::new_client()?;
-    list_scim_groups_with_client(&http_client, base_url, management_key, pagination).await
+    list_scim_groups_with_client(
+        &http_client,
+        base_url,
+        management_key,
+        (&None, &None, &None),
+        pagination,
+    )
+    .await
 }
 
 pub(crate) async fn list_scim_groups_with_client(
     http_client: &HttpClient,
     base_url: &str,
     management_key: &str,
+    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
     pagination: Option<PaginationOptions>,
 ) -> Result<ListScimGroupsResponse, OpenRouterError> {
     let params = ListScimGroupsParams {
@@ -148,7 +156,14 @@ pub(crate) async fn list_scim_groups_with_client(
         limit: pagination.and_then(|value| value.limit),
         ..Default::default()
     };
-    list_scim_groups_with_params_with_client(http_client, base_url, management_key, &params).await
+    list_scim_groups_with_params_with_client(
+        http_client,
+        base_url,
+        management_key,
+        metadata,
+        &params,
+    )
+    .await
 }
 
 pub async fn list_scim_groups_with_params(
@@ -160,6 +175,7 @@ pub async fn list_scim_groups_with_params(
         &crate::transport::new_client()?,
         base_url,
         management_key,
+        (&None, &None, &None),
         params,
     )
     .await
@@ -169,12 +185,16 @@ pub(crate) async fn list_scim_groups_with_params_with_client(
     http_client: &HttpClient,
     base_url: &str,
     management_key: &str,
+    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
     params: &ListScimGroupsParams,
 ) -> Result<ListScimGroupsResponse, OpenRouterError> {
-    let response = transport_request::with_bearer_auth(
+    let response = transport_request::with_client_request_headers(
         transport_request::get(http_client, &format!("{base_url}/scim/groups")),
         management_key,
-    )
+        metadata.0,
+        metadata.1,
+        metadata.2,
+    )?
     .query(params)
     .send()
     .await?;

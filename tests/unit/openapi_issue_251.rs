@@ -814,6 +814,7 @@ async fn issue_254_intern_invoke_daemon_and_scim_filters() {
             json!({"origin":"https://intern.example.com","token":"secret"}).to_string(),
         ),
         (200, json!({"data":[],"total_count":0}).to_string()),
+        (200, json!({"data":[],"total_count":0}).to_string()),
     ]);
     let client = OpenRouterClient::builder()
         .base_url(base_url)
@@ -877,7 +878,14 @@ async fn issue_254_intern_invoke_daemon_and_scim_filters() {
         )
         .await
         .unwrap();
-    let requests: Vec<_> = (0..5).map(|_| rx.recv().unwrap()).collect();
+    client
+        .management()
+        .list_scim_groups(Some(
+            openrouter_rs::types::PaginationOptions::with_offset_and_limit(3, 5),
+        ))
+        .await
+        .unwrap();
+    let requests: Vec<_> = (0..6).map(|_| rx.recv().unwrap()).collect();
     assert_eq!(
         requests[0].line,
         "POST /api/v1/interns/intern%2F1/invoke HTTP/1.1"
@@ -902,7 +910,11 @@ async fn issue_254_intern_invoke_daemon_and_scim_filters() {
         requests[4].line,
         "GET /api/v1/scim/groups?offset=2&limit=10&display_name=R%26D&external_id=external%2F1 HTTP/1.1"
     );
-    for request in &requests[..4] {
+    assert_eq!(
+        requests[5].line,
+        "GET /api/v1/scim/groups?offset=3&limit=5 HTTP/1.1"
+    );
+    for (index, request) in requests.iter().enumerate() {
         let headers = request.headers.to_ascii_lowercase();
         for expected in [
             "x-title: review-tests",
@@ -912,12 +924,11 @@ async fn issue_254_intern_invoke_daemon_and_scim_filters() {
         ] {
             assert!(headers.contains(expected), "missing {expected}: {headers}");
         }
-        assert!(
-            request
-                .headers
-                .to_ascii_lowercase()
-                .contains("authorization: bearer test-key")
-        );
+        assert!(request.headers.to_ascii_lowercase().contains(if index < 4 {
+            "authorization: bearer test-key"
+        } else {
+            "authorization: bearer management-key"
+        }));
     }
     assert!(
         requests[4]
@@ -1129,6 +1140,66 @@ async fn issue_254_malformed_credential_responses_do_not_leak_payloads() {
     );
     assert!(!format!("{error:?}").contains("ignored-secret"));
     for _ in 0..7 {
+        rx.recv().unwrap();
+    }
+    server.join().unwrap();
+}
+
+#[tokio::test]
+async fn issue_254_credential_error_statuses_do_not_echo_raw_bodies() {
+    use openrouter_rs::api::auth::OAuthTokenExchangeRequest;
+    let (base_url, rx, server) = spawn_server_sequence(vec![
+        (400, r#"{"origin":"https://intern.example.com","token":"status-secret"}"#.into()),
+        (404, r#"{"token":"alias-error-secret""#.into()),
+        (502, "plain-secret".into()),
+        (401, r#"{"access_token":"oauth-error-secret"}"#.into()),
+        (500, r#"{"data":{"key":"key-error-secret"}}"#.into()),
+        (429, r#"{"error":{"code":429,"message":"Wait","metadata":{"reason":"rate_limited","retryable":true}}}"#.into()),
+    ]);
+    let client = OpenRouterClient::builder()
+        .base_url(base_url)
+        .api_key("test-key")
+        .management_key("management-key")
+        .build()
+        .unwrap();
+    let errors = [
+        client.interns().daemon("intern-1").await.err().unwrap(),
+        client
+            .interns()
+            .daemon_access("intern-1")
+            .await
+            .err()
+            .unwrap(),
+        client.interns().daemon("intern-1").await.err().unwrap(),
+        client
+            .management()
+            .exchange_oauth_token(
+                &OAuthTokenExchangeRequest::builder()
+                    .federation_policy_id("policy-1")
+                    .subject_token("test-jwt")
+                    .build()
+                    .unwrap(),
+            )
+            .await
+            .unwrap_err(),
+        client
+            .management()
+            .create_api_key("test", None)
+            .await
+            .unwrap_err(),
+    ];
+    for (error, status) in errors.into_iter().zip([400, 404, 502, 401, 500]) {
+        assert!(
+            matches!(error, openrouter_rs::error::OpenRouterError::Api(ref context) if context.status.as_u16() == status && context.message == "Invalid credential error response (body omitted)")
+        );
+        assert!(!error.to_string().contains("secret"));
+        assert!(!format!("{error:?}").contains("secret"));
+    }
+    let error = client.interns().daemon("intern-1").await.err().unwrap();
+    assert!(
+        matches!(error, openrouter_rs::error::OpenRouterError::Api(ref context) if context.status.as_u16() == 429 && context.message == "Wait" && context.is_retryable() && context.metadata.as_ref().unwrap()["reason"] == "rate_limited")
+    );
+    for _ in 0..6 {
         rx.recv().unwrap();
     }
     server.join().unwrap();

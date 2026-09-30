@@ -69,3 +69,25 @@ pub(crate) async fn error_from_response(response: Response) -> OpenRouterError {
 pub(crate) async fn handle_error(response: Response) -> Result<(), OpenRouterError> {
     Err(error_from_response(response).await)
 }
+
+/// Credential-producing endpoints must never fall back to echoing an error body.
+pub(crate) async fn parse_credential_response<T: DeserializeOwned>(
+    response: Response,
+    context: &str,
+) -> Result<T, OpenRouterError> {
+    if response.status().is_success() {
+        return parse_json_response(response, context).await;
+    }
+    let status = response.status();
+    let request_id = response_request_id(&response);
+    let body = response.text().await?;
+    Err(
+        try_parse_api_error(status, request_id.clone(), &body).unwrap_or_else(|| {
+            parse_api_error(
+                status,
+                request_id,
+                "Invalid credential error response (body omitted)",
+            )
+        }),
+    )
+}

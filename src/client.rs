@@ -3806,6 +3806,11 @@ impl<'a> ManagementClient<'a> {
             self.client.http_client(),
             &self.client.base_url,
             self.management_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
             pagination,
         )
         .await
@@ -3819,6 +3824,11 @@ impl<'a> ManagementClient<'a> {
             self.client.http_client(),
             &self.client.base_url,
             self.management_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
             params,
         )
         .await

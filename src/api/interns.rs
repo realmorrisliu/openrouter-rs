@@ -634,7 +634,7 @@ pub(crate) async fn daemon_with_client(
     path: &str,
 ) -> Result<InternDaemonAccess, OpenRouterError> {
     let url = format!("{base_url}/interns/{}/{path}", encode(intern_id));
-    parse_result(
+    transport_response::parse_credential_response(
         transport_request::with_client_request_headers(
             transport_request::get(http_client, &url),
             api_key,

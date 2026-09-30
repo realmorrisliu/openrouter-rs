@@ -17,7 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Removed response payloads and value-bearing serde messages from shared JSON deserialization errors, protecting malformed daemon, OAuth and API-key responses while retaining context, status and error location.
-- Forwarded configured attribution headers for all Batch calls and new Intern invoke/daemon calls.
+- Redacted malformed non-success bodies on daemon, OAuth, PKCE and API-key creation responses through a shared credential parser, preserving valid API error envelopes and status codes.
+- Forwarded configured attribution headers for all Batch calls, new Intern invoke/daemon calls, and both filtered and pagination-only SCIM group calls.
 - Rejected explicitly empty audio URLs in both audio input builders, including empty URLs supplied alongside base64 data.
 
 ## [0.16.0] - 2026-09-23
