@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-09-30
+
 ### Added
 - Added asynchronous batch submission, listing, retrieval and terminal deletion through `client.batches()`, with typed envelopes and flexible per-endpoint result bodies/usage, plus a runnable batch example.
 - Added `client.interns().invoke(...)`, `daemon(...)`, and the upstream `daemon_access(...)` alias, marked deprecated on both the domain client and standalone function; use `daemon(...)`.
