@@ -685,3 +685,324 @@ async fn intern_chat_handles_streaming_and_steered_responses() {
     );
     server.join().expect("finish steered server");
 }
+
+#[tokio::test]
+async fn issue_254_batches_cover_paths_repeated_status_and_errors() {
+    use openrouter_rs::api::batches::{BatchRequest, CreateBatchRequest, ListBatchesParams};
+    let batch = json!({"id":"batch-1","object":"batch","endpoint":"/v1/responses","model":"test/model","completion_window":"24h","status":"completed","created_at":1,"finalized_at":2,"request_counts":{"total":1,"completed":1,"failed":0},"usage":{"prompt_tokens":1,"completion_tokens":2,"total_tokens":3,"prompt_tokens_details":{"cached_tokens":1}},"error":null,"results":[{"id":"result-1","custom_id":"req-1","response":{"status_code":200,"request_id":"upstream-1","body":{"output":[{"type":"future_output"}]}},"error":null}]});
+    let mut listed = batch.clone();
+    listed["results"] = json!(null);
+    let (base_url, rx, server) = spawn_server_sequence(vec![
+        (202, batch.to_string()),
+        (200, json!({"object":"list","data":[listed],"first_id":"batch-1","last_id":"batch-1","has_more":false}).to_string()),
+        (200, batch.to_string()),
+        (200, json!({"id":"batch-1","object":"batch","deletion":{"openrouter":"deleted","upstream":{"provider":"future-provider","status":"unsupported"}}}).to_string()),
+        (402, json!({"error":{"code":402,"message":"Add credits to unlock results"},"results":null}).to_string()),
+    ]);
+    let client = client(base_url);
+    let body = json!({"input":"hello"}).as_object().unwrap().clone();
+    let request = CreateBatchRequest::builder()
+        .endpoint("/v1/responses")
+        .model("test/model")
+        .requests(vec![BatchRequest::new("req-1", body)])
+        .build()
+        .unwrap();
+    let created = client.batches().create(&request).await.unwrap();
+    assert_eq!(
+        created.usage.unwrap()["prompt_tokens_details"]["cached_tokens"],
+        1
+    );
+    let page = client
+        .batches()
+        .list(
+            &ListBatchesParams::builder()
+                .limit(5)
+                .after("batch-0")
+                .status(["completed", "failed"])
+                .created_after("2026-09-28")
+                .created_before("1234567890")
+                .build()
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert!(page.data[0].results.is_none());
+    let fetched = client.batches().get("batch/1").await.unwrap();
+    let result = fetched.results.unwrap().remove(0).response.unwrap();
+    assert_eq!(result.request_id.as_deref(), Some("upstream-1"));
+    assert_eq!(result.body["output"][0]["type"], "future_output");
+    let deleted = client.batches().delete("batch/1").await.unwrap();
+    assert_eq!(deleted.deletion.upstream.unwrap().status, "unsupported");
+    assert!(
+        matches!(client.batches().get("batch-1").await, Err(openrouter_rs::error::OpenRouterError::Api(error)) if error.status.as_u16() == 402)
+    );
+    let requests: Vec<_> = (0..5).map(|_| rx.recv().unwrap()).collect();
+    assert_eq!(requests[0].line, "POST /api/v1/batches HTTP/1.1");
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&requests[0].body).unwrap(),
+        json!({"endpoint":"/v1/responses","model":"test/model","requests":[{"custom_id":"req-1","body":{"input":"hello"}}]})
+    );
+    assert_eq!(
+        requests[1].line,
+        "GET /api/v1/batches?limit=5&after=batch-0&created_after=2026-09-28&created_before=1234567890&status=completed&status=failed HTTP/1.1"
+    );
+    assert_eq!(requests[2].line, "GET /api/v1/batches/batch%2F1 HTTP/1.1");
+    assert_eq!(
+        requests[3].line,
+        "DELETE /api/v1/batches/batch%2F1 HTTP/1.1"
+    );
+    for request in requests {
+        assert!(
+            request
+                .headers
+                .to_ascii_lowercase()
+                .contains("authorization: bearer test-key")
+        );
+    }
+    server.join().unwrap();
+    let management_only = OpenRouterClient::builder()
+        .management_key("management-key")
+        .build()
+        .unwrap();
+    assert!(matches!(
+        management_only.batches().get("batch-1").await,
+        Err(openrouter_rs::error::OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(
+        CreateBatchRequest::builder()
+            .endpoint("/v1/responses")
+            .model("test/model")
+            .build()
+            .is_err()
+    );
+}
+
+#[tokio::test]
+async fn issue_254_intern_invoke_daemon_and_scim_filters() {
+    use openrouter_rs::api::{interns::InternInvokeRequest, scim::ListScimGroupsParams};
+    let (base_url, rx, server) = spawn_server_sequence(vec![
+        (
+            202,
+            json!({"session_id":"session-1","status":"started"}).to_string(),
+        ),
+        (
+            202,
+            json!({"session_id":"session-1","status":"steered"}).to_string(),
+        ),
+        (
+            200,
+            json!({"origin":"https://intern.example.com","token":"secret"}).to_string(),
+        ),
+        (
+            200,
+            json!({"origin":"https://intern.example.com","token":"secret"}).to_string(),
+        ),
+        (200, json!({"data":[],"total_count":0}).to_string()),
+    ]);
+    let client = OpenRouterClient::builder()
+        .base_url(base_url)
+        .api_key("test-key")
+        .management_key("management-key")
+        .build()
+        .unwrap();
+    let request = InternInvokeRequest::builder()
+        .input("Investigate ticket")
+        .build()
+        .unwrap();
+    assert_eq!(
+        client
+            .interns()
+            .invoke("intern/1", &request)
+            .await
+            .unwrap()
+            .status,
+        "started"
+    );
+    let request = InternInvokeRequest::builder()
+        .input("Continue")
+        .session_id("session-1")
+        .build()
+        .unwrap();
+    assert_eq!(
+        client
+            .interns()
+            .invoke("intern/1", &request)
+            .await
+            .unwrap()
+            .status,
+        "steered"
+    );
+    assert_eq!(
+        client.interns().daemon("intern/1").await.unwrap().token,
+        "secret"
+    );
+    assert_eq!(
+        client
+            .interns()
+            .daemon_access("intern/1")
+            .await
+            .unwrap()
+            .origin,
+        "https://intern.example.com"
+    );
+    client
+        .management()
+        .list_scim_groups_with_params(
+            &ListScimGroupsParams::builder()
+                .offset(2)
+                .limit(10)
+                .display_name("R&D")
+                .external_id("external/1")
+                .build()
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let requests: Vec<_> = (0..5).map(|_| rx.recv().unwrap()).collect();
+    assert_eq!(
+        requests[0].line,
+        "POST /api/v1/interns/intern%2F1/invoke HTTP/1.1"
+    );
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&requests[0].body).unwrap(),
+        json!({"input":"Investigate ticket"})
+    );
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&requests[1].body).unwrap(),
+        json!({"input":"Continue","session_id":"session-1"})
+    );
+    assert_eq!(
+        requests[2].line,
+        "GET /api/v1/interns/intern%2F1/daemon HTTP/1.1"
+    );
+    assert_eq!(
+        requests[3].line,
+        "GET /api/v1/interns/intern%2F1/daemon-access HTTP/1.1"
+    );
+    assert_eq!(
+        requests[4].line,
+        "GET /api/v1/scim/groups?offset=2&limit=10&display_name=R%26D&external_id=external%2F1 HTTP/1.1"
+    );
+    for request in &requests[..4] {
+        assert!(
+            request
+                .headers
+                .to_ascii_lowercase()
+                .contains("authorization: bearer test-key")
+        );
+    }
+    assert!(
+        requests[4]
+            .headers
+            .to_ascii_lowercase()
+            .contains("authorization: bearer management-key")
+    );
+    server.join().unwrap();
+}
+
+#[test]
+fn issue_254_audio_url_image_and_transcription_fields() {
+    use openrouter_rs::api::audio::SpeechInputReference;
+    let request = SpeechRequest::builder()
+        .model("test/speech")
+        .input("hello")
+        .input_references([
+            SpeechInputReference::audio_url("https://example.com/audio.wav"),
+            SpeechInputReference::image("https://example.com/image.png"),
+        ])
+        .build()
+        .unwrap();
+    let body = serde_json::to_value(request).unwrap();
+    assert_eq!(
+        body["input_references"],
+        json!([
+            {"type":"input_audio","input_audio":{"url":"https://example.com/audio.wav"}},
+            {"type":"image_url","image_url":{"url":"https://example.com/image.png"}}
+        ])
+    );
+    let request = TranscriptionRequest::builder()
+        .model("test/stt")
+        .input_audio(TranscriptionInputAudio::from_url(
+            "https://example.com/audio.wav",
+        ))
+        .diarize(true)
+        .keyterms(vec!["OpenRouter".to_string()])
+        .build()
+        .unwrap();
+    assert_eq!(
+        serde_json::to_value(request).unwrap(),
+        json!({"model":"test/stt","input_audio":{"url":"https://example.com/audio.wav"},"diarize":true,"keyterms":["OpenRouter"]})
+    );
+    let response: TranscriptionResponse = serde_json::from_value(json!({"text":"John","language_confidence":0.98,"entities":[{"text":"John","type":"name","start_char":0,"end_char":4}],"words":[{"word":"John","start":0.0,"end":1.0,"speaker_label":"speaker_0","channel":0,"type":"word"}]})).unwrap();
+    assert_eq!(response.language_confidence, Some(0.98));
+    assert_eq!(response.entities.unwrap()[0].entity_type, "name");
+    let words = response.words.unwrap();
+    assert_eq!(words[0].speaker_label.as_deref(), Some("speaker_0"));
+    assert_eq!(words[0].channel, Some(0));
+    assert_eq!(words[0].word_type.as_deref(), Some("word"));
+    assert!(TranscriptionInputAudio::builder().build().is_err());
+    assert!(
+        TranscriptionInputAudio::builder()
+            .data("base64")
+            .build()
+            .is_err()
+    );
+    assert!(
+        TranscriptionInputAudio::builder()
+            .data("base64")
+            .format("wav")
+            .url("https://example.com/audio.wav")
+            .build()
+            .is_err()
+    );
+    let url = TranscriptionInputAudio::builder()
+        .url("https://example.com/audio.wav")
+        .build()
+        .unwrap();
+    assert_eq!(
+        serde_json::to_value(url).unwrap(),
+        json!({"url":"https://example.com/audio.wav"})
+    );
+    assert!(
+        openrouter_rs::api::audio::SpeechInputAudio::builder()
+            .build()
+            .is_err()
+    );
+    let audio = TranscriptionInputAudio::new("base64", "wav");
+    assert_eq!(
+        serde_json::to_value(audio).unwrap(),
+        json!({"data":"base64","format":"wav"})
+    );
+}
+
+#[test]
+fn issue_254_shared_provider_options_and_endpoint_capabilities() {
+    use openrouter_rs::{api::models::Endpoint, types::ProviderPreferences};
+    let mut provider = ProviderPreferences::default();
+    provider.options = Some([("elevenlabs".into(), json!({"style":0.5}))].into());
+    let body = openrouter_rs::api::chat::ChatCompletionRequest::builder()
+        .model("test/model")
+        .messages(vec![openrouter_rs::api::chat::Message::new(
+            openrouter_rs::types::Role::User,
+            "hello",
+        )])
+        .provider(provider.clone())
+        .build()
+        .unwrap();
+    assert_eq!(
+        serde_json::to_value(body).unwrap()["provider"]["options"],
+        json!({"elevenlabs":{"style":0.5}})
+    );
+    assert_eq!(
+        serde_json::from_value::<ProviderPreferences>(serde_json::to_value(provider).unwrap())
+            .unwrap()
+            .options
+            .unwrap()["elevenlabs"]["style"],
+        0.5
+    );
+    let endpoint: Endpoint = serde_json::from_value(json!({"name":"test","context_length":100,"pricing":{"prompt":"0","completion":"0"},"provider_name":"ElevenLabs","supported_parameters":[],"supports_image_reference":true,"supports_multiple_audio_references":false})).unwrap();
+    assert_eq!(endpoint.supports_image_reference, Some(true));
+    assert_eq!(endpoint.supports_multiple_audio_references, Some(false));
+    let minimal = serde_json::to_value(ProviderPreferences::default()).unwrap();
+    assert!(minimal.get("options").is_none());
+}

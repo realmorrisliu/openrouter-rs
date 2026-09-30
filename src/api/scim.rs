@@ -27,6 +27,31 @@ struct DeleteScimGroupMappingResponse {
     deleted: bool,
 }
 
+/// Pagination and exact-name filters for SCIM group discovery.
+#[derive(Serialize, Debug, Clone, Default, Builder)]
+#[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
+pub struct ListScimGroupsParams {
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub offset: Option<u32>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u32>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub display_name: Option<String>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub external_id: Option<String>,
+}
+
+impl ListScimGroupsParams {
+    pub fn builder() -> ListScimGroupsParamsBuilder {
+        ListScimGroupsParamsBuilder::default()
+    }
+}
+
 /// One SCIM group synchronized into the organization.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
@@ -118,19 +143,41 @@ pub(crate) async fn list_scim_groups_with_client(
     management_key: &str,
     pagination: Option<PaginationOptions>,
 ) -> Result<ListScimGroupsResponse, OpenRouterError> {
-    let query = PaginationQuery {
+    let params = ListScimGroupsParams {
         offset: pagination.and_then(|value| value.offset),
         limit: pagination.and_then(|value| value.limit),
+        ..Default::default()
     };
-    let request = transport_request::with_bearer_auth(
+    list_scim_groups_with_params_with_client(http_client, base_url, management_key, &params).await
+}
+
+pub async fn list_scim_groups_with_params(
+    base_url: &str,
+    management_key: &str,
+    params: &ListScimGroupsParams,
+) -> Result<ListScimGroupsResponse, OpenRouterError> {
+    list_scim_groups_with_params_with_client(
+        &crate::transport::new_client()?,
+        base_url,
+        management_key,
+        params,
+    )
+    .await
+}
+
+pub(crate) async fn list_scim_groups_with_params_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    management_key: &str,
+    params: &ListScimGroupsParams,
+) -> Result<ListScimGroupsResponse, OpenRouterError> {
+    let response = transport_request::with_bearer_auth(
         transport_request::get(http_client, &format!("{base_url}/scim/groups")),
         management_key,
-    );
-    let response = if query.offset.is_none() && query.limit.is_none() {
-        request.send().await?
-    } else {
-        request.query(&query).send().await?
-    };
+    )
+    .query(params)
+    .send()
+    .await?;
 
     if response.status().is_success() {
         transport_response::parse_json_response(response, "SCIM group list").await

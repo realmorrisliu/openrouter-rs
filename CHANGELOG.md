@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added asynchronous batch submission, listing, retrieval and terminal deletion through `client.batches()`, with typed envelopes and flexible per-endpoint result bodies/usage, plus a runnable batch example.
+- Added `client.interns().invoke(...)`, `daemon(...)`, and the deprecated upstream `daemon_access(...)` alias.
+- Added shared `ProviderPreferences::options`, speech URL/image references, endpoint image/multiple-audio reference capabilities, SCIM display-name/external-ID filters, and transcription URL input, diarization, keyterms, language confidence, entities, speaker labels/channels and word kinds.
+
+### Changed
+- Reviewed issue #254 against the 2026-09-30 OpenAPI snapshot: `129 / 142` operations implemented. Thirteen later additions (Private Endpoints, Tools discovery and effective intern vault secrets) are explicitly deferred in the endpoint matrix. Existing base64 audio constructors, SCIM pagination methods and omitted-field defaults remain compatible.
+
 ## [0.16.0] - 2026-09-23
 
 ### Added

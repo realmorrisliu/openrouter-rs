@@ -123,6 +123,9 @@ pub struct MaxPrice {
 #[non_exhaustive]
 #[serde(default, deny_unknown_fields)]
 pub struct ProviderPreferences {
+    /// Provider-specific options keyed by provider slug.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub options: Option<std::collections::HashMap<String, serde_json::Value>>,
     /// Whether to allow backup providers to serve requests
     /// - true: (default) when the primary provider is unavailable, use the next best provider
     /// - false: use only the primary/custom provider, and return error if unavailable

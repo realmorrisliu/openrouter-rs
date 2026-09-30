@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-09-23T08:10:52+00:00",
+  "captured_at": "2026-09-30T08:56:14+00:00",
   "info": {
     "contact": {
       "email": "support@openrouter.ai",
@@ -14,8 +14,19 @@
     "title": "OpenRouter API",
     "version": "1.0.0"
   },
-  "operation_count": 122,
+  "operation_count": 142,
   "operations": [
+    {
+      "deprecated": false,
+      "fingerprint": "17342cd8f265408a",
+      "id": "DELETE /batches/{path_param_0}",
+      "method": "DELETE",
+      "operation_id": "deleteBatch",
+      "path": "/batches/{path_param_0}",
+      "tags": [
+        "Batch"
+      ]
+    },
     {
       "deprecated": false,
       "fingerprint": "f3676c54bb167771",
@@ -80,6 +91,17 @@
       "path": "/observability/destinations/{path_param_0}",
       "tags": [
         "Observability"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "992568afc140bcd6",
+      "id": "DELETE /private-endpoints/{path_param_0}",
+      "method": "DELETE",
+      "operation_id": "deletePrivateEndpoint",
+      "path": "/private-endpoints/{path_param_0}",
+      "tags": [
+        "Private Endpoints"
       ]
     },
     {
@@ -161,6 +183,28 @@
     },
     {
       "deprecated": false,
+      "fingerprint": "3c0f65f386b8f57d",
+      "id": "GET /batches",
+      "method": "GET",
+      "operation_id": "listBatches",
+      "path": "/batches",
+      "tags": [
+        "Batch"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "5195575c0a1f948a",
+      "id": "GET /batches/{path_param_0}",
+      "method": "GET",
+      "operation_id": "getBatches",
+      "path": "/batches/{path_param_0}",
+      "tags": [
+        "Batch"
+      ]
+    },
+    {
+      "deprecated": false,
       "fingerprint": "4061eb9e6665c626",
       "id": "GET /benchmarks",
       "method": "GET",
@@ -172,7 +216,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "a2d60e0886871a3a",
+      "fingerprint": "616b90bdb001ca32",
       "id": "GET /byok",
       "method": "GET",
       "operation_id": "listBYOKKeys",
@@ -183,7 +227,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "1a86a70f06f753bf",
+      "fingerprint": "19ef1c38a56f70a3",
       "id": "GET /byok/{path_param_0}",
       "method": "GET",
       "operation_id": "getBYOKKey",
@@ -293,7 +337,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "7f1b5d97713dc2a5",
+      "fingerprint": "a372adbd87e552f7",
       "id": "GET /endpoints/zdr",
       "method": "GET",
       "operation_id": "listEndpointsZdr",
@@ -337,7 +381,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "ba5a6d66d206fb27",
+      "fingerprint": "2caedff5e1f918b4",
       "id": "GET /generation",
       "method": "GET",
       "operation_id": "getGeneration",
@@ -469,6 +513,28 @@
     },
     {
       "deprecated": false,
+      "fingerprint": "f70bfbd24247d890",
+      "id": "GET /interns/{path_param_0}/daemon",
+      "method": "GET",
+      "operation_id": "getInternDaemon",
+      "path": "/interns/{path_param_0}/daemon",
+      "tags": [
+        "Interns"
+      ]
+    },
+    {
+      "deprecated": true,
+      "fingerprint": "ee38fb23ab4608e1",
+      "id": "GET /interns/{path_param_0}/daemon-access",
+      "method": "GET",
+      "operation_id": "getInternDaemonAccess",
+      "path": "/interns/{path_param_0}/daemon-access",
+      "tags": [
+        "Interns"
+      ]
+    },
+    {
+      "deprecated": false,
       "fingerprint": "b0339d0fafd5e6d4",
       "id": "GET /key",
       "method": "GET",
@@ -546,7 +612,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "599a493d139a2c78",
+      "fingerprint": "c0abfe5691d7b378",
       "id": "GET /models/{path_param_0}/{path_param_1}/endpoints",
       "method": "GET",
       "operation_id": "listEndpoints",
@@ -645,6 +711,28 @@
     },
     {
       "deprecated": false,
+      "fingerprint": "4b536ccc0d960002",
+      "id": "GET /private-endpoints",
+      "method": "GET",
+      "operation_id": "listPrivateEndpoints",
+      "path": "/private-endpoints",
+      "tags": [
+        "Private Endpoints"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "7b25fac07758e754",
+      "id": "GET /private-endpoints/{path_param_0}",
+      "method": "GET",
+      "operation_id": "getPrivateEndpoint",
+      "path": "/private-endpoints/{path_param_0}",
+      "tags": [
+        "Private Endpoints"
+      ]
+    },
+    {
+      "deprecated": false,
       "fingerprint": "f994291feb1ae886",
       "id": "GET /providers",
       "method": "GET",
@@ -678,7 +766,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b849532aa7c047f9",
+      "fingerprint": "a315d84e78848e3c",
       "id": "GET /scim/groups",
       "method": "GET",
       "operation_id": "listScimGroups",
@@ -696,6 +784,39 @@
       "path": "/scim/sync-jobs/{path_param_0}",
       "tags": [
         "SCIM"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "a22b5f29dd8d6ff3",
+      "id": "GET /tools",
+      "method": "GET",
+      "operation_id": "listTools",
+      "path": "/tools",
+      "tags": [
+        "Tools"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "38f3530a2892aee5",
+      "id": "GET /tools/{path_param_0}",
+      "method": "GET",
+      "operation_id": "getTool",
+      "path": "/tools/{path_param_0}",
+      "tags": [
+        "Tools"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "08185115b5eeb4ce",
+      "id": "GET /vault/interns/{path_param_0}/effective-secrets",
+      "method": "GET",
+      "operation_id": "listInternEffectiveVaultSecrets",
+      "path": "/vault/interns/{path_param_0}/effective-secrets",
+      "tags": [
+        "Vault"
       ]
     },
     {
@@ -810,7 +931,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "a74f5b1ad03b0308",
+      "fingerprint": "1cfe5011c6e2b74d",
       "id": "PATCH /byok/{path_param_0}",
       "method": "PATCH",
       "operation_id": "updateBYOKKey",
@@ -865,6 +986,17 @@
     },
     {
       "deprecated": false,
+      "fingerprint": "b189d6abce2dd977",
+      "id": "PATCH /private-endpoints/{path_param_0}",
+      "method": "PATCH",
+      "operation_id": "updatePrivateEndpoint",
+      "path": "/private-endpoints/{path_param_0}",
+      "tags": [
+        "Private Endpoints"
+      ]
+    },
+    {
+      "deprecated": false,
       "fingerprint": "6f1485d2f4dfc7c8",
       "id": "PATCH /scim/group-mappings/{path_param_0}",
       "method": "PATCH",
@@ -898,7 +1030,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "607b42e6254b2f33",
+      "fingerprint": "ab0f1280965de3d6",
       "id": "POST /api/alpha/decisions",
       "method": "POST",
       "operation_id": "createApiAlphaDecisions",
@@ -909,7 +1041,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "0611c599428b32d5",
+      "fingerprint": "fbeaa1a1fb1ab06c",
       "id": "POST /audio/speech",
       "method": "POST",
       "operation_id": "createAudioSpeech",
@@ -920,7 +1052,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "06ae28c29aa17eea",
+      "fingerprint": "58125c12dedb9ad6",
       "id": "POST /audio/transcriptions",
       "method": "POST",
       "operation_id": "createAudioTranscriptions",
@@ -953,7 +1085,18 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "d6016174b6ec9012",
+      "fingerprint": "654121d8cc68fc03",
+      "id": "POST /batches",
+      "method": "POST",
+      "operation_id": "createBatches",
+      "path": "/batches",
+      "tags": [
+        "Batch"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "e2b58e19ceea5b73",
       "id": "POST /byok",
       "method": "POST",
       "operation_id": "createBYOKKey",
@@ -964,7 +1107,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "1c77545896a37823",
+      "fingerprint": "bfc049ebf7b0c7b0",
       "id": "POST /chat/completions",
       "method": "POST",
       "operation_id": "sendChatCompletionRequest",
@@ -997,7 +1140,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "d65d9aa104ed917f",
+      "fingerprint": "a9b67f04065588e4",
       "id": "POST /embeddings",
       "method": "POST",
       "operation_id": "createEmbeddings",
@@ -1085,7 +1228,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "60359e4f58aee50a",
+      "fingerprint": "b4161784754cd988",
       "id": "POST /images",
       "method": "POST",
       "operation_id": "createImages",
@@ -1112,6 +1255,17 @@
       "method": "POST",
       "operation_id": "createInternChatCompletion",
       "path": "/interns/{path_param_0}/chat/completions",
+      "tags": [
+        "Interns"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "21ee2da247cc3ce1",
+      "id": "POST /interns/{path_param_0}/invoke",
+      "method": "POST",
+      "operation_id": "invokeIntern",
+      "path": "/interns/{path_param_0}/invoke",
       "tags": [
         "Interns"
       ]
@@ -1151,7 +1305,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "eac3b957020eb360",
+      "fingerprint": "5fa8a2ed25d96125",
       "id": "POST /messages",
       "method": "POST",
       "operation_id": "createMessages",
@@ -1184,7 +1338,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "580b0e91b43e9163",
+      "fingerprint": "42e019bc2f7172d9",
       "id": "POST /presets/{path_param_0}/chat/completions",
       "method": "POST",
       "operation_id": "createPresetsChatCompletions",
@@ -1195,7 +1349,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "baeebb4be47accd6",
+      "fingerprint": "c072f2f31b996bd6",
       "id": "POST /presets/{path_param_0}/messages",
       "method": "POST",
       "operation_id": "createPresetsMessages",
@@ -1206,7 +1360,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "52a63541ee84d261",
+      "fingerprint": "7c76a6eb4d7c1617",
       "id": "POST /presets/{path_param_0}/responses",
       "method": "POST",
       "operation_id": "createPresetsResponses",
@@ -1217,7 +1371,62 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "74e481658511d4f9",
+      "fingerprint": "3c2104e544f82df4",
+      "id": "POST /private-endpoints",
+      "method": "POST",
+      "operation_id": "createPrivateEndpoint",
+      "path": "/private-endpoints",
+      "tags": [
+        "Private Endpoints"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "9a76ad37f77b02f5",
+      "id": "POST /private-endpoints/{path_param_0}/activate",
+      "method": "POST",
+      "operation_id": "activatePrivateEndpoint",
+      "path": "/private-endpoints/{path_param_0}/activate",
+      "tags": [
+        "Private Endpoints"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "f158c449b67bf6f5",
+      "id": "POST /private-endpoints/{path_param_0}/disable",
+      "method": "POST",
+      "operation_id": "disablePrivateEndpoint",
+      "path": "/private-endpoints/{path_param_0}/disable",
+      "tags": [
+        "Private Endpoints"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "7cde147993c873da",
+      "id": "POST /private-endpoints/{path_param_0}/enable",
+      "method": "POST",
+      "operation_id": "enablePrivateEndpoint",
+      "path": "/private-endpoints/{path_param_0}/enable",
+      "tags": [
+        "Private Endpoints"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "4357cb5fe705c5f9",
+      "id": "POST /private-endpoints/{path_param_0}/validate",
+      "method": "POST",
+      "operation_id": "validatePrivateEndpoint",
+      "path": "/private-endpoints/{path_param_0}/validate",
+      "tags": [
+        "Private Endpoints"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "2c59617edfbd38ee",
       "id": "POST /rerank",
       "method": "POST",
       "operation_id": "createRerank",
@@ -1228,7 +1437,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "a90ad48aa028d20e",
+      "fingerprint": "2a57a1d433b91c60",
       "id": "POST /responses",
       "method": "POST",
       "operation_id": "createResponses",
@@ -1262,7 +1471,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "05238f8108f44f7b",
+      "fingerprint": "5e4d12c2c77bc6d9",
       "id": "POST /systemone",
       "method": "POST",
       "operation_id": "createSystemone",
@@ -1284,7 +1493,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "265706dae62d9551",
+      "fingerprint": "b27a64b8a9b7c56c",
       "id": "POST /videos",
       "method": "POST",
       "operation_id": "createVideos",
@@ -1324,6 +1533,17 @@
       "path": "/workspaces/{path_param_0}/members/remove",
       "tags": [
         "Workspaces"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "6578d165ae00af3b",
+      "id": "PUT /private-endpoints/{path_param_0}/pricing",
+      "method": "PUT",
+      "operation_id": "updatePrivateEndpointPricing",
+      "path": "/private-endpoints/{path_param_0}/pricing",
+      "tags": [
+        "Private Endpoints"
       ]
     },
     {
