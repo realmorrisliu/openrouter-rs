@@ -14,6 +14,7 @@
 //! - `client.videos()` -> [`videos`]
 //! - `client.models()` -> [`models`], [`embeddings`], [`discovery`]
 //! - `client.management()` -> [`api_keys`], [`auth`], [`byok`], [`credits`], [`generation`], [`guardrails`], [`observability`], [`organization`], [`presets`], [`scim`], [`workspaces`]
+//! - `client.batches()` -> [`batches`]
 //! - `client.interns()` -> [`interns`]
 //! - `client.vault()` -> [`vault`]
 //! - `client.decisions()` -> [`decisions`]
@@ -28,7 +29,8 @@
 //! - audio speech generation and transcription
 //! - image generation and streaming
 //! - video generation and polling
-//! - intern lifecycle and streaming chat
+//! - asynchronous batches
+//! - intern lifecycle, invocation, daemon access, and streaming chat
 //! - workspace and intern vault secret management
 //! - Decisions and System One inference
 //! - model discovery, providers, user model filters, model counts, rankings, and ZDR endpoints
@@ -129,6 +131,7 @@ pub mod analytics;
 pub mod api_keys;
 pub mod audio;
 pub mod auth;
+pub mod batches;
 pub mod byok;
 pub mod chat;
 pub mod credits;

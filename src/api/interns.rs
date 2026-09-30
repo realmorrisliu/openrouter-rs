@@ -516,3 +516,136 @@ async fn parse_result<T: for<'de> Deserialize<'de>>(
         unreachable!()
     }
 }
+
+#[derive(Serialize, Debug, Clone, Builder)]
+#[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
+pub struct InternInvokeRequest {
+    #[builder(setter(into))]
+    pub input: String,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
+}
+
+impl InternInvokeRequest {
+    pub fn builder() -> InternInvokeRequestBuilder {
+        InternInvokeRequestBuilder::default()
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct InternInvokeResponse {
+    pub session_id: String,
+    pub status: String,
+}
+
+/// Treat the daemon token as a secret. It is not included in Debug output.
+#[derive(Serialize, Deserialize, Clone)]
+#[non_exhaustive]
+pub struct InternDaemonAccess {
+    pub origin: String,
+    pub token: String,
+}
+
+pub async fn invoke(
+    base_url: &str,
+    api_key: &str,
+    intern_id: &str,
+    request: &InternInvokeRequest,
+) -> Result<InternInvokeResponse, OpenRouterError> {
+    invoke_with_client(
+        &crate::transport::new_client()?,
+        base_url,
+        api_key,
+        (&None, &None, &None),
+        intern_id,
+        request,
+    )
+    .await
+}
+
+pub(crate) async fn invoke_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
+    intern_id: &str,
+    request: &InternInvokeRequest,
+) -> Result<InternInvokeResponse, OpenRouterError> {
+    let url = format!("{base_url}/interns/{}/invoke", encode(intern_id));
+    parse_result(
+        transport_request::with_client_request_headers(
+            transport_request::post(http_client, &url),
+            api_key,
+            metadata.0,
+            metadata.1,
+            metadata.2,
+        )?
+        .json(request)
+        .send()
+        .await?,
+        "invoke intern",
+    )
+    .await
+}
+
+/// Get daemon origin and bearer token.
+pub async fn daemon(
+    base_url: &str,
+    api_key: &str,
+    intern_id: &str,
+) -> Result<InternDaemonAccess, OpenRouterError> {
+    daemon_with_client(
+        &crate::transport::new_client()?,
+        base_url,
+        api_key,
+        (&None, &None, &None),
+        intern_id,
+        "daemon",
+    )
+    .await
+}
+
+/// Get daemon origin and bearer token using the deprecated upstream alias.
+#[deprecated(note = "use daemon")]
+pub async fn daemon_access(
+    base_url: &str,
+    api_key: &str,
+    intern_id: &str,
+) -> Result<InternDaemonAccess, OpenRouterError> {
+    daemon_with_client(
+        &crate::transport::new_client()?,
+        base_url,
+        api_key,
+        (&None, &None, &None),
+        intern_id,
+        "daemon-access",
+    )
+    .await
+}
+
+pub(crate) async fn daemon_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
+    intern_id: &str,
+    path: &str,
+) -> Result<InternDaemonAccess, OpenRouterError> {
+    let url = format!("{base_url}/interns/{}/{path}", encode(intern_id));
+    transport_response::parse_credential_response(
+        transport_request::with_client_request_headers(
+            transport_request::get(http_client, &url),
+            api_key,
+            metadata.0,
+            metadata.1,
+            metadata.2,
+        )?
+        .send()
+        .await?,
+        "intern daemon access",
+    )
+    .await
+}

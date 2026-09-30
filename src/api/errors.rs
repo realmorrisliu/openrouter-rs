@@ -141,17 +141,26 @@ pub fn parse_api_error(
     request_id: Option<String>,
     text: &str,
 ) -> OpenRouterError {
-    match serde_json::from_str::<ApiErrorResponse>(text) {
-        Ok(payload) => build_api_error(status, request_id, payload),
-        Err(_) => OpenRouterError::Api(Box::new(ApiErrorContext {
+    try_parse_api_error(status, request_id.clone(), text).unwrap_or_else(|| {
+        OpenRouterError::Api(Box::new(ApiErrorContext {
             status,
             api_code: Some(i64::from(u16::from(status))),
             message: text.to_string(),
             request_id,
             metadata: None,
             kind: ApiErrorKind::Generic,
-        })),
-    }
+        }))
+    })
+}
+
+pub(crate) fn try_parse_api_error(
+    status: StatusCode,
+    request_id: Option<String>,
+    text: &str,
+) -> Option<OpenRouterError> {
+    serde_json::from_str::<ApiErrorResponse>(text)
+        .ok()
+        .map(|payload| build_api_error(status, request_id, payload))
 }
 
 pub fn unreadable_error_response(

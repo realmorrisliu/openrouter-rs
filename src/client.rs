@@ -5,9 +5,9 @@ use futures_util::stream::BoxStream;
 use crate::api::legacy::completion;
 use crate::{
     api::{
-        analytics, api_keys, audio, auth, byok, chat, credits, decisions, discovery, embeddings,
-        files, generation, guardrails, images, interns, messages, models, observability,
-        organization, presets, rerank, responses, scim, vault, videos, workspaces,
+        analytics, api_keys, audio, auth, batches, byok, chat, credits, decisions, discovery,
+        embeddings, files, generation, guardrails, images, interns, messages, models,
+        observability, organization, presets, rerank, responses, scim, vault, videos, workspaces,
     },
     error::OpenRouterError,
     strip_option_vec_setter,
@@ -172,7 +172,12 @@ impl OpenRouterClient {
         ManagementClient { client: self }
     }
 
-    /// Domain client for intern lifecycle and chat operations.
+    /// Domain client for asynchronous batch operations.
+    pub fn batches(&self) -> BatchesClient<'_> {
+        BatchesClient { client: self }
+    }
+
+    /// Domain client for intern lifecycle, invocation, daemon access, and chat.
     pub fn interns(&self) -> InternsClient<'_> {
         InternsClient { client: self }
     }
@@ -1622,6 +1627,7 @@ impl OpenRouterClient {
     /// # Ok(())
     /// # }
     /// ```
+    #[deprecated(note = "upstream deprecated Coinbase charges; use the web credits purchase flow")]
     pub async fn create_coinbase_charge(
         &self,
         request: &credits::CoinbaseChargeRequest,
@@ -2669,11 +2675,145 @@ impl OpenRouterClient {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub struct BatchesClient<'a> {
+    client: &'a OpenRouterClient,
+}
+
+impl BatchesClient<'_> {
+    pub async fn list(
+        &self,
+        params: &batches::ListBatchesParams,
+    ) -> Result<batches::ListBatchesResponse, OpenRouterError> {
+        batches::list_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
+            params,
+        )
+        .await
+    }
+    pub async fn create(
+        &self,
+        request: &batches::CreateBatchRequest,
+    ) -> Result<batches::Batch, OpenRouterError> {
+        batches::create_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
+            request,
+        )
+        .await
+    }
+    pub async fn get(&self, batch_id: &str) -> Result<batches::Batch, OpenRouterError> {
+        batches::get_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
+            batch_id,
+        )
+        .await
+    }
+    pub async fn delete(
+        &self,
+        batch_id: &str,
+    ) -> Result<batches::DeleteBatchResponse, OpenRouterError> {
+        batches::delete_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
+            batch_id,
+        )
+        .await
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct InternsClient<'a> {
     client: &'a OpenRouterClient,
 }
 
 impl InternsClient<'_> {
+    /// Start or steer a run; the returned session can be used to continue it.
+    pub async fn invoke(
+        &self,
+        intern_id: &str,
+        request: &interns::InternInvokeRequest,
+    ) -> Result<interns::InternInvokeResponse, OpenRouterError> {
+        interns::invoke_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
+            intern_id,
+            request,
+        )
+        .await
+    }
+
+    pub async fn daemon(
+        &self,
+        intern_id: &str,
+    ) -> Result<interns::InternDaemonAccess, OpenRouterError> {
+        interns::daemon_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
+            intern_id,
+            "daemon",
+        )
+        .await
+    }
+
+    /// Deprecated upstream alias; prefer `daemon`.
+    #[deprecated(note = "use daemon")]
+    pub async fn daemon_access(
+        &self,
+        intern_id: &str,
+    ) -> Result<interns::InternDaemonAccess, OpenRouterError> {
+        interns::daemon_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
+            intern_id,
+            "daemon-access",
+        )
+        .await
+    }
+
     pub async fn list(
         &self,
         params: &interns::ListInternsParams,
@@ -3668,7 +3808,30 @@ impl<'a> ManagementClient<'a> {
             self.client.http_client(),
             &self.client.base_url,
             self.management_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
             pagination,
+        )
+        .await
+    }
+
+    pub async fn list_scim_groups_with_params(
+        &self,
+        params: &scim::ListScimGroupsParams,
+    ) -> Result<scim::ListScimGroupsResponse, OpenRouterError> {
+        scim::list_scim_groups_with_params_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.management_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
+            params,
         )
         .await
     }
@@ -3905,6 +4068,8 @@ impl<'a> ManagementClient<'a> {
     }
 
     /// Create a Coinbase charge (`POST /credits/coinbase`).
+    #[deprecated(note = "upstream deprecated Coinbase charges; use the web credits purchase flow")]
+    #[allow(deprecated)]
     pub async fn create_coinbase_charge(
         &self,
         request: &credits::CoinbaseChargeRequest,

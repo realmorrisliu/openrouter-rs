@@ -1,18 +1,23 @@
 # Official Endpoint Test Matrix
 
-Snapshot date: 2026-09-23
+Snapshot date: 2026-09-30
 Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)  
 Tracked baseline: `specs/openrouter/openapi-baseline.json`  
 Weekly drift workflow: `.github/workflows/openapi-drift.yml`
 
 ## Coverage Summary
 
-- Official OpenAPI endpoints: `122` method+path entries.
-- SDK implementation coverage (`src/api` + domain client): `122 / 122` (`100.0%`).
-- Live integration coverage (`tests/integration`): `25 / 122` endpoints currently exercised.
+- Official OpenAPI endpoints: `142` method+path entries.
+- SDK implementation coverage (`src/api` + domain client): `129 / 142` (`90.8%`).
+- Live integration coverage (`tests/integration`): `25 / 142` endpoints currently exercised.
   - Covered live now: `GET /oauth/jwks`, `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `POST /rerank`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`, `GET /organization/members`
 
 Drift review note:
+
+- Issue #254 (2026-09-30): accepted all six reported additions (four Batch operations, Intern invoke and daemon-access), plus the newer canonical Intern daemon route. Local HTTP tests reuse `tests/unit/openapi_issue_251.rs` and cover path encoding, API-key/management-key auth, repeated Batch `status` parameters, 202 responses, deletion outcomes and payment-required errors. New routes have no live integration coverage.
+- Accepted stable schema fields: shared provider-specific options, speech image/URL references, endpoint image/multiple-audio capabilities, SCIM display-name/external-ID filters, and transcription URL input, diarization, keyterms, language confidence, entities, channel/speaker labels and word kinds. Existing base64 constructors and pagination methods retain their shapes. Audio builders reject missing/mixed sources and base64 transcription without a format; URL, format and provider constraints remain server-validated.
+- Reviewed remaining drift: dynamic provider/aspect-ratio taxonomies, plugins, Anthropic tool `strict`/thinking controls and Responses input/output/error/alignment remain covered by existing strings, extra maps and flexible values; ZDR native-tool metadata uses its existing `extra` map. Standard error statuses use the shared parser. CLI endpoint table output does not consume the new capability fields; JSON output can expose them. No CLI flags or migration steps change.
+- Thirteen operations added after the issue snapshot are reviewed but deferred: Private Endpoints management (10), Tools discovery (2), and effective intern vault secrets (1). These require separate public-surface/auth review; baseline refresh records the reviewed upstream schema and does not claim SDK support for deferred routes.
 
 - Issue #248 (2026-09-08): accepted all eight operations still present upstream. `POST /organization`, present in the September 7 issue report, was withdrawn before this review and is not implemented. Added container files, OAuth and SCIM sync jobs, and the stable request/response fields summarized in the changelog. OAuth uses public signing-key discovery and JWT-authenticated form token exchange; it does not require an existing API/management key.
 - Issue #251 (2026-09-23): added eight intern operations, seven vault operations, and Decisions/System One. Workspace-budget path parameters now compare by position, so upstream `{workspace_ref}` naming does not appear as a removed-and-added route. Updated current BYOK, workspace, audio, embedding, image, rerank, video, API-key, generation, and model-endpoint fields.
@@ -89,7 +94,7 @@ Legend:
 | `POST /scim/sync-jobs` | `client.management().create_scim_sync_job(...)` | Yes | Path | No | P1 |
 | `GET /scim/sync-jobs/{id}` | `client.management().get_scim_sync_job(...)` | Yes | Path | Conditional | P1 |
 | `GET /credits` | `client.get_credits()` / `client.management().get_credits()` | Yes | Path | No | P2 |
-| `POST /credits/coinbase` | `client.create_coinbase_charge(...)` / `client.management().create_coinbase_charge(...)` | Yes | Path | No | P2 |
+| `POST /credits/coinbase` | `client.create_coinbase_charge(...)` / `client.management().create_coinbase_charge(...)` (deprecated upstream; use web credits purchase) | Yes (compatibility) | Path | No | P2 |
 | `GET /datasets/app-rankings` | `client.models().get_app_rankings(...)` | Yes | Path | No | P2 |
 | `GET /datasets/rankings-daily` | `client.models().get_rankings_daily(...)` | Yes | Path | No | P2 |
 | `GET /datasets/session-cost` | `client.models().get_session_cost(...)` | Yes | Path | No | P2 |
@@ -120,6 +125,13 @@ Legend:
 | `POST /images` | `client.images().create(...)` / `client.images().stream(...)` | Yes | Path | No | P2 |
 | `GET /images/models` | `client.images().list_models()` | Yes | Path | No | P2 |
 | `GET /images/models/{author}/{slug}/endpoints` | `client.images().list_model_endpoints(...)` | Yes | Path | No | P2 |
+| `GET /batches` | `client.batches().list(...)` | Yes | Path | No | P1 |
+| `POST /batches` | `client.batches().create(...)` | Yes | Contract | No | P1 |
+| `GET /batches/{id}` | `client.batches().get(...)` | Yes | Contract | No | P1 |
+| `DELETE /batches/{id}` | `client.batches().delete(...)` | Yes | Contract | No | P1 |
+| `GET /interns/{internId}/daemon` | `client.interns().daemon(...)` | Yes | Path | No | P1 |
+| `GET /interns/{internId}/daemon-access` | `client.interns().daemon_access(...)` (deprecated upstream alias) | Yes | Path | No | P1 |
+| `POST /interns/{internId}/invoke` | `client.interns().invoke(...)` | Yes | Contract | No | P1 |
 | `DELETE /interns/{internId}` | `client.interns().delete(...)` | Yes | Path | No | P1 |
 | `GET /interns` | `client.interns().list(...)` | Yes | Path | No | P1 |
 | `GET /interns/{internId}` | `client.interns().get(...)` | Yes | Path | No | P1 |
@@ -188,6 +200,26 @@ Legend:
 | `GET /workspaces/{workspace_ref}/budgets/{interval}` | `client.management().get_workspace_budget(...)` | Yes | Path | No | P1 |
 | `PUT /workspaces/{workspace_ref}/budgets/{interval}` | `client.management().upsert_workspace_budget(...)` | Yes | Path | No | P1 |
 | `DELETE /workspaces/{workspace_ref}/budgets/{interval}` | `client.management().delete_workspace_budget(...)` | Yes | Path | No | P1 |
+
+## Reviewed, Deferred Operations
+
+These are in the tracked upstream baseline and are not implemented by the SDK.
+
+| Endpoint | Decision |
+| --- | --- |
+| `GET /private-endpoints` | Deferred beyond issue #254 |
+| `POST /private-endpoints` | Deferred beyond issue #254 |
+| `DELETE /private-endpoints/{id}` | Deferred beyond issue #254 |
+| `GET /private-endpoints/{id}` | Deferred beyond issue #254 |
+| `PATCH /private-endpoints/{id}` | Deferred beyond issue #254 |
+| `POST /private-endpoints/{id}/activate` | Deferred beyond issue #254 |
+| `POST /private-endpoints/{id}/disable` | Deferred beyond issue #254 |
+| `POST /private-endpoints/{id}/enable` | Deferred beyond issue #254 |
+| `PUT /private-endpoints/{id}/pricing` | Deferred beyond issue #254 |
+| `POST /private-endpoints/{id}/validate` | Deferred beyond issue #254 |
+| `GET /tools` | Deferred beyond issue #254 |
+| `GET /tools/{name}` | Deferred beyond issue #254 |
+| `GET /vault/interns/{internId}/effective-secrets` | Deferred beyond issue #254 |
 
 ## Supplemental (Legacy)
 

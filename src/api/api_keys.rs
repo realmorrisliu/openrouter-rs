@@ -420,14 +420,9 @@ pub(crate) async fn create_api_key_with_options_with_client(
     .send()
     .await?;
 
-    if response.status().is_success() {
-        let api_response: ApiResponse<_> =
-            transport_response::parse_json_response(response, "API key creation").await?;
-        Ok(api_response.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
+    let api_response: ApiResponse<_> =
+        transport_response::parse_credential_response(response, "API key creation").await?;
+    Ok(api_response.data)
 }
 
 /// Returns details about a specific API key. Requires a management API key.

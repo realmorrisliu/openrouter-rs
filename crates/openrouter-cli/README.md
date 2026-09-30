@@ -278,7 +278,7 @@ openrouter-cli \
 # Show purchased/used credits
 openrouter-cli --api-key "$OPENROUTER_API_KEY" credits show
 
-# Create a Coinbase charge
+# Legacy compatibility only: upstream removed Coinbase charges; use the web credits purchase flow
 openrouter-cli \
   --api-key "$OPENROUTER_API_KEY" \
   credits charge \

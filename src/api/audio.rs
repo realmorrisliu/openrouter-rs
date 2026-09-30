@@ -61,9 +61,8 @@ pub struct SpeechRequest {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub speed: Option<f64>,
-    /// Reference content for stateless voice cloning: one `input_audio` part
-    /// carrying the voice sample, optionally accompanied by one `text` part with
-    /// its transcript. Only routed to endpoints that support voice cloning.
+    /// Audio, transcript, or image references for voice cloning/design.
+    /// Provider reference limits and capabilities are validated by the server.
     #[builder(setter(custom), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub input_references: Option<Vec<SpeechInputReference>>,
@@ -91,11 +90,16 @@ impl SpeechRequestBuilder {
 /// Base64-encoded reference audio for stateless voice cloning.
 #[non_exhaustive]
 #[derive(Serialize, Deserialize, Debug, Clone, Builder)]
-#[builder(build_fn(error = "OpenRouterError"))]
+#[builder(build_fn(error = "OpenRouterError", validate = "Self::validate"))]
 pub struct SpeechInputAudio {
     /// Base64-encoded audio data (a `data:` URL is also accepted).
-    #[builder(setter(into))]
+    #[builder(setter(into), default)]
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub data: String,
+    /// Public audio URL. Supply exactly one of `data` or `url`.
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
     /// Audio format of the sample (e.g. `wav`, `mp3`), when known.
     #[builder(setter(into, strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -116,6 +120,9 @@ pub enum SpeechInputReference {
     /// Voice sample audio part.
     #[serde(rename = "input_audio")]
     InputAudio { input_audio: SpeechInputAudio },
+    /// Image reference for voice design.
+    #[serde(rename = "image_url")]
+    ImageUrl { image_url: SpeechInputImage },
     /// Transcript of the voice sample.
     #[serde(rename = "text")]
     Text { text: String },
@@ -127,8 +134,25 @@ impl SpeechInputReference {
         Self::InputAudio {
             input_audio: SpeechInputAudio {
                 data: data.into(),
+                url: None,
                 format: None,
             },
+        }
+    }
+
+    pub fn audio_url(url: impl Into<String>) -> Self {
+        Self::InputAudio {
+            input_audio: SpeechInputAudio {
+                data: String::new(),
+                url: Some(url.into()),
+                format: None,
+            },
+        }
+    }
+
+    pub fn image(url: impl Into<String>) -> Self {
+        Self::ImageUrl {
+            image_url: SpeechInputImage { url: url.into() },
         }
     }
 
@@ -138,18 +162,38 @@ impl SpeechInputReference {
     }
 }
 
-/// Base64-encoded audio input for `POST /audio/transcriptions`.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct SpeechInputImage {
+    pub url: String,
+}
+
+/// Base64 or URL audio input for `POST /audio/transcriptions`.
+/// For base64, `format` is required. For URL input it may be omitted.
 #[non_exhaustive]
 #[derive(Serialize, Deserialize, Debug, Clone, Builder)]
-#[builder(build_fn(error = "OpenRouterError"))]
+#[builder(build_fn(error = "OpenRouterError", validate = "Self::validate"))]
 pub struct TranscriptionInputAudio {
-    #[builder(setter(into))]
+    #[builder(setter(into), default)]
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub data: String,
-    #[builder(setter(into))]
+    /// Public audio URL. Supply exactly one of `data` or `url`.
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    #[builder(setter(into), default)]
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub format: String,
 }
 
 impl TranscriptionInputAudio {
+    pub fn from_url(url: impl Into<String>) -> Self {
+        Self {
+            data: String::new(),
+            url: Some(url.into()),
+            format: String::new(),
+        }
+    }
     pub fn builder() -> TranscriptionInputAudioBuilder {
         TranscriptionInputAudioBuilder::default()
     }
@@ -157,6 +201,7 @@ impl TranscriptionInputAudio {
     pub fn new(data: impl Into<String>, format: impl Into<String>) -> Self {
         Self {
             data: data.into(),
+            url: None,
             format: format.into(),
         }
     }
@@ -186,6 +231,12 @@ pub struct TranscriptionRequest {
     #[builder(setter(into))]
     pub model: String,
     pub input_audio: TranscriptionInputAudio,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub diarize: Option<bool>,
+    #[builder(setter(custom), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub keyterms: Option<Vec<String>>,
     #[builder(setter(into, strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub language: Option<String>,
@@ -213,6 +264,7 @@ pub struct TranscriptionRequest {
 }
 
 impl TranscriptionRequestBuilder {
+    strip_option_vec_setter!(keyterms, String);
     pub fn timestamp_granularities<T, S>(&mut self, items: T) -> &mut Self
     where
         T: IntoIterator<Item = S>,
@@ -237,6 +289,10 @@ pub struct TranscriptionResponse {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub confidence: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub language_confidence: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub entities: Option<Vec<TranscriptionEntity>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub language: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub duration: Option<f64>,
@@ -259,6 +315,10 @@ pub struct TranscriptionSegment {
     pub text: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub speaker: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub speaker_label: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub channel: Option<i64>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tokens: Vec<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -276,6 +336,8 @@ pub struct TranscriptionSegment {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
 pub struct TranscriptionWord {
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
+    pub word_type: Option<String>,
     pub word: String,
     pub start: f64,
     pub end: f64,
@@ -283,6 +345,10 @@ pub struct TranscriptionWord {
     pub confidence: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub speaker: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub speaker_label: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub channel: Option<i64>,
 }
 
 /// Usage metadata for audio transcription requests.
@@ -483,4 +549,45 @@ fn is_path_specific_route_error(message: &str) -> bool {
         || message.contains("method not allowed");
 
     route_unavailable_signal && message.contains(OFFICIAL_SPEECH_PATH)
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct TranscriptionEntity {
+    pub text: String,
+    #[serde(rename = "type")]
+    pub entity_type: String,
+    pub start_char: i64,
+    pub end_char: i64,
+}
+
+impl SpeechInputAudioBuilder {
+    fn validate(&self) -> Result<(), OpenRouterError> {
+        let has_data = self.data.as_ref().is_some_and(|value| !value.is_empty());
+        let url = self.url.as_ref().and_then(Option::as_ref);
+        if has_data == url.is_some() || url.is_some_and(String::is_empty) {
+            return Err(OpenRouterError::ConfigError(
+                "Supply exactly one of audio data or URL".into(),
+            ));
+        }
+        Ok(())
+    }
+}
+
+impl TranscriptionInputAudioBuilder {
+    fn validate(&self) -> Result<(), OpenRouterError> {
+        let has_data = self.data.as_ref().is_some_and(|value| !value.is_empty());
+        let url = self.url.as_ref().and_then(Option::as_ref);
+        if has_data == url.is_some() || url.is_some_and(String::is_empty) {
+            return Err(OpenRouterError::ConfigError(
+                "Supply exactly one of audio data or URL".into(),
+            ));
+        }
+        if has_data && self.format.as_ref().is_none_or(|value| value.is_empty()) {
+            return Err(OpenRouterError::ConfigError(
+                "Base64 transcription audio requires a format".into(),
+            ));
+        }
+        Ok(())
+    }
 }

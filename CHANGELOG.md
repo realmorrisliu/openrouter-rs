@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added asynchronous batch submission, listing, retrieval and terminal deletion through `client.batches()`, with typed envelopes and flexible per-endpoint result bodies/usage, plus a runnable batch example.
+- Added `client.interns().invoke(...)`, `daemon(...)`, and the upstream `daemon_access(...)` alias, marked deprecated on both the domain client and standalone function; use `daemon(...)`.
+- Added shared `ProviderPreferences::options`, speech URL/image references, endpoint image/multiple-audio reference capabilities, SCIM display-name/external-ID filters, and transcription URL input, diarization, keyterms, language confidence, entities, speaker labels/channels and word kinds.
+
+### Changed
+- Marked the upstream-deprecated Coinbase charge SDK entry points as deprecated and documented the web credits purchase replacement in CLI help and migration notes; compatibility entry points remain available.
+- Reviewed issue #254 against the 2026-09-30 OpenAPI snapshot: `129 / 142` operations implemented. Thirteen later additions (Private Endpoints, Tools discovery and effective intern vault secrets) are explicitly deferred in the endpoint matrix. Existing base64 audio constructors, SCIM pagination methods and omitted-field defaults remain compatible.
+
+### Fixed
+- Removed response payloads and value-bearing serde messages from shared JSON deserialization errors, protecting malformed daemon, OAuth and API-key responses while retaining context, status and error location.
+- Redacted malformed non-success bodies on daemon, OAuth, PKCE and API-key creation responses through a shared credential parser, preserving valid API error envelopes, status codes and request IDs even when reading the error body fails.
+- Forwarded configured attribution headers for all Batch calls, new Intern invoke/daemon calls, and both filtered and pagination-only SCIM group calls.
+- Rejected explicitly empty audio URLs in both audio input builders, including empty URLs supplied alongside base64 data.
+
 ## [0.16.0] - 2026-09-23
 
 ### Added

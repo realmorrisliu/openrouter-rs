@@ -140,14 +140,7 @@ pub(crate) async fn exchange_code_for_api_key_with_client(
         .send()
         .await?;
 
-    if response.status().is_success() {
-        let auth_response: AuthResponse =
-            transport_response::parse_json_response(response, "auth key exchange").await?;
-        Ok(auth_response)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
+    transport_response::parse_credential_response(response, "auth key exchange").await
 }
 
 /// Create an authorization code for PKCE flow (`POST /auth/keys/code`).
@@ -175,14 +168,9 @@ pub(crate) async fn create_auth_code_with_client(
             .send()
             .await?;
 
-    if response.status().is_success() {
-        let payload: ApiResponse<AuthCodeData> =
-            transport_response::parse_json_response(response, "auth code creation").await?;
-        Ok(payload.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
+    let payload: ApiResponse<AuthCodeData> =
+        transport_response::parse_credential_response(response, "auth code creation").await?;
+    Ok(payload.data)
 }
 
 /// RFC 8693 workload identity token exchange request.
@@ -284,9 +272,5 @@ pub(crate) async fn exchange_oauth_token_with_client(
         .form(request)
         .send()
         .await?;
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "OAuth token exchange").await
-    } else {
-        Err(transport_response::error_from_response(response).await)
-    }
+    transport_response::parse_credential_response(response, "OAuth token exchange").await
 }

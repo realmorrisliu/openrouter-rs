@@ -125,6 +125,7 @@ async fn test_get_credits_path_and_auth_header() {
 }
 
 #[tokio::test]
+#[allow(deprecated)]
 async fn test_create_coinbase_charge_path_body_and_auth_header() {
     let (base_url, rx, server) = spawn_json_server(
         r#"{"data":{"addresses":{},"calldata":{},"chain_id":8453,"sender":"0xabc","id":"charge_1"}}"#,

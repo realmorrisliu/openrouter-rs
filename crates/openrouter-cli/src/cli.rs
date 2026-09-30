@@ -69,7 +69,7 @@ pub struct CreditsChargeArgs {
 pub enum CreditsCommands {
     /// Show credit totals for the authenticated account.
     Show,
-    /// Create a Coinbase charge.
+    /// Deprecated upstream; use the OpenRouter web credits purchase flow.
     Charge(CreditsChargeArgs),
 }
 

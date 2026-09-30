@@ -2,6 +2,11 @@
 
 This document keeps historical migration guides intact because the repo still smoke-tests older domain/naming transitions.
 
+## Unreleased Compatibility Notes
+
+- Replace `client.interns().daemon_access(...)` / `api::interns::daemon_access(...)` with the corresponding `daemon(...)` method or function; the upstream alias and both SDK entry points are deprecated.
+- Coinbase charge entry points and the CLI `credits charge` command are retained for compatibility. Upstream has removed Coinbase Commerce charges; use the OpenRouter web credits purchase flow instead. SDK entry points now emit deprecation warnings.
+
 ## Latest: 0.14.x -> 0.15.0
 
 Two management-surface changes match the upstream OpenRouter schema.
