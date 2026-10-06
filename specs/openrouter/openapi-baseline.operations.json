@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-09-30T08:56:14+00:00",
+  "captured_at": "2026-10-06T15:20:08+00:00",
   "info": {
     "contact": {
       "email": "support@openrouter.ai",
@@ -14,7 +14,7 @@
     "title": "OpenRouter API",
     "version": "1.0.0"
   },
-  "operation_count": 142,
+  "operation_count": 149,
   "operations": [
     {
       "deprecated": false,
@@ -36,6 +36,17 @@
       "path": "/byok/{path_param_0}",
       "tags": [
         "BYOK"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "b41607c68fe2b5ba",
+      "id": "DELETE /end-users/{path_param_0}",
+      "method": "DELETE",
+      "operation_id": "deleteEndUser",
+      "path": "/end-users/{path_param_0}",
+      "tags": [
+        "End Users"
       ]
     },
     {
@@ -161,7 +172,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "daf94f04fd2f3b8e",
+      "fingerprint": "effad956e67e5710",
       "id": "GET /activity",
       "method": "GET",
       "operation_id": "getUserActivity",
@@ -194,7 +205,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "5195575c0a1f948a",
+      "fingerprint": "0c5dc1589960ffd7",
       "id": "GET /batches/{path_param_0}",
       "method": "GET",
       "operation_id": "getBatches",
@@ -337,6 +348,28 @@
     },
     {
       "deprecated": false,
+      "fingerprint": "bb23dfeac1bb4812",
+      "id": "GET /end-users",
+      "method": "GET",
+      "operation_id": "listEndUsers",
+      "path": "/end-users",
+      "tags": [
+        "End Users"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "527ebed9457604ae",
+      "id": "GET /end-users/{path_param_0}",
+      "method": "GET",
+      "operation_id": "getEndUser",
+      "path": "/end-users/{path_param_0}",
+      "tags": [
+        "End Users"
+      ]
+    },
+    {
+      "deprecated": false,
       "fingerprint": "a372adbd87e552f7",
       "id": "GET /endpoints/zdr",
       "method": "GET",
@@ -381,7 +414,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "2caedff5e1f918b4",
+      "fingerprint": "67f761917541ea2c",
       "id": "GET /generation",
       "method": "GET",
       "operation_id": "getGeneration",
@@ -392,7 +425,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "55d4ad95367deb13",
+      "fingerprint": "77365c5c75adc982",
       "id": "GET /generation/content",
       "method": "GET",
       "operation_id": "listGenerationContent",
@@ -634,7 +667,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "823c73409accd239",
+      "fingerprint": "0fed4404e86b12a1",
       "id": "GET /observability/destinations",
       "method": "GET",
       "operation_id": "listObservabilityDestinations",
@@ -645,7 +678,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "4dcf85c1a37fb424",
+      "fingerprint": "8cfbe79c633547a0",
       "id": "GET /observability/destinations/{path_param_0}",
       "method": "GET",
       "operation_id": "getObservabilityDestination",
@@ -661,6 +694,17 @@
       "method": "GET",
       "operation_id": "listOrganizationMembers",
       "path": "/organization/members",
+      "tags": [
+        "Organization"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "efe518697f032e7e",
+      "id": "GET /organization/settings",
+      "method": "GET",
+      "operation_id": "getOrganizationSettings",
+      "path": "/organization/settings",
       "tags": [
         "Organization"
       ]
@@ -942,6 +986,17 @@
     },
     {
       "deprecated": false,
+      "fingerprint": "6286dddb47062db8",
+      "id": "PATCH /end-users/{path_param_0}",
+      "method": "PATCH",
+      "operation_id": "updateEndUser",
+      "path": "/end-users/{path_param_0}",
+      "tags": [
+        "End Users"
+      ]
+    },
+    {
+      "deprecated": false,
       "fingerprint": "8e29156a422f3322",
       "id": "PATCH /guardrails/{path_param_0}",
       "method": "PATCH",
@@ -975,13 +1030,24 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "001c4ac46a89d609",
+      "fingerprint": "23cc15dde021167f",
       "id": "PATCH /observability/destinations/{path_param_0}",
       "method": "PATCH",
       "operation_id": "updateObservabilityDestination",
       "path": "/observability/destinations/{path_param_0}",
       "tags": [
         "Observability"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "a03dbdb439ad9c1c",
+      "id": "PATCH /organization/settings",
+      "method": "PATCH",
+      "operation_id": "updateOrganizationSettings",
+      "path": "/organization/settings",
+      "tags": [
+        "Organization"
       ]
     },
     {
@@ -1041,7 +1107,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "fbeaa1a1fb1ab06c",
+      "fingerprint": "7f41be346ebd8d77",
       "id": "POST /audio/speech",
       "method": "POST",
       "operation_id": "createAudioSpeech",
@@ -1052,7 +1118,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "58125c12dedb9ad6",
+      "fingerprint": "13efa6fad366209b",
       "id": "POST /audio/transcriptions",
       "method": "POST",
       "operation_id": "createAudioTranscriptions",
@@ -1085,7 +1151,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "654121d8cc68fc03",
+      "fingerprint": "bb53d14149e786fc",
       "id": "POST /batches",
       "method": "POST",
       "operation_id": "createBatches",
@@ -1107,7 +1173,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "bfc049ebf7b0c7b0",
+      "fingerprint": "5b20b2d580bbf26c",
       "id": "POST /chat/completions",
       "method": "POST",
       "operation_id": "sendChatCompletionRequest",
@@ -1147,6 +1213,17 @@
       "path": "/embeddings",
       "tags": [
         "Embeddings"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "01e51d39cb4fa196",
+      "id": "POST /end-users",
+      "method": "POST",
+      "operation_id": "createEndUser",
+      "path": "/end-users",
+      "tags": [
+        "End Users"
       ]
     },
     {
@@ -1228,7 +1305,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b4161784754cd988",
+      "fingerprint": "effcfed4dfd1e6e4",
       "id": "POST /images",
       "method": "POST",
       "operation_id": "createImages",
@@ -1305,7 +1382,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "5fa8a2ed25d96125",
+      "fingerprint": "664c6e4ef26a2432",
       "id": "POST /messages",
       "method": "POST",
       "operation_id": "createMessages",
@@ -1327,7 +1404,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "13beddf40576f261",
+      "fingerprint": "8adaf6d8284386bb",
       "id": "POST /observability/destinations",
       "method": "POST",
       "operation_id": "createObservabilityDestination",
@@ -1338,7 +1415,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "42e019bc2f7172d9",
+      "fingerprint": "c33393b10e18aacc",
       "id": "POST /presets/{path_param_0}/chat/completions",
       "method": "POST",
       "operation_id": "createPresetsChatCompletions",
@@ -1349,7 +1426,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "c072f2f31b996bd6",
+      "fingerprint": "4e07b67cb68c3b93",
       "id": "POST /presets/{path_param_0}/messages",
       "method": "POST",
       "operation_id": "createPresetsMessages",
@@ -1360,7 +1437,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "7c76a6eb4d7c1617",
+      "fingerprint": "aa8b11145ecf5e58",
       "id": "POST /presets/{path_param_0}/responses",
       "method": "POST",
       "operation_id": "createPresetsResponses",
@@ -1437,7 +1514,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "2a57a1d433b91c60",
+      "fingerprint": "202efd9b66521783",
       "id": "POST /responses",
       "method": "POST",
       "operation_id": "createResponses",

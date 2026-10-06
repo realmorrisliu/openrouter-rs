@@ -873,17 +873,12 @@ fn split_chat_request_tools(
     let mut server_tools = Vec::new();
 
     for value in values {
-        let is_function_tool = value.get("function").is_some()
-            || value
-                .get("type")
-                .and_then(Value::as_str)
-                .is_some_and(|tool_type| tool_type == "function");
-        if is_function_tool {
-            function_tools.push(serde_json::from_value(value)?);
-        } else if crate::types::ServerTool::is_server_tool_value(&value) {
-            server_tools.push(serde_json::from_value(value)?);
-        } else {
-            function_tools.push(serde_json::from_value(value)?);
+        // Unknown tool types are valid server tools in the upstream chat schema.
+        match value.get("type").and_then(Value::as_str) {
+            Some(tool_type) if tool_type != "function" => {
+                server_tools.push(serde_json::from_value(value)?);
+            }
+            _ => function_tools.push(serde_json::from_value(value)?),
         }
     }
 

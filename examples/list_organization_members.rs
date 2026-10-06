@@ -1,4 +1,6 @@
-use openrouter_rs::{OpenRouterClient, types::PaginationOptions};
+use openrouter_rs::{
+    OpenRouterClient, api::end_users::ListEndUsersParams, types::PaginationOptions,
+};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -23,6 +25,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             member.email
         );
     }
+
+    let settings = client.management().get_organization_settings().await?;
+    println!(
+        "filtered catalog enabled: {}",
+        settings.is_filtered_model_catalog_enabled
+    );
+    let end_users = client
+        .management()
+        .list_end_users(
+            &ListEndUsersParams::builder()
+                .limit(25)
+                .include_inactive(true)
+                .build()?,
+        )
+        .await?;
+    println!("registered end users: {}", end_users.total_count);
 
     Ok(())
 }

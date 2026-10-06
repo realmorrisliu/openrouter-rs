@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added management-key end-user registration CRUD/list filters and organization settings through `client.management()`, including URL-encoded tracking IDs and soft deactivation (which does not block inference).
+- Added Batch provider `allow_fallbacks`, audio speech/transcription provider `data_collection` and `zdr` fields, plus optional activity `cached_tokens` for compatibility with older responses.
+
+### Fixed
+- Preserved arbitrary server-tool types when deserializing chat and preset request bodies, matching the upstream generic tool schema.
+
+### Changed
+- Accepted issue #257 against the October 6 OpenAPI snapshot: `136 / 149` operations implemented; the existing 13 deferred operations remain deferred. Batch audio payloads, observability cache-write-token configuration, image resolution `1.5K`, and Responses/tool domain patterns use existing flexible fields. Generation ID constraints remain server-validated with typed API errors.
+
 ## [0.17.0] - 2026-09-30
 
 ### Added
