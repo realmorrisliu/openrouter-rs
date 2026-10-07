@@ -12,6 +12,10 @@ Weekly drift workflow: `.github/workflows/openapi-drift.yml`
 - Live integration coverage (`tests/integration`): `25 / 149` endpoints currently exercised.
   - Covered live now: `GET /oauth/jwks`, `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `POST /rerank`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`, `GET /organization/members`
 
+Chat response regression coverage:
+
+- Issues #259/#260: local serde/request tests cover non-streaming assistant-message replay (including null content, signed/encrypted reasoning and modeled metadata), getter behavior for streaming/legacy choices, and optional prompt-cache usage in both response envelopes. No new endpoint or live qualification is claimed. The CLI has no chat command consuming these types.
+
 Drift review note:
 
 - Issue #257 (2026-10-06): accepted all seven new end-user registration and organization settings operations. Local HTTP regression tests in `tests/unit/openapi_issue_251.rs` cover every route, encoded tracking IDs, list filters, management-key selection, attribution headers, false-valued PATCH bodies, 204 deletion, API errors and missing-key rejection. Read-only live smoke tests are opt-in and have not been qualified live; registration writes and organization policy changes are not run unattended.

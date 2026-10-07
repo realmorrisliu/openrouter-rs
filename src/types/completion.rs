@@ -89,6 +89,20 @@ pub struct AnthropicCacheCreation {
     pub ephemeral_1h_input_tokens: u64,
 }
 
+/// Prompt token breakdown, including provider-reported cache reads and writes.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct PromptTokensDetails {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cached_tokens: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cache_write_tokens: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub audio_tokens: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub video_tokens: Option<u32>,
+}
+
 /// Token and billing usage reported for chat completion responses.
 ///
 /// Response payloads are intentionally constructed by deserialization rather than
@@ -116,6 +130,9 @@ pub struct ResponseUsage {
     pub completion_tokens: u32,
     /// Sum of the above two fields
     pub total_tokens: u32,
+    /// Optional prompt token breakdown; absence does not imply a cache miss.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub prompt_tokens_details: Option<PromptTokensDetails>,
     /// Total OpenRouter request cost when returned by the API.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cost: Option<f64>,
@@ -136,6 +153,7 @@ impl ResponseUsage {
             prompt_tokens,
             completion_tokens,
             total_tokens,
+            prompt_tokens_details: None,
             cost: None,
             cost_details: None,
             is_byok: None,
@@ -408,6 +426,18 @@ pub enum Choice {
 }
 
 impl Choice {
+    /// The response message for a non-streaming chat choice.
+    ///
+    /// Streaming deltas and legacy text completions return `None`.
+    /// Use [`crate::api::chat::Message::try_from`] to append this message to a
+    /// conversation while retaining reasoning and other modeled metadata.
+    pub fn message(&self) -> Option<&Message> {
+        match self {
+            Self::NonStreaming(choice) => Some(&choice.message),
+            _ => None,
+        }
+    }
+
     pub fn content(&self) -> Option<&str> {
         match self {
             Choice::NonChat(choice) => Some(choice.text.as_str()),

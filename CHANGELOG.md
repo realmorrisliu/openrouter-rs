@@ -8,10 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Exposed optional prompt-token cache read/write and audio/video counts through `ResponseUsage::prompt_tokens_details` (#260).
+- Added `Choice::message()` and fallible conversion into chat request messages, retaining modeled assistant metadata, null content, and signed/encrypted reasoning for tool loops (#259).
 - Added management-key end-user registration CRUD/list filters and organization settings through `client.management()`, including URL-encoded tracking IDs and soft deactivation (which does not block inference).
 - Added Batch provider `allow_fallbacks`, audio speech/transcription provider `data_collection` and `zdr` fields, plus optional activity `cached_tokens` for compatibility with older responses.
 
 ### Fixed
+- Updated non-streaming tool-agent examples to replay response messages instead of dropping reasoning when rebuilding assistant messages (#259).
 - Preserved arbitrary server-tool types when deserializing chat and preset request bodies, matching the upstream generic tool schema.
 
 ### Changed

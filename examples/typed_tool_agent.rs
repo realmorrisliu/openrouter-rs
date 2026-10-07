@@ -107,10 +107,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
         if let Some(tool_calls) = choice.tool_calls() {
             println!("step {step}: executing {} tool call(s)", tool_calls.len());
-            messages.push(Message::assistant_with_tool_calls(
-                choice.content().unwrap_or(""),
-                tool_calls.to_vec(),
-            ));
+            if let Some(message) = choice.message() {
+                messages.push(Message::try_from(message)?);
+            }
 
             for tool_call in tool_calls {
                 let tool_result = execute_tool_call(tool_call)?;

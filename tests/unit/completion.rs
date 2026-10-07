@@ -442,3 +442,118 @@ fn test_response_with_assistant_media_fields() {
     let choice = &response.choices[0];
     assert_eq!(choice.content(), Some("Here is your result"));
 }
+
+#[test]
+fn response_message_replays_modeled_metadata_in_chat_request() {
+    use openrouter_rs::api::chat::{ChatCompletionRequest, Message};
+    use serde_json::json;
+
+    for content in [json!(null), json!("Let me check.")] {
+        let original = json!({
+            "role": "assistant", "content": content, "model": "test/model", "name": "agent",
+            "tool_calls": [{"id": "call-1", "type": "function", "index": 0,
+                "function": {"name": "lookup", "arguments": "{}"}}],
+            "reasoning": "Need a lookup",
+            "reasoning_details": [
+                {"type": "reasoning.text", "text": "Need a lookup", "signature": "signature",
+                 "format": "anthropic-v1", "index": 0},
+                {"type": "reasoning.encrypted", "data": "encrypted", "id": "call-1",
+                 "format": "google-gemini-v1", "index": 1}
+            ],
+            "refusal": "provider refusal", "annotations": [{"type": "url_citation"}],
+            "images": [{"type": "image_url", "image_url": {"url": "data:image/png;base64,AA=="}}],
+            "audio": {"id": "audio-1", "data": "AA==", "transcript": "Hello"}
+        });
+        let choice: Choice = serde_json::from_value(json!({"message": original})).unwrap();
+        let response_message = choice.message().unwrap();
+        let request = ChatCompletionRequest::builder()
+            .model("test/model")
+            .messages(vec![
+                Message::try_from(response_message).unwrap(),
+                Message::tool_response("call-1", "result"),
+            ])
+            .build()
+            .unwrap();
+        let payload = serde_json::to_value(request).unwrap();
+        assert_eq!(
+            payload["messages"][0],
+            serde_json::to_value(response_message).unwrap()
+        );
+        assert_eq!(payload["messages"][0]["content"], content);
+        assert_eq!(
+            payload["messages"][0]["reasoning_details"][0]["signature"],
+            "signature"
+        );
+        assert_eq!(
+            payload["messages"][0]["reasoning_details"][1]["data"],
+            "encrypted"
+        );
+        assert_eq!(payload["messages"][1]["tool_call_id"], "call-1");
+    }
+
+    for payload in [
+        json!({"delta": {"content": "partial"}}),
+        json!({"text": "legacy"}),
+    ] {
+        let choice: Choice = serde_json::from_value(payload).unwrap();
+        assert!(choice.message().is_none());
+    }
+    for role in [json!(null), json!("unknown")] {
+        let choice: Choice = serde_json::from_value(json!({"message": {"role": role}})).unwrap();
+        assert!(Message::try_from(choice.message().unwrap()).is_err());
+    }
+}
+
+#[test]
+fn prompt_token_details_preserve_cache_usage_and_optional_fields() {
+    use openrouter_rs::types::completion::ResponseUsage;
+    use serde_json::json;
+
+    for object in ["chat.completion", "chat.completion.chunk"] {
+        let response: CompletionsResponse = serde_json::from_value(json!({
+            "id": "usage-1", "model": "test/model", "created": 1, "object": object,
+            "choices": [],
+            "usage": {"prompt_tokens": 100, "completion_tokens": 10, "total_tokens": 110,
+                "prompt_tokens_details": {"cached_tokens": 80, "cache_write_tokens": 20,
+                    "audio_tokens": 0, "video_tokens": 0}}
+        }))
+        .unwrap();
+        let usage = response.usage.unwrap();
+        let details = usage.prompt_tokens_details.as_ref().unwrap();
+        assert_eq!(details.cached_tokens, Some(80));
+        assert_eq!(details.cache_write_tokens, Some(20));
+        assert_eq!(details.audio_tokens, Some(0));
+        assert_eq!(details.video_tokens, Some(0));
+        assert_eq!(
+            serde_json::to_value(usage).unwrap()["prompt_tokens_details"]["cached_tokens"],
+            80
+        );
+    }
+    for details in [
+        json!(null),
+        json!({}),
+        json!({"cached_tokens": null}),
+        json!({"cached_tokens": 0}),
+    ] {
+        let usage: ResponseUsage = serde_json::from_value(json!({
+            "prompt_tokens": 1, "completion_tokens": 2, "total_tokens": 3,
+            "prompt_tokens_details": details
+        }))
+        .unwrap();
+        assert_eq!(
+            usage
+                .prompt_tokens_details
+                .as_ref()
+                .and_then(|d| d.cached_tokens),
+            details["cached_tokens"].as_u64().map(|n| n as u32)
+        );
+    }
+    let minimal = json!({"prompt_tokens": 1, "completion_tokens": 2, "total_tokens": 3});
+    let usage: ResponseUsage = serde_json::from_value(minimal.clone()).unwrap();
+    assert!(usage.prompt_tokens_details.is_none());
+    assert_eq!(serde_json::to_value(usage).unwrap(), minimal);
+    assert_eq!(
+        serde_json::to_value(ResponseUsage::new(1, 2, 3)).unwrap(),
+        minimal
+    );
+}
