@@ -23,6 +23,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let response = client.chat().create(&request).await?;
     println!("{response:?}");
+    if let Some(details) = response
+        .usage
+        .as_ref()
+        .and_then(|usage| usage.prompt_tokens_details.as_ref())
+    {
+        println!(
+            "Cached prompt tokens: {:?}; cache writes: {:?}",
+            details.cached_tokens, details.cache_write_tokens
+        );
+    }
 
     Ok(())
 }

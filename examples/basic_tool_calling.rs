@@ -121,10 +121,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mut messages = request.messages().to_vec();
 
             // Add the assistant's response (with tool calls) to conversation
-            let content = choice.content().unwrap_or("");
-            let assistant_message =
-                Message::assistant_with_tool_calls(content, tool_calls.to_vec());
-            messages.push(assistant_message);
+            if let Some(message) = choice.message() {
+                messages.push(Message::try_from(message)?);
+            }
 
             // Process each tool call
             for (i, tool_call) in tool_calls.iter().enumerate() {
@@ -220,10 +219,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     );
 
                     // Add assistant message with additional tool calls to conversation
-                    let content = final_choice.content().unwrap_or("");
-                    let assistant_message =
-                        Message::assistant_with_tool_calls(content, more_tool_calls.to_vec());
-                    messages.push(assistant_message);
+                    if let Some(message) = final_choice.message() {
+                        messages.push(Message::try_from(message)?);
+                    }
 
                     // Handle additional tool calls
                     for (i, tool_call) in more_tool_calls.iter().enumerate() {

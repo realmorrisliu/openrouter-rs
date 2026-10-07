@@ -16,11 +16,36 @@ use std::env;
 use futures_util::StreamExt;
 use openrouter_rs::{
     OpenRouterClient,
-    api::chat::{ChatCompletionRequest, Message},
+    api::chat::{ChatCompletionRequest, Content, Message},
     types::stream::StreamEvent,
     types::{Role, Tool, completion::FinishReason},
 };
 use serde_json::json;
+
+// Keep reasoning objects in arrival order; do not merge or deduplicate indices.
+// https://openrouter.ai/docs/guides/best-practices/reasoning-tokens#streaming-response
+fn record_assistant_delta(message: &mut Message, event: &StreamEvent) {
+    match event {
+        StreamEvent::ContentDelta(text) => {
+            if let Content::Text(content) = &mut message.content {
+                content.push_str(text);
+            }
+        }
+        StreamEvent::ReasoningDelta(text) => {
+            message
+                .reasoning
+                .get_or_insert_with(String::new)
+                .push_str(text);
+        }
+        StreamEvent::ReasoningDetailsDelta(details) => {
+            message
+                .reasoning_details
+                .get_or_insert_with(Vec::new)
+                .extend_from_slice(details);
+        }
+        _ => {}
+    }
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -68,7 +93,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Use the tool-aware stream wrapper
     let mut stream = client.chat().stream_tool_aware(&request).await?;
 
+    let mut assistant_message = Message::new(Role::Assistant, "");
     while let Some(event) = stream.next().await {
+        record_assistant_delta(&mut assistant_message, &event);
         match event {
             StreamEvent::ContentDelta(text) => {
                 // Content is printed immediately as it streams in
@@ -120,7 +147,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                         let mut messages = request.messages().to_vec();
                         // Add the assistant's response with tool calls
-                        messages.push(Message::assistant_with_tool_calls("", tool_calls.clone()));
+                        assistant_message.tool_calls = Some(tool_calls.clone());
+                        messages.push(assistant_message.clone());
 
                         for tc in &tool_calls {
                             let result = format!("Weather in {}: Sunny, 22C", tc.arguments_json());
@@ -158,4 +186,49 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn records_text_and_reasoning_in_arrival_order() {
+        let first = json!([
+            {"type": "reasoning.summary", "summary": "First", "index": 0},
+            {"type": "reasoning.text", "text": "Thinking", "index": 1}
+        ]);
+        let second = json!([
+            {"type": "reasoning.text", "text": " more", "signature": "signed", "index": 1},
+            {"type": "reasoning.encrypted", "data": "encrypted", "index": 2}
+        ]);
+        let mut message = Message::new(Role::Assistant, "");
+        for event in [
+            StreamEvent::ContentDelta("Let me ".into()),
+            StreamEvent::ReasoningDelta("Check ".into()),
+            StreamEvent::ReasoningDetailsDelta(serde_json::from_value(first.clone()).unwrap()),
+            StreamEvent::ContentDelta("check.".into()),
+            StreamEvent::ReasoningDelta("weather".into()),
+            StreamEvent::ReasoningDetailsDelta(serde_json::from_value(second.clone()).unwrap()),
+        ] {
+            record_assistant_delta(&mut message, &event);
+        }
+        message.tool_calls = Some(vec![openrouter_rs::types::ToolCall::new(
+            "call-1", "weather", "{}",
+        )]);
+        let request = ChatCompletionRequest::builder()
+            .model("test/model")
+            .messages(vec![message, Message::tool_response("call-1", "Sunny")])
+            .build()
+            .unwrap();
+        let payload = serde_json::to_value(request).unwrap();
+        let replay = &payload["messages"][0];
+        assert_eq!(replay["content"], "Let me check.");
+        assert_eq!(replay["reasoning"], "Check weather");
+        assert_eq!(
+            replay["reasoning_details"],
+            json!([first[0], first[1], second[0], second[1]])
+        );
+        assert_eq!(replay["tool_calls"][0]["id"], "call-1");
+    }
 }

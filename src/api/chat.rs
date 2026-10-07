@@ -342,6 +342,8 @@ pub enum Content {
     Text(String),
     /// Multi-part content (text, images, etc.)
     Parts(Vec<ContentPart>),
+    /// No text content, as commonly returned with assistant tool calls.
+    Null,
 }
 
 impl From<String> for Content {
@@ -433,11 +435,29 @@ pub struct Message {
     /// Tool calls made by assistant
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_calls: Option<Vec<crate::types::ToolCall>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reasoning: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reasoning_details: Option<Vec<crate::types::completion::ReasoningDetail>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub refusal: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub annotations: Option<Vec<Value>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub images: Option<Vec<Value>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub audio: Option<Value>,
 }
 
 impl Message {
     pub fn new(role: Role, content: impl Into<Content>) -> Self {
         Self {
+            reasoning: None,
+            reasoning_details: None,
+            refusal: None,
+            annotations: None,
+            images: None,
+            audio: None,
             configuration_update: None,
             role,
             content: content.into(),
@@ -450,27 +470,14 @@ impl Message {
 
     /// Create a message with multi-part content (text and images).
     pub fn with_parts(role: Role, parts: Vec<ContentPart>) -> Self {
-        Self {
-            configuration_update: None,
-            role,
-            content: Content::Parts(parts),
-            model: None,
-            name: None,
-            tool_call_id: None,
-            tool_calls: None,
-        }
+        Self::new(role, parts)
     }
 
     /// Create a tool response message
     pub fn tool_response(tool_call_id: &str, content: impl Into<Content>) -> Self {
         Self {
-            configuration_update: None,
-            role: Role::Tool,
-            content: content.into(),
-            model: None,
-            name: None,
             tool_call_id: Some(tool_call_id.to_string()),
-            tool_calls: None,
+            ..Self::new(Role::Tool, content)
         }
     }
 
@@ -481,26 +488,16 @@ impl Message {
         content: impl Into<Content>,
     ) -> Self {
         Self {
-            configuration_update: None,
-            role: Role::Tool,
-            content: content.into(),
-            model: None,
             name: Some(tool_name.to_string()),
-            tool_call_id: Some(tool_call_id.to_string()),
-            tool_calls: None,
+            ..Self::tool_response(tool_call_id, content)
         }
     }
 
     /// Create a message with a specific name
     pub fn named(role: Role, name: &str, content: impl Into<Content>) -> Self {
         Self {
-            configuration_update: None,
-            role,
-            content: content.into(),
-            model: None,
             name: Some(name.to_string()),
-            tool_call_id: None,
-            tool_calls: None,
+            ..Self::new(role, content)
         }
     }
 
@@ -510,19 +507,26 @@ impl Message {
         tool_calls: Vec<crate::types::ToolCall>,
     ) -> Self {
         Self {
-            configuration_update: None,
-            role: Role::Assistant,
-            content: content.into(),
-            model: None,
-            name: None,
-            tool_call_id: None,
             tool_calls: Some(tool_calls),
+            ..Self::new(Role::Assistant, content)
         }
     }
 
     pub fn with_model(mut self, model: impl Into<String>) -> Self {
         self.model = Some(model.into());
         self
+    }
+}
+
+impl TryFrom<&crate::types::completion::Message> for Message {
+    type Error = serde_json::Error;
+
+    /// Convert a response message into a conversation message, preserving all
+    /// modeled fields, including null content and signed reasoning details.
+    /// Response content parts have already been normalized to text by the SDK.
+    /// Missing or unsupported roles are rejected rather than silently changed.
+    fn try_from(message: &crate::types::completion::Message) -> Result<Self, Self::Error> {
+        serde_json::from_value(serde_json::to_value(message)?)
     }
 }
 
