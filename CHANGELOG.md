@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-10-07
+
 ### Added
 - Exposed optional prompt-token cache read/write and audio/video counts through `ResponseUsage::prompt_tokens_details` (#260).
 - Added `Choice::message()` and fallible conversion into chat request messages, retaining modeled assistant metadata, null content, and signed/encrypted reasoning for tool loops (#259).

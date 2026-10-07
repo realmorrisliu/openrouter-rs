@@ -43,7 +43,7 @@ The September OpenAPI update adds intern lifecycle/chat operations via `interns(
 
 ```toml
 [dependencies]
-openrouter-rs = "0.17.0"
+openrouter-rs = "0.18.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -51,7 +51,7 @@ Legacy text completions are opt-in:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.17.0", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.18.0", features = ["legacy-completions"] }
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -392,7 +392,13 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 ### Unreleased
 
-### Version 0.17.0 *(Latest)*
+### Version 0.18.0 *(Latest)*
+
+- Added prompt-cache usage details and assistant-message replay helpers that preserve modeled metadata, including reasoning summaries, signed/encrypted reasoning, and null content. Updated non-streaming and streaming tool-agent examples to retain context.
+- Added end-user registration management and organization settings, plus Batch fallback, audio provider, and activity cache-token fields. Preserved generic server-tool request types.
+- Accepted the October 6 OpenAPI review with `136 / 149` operations implemented and 13 explicitly deferred. Absent reasoning text/data fields now serialize as omitted rather than null.
+
+### Version 0.17.0
 
 - Added asynchronous Batch APIs, Intern invocation/daemon access, shared provider options, audio URL/image references, transcription metadata, and SCIM filters.
 - Hardened credential response errors, forwarded Batch/Intern/SCIM attribution headers, and rejected empty audio URLs.
