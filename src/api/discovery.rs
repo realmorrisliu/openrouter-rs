@@ -201,6 +201,9 @@ pub struct PublicEndpoint {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
 pub struct ActivityItem {
+    /// Prompt-cache hits; may exceed prompt tokens for replayed response-cache hits.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cached_tokens: Option<u64>,
     pub date: String,
     pub model: String,
     pub model_permaslug: String,

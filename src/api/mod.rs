@@ -13,7 +13,7 @@
 //! - `client.images()` -> [`images`]
 //! - `client.videos()` -> [`videos`]
 //! - `client.models()` -> [`models`], [`embeddings`], [`discovery`]
-//! - `client.management()` -> [`api_keys`], [`auth`], [`byok`], [`credits`], [`generation`], [`guardrails`], [`observability`], [`organization`], [`presets`], [`scim`], [`workspaces`]
+//! - `client.management()` -> [`api_keys`], [`auth`], [`byok`], [`credits`], [`generation`], [`guardrails`], [`observability`], [`organization`], [`end_users`], [`presets`], [`scim`], [`workspaces`]
 //! - `client.batches()` -> [`batches`]
 //! - `client.interns()` -> [`interns`]
 //! - `client.vault()` -> [`vault`]
@@ -41,7 +41,7 @@
 //! - observability destination management
 //! - preset creation from inference request bodies
 //! - guardrails and guardrail assignments
-//! - organization member listing
+//! - organization members/settings and end-user registrations
 //! - SCIM group discovery and group-role mappings
 //! - workspace CRUD and membership management
 //! - structured API error payloads
@@ -138,6 +138,7 @@ pub mod credits;
 pub mod decisions;
 pub mod discovery;
 pub mod embeddings;
+pub mod end_users;
 pub mod errors;
 pub mod files;
 pub mod generation;

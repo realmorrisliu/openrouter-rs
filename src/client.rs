@@ -6,7 +6,7 @@ use crate::api::legacy::completion;
 use crate::{
     api::{
         analytics, api_keys, audio, auth, batches, byok, chat, credits, decisions, discovery,
-        embeddings, files, generation, guardrails, images, interns, messages, models,
+        embeddings, end_users, files, generation, guardrails, images, interns, messages, models,
         observability, organization, presets, rerank, responses, scim, vault, videos, workspaces,
     },
     error::OpenRouterError,
@@ -3788,6 +3788,133 @@ impl<'a> ManagementClient<'a> {
             self.client.http_client(),
             &self.client.base_url,
             self.management_key()?,
+        )
+        .await
+    }
+
+    /// GET `/end-users`.
+    pub async fn list_end_users(
+        &self,
+        params: &end_users::ListEndUsersParams,
+    ) -> Result<end_users::ListEndUsersResponse, OpenRouterError> {
+        end_users::list_end_users_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.management_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
+            params,
+        )
+        .await
+    }
+
+    /// POST `/end-users`.
+    pub async fn create_end_user(
+        &self,
+        request: &end_users::CreateEndUserRequest,
+    ) -> Result<end_users::EndUser, OpenRouterError> {
+        end_users::create_end_user_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.management_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
+            request,
+        )
+        .await
+    }
+
+    /// GET `/end-users/{user}`.
+    pub async fn get_end_user(&self, user: &str) -> Result<end_users::EndUser, OpenRouterError> {
+        end_users::get_end_user_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.management_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
+            user,
+        )
+        .await
+    }
+
+    /// PATCH `/end-users/{user}`.
+    pub async fn update_end_user(
+        &self,
+        user: &str,
+        request: &end_users::UpdateEndUserRequest,
+    ) -> Result<end_users::EndUser, OpenRouterError> {
+        end_users::update_end_user_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.management_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
+            user,
+            request,
+        )
+        .await
+    }
+
+    /// DELETE `/end-users/{user}`. Soft-deactivates registration; does not block inference.
+    pub async fn delete_end_user(&self, user: &str) -> Result<(), OpenRouterError> {
+        end_users::delete_end_user_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.management_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
+            user,
+        )
+        .await
+    }
+
+    /// GET `/organization/settings`.
+    pub async fn get_organization_settings(
+        &self,
+    ) -> Result<organization::OrganizationSettings, OpenRouterError> {
+        organization::get_organization_settings_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.management_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
+        )
+        .await
+    }
+
+    /// PATCH `/organization/settings`.
+    pub async fn update_organization_settings(
+        &self,
+        request: &organization::UpdateOrganizationSettingsRequest,
+    ) -> Result<organization::OrganizationSettings, OpenRouterError> {
+        organization::update_organization_settings_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.management_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
+            request,
         )
         .await
     }

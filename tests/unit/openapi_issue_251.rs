@@ -1239,3 +1239,297 @@ async fn issue_254_credential_body_read_failure_preserves_error_context() {
         server.join().unwrap();
     }
 }
+
+#[tokio::test]
+async fn issue_257_management_routes_and_errors() {
+    use openrouter_rs::api::{end_users::*, organization::*};
+    let user = json!({"user":"team/a +?#", "is_active":true,
+        "created_at":"2026-10-06T00:00:00Z", "updated_at":"2026-10-06T00:00:00Z"});
+    let single = json!({"data":user}).to_string();
+    let settings =
+        json!({"data":{"id":"org_1","is_filtered_model_catalog_enabled":false}}).to_string();
+    let error = json!({"error":{"code":400,"message":"Invalid request"}}).to_string();
+    let (url, rx, server) = spawn_server_sequence(vec![
+        (200, json!({"data":[user],"total_count":1}).to_string()),
+        (201, single.clone()),
+        (200, single.clone()),
+        (200, single),
+        (204, String::new()),
+        (200, settings.clone()),
+        (200, settings),
+        (400, error.clone()),
+        (400, error.clone()),
+        (400, error.clone()),
+        (400, error.clone()),
+        (400, error.clone()),
+        (400, error.clone()),
+        (400, error),
+    ]);
+    let client = OpenRouterClient::builder()
+        .base_url(url)
+        .api_key("wrong-key")
+        .management_key("management-key")
+        .x_title("drift-test")
+        .http_referer("https://example.com")
+        .app_categories(vec!["cli-agent".to_string()])
+        .build()
+        .unwrap();
+    let management = client.management();
+    let params = ListEndUsersParams::builder()
+        .offset(2)
+        .limit(5)
+        .user("team/a +?#")
+        .include_inactive(true)
+        .build()
+        .unwrap();
+    let create = CreateEndUserRequest::builder()
+        .user("team/a +?#")
+        .build()
+        .unwrap();
+    let update = UpdateEndUserRequest::builder()
+        .is_active(false)
+        .build()
+        .unwrap();
+    let settings_update = UpdateOrganizationSettingsRequest::builder()
+        .is_filtered_model_catalog_enabled(false)
+        .build()
+        .unwrap();
+    assert_eq!(
+        management
+            .list_end_users(&params)
+            .await
+            .unwrap()
+            .total_count,
+        1
+    );
+    assert_eq!(
+        management.create_end_user(&create).await.unwrap().user,
+        "team/a +?#"
+    );
+    assert!(
+        management
+            .get_end_user("team/a +?#")
+            .await
+            .unwrap()
+            .is_active
+    );
+    management
+        .update_end_user("team/a +?#", &update)
+        .await
+        .unwrap();
+    management.delete_end_user("team/a +?#").await.unwrap();
+    assert_eq!(
+        management.get_organization_settings().await.unwrap().id,
+        "org_1"
+    );
+    assert!(
+        !management
+            .update_organization_settings(&settings_update)
+            .await
+            .unwrap()
+            .is_filtered_model_catalog_enabled
+    );
+    let errors = [
+        management.list_end_users(&params).await.map(|_| ()),
+        management.create_end_user(&create).await.map(|_| ()),
+        management.get_end_user("team/a +?#").await.map(|_| ()),
+        management
+            .update_end_user("team/a +?#", &update)
+            .await
+            .map(|_| ()),
+        management.delete_end_user("team/a +?#").await,
+        management.get_organization_settings().await.map(|_| ()),
+        management
+            .update_organization_settings(&settings_update)
+            .await
+            .map(|_| ()),
+    ];
+    for result in errors {
+        assert!(
+            matches!(result, Err(openrouter_rs::error::OpenRouterError::Api(e)) if e.status == 400)
+        );
+    }
+    let expected = [
+        "GET /api/v1/end-users?offset=2&limit=5&user=team%2Fa+%2B%3F%23&include_inactive=true HTTP/1.1",
+        "POST /api/v1/end-users HTTP/1.1",
+        "GET /api/v1/end-users/team%2Fa%20%2B%3F%23 HTTP/1.1",
+        "PATCH /api/v1/end-users/team%2Fa%20%2B%3F%23 HTTP/1.1",
+        "DELETE /api/v1/end-users/team%2Fa%20%2B%3F%23 HTTP/1.1",
+        "GET /api/v1/organization/settings HTTP/1.1",
+        "PATCH /api/v1/organization/settings HTTP/1.1",
+    ];
+    for (index, line) in expected.iter().cycle().take(14).enumerate() {
+        let req = rx.recv().unwrap();
+        assert_eq!(&req.line, line);
+        let headers = req.headers.to_ascii_lowercase();
+        assert!(headers.contains("authorization: bearer management-key"));
+        assert!(headers.contains("x-openrouter-title: drift-test"));
+        assert!(headers.contains("http-referer: https://example.com"));
+        assert!(headers.contains("x-openrouter-categories: cli-agent"));
+        match index % 7 {
+            1 => assert_eq!(
+                serde_json::from_str::<serde_json::Value>(&req.body).unwrap(),
+                json!({"user":"team/a +?#"})
+            ),
+            3 => assert_eq!(
+                serde_json::from_str::<serde_json::Value>(&req.body).unwrap(),
+                json!({"is_active":false})
+            ),
+            6 => assert_eq!(
+                serde_json::from_str::<serde_json::Value>(&req.body).unwrap(),
+                json!({"is_filtered_model_catalog_enabled":false})
+            ),
+            _ => assert!(req.body.is_empty()),
+        }
+    }
+    server.join().unwrap();
+    let client = OpenRouterClient::builder()
+        .api_key("api-only")
+        .build()
+        .unwrap();
+    let management = client.management();
+    for result in [
+        management.list_end_users(&params).await.map(|_| ()),
+        management.create_end_user(&create).await.map(|_| ()),
+        management.get_end_user("user").await.map(|_| ()),
+        management
+            .update_end_user("user", &update)
+            .await
+            .map(|_| ()),
+        management.delete_end_user("user").await,
+        management.get_organization_settings().await.map(|_| ()),
+        management
+            .update_organization_settings(&settings_update)
+            .await
+            .map(|_| ()),
+    ] {
+        assert!(matches!(
+            result,
+            Err(openrouter_rs::error::OpenRouterError::KeyNotConfigured)
+        ));
+    }
+}
+
+#[test]
+fn issue_257_audio_privacy_and_flexible_payloads() {
+    use openrouter_rs::api::{
+        audio::*,
+        batches::*,
+        chat::ChatCompletionRequest,
+        discovery::ActivityItem,
+        observability::{
+            CreateObservabilityDestinationRequest, UpdateObservabilityDestinationRequest,
+        },
+    };
+    for policy in ["deny", "allow", "future-policy"] {
+        let provider =
+            json!({"data_collection":policy,"zdr":false,"options":{"openai":{"speed":1}}});
+        let speech: SpeechProviderOptions = serde_json::from_value(provider.clone()).unwrap();
+        let transcription: TranscriptionProviderOptions =
+            serde_json::from_value(provider.clone()).unwrap();
+        assert_eq!(serde_json::to_value(speech).unwrap(), provider);
+        assert_eq!(serde_json::to_value(transcription).unwrap(), provider);
+    }
+    assert_eq!(
+        serde_json::to_value(SpeechProviderOptions::default()).unwrap(),
+        json!({})
+    );
+    assert_eq!(
+        serde_json::to_value(TranscriptionProviderOptions::default()).unwrap(),
+        json!({})
+    );
+    let mut activity = json!({"date":"2026-10-06","model":"test","model_permaslug":"test",
+        "endpoint_id":"test","provider_name":"test","usage":0,"byok_usage_inference":0,
+        "requests":1,"prompt_tokens":1,"completion_tokens":0,"reasoning_tokens":0,"cached_tokens":10});
+    let parsed: ActivityItem = serde_json::from_value(activity.clone()).unwrap();
+    assert_eq!(parsed.cached_tokens, Some(10));
+    activity.as_object_mut().unwrap().remove("cached_tokens");
+    let old: ActivityItem = serde_json::from_value(activity).unwrap();
+    assert_eq!(old.cached_tokens, None);
+    assert!(
+        serde_json::to_value(old)
+            .unwrap()
+            .get("cached_tokens")
+            .is_none()
+    );
+    let tool =
+        json!({"type":"future_server_tool","parameters":{"allowed_domains":["*.example.com"]}});
+    let chat: ChatCompletionRequest =
+        serde_json::from_value(json!({"model":"test","messages":[],"tools":[tool]})).unwrap();
+    assert_eq!(serde_json::to_value(chat).unwrap()["tools"][0], tool);
+    let provider: BatchProviderPreferences =
+        serde_json::from_value(json!({"only":["openai"],"allow_fallbacks":false})).unwrap();
+    assert_eq!(
+        serde_json::to_value(provider).unwrap(),
+        json!({"only":["openai"],"allow_fallbacks":false})
+    );
+    assert_eq!(
+        serde_json::to_value(BatchProviderPreferences::default()).unwrap(),
+        json!({})
+    );
+    let audio = json!({"id":"audio_1","transcript":"hello"});
+    let body = json!({"messages":[{"role":"assistant","audio":audio}]});
+    let batch = BatchRequest::new("one", body.as_object().unwrap().clone());
+    assert_eq!(serde_json::to_value(batch).unwrap()["body"], body);
+    let result: BatchResultResponse = serde_json::from_value(
+        json!({"status_code":200,"body":{"choices":[{"message":{"audio":audio}}]}}),
+    )
+    .unwrap();
+    assert_eq!(result.body["choices"][0]["message"]["audio"], audio);
+    for destination in ["snowflake", "clickhouse"] {
+        let config = json!({"shouldIncludeCacheWriteTokens":true});
+        let create = CreateObservabilityDestinationRequest::builder()
+            .destination_type(destination)
+            .name("cache tokens")
+            .config(config.clone())
+            .build()
+            .unwrap();
+        let update = UpdateObservabilityDestinationRequest::builder()
+            .config(config.clone())
+            .build()
+            .unwrap();
+        assert_eq!(serde_json::to_value(create).unwrap()["config"], config);
+        assert_eq!(serde_json::to_value(update).unwrap()["config"], config);
+    }
+    let image = ImageGenerationRequest::builder()
+        .model("test")
+        .prompt("test")
+        .resolution("1.5K")
+        .build()
+        .unwrap();
+    assert_eq!(serde_json::to_value(image).unwrap()["resolution"], "1.5K");
+}
+
+#[tokio::test]
+async fn issue_257_generation_validation_errors() {
+    let error = json!({"error":{"code":400,"message":"Invalid generation ID","metadata":null},
+        "openrouter_metadata":null,"user_id":null})
+    .to_string();
+    let (url, rx, server) = spawn_server_sequence(vec![(400, error.clone()), (400, error)]);
+    let client = client(url);
+    for result in [
+        client
+            .management()
+            .get_generation("invalid-id")
+            .await
+            .map(|_| ()),
+        client
+            .management()
+            .get_generation_content("invalid-id")
+            .await
+            .map(|_| ()),
+    ] {
+        assert!(
+            matches!(result, Err(openrouter_rs::error::OpenRouterError::Api(e)) if e.status == 400)
+        );
+    }
+    assert_eq!(
+        rx.recv().unwrap().line,
+        "GET /api/v1/generation?id=invalid-id HTTP/1.1"
+    );
+    assert_eq!(
+        rx.recv().unwrap().line,
+        "GET /api/v1/generation/content?id=invalid-id HTTP/1.1"
+    );
+    server.join().unwrap();
+}

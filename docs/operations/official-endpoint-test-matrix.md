@@ -1,18 +1,22 @@
 # Official Endpoint Test Matrix
 
-Snapshot date: 2026-09-30
+Snapshot date: 2026-10-06
 Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)  
 Tracked baseline: `specs/openrouter/openapi-baseline.json`  
 Weekly drift workflow: `.github/workflows/openapi-drift.yml`
 
 ## Coverage Summary
 
-- Official OpenAPI endpoints: `142` method+path entries.
-- SDK implementation coverage (`src/api` + domain client): `129 / 142` (`90.8%`).
-- Live integration coverage (`tests/integration`): `25 / 142` endpoints currently exercised.
+- Official OpenAPI endpoints: `149` method+path entries.
+- SDK implementation coverage (`src/api` + domain client): `136 / 149` (`91.3%`).
+- Live integration coverage (`tests/integration`): `25 / 149` endpoints currently exercised.
   - Covered live now: `GET /oauth/jwks`, `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `POST /rerank`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`, `GET /organization/members`
 
 Drift review note:
+
+- Issue #257 (2026-10-06): accepted all seven new end-user registration and organization settings operations. Local HTTP regression tests in `tests/unit/openapi_issue_251.rs` cover every route, encoded tracking IDs, list filters, management-key selection, attribution headers, false-valued PATCH bodies, 204 deletion, API errors and missing-key rejection. Read-only live smoke tests are opt-in and have not been qualified live; registration writes and organization policy changes are not run unattended.
+- Typed Batch provider `allow_fallbacks`, audio provider `data_collection`/`zdr` and activity `cached_tokens`; omitted audio fields and older activity responses retain their serialization. CLI activity JSON reuses SDK serde and the activity table retains its columns; the CLI has no audio or Batch command surface. CLI checks cover compatibility.
+- Reviewed all 18 changed operations: Batch request/result JSON preserves assistant audio; observability `config` preserves `shouldIncludeCacheWriteTokens`; image resolution strings accept `1.5K`; Chat/preset request deserialization now accepts generic server tools. Tool domain constraints and generation ID format/length constraints remain server-validated; existing API error handling accepts the new generation 400 responses. Messages/Responses, provider and plugin changes continue through existing flexible fields. No migration is required.
 
 - Issue #254 (2026-09-30): accepted all six reported additions (four Batch operations, Intern invoke and daemon-access), plus the newer canonical Intern daemon route. Local HTTP tests reuse `tests/unit/openapi_issue_251.rs` and cover path encoding, API-key/management-key auth, repeated Batch `status` parameters, 202 responses, deletion outcomes and payment-required errors. New routes have no live integration coverage.
 - Accepted stable schema fields: shared provider-specific options, speech image/URL references, endpoint image/multiple-audio capabilities, SCIM display-name/external-ID filters, and transcription URL input, diarization, keyterms, language confidence, entities, channel/speaker labels and word kinds. Existing base64 constructors and pagination methods retain their shapes. Audio builders reject missing/mixed sources and base64 transcription without a format; URL, format and provider constraints remain server-validated.
@@ -157,6 +161,13 @@ Legend:
 | `PATCH /observability/destinations/{id}` | `client.management().update_observability_destination(...)` | Yes | Path | No | P1 |
 | `DELETE /observability/destinations/{id}` | `client.management().delete_observability_destination(...)` | Yes | Path | No | P1 |
 | `GET /organization/members` | `client.management().list_organization_members(...)` | Yes | Path | Yes | Keep |
+| `GET /end-users` | `client.management().list_end_users(...)` | Yes | Path | No | Local HTTP tested; live qualification pending |
+| `POST /end-users` | `client.management().create_end_user(...)` | Yes | Path | No | Local HTTP tested; live qualification pending |
+| `GET /end-users/{user}` | `client.management().get_end_user(...)` | Yes | Path | No | Local HTTP tested; live qualification pending |
+| `PATCH /end-users/{user}` | `client.management().update_end_user(...)` | Yes | Path | No | Local HTTP tested; live qualification pending |
+| `DELETE /end-users/{user}` | `client.management().delete_end_user(...)` | Yes | Path | No | Local HTTP tested; live qualification pending |
+| `GET /organization/settings` | `client.management().get_organization_settings(...)` | Yes | Path | No | Local HTTP tested; live qualification pending |
+| `PATCH /organization/settings` | `client.management().update_organization_settings(...)` | Yes | Path | No | Local HTTP tested; live qualification pending |
 | `GET /presets` | `client.management().list_presets(...)` | Yes | Path | No | P2 |
 | `GET /presets/{slug}` | `client.management().get_preset(...)` | Yes | Path | No | P2 |
 | `POST /presets/{slug}/chat/completions` | `client.management().create_chat_completion_preset(...)` | Yes | Path | No | P2 |

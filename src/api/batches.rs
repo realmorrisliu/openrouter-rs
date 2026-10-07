@@ -53,6 +53,8 @@ impl BatchRequest {
 #[non_exhaustive]
 pub struct BatchProviderPreferences {
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub allow_fallbacks: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub only: Option<Vec<String>>,
 }
 

@@ -28,6 +28,11 @@ pub enum SpeechResponseFormat {
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 #[non_exhaustive]
 pub struct SpeechProviderOptions {
+    /// Provider data retention policy; unknown future policies remain representable.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data_collection: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub zdr: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub options: Option<HashMap<String, serde_json::Value>>,
 }
@@ -36,6 +41,7 @@ impl SpeechProviderOptions {
     pub fn new(options: HashMap<String, serde_json::Value>) -> Self {
         Self {
             options: Some(options),
+            ..Self::default()
         }
     }
 }
@@ -211,6 +217,11 @@ impl TranscriptionInputAudio {
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 #[non_exhaustive]
 pub struct TranscriptionProviderOptions {
+    /// Provider data retention policy; unknown future policies remain representable.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data_collection: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub zdr: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub options: Option<HashMap<String, serde_json::Value>>,
 }
@@ -219,6 +230,7 @@ impl TranscriptionProviderOptions {
     pub fn new(options: HashMap<String, serde_json::Value>) -> Self {
         Self {
             options: Some(options),
+            ..Self::default()
         }
     }
 }

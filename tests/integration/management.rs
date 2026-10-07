@@ -298,3 +298,36 @@ async fn test_scim_sync_job_live() -> Result<(), OpenRouterError> {
     assert!(!job.status.is_empty());
     Ok(())
 }
+
+#[tokio::test]
+#[allow(clippy::result_large_err)]
+async fn test_management_end_users_and_settings_read_smoke() -> Result<(), OpenRouterError> {
+    if !should_run_management_tests() {
+        return Ok(());
+    }
+    let Some(client) = create_management_test_client()? else {
+        return Ok(());
+    };
+    let management = client.management();
+    rate_limit_delay().await;
+    let settings = management.get_organization_settings().await?;
+    smoke_assert(
+        !settings.id.is_empty(),
+        "organization settings must identify the organization",
+    )?;
+    rate_limit_delay().await;
+    let params = openrouter_rs::api::end_users::ListEndUsersParams::builder()
+        .limit(1)
+        .include_inactive(true)
+        .build()?;
+    let users = management.list_end_users(&params).await?;
+    if let Some(user) = users.data.first() {
+        rate_limit_delay().await;
+        let found = management.get_end_user(&user.user).await?;
+        smoke_assert(
+            found.user == user.user,
+            "end-user identity must survive a resource lookup",
+        )?;
+    }
+    Ok(())
+}
