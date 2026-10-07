@@ -259,6 +259,9 @@ if let Some(message) = choice.message() {
 `Choice::message()` returns `None` for streaming and legacy text choices. The conversion
 preserves modeled response fields and rejects missing/unsupported roles; response content
 parts retain the SDK's existing text normalization. See `examples/typed_tool_agent.rs`.
+`ReasoningDetail::summary` and `content()` expose `reasoning.summary` blocks.
+For streaming tool loops, `examples/stream_chat_with_tools.rs` collects text/reasoning
+and retains reasoning-detail objects in arrival order before sending tool results.
 
 Prompt-cache usage is available through `response.usage` → `prompt_tokens_details` →
 `cached_tokens` / `cache_write_tokens`. These are optional provider-reported counts;

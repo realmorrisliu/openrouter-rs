@@ -10,11 +10,14 @@ pub struct ReasoningDetail {
     #[serde(rename = "type")]
     pub block_type: String,
     /// The actual reasoning content (Anthropic uses "text" field)
-    #[serde(alias = "content", default)]
+    #[serde(alias = "content", default, skip_serializing_if = "Option::is_none")]
     pub text: Option<String>,
     /// Encrypted reasoning data (Gemini uses "data" field)
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub data: Option<String>,
+    /// Summary text for a `reasoning.summary` block.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub summary: Option<String>,
     /// Cryptographic signature (Anthropic specific)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub signature: Option<String>,
@@ -42,9 +45,12 @@ pub struct ReasoningDetail {
 }
 
 impl ReasoningDetail {
-    /// Get the content/text of this reasoning detail
+    /// Get the text, encrypted data, or summary of this reasoning detail.
     pub fn content(&self) -> Option<&str> {
-        self.text.as_deref().or(self.data.as_deref())
+        self.text
+            .as_deref()
+            .or(self.data.as_deref())
+            .or(self.summary.as_deref())
     }
 
     /// Get the type of this reasoning block

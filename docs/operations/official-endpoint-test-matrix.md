@@ -14,7 +14,7 @@ Weekly drift workflow: `.github/workflows/openapi-drift.yml`
 
 Chat response regression coverage:
 
-- Issues #259/#260: local serde/request tests cover non-streaming assistant-message replay (including null content, signed/encrypted reasoning and modeled metadata), getter behavior for streaming/legacy choices, and optional prompt-cache usage in both response envelopes. No new endpoint or live qualification is claimed. The CLI has no chat command consuming these types.
+- Issues #259/#260: local serde/request tests cover non-streaming assistant-message replay (including null content, signed/encrypted reasoning and modeled metadata), getter behavior for streaming/legacy choices, and optional prompt-cache usage in both response envelopes. Regression coverage also verifies all four official reasoning variants across message replay and both chat stream adapters. The streaming tool example has a local test for ordered multi-chunk replay, including repeated reasoning indices. No new endpoint or live qualification is claimed. The CLI has no chat command consuming these types.
 
 Drift review note:
 

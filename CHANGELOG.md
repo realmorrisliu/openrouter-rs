@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Batch provider `allow_fallbacks`, audio speech/transcription provider `data_collection` and `zdr` fields, plus optional activity `cached_tokens` for compatibility with older responses.
 
 ### Fixed
+- Preserved `reasoning.summary` payloads and exposed them through `ReasoningDetail::content()` in message replay and both chat stream adapters; absent text/data fields are now omitted instead of emitted as null.
+- Retained streamed text, reasoning, and ordered reasoning details in the streaming tool-calling example's follow-up request.
 - Updated non-streaming tool-agent examples to replay response messages instead of dropping reasoning when rebuilding assistant messages (#259).
 - Preserved arbitrary server-tool types when deserializing chat and preset request bodies, matching the upstream generic tool schema.
 

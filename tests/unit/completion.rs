@@ -110,7 +110,7 @@ fn test_response_with_reasoning_details() {
                     },
                     {
                         "type": "reasoning.summary",
-                        "text": "Summary of reasoning"
+                        "summary": "Summary of reasoning"
                     }
                 ]
             }
@@ -135,6 +135,7 @@ fn test_response_with_reasoning_details() {
         Some("First, I need to consider...")
     );
     assert_eq!(reasoning_details[0].reasoning_type(), "reasoning.text");
+    assert_eq!(reasoning_details[1].content(), Some("Summary of reasoning"));
 }
 
 #[test]
@@ -556,4 +557,56 @@ fn prompt_token_details_preserve_cache_usage_and_optional_fields() {
         serde_json::to_value(ResponseUsage::new(1, 2, 3)).unwrap(),
         minimal
     );
+}
+
+#[tokio::test]
+async fn official_reasoning_blocks_survive_replay_and_stream_adapters() {
+    use futures_util::{StreamExt, stream};
+    use openrouter_rs::{
+        api::chat::{ChatCompletionRequest, Message},
+        types::stream::{StreamEvent, ToolAwareStream, UnifiedStreamEvent, adapt_chat_stream},
+    };
+    use serde_json::json;
+
+    let blocks = json!([
+        {"type": "reasoning.summary", "summary": "Need weather data", "index": 0},
+        {"type": "reasoning.text", "text": "Check Boston", "signature": "signature", "index": 1},
+        {"type": "reasoning.encrypted", "data": "encrypted", "id": "block-2", "index": 2},
+        {"type": "reasoning.server_tool_call", "tool_name": "web_search",
+         "arguments": "{}", "result": "ok", "tool_call_id": "call-3", "index": 3}
+    ]);
+    let choice: Choice = serde_json::from_value(json!({
+        "message": {"role": "assistant", "content": null, "reasoning_details": blocks}
+    }))
+    .unwrap();
+    let request = ChatCompletionRequest::builder()
+        .model("test/model")
+        .messages(vec![Message::try_from(choice.message().unwrap()).unwrap()])
+        .build()
+        .unwrap();
+    assert_eq!(
+        serde_json::to_value(request).unwrap()["messages"][0]["reasoning_details"],
+        blocks
+    );
+
+    let chunk: CompletionsResponse = serde_json::from_value(json!({
+        "id": "reasoning-1", "model": "test/model", "created": 1,
+        "object": "chat.completion.chunk",
+        "choices": [{"delta": {"reasoning_details": blocks}}]
+    }))
+    .unwrap();
+    let mut tool_stream = ToolAwareStream::new(stream::iter(vec![Ok(chunk.clone())]).boxed());
+    let Some(StreamEvent::ReasoningDetailsDelta(details)) = tool_stream.next().await else {
+        panic!("expected reasoning details from tool-aware stream");
+    };
+    assert_eq!(details[0].content(), Some("Need weather data"));
+    assert_eq!(serde_json::to_value(details).unwrap(), blocks);
+
+    let mut unified_stream = adapt_chat_stream(stream::iter(vec![Ok(chunk)]).boxed());
+    let Some(UnifiedStreamEvent::ReasoningDetailsDelta(details)) = unified_stream.next().await
+    else {
+        panic!("expected reasoning details from unified stream");
+    };
+    assert_eq!(details[0].content(), Some("Need weather data"));
+    assert_eq!(serde_json::to_value(details).unwrap(), blocks);
 }
