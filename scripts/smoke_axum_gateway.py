@@ -62,31 +62,36 @@ def main():
             else:
                 raise RuntimeError("Gateway did not become healthy")
 
-            command = [
-                "curl", "--no-buffer", "--silent", "--show-error", "--fail-with-body",
-                "--max-time", "75", "http://127.0.0.1:3000/chat/stream",
-                "-H", "content-type: application/json", "-d",
-                json.dumps({"prompt": "Write three short sentences about Rust.", "max_tokens": 128}),
-            ]
-            started = time.monotonic()
-            first_event = None
-            lines = []
-            with subprocess.Popen(command, stdout=subprocess.PIPE, text=True, encoding="utf-8") as curl:
-                for line in curl.stdout:
-                    lines.append(line)
-                    if line.startswith("event: chunk") and first_event is None:
-                        first_event = time.monotonic() - started
-                assert curl.wait() == 0, "curl request failed"
-            transcript = "".join(lines)
-            (output / "stream.txt").write_text(transcript)
-            chunks, text, usage = validate_transcript(transcript)
-            report = {
-                "model": chunks[0]["model"], "generation_id": chunks[0]["id"],
-                "chunks": len(chunks), "first_event_seconds": first_event,
-                "elapsed_seconds": time.monotonic() - started, "text": text, "usage": usage,
-            }
-            (output / "result.json").write_text(json.dumps(report, indent=2) + "\n")
-            print(json.dumps(report, indent=2))
+            for prefix, payload in (
+                ("", {"prompt": "Write three short sentences about Rust.", "max_tokens": 128}),
+                ("reasoning-", {"prompt": "Write three short sentences about Rust.",
+                                "max_tokens": 2048, "reasoning": {"effort": "low"}}),
+            ):
+                command = [
+                    "curl", "--no-buffer", "--silent", "--show-error", "--fail-with-body",
+                    "--max-time", "75", "http://127.0.0.1:3000/chat/stream",
+                    "-H", "content-type: application/json", "-d",
+                    json.dumps(payload),
+                ]
+                started = time.monotonic()
+                first_event = None
+                lines = []
+                with subprocess.Popen(command, stdout=subprocess.PIPE, text=True, encoding="utf-8") as curl:
+                    for line in curl.stdout:
+                        lines.append(line)
+                        if line.startswith("event: chunk") and first_event is None:
+                            first_event = time.monotonic() - started
+                    assert curl.wait() == 0, "curl request failed"
+                transcript = "".join(lines)
+                (output / f"{prefix}stream.txt").write_text(transcript)
+                chunks, text, usage = validate_transcript(transcript)
+                report = {
+                    "request": payload, "model": chunks[0]["model"], "generation_id": chunks[0]["id"],
+                    "chunks": len(chunks), "first_event_seconds": first_event,
+                    "elapsed_seconds": time.monotonic() - started, "text": text, "usage": usage,
+                }
+                (output / f"{prefix}result.json").write_text(json.dumps(report, indent=2) + "\n")
+                print(json.dumps(report, indent=2))
         finally:
             server.terminate()
             try:
