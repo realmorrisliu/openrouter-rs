@@ -32,7 +32,7 @@ use openrouter_rs::{
     OpenRouterClient,
     api::chat::{ChatCompletionRequest, Message},
     error::OpenRouterError,
-    types::{Role, completion::FinishReason},
+    types::{Effort, Role, completion::FinishReason},
 };
 use serde::{Deserialize, Serialize};
 use tokio::time::{Instant, timeout, timeout_at};
@@ -172,6 +172,8 @@ fn build_request(
         .model(model)
         .messages(messages)
         .max_tokens(payload.max_tokens)
+        // Reserve the small tutorial budget for visible text, not reasoning.
+        .reasoning_effort(Effort::None)
         .build()
         .map_err(map_sdk_error)
 }
@@ -350,6 +352,7 @@ mod tests {
             "/chat/completions",
             post(move |Json(payload): Json<Value>| {
                 assert_eq!(payload["stream"], true);
+                assert_eq!(payload["reasoning"]["effort"], "none");
                 let release = producer.clone();
                 async move {
                     let frames = vec![
