@@ -452,3 +452,20 @@ fn test_chat_request_plugins_and_stream_options_serialize() {
     assert_eq!(json["stream_options"]["include_usage"], true);
     assert_eq!(json["debug"]["echo_upstream_body"], true);
 }
+
+#[test]
+fn legacy_include_reasoning_round_trips_without_enabling_reasoning() {
+    for include in [true, false] {
+        let request = ChatCompletionRequest::builder()
+            .model("test/model")
+            .messages(vec![Message::new(Role::User, "What is 2+2?")])
+            .include_reasoning(include)
+            .build()
+            .unwrap();
+        let body = serde_json::to_value(request).unwrap();
+        assert_eq!(body["include_reasoning"], include);
+        assert!(body.get("reasoning").is_none());
+        let restored: ChatCompletionRequest = serde_json::from_value(body.clone()).unwrap();
+        assert_eq!(serde_json::to_value(restored).unwrap(), body);
+    }
+}

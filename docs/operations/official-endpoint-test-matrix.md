@@ -1,15 +1,15 @@
 # Official Endpoint Test Matrix
 
-Snapshot date: 2026-10-06
+Snapshot date: 2026-10-13
 Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)  
 Tracked baseline: `specs/openrouter/openapi-baseline.json`  
 Weekly drift workflow: `.github/workflows/openapi-drift.yml`
 
 ## Coverage Summary
 
-- Official OpenAPI endpoints: `149` method+path entries.
-- SDK implementation coverage (`src/api` + domain client): `136 / 149` (`91.3%`).
-- Live integration coverage (`tests/integration`): `25 / 149` endpoints currently exercised.
+- Official OpenAPI endpoints: `151` method+path entries.
+- SDK implementation coverage (`src/api` + domain client): `138 / 151` (`91.4%`).
+- Live integration coverage (`tests/integration`): `25 / 151` endpoints currently exercised.
   - Covered live now: `GET /oauth/jwks`, `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `POST /rerank`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`, `GET /organization/members`
 
 Chat response regression coverage:
@@ -17,6 +17,12 @@ Chat response regression coverage:
 - Issues #259/#260: local serde/request tests cover non-streaming assistant-message replay (including null content, signed/encrypted reasoning and modeled metadata), getter behavior for streaming/legacy choices, and optional prompt-cache usage in both response envelopes. Regression coverage also verifies all four official reasoning variants across message replay and both chat stream adapters. The streaming tool example has a local test for ordered multi-chunk replay, including repeated reasoning indices. No new endpoint or live qualification is claimed. The CLI has no chat command consuming these types.
 
 Drift review note:
+
+- Issue #264 (2026-10-13): accepted canonical `POST /interns/{internId}/daemon/sign` and the deprecated `daemon-access/sign` alias. Local HTTP tests cover encoded paths, digest request casing/validation, both routes, OAuth session bearer forwarding, attribution headers, 403 responses for ordinary API keys and insufficient grants, malformed credential errors and absent auth. Signature values have no Debug implementation. These routes require an `ori login --oidc` session with `vault:read`, including the deprecated alias; ordinary API keys and `interns`-only grants are rejected with 403. The existing client `api_key` slot forwards the session token. Mock tests verify forwarding and error handling; session/scope validation remains server-owned and has no live qualification.
+- Added BYOK declared regions with omit/set/clear/reset semantics, key budgets/effective budget and last-used timestamps, expired-key filtering, key workspace moves, video expiration, speech turn input/instructions, portable deferred-tool controls, chat function deferral flags, and Messages tool-search result blocks (including streaming). Older responses and text-input builder calls remain compatible; direct speech input field access needs the documented enum migration.
+- Reviewed all 27 changed operations: Responses input/output/tool-search results, allowed callers/output schemas, failable server tools and Batch result bodies use existing flexible JSON; plugins preserve `cost_tier`/`judge_model`; provider names remain strings. End-user ID constraints and the 500-key bulk assignment limit remain server-validated; new conflict/forbidden statuses use existing typed error handling. Existing 13 deferred operations remain deferred.
+- API-key update supports `clear_limit()` with explicit null, including combined workspace moves. Shared PATCH deserialization now preserves existing explicit-null clear operations for API-key, BYOK, guardrail and observability requests, including the new BYOK region. Regression tests cover omit/set/clear/reset, JSON round trips, empty arrays, false values, invalid types and an HTTP body containing `"limit": null`.
+- CLI audit: key list/update retain existing positional methods and snapshots; optional new response fields are omitted when absent. CLI has no speech/chat/Messages/Responses/Intern signing commands. No CLI flags change. The legacy live reasoning assertion now follows upstream `include_reasoning: true` semantics (`reasoning: {}`); explicit enablement is separately tested.
 
 - Issue #257 (2026-10-06): accepted all seven new end-user registration and organization settings operations. Local HTTP regression tests in `tests/unit/openapi_issue_251.rs` cover every route, encoded tracking IDs, list filters, management-key selection, attribution headers, false-valued PATCH bodies, 204 deletion, API errors and missing-key rejection. Read-only live smoke tests are opt-in and have not been qualified live; registration writes and organization policy changes are not run unattended.
 - Typed Batch provider `allow_fallbacks`, audio provider `data_collection`/`zdr` and activity `cached_tokens`; omitted audio fields and older activity responses retain their serialization. CLI activity JSON reuses SDK serde and the activity table retains its columns; the CLI has no audio or Batch command surface. CLI checks cover compatibility.
@@ -139,6 +145,8 @@ Legend:
 | `DELETE /batches/{id}` | `client.batches().delete(...)` | Yes | Contract | No | P1 |
 | `GET /interns/{internId}/daemon` | `client.interns().daemon(...)` | Yes | Path | No | P1 |
 | `GET /interns/{internId}/daemon-access` | `client.interns().daemon_access(...)` (deprecated upstream alias) | Yes | Path | No | P1 |
+| `POST /interns/{internId}/daemon/sign` | `client.interns().sign_daemon(...)` | Yes | Path | No | OIDC session with `vault:read`; local HTTP tested; live qualification pending |
+| `POST /interns/{internId}/daemon-access/sign` | `client.interns().sign_daemon_access(...)` (deprecated upstream alias) | Yes | Path | No | Same OIDC session and `vault:read` requirements as canonical signing route; local HTTP tested; live qualification pending |
 | `POST /interns/{internId}/invoke` | `client.interns().invoke(...)` | Yes | Contract | No | P1 |
 | `DELETE /interns/{internId}` | `client.interns().delete(...)` | Yes | Path | No | P1 |
 | `GET /interns` | `client.interns().list(...)` | Yes | Path | No | P1 |

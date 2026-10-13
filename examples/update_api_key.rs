@@ -1,4 +1,4 @@
-use openrouter_rs::OpenRouterClient;
+use openrouter_rs::{OpenRouterClient, api::api_keys::UpdateApiKeyRequest};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -8,13 +8,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .management_key(management_key)
         .build()?;
 
+    let request = UpdateApiKeyRequest::builder()
+        .name("New API Key Name")
+        .disabled(false)
+        .limit(200.0) // Use clear_limit() instead to remove the spending limit.
+        .build()?;
     let updated_api_key = client
-        .update_api_key(
-            "your_key_hash",
-            Some("New API Key Name".to_string()),
-            Some(false),
-            Some(200.0),
-        )
+        .management()
+        .update_api_key_with_request("your_key_hash", &request)
         .await?;
     println!("{updated_api_key:?}");
 

@@ -46,15 +46,65 @@ impl SpeechProviderOptions {
     }
 }
 
+/// Text or ordered speaker turns for speech generation.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[non_exhaustive]
+#[serde(untagged)]
+pub enum SpeechInput {
+    Text(String),
+    Turns(Vec<SpeechTurn>),
+}
+
+impl From<String> for SpeechInput {
+    fn from(text: String) -> Self {
+        Self::Text(text)
+    }
+}
+
+impl From<&str> for SpeechInput {
+    fn from(text: &str) -> Self {
+        Self::Text(text.into())
+    }
+}
+
+impl From<Vec<SpeechTurn>> for SpeechInput {
+    fn from(turns: Vec<SpeechTurn>) -> Self {
+        Self::Turns(turns)
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Builder)]
+#[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
+pub struct SpeechTurn {
+    #[builder(setter(into))]
+    pub text: String,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub voice: Option<String>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub instructions: Option<String>,
+}
+
+impl SpeechTurn {
+    pub fn builder() -> SpeechTurnBuilder {
+        SpeechTurnBuilder::default()
+    }
+}
+
 /// Request payload for `POST /audio/speech`.
 #[non_exhaustive]
 #[derive(Serialize, Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 pub struct SpeechRequest {
     #[builder(setter(into))]
-    pub input: String,
+    pub input: SpeechInput,
     #[builder(setter(into))]
     pub model: String,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub instructions: Option<String>,
     #[builder(setter(into), default)]
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub voice: String,

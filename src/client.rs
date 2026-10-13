@@ -2753,6 +2753,55 @@ pub struct InternsClient<'a> {
 }
 
 impl InternsClient<'_> {
+    /// Sign the SHA-256 digest of a daemon invocation body.
+    /// Configure the client's `api_key` bearer slot with the OAuth access token from
+    /// `ori login --oidc`, whose grant must include `vault:read`. Ordinary API keys
+    /// and `interns`-only grants are refused with 403 by the server.
+    pub async fn sign_daemon(
+        &self,
+        intern_id: &str,
+        request: &interns::SignInternDaemonRequest,
+    ) -> Result<interns::SignInternDaemonResponse, OpenRouterError> {
+        interns::sign_daemon_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
+            intern_id,
+            "daemon/sign",
+            request,
+        )
+        .await
+    }
+
+    /// Deprecated upstream alias; uses the same OAuth session and `vault:read`
+    /// requirements as [`Self::sign_daemon`].
+    #[deprecated(note = "use sign_daemon")]
+    pub async fn sign_daemon_access(
+        &self,
+        intern_id: &str,
+        request: &interns::SignInternDaemonRequest,
+    ) -> Result<interns::SignInternDaemonResponse, OpenRouterError> {
+        interns::sign_daemon_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
+            intern_id,
+            "daemon-access/sign",
+            request,
+        )
+        .await
+    }
+
     /// Start or steer a run; the returned session can be used to continue it.
     pub async fn invoke(
         &self,
@@ -4144,6 +4193,42 @@ impl<'a> ManagementClient<'a> {
         self.client
             .update_api_key(hash, name, disabled, limit)
             .await
+    }
+
+    /// List API keys with expired-key and workspace filters.
+    pub async fn list_api_keys_with_params(
+        &self,
+        params: &api_keys::ListApiKeysParams,
+    ) -> Result<Vec<api_keys::ApiKey>, OpenRouterError> {
+        api_keys::list_api_keys_with_params_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client
+                .management_key
+                .as_deref()
+                .ok_or(OpenRouterError::KeyNotConfigured)?,
+            params,
+        )
+        .await
+    }
+
+    /// Update API key fields, optionally moving the key to another workspace.
+    pub async fn update_api_key_with_request(
+        &self,
+        hash: &str,
+        request: &api_keys::UpdateApiKeyRequest,
+    ) -> Result<api_keys::ApiKey, OpenRouterError> {
+        api_keys::update_api_key_body_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client
+                .management_key
+                .as_deref()
+                .ok_or(OpenRouterError::KeyNotConfigured)?,
+            hash,
+            request,
+        )
+        .await
     }
 
     /// List API keys (`GET /keys`).

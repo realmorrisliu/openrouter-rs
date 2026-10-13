@@ -103,6 +103,10 @@ impl From<Vec<AnthropicContentPart>> for AnthropicMessageContent {
 #[non_exhaustive]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum AnthropicContentPart {
+    OpenrouterToolSearchResult {
+        tool_use_id: String,
+        content: Value,
+    },
     OpenrouterBashToolResult {
         tool_use_id: String,
         content: Value,
@@ -588,6 +592,9 @@ pub struct AnthropicMessagesRequest {
 
     #[builder(setter(custom), default)]
     safeguards: Option<Vec<Value>>,
+    /// Portable deferred-tool discovery configuration; validated by the server.
+    #[builder(setter(strip_option), default)]
+    deferred_tools: Option<Value>,
 }
 
 #[derive(Deserialize)]
@@ -617,6 +624,7 @@ struct AnthropicMessagesRequestWire {
     models: Option<Vec<String>>,
     output_config: Option<AnthropicOutputConfig>,
     safeguards: Option<Vec<Value>>,
+    deferred_tools: Option<Value>,
 }
 
 type SplitAnthropicMessageTools = (
@@ -635,6 +643,7 @@ impl<'de> Deserialize<'de> for AnthropicMessagesRequest {
         })?;
 
         Ok(Self {
+            deferred_tools: wire.deferred_tools,
             model: wire.model,
             max_tokens: wire.max_tokens,
             messages: wire.messages,
@@ -736,6 +745,7 @@ impl Serialize for AnthropicMessagesRequest {
     {
         let mut map = serde_json::Map::new();
 
+        insert_json_option::<_, S::Error>(&mut map, "deferred_tools", &self.deferred_tools)?;
         insert_json_field::<_, S::Error>(&mut map, "model", &self.model)?;
         insert_json_field::<_, S::Error>(&mut map, "max_tokens", &self.max_tokens)?;
         insert_json_field::<_, S::Error>(&mut map, "messages", &self.messages)?;

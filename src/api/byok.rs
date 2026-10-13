@@ -42,6 +42,8 @@ pub struct ByokKey {
     pub is_required: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub declared_zdr: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub declared_region: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub allowed_models: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -99,6 +101,9 @@ pub struct CreateByokKeyRequest {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub declared_zdr: Option<bool>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub declared_region: Option<String>,
 }
 
 impl CreateByokKeyRequest {
@@ -114,7 +119,7 @@ impl CreateByokKeyRequestBuilder {
 }
 
 /// Request payload for updating a BYOK credential (`PATCH /byok/{id}`).
-#[derive(Deserialize, Debug, Clone, Builder)]
+#[derive(Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
 pub struct UpdateByokKeyRequest {
@@ -122,22 +127,18 @@ pub struct UpdateByokKeyRequest {
     pub key: Option<String>,
     #[builder(setter(custom), default)]
     pub name: Option<String>,
-    #[serde(skip)]
     #[builder(setter(custom), default)]
     clear_name: bool,
     #[builder(setter(custom), default)]
     pub allowed_models: Option<Vec<String>>,
-    #[serde(skip)]
     #[builder(setter(custom), default)]
     clear_allowed_models: bool,
     #[builder(setter(custom), default)]
     pub allowed_api_key_hashes: Option<Vec<String>>,
-    #[serde(skip)]
     #[builder(setter(custom), default)]
     clear_allowed_api_key_hashes: bool,
     #[builder(setter(custom), default)]
     pub allowed_user_ids: Option<Vec<String>>,
-    #[serde(skip)]
     #[builder(setter(custom), default)]
     clear_allowed_user_ids: bool,
     #[builder(setter(strip_option), default)]
@@ -150,10 +151,32 @@ pub struct UpdateByokKeyRequest {
     pub is_required: Option<bool>,
     #[builder(setter(custom), default)]
     pub declared_zdr: Option<bool>,
-    #[serde(skip)]
     #[builder(setter(custom), default)]
     clear_declared_zdr: bool,
+    #[builder(setter(custom), default)]
+    pub declared_region: Option<String>,
+    #[builder(setter(custom), default)]
+    clear_declared_region: bool,
 }
+
+crate::utils::deserialize_nullable_patch!(
+    UpdateByokKeyRequest,
+    {
+        key: String,
+        disabled: bool,
+        is_fallback: bool,
+        is_byok_only: bool,
+        is_required: bool,
+    },
+    {
+        name: String => clear_name,
+        allowed_models: Vec<String> => clear_allowed_models,
+        allowed_api_key_hashes: Vec<String> => clear_allowed_api_key_hashes,
+        allowed_user_ids: Vec<String> => clear_allowed_user_ids,
+        declared_zdr: bool => clear_declared_zdr,
+        declared_region: String => clear_declared_region,
+    }
+);
 
 impl Serialize for UpdateByokKeyRequest {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -164,25 +187,25 @@ impl Serialize for UpdateByokKeyRequest {
         if let Some(value) = &self.key {
             map.serialize_entry("key", value)?;
         }
-        if self.clear_name {
-            map.serialize_entry("name", &Option::<String>::None)?;
-        } else if let Some(value) = &self.name {
+        if let Some(value) = &self.name {
             map.serialize_entry("name", value)?;
+        } else if self.clear_name {
+            map.serialize_entry("name", &Option::<String>::None)?;
         }
-        if self.clear_allowed_models {
-            map.serialize_entry("allowed_models", &Option::<Vec<String>>::None)?;
-        } else if let Some(value) = &self.allowed_models {
+        if let Some(value) = &self.allowed_models {
             map.serialize_entry("allowed_models", value)?;
+        } else if self.clear_allowed_models {
+            map.serialize_entry("allowed_models", &Option::<Vec<String>>::None)?;
         }
-        if self.clear_allowed_api_key_hashes {
-            map.serialize_entry("allowed_api_key_hashes", &Option::<Vec<String>>::None)?;
-        } else if let Some(value) = &self.allowed_api_key_hashes {
+        if let Some(value) = &self.allowed_api_key_hashes {
             map.serialize_entry("allowed_api_key_hashes", value)?;
+        } else if self.clear_allowed_api_key_hashes {
+            map.serialize_entry("allowed_api_key_hashes", &Option::<Vec<String>>::None)?;
         }
-        if self.clear_allowed_user_ids {
-            map.serialize_entry("allowed_user_ids", &Option::<Vec<String>>::None)?;
-        } else if let Some(value) = &self.allowed_user_ids {
+        if let Some(value) = &self.allowed_user_ids {
             map.serialize_entry("allowed_user_ids", value)?;
+        } else if self.clear_allowed_user_ids {
+            map.serialize_entry("allowed_user_ids", &Option::<Vec<String>>::None)?;
         }
         if let Some(value) = &self.disabled {
             map.serialize_entry("disabled", value)?;
@@ -196,10 +219,15 @@ impl Serialize for UpdateByokKeyRequest {
         if let Some(value) = &self.is_required {
             map.serialize_entry("is_required", value)?;
         }
-        if self.clear_declared_zdr {
-            map.serialize_entry("declared_zdr", &Option::<bool>::None)?;
-        } else if let Some(value) = &self.declared_zdr {
+        if let Some(value) = &self.declared_zdr {
             map.serialize_entry("declared_zdr", value)?;
+        } else if self.clear_declared_zdr {
+            map.serialize_entry("declared_zdr", &Option::<bool>::None)?;
+        }
+        if let Some(value) = &self.declared_region {
+            map.serialize_entry("declared_region", value)?;
+        } else if self.clear_declared_region {
+            map.serialize_entry("declared_region", &Option::<String>::None)?;
         }
         map.end()
     }
@@ -212,6 +240,18 @@ impl UpdateByokKeyRequest {
 }
 
 impl UpdateByokKeyRequestBuilder {
+    pub fn declared_region(&mut self, value: impl Into<String>) -> &mut Self {
+        self.declared_region = Some(Some(value.into()));
+        self.clear_declared_region = Some(false);
+        self
+    }
+
+    pub fn clear_declared_region(&mut self) -> &mut Self {
+        self.declared_region = Some(None);
+        self.clear_declared_region = Some(true);
+        self
+    }
+
     pub fn declared_zdr(&mut self, value: Option<bool>) -> &mut Self {
         self.declared_zdr = Some(value);
         self.clear_declared_zdr = Some(false);

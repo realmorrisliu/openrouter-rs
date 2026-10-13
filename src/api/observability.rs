@@ -170,12 +170,11 @@ impl CreateObservabilityDestinationRequestBuilder {
 }
 
 /// Request payload for updating an observability destination.
-#[derive(Deserialize, Debug, Clone, Builder)]
+#[derive(Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
 pub struct UpdateObservabilityDestinationRequest {
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub regions: Option<Vec<String>>,
     #[builder(setter(into, strip_option), default)]
     pub name: Option<String>,
@@ -183,7 +182,6 @@ pub struct UpdateObservabilityDestinationRequest {
     pub config: Option<Value>,
     #[builder(setter(custom), default)]
     pub api_key_hashes: Option<Vec<String>>,
-    #[serde(skip)]
     #[builder(setter(custom), default)]
     clear_api_key_hashes: bool,
     #[builder(setter(strip_option), default)]
@@ -194,7 +192,6 @@ pub struct UpdateObservabilityDestinationRequest {
     pub sampling_rate: Option<f64>,
     #[builder(setter(custom), default)]
     pub filter_rules: Option<ObservabilityFilterRulesConfig>,
-    #[serde(skip)]
     #[builder(setter(custom), default)]
     clear_filter_rules: bool,
     #[builder(setter(strip_option), default)]
@@ -204,6 +201,25 @@ pub struct UpdateObservabilityDestinationRequest {
     #[builder(setter(strip_option), default)]
     pub broadcast_generation_request_context: Option<bool>,
 }
+
+crate::utils::deserialize_nullable_patch!(
+    UpdateObservabilityDestinationRequest,
+    {
+        regions: Vec<String>,
+        name: String,
+        config: Value,
+        enabled: bool,
+        privacy_mode: bool,
+        sampling_rate: f64,
+        broadcast_generation_cost: bool,
+        broadcast_generation_identity: bool,
+        broadcast_generation_request_context: bool,
+    },
+    {
+        api_key_hashes: Vec<String> => clear_api_key_hashes,
+        filter_rules: ObservabilityFilterRulesConfig => clear_filter_rules,
+    }
+);
 
 impl Serialize for UpdateObservabilityDestinationRequest {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -220,10 +236,10 @@ impl Serialize for UpdateObservabilityDestinationRequest {
         if let Some(value) = &self.config {
             map.serialize_entry("config", value)?;
         }
-        if self.clear_api_key_hashes {
-            map.serialize_entry("api_key_hashes", &Option::<Vec<String>>::None)?;
-        } else if let Some(value) = &self.api_key_hashes {
+        if let Some(value) = &self.api_key_hashes {
             map.serialize_entry("api_key_hashes", value)?;
+        } else if self.clear_api_key_hashes {
+            map.serialize_entry("api_key_hashes", &Option::<Vec<String>>::None)?;
         }
         if let Some(value) = &self.enabled {
             map.serialize_entry("enabled", value)?;
@@ -234,13 +250,13 @@ impl Serialize for UpdateObservabilityDestinationRequest {
         if let Some(value) = &self.sampling_rate {
             map.serialize_entry("sampling_rate", value)?;
         }
-        if self.clear_filter_rules {
+        if let Some(value) = &self.filter_rules {
+            map.serialize_entry("filter_rules", value)?;
+        } else if self.clear_filter_rules {
             map.serialize_entry(
                 "filter_rules",
                 &Option::<ObservabilityFilterRulesConfig>::None,
             )?;
-        } else if let Some(value) = &self.filter_rules {
-            map.serialize_entry("filter_rules", value)?;
         }
         if let Some(value) = &self.broadcast_generation_cost {
             map.serialize_entry("broadcast_generation_cost", value)?;

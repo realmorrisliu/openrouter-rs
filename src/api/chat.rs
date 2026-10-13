@@ -755,6 +755,9 @@ pub struct ChatCompletionRequest {
 
     #[builder(setter(strip_option), default)]
     parallel_tool_calls: Option<bool>,
+    /// Portable deferred-tool discovery configuration; validated by the server.
+    #[builder(setter(strip_option), default)]
+    deferred_tools: Option<Value>,
 }
 
 #[derive(Deserialize)]
@@ -802,6 +805,7 @@ struct ChatCompletionRequestWire {
     tools: Option<Vec<Value>>,
     tool_choice: Option<crate::types::ToolChoice>,
     parallel_tool_calls: Option<bool>,
+    deferred_tools: Option<Value>,
 }
 
 type SplitChatTools = (
@@ -819,6 +823,7 @@ impl<'de> Deserialize<'de> for ChatCompletionRequest {
             .map_err(|error| de::Error::custom(format!("invalid chat tools entry: {error}")))?;
 
         Ok(Self {
+            deferred_tools: wire.deferred_tools,
             model: wire.model,
             messages: wire.messages,
             stream: wire.stream,
@@ -938,6 +943,7 @@ impl Serialize for ChatCompletionRequest {
     {
         let mut map = serde_json::Map::new();
 
+        insert_json_option::<_, S::Error>(&mut map, "deferred_tools", &self.deferred_tools)?;
         insert_json_field::<_, S::Error>(&mut map, "model", &self.model)?;
         insert_json_field::<_, S::Error>(&mut map, "messages", &self.messages)?;
         insert_json_option::<_, S::Error>(&mut map, "stream", &self.stream)?;
