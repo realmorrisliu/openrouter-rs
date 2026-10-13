@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Make the typed-tool agent example fail on incomplete responses and exhausted limits, preserve correlated assistant/tool messages, and verify the real bounded tool loop with a configurable model and reasoning. Its tools return explicitly labeled demo fixtures.
+
 ### Changed
 - Put SDK installation, a complete Quick Start, and common workflows before detailed API coverage in the README; updated the community setup page to use maintained installation guidance.
 

@@ -87,7 +87,7 @@ These commands run from a checkout of this repository with `OPENROUTER_API_KEY` 
 | Goal | Run | Guide |
 | --- | --- | --- |
 | Stream a chat response | `cargo run --example stream_chat_completion` | [Streaming example](examples/stream_chat_completion.rs) |
-| Execute typed tools in a bounded agent loop | `cargo run --example typed_tool_agent` | [Typed tool agent](examples/typed_tool_agent.rs) |
+| Execute typed tools against fixed demo fixtures in a bounded agent loop | `cargo run --example typed_tool_agent` | [Typed tool agent](examples/typed_tool_agent.rs) |
 | Inspect credits and manage API keys | `cargo run --example get_credits` | [CLI usage recipes](docs/operations/cli-automation-workflows.md) and [key management](examples/domain_management_api_keys.rs) |
 
 Management-governed endpoints require `OPENROUTER_MANAGEMENT_KEY`; ordinary chat and credits requests use `OPENROUTER_API_KEY`. For a minimal HTTP server, see the [Axum chat gateway](examples/axum_chat_gateway.rs).
