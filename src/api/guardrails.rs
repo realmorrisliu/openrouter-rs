@@ -234,7 +234,7 @@ impl CreateGuardrailRequest {
 }
 
 /// Request payload for updating a guardrail (`PATCH /guardrails/{id}`).
-#[derive(Deserialize, Debug, Clone, Builder)]
+#[derive(Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
 pub struct UpdateGuardrailRequest {
@@ -256,27 +256,22 @@ pub struct UpdateGuardrailRequest {
     reset_interval: Option<String>,
     #[builder(setter(custom), default)]
     allowed_providers: Option<Vec<String>>,
-    #[serde(skip)]
     #[builder(setter(custom), default)]
     clear_allowed_providers: bool,
     #[builder(setter(custom), default)]
     allowed_models: Option<Vec<String>>,
-    #[serde(skip)]
     #[builder(setter(custom), default)]
     clear_allowed_models: bool,
     #[builder(setter(custom), default)]
     allowed_data_regions: Option<Vec<String>>,
-    #[serde(skip)]
     #[builder(setter(custom), default)]
     clear_allowed_data_regions: bool,
     #[builder(setter(custom), default)]
     content_filter_builtins: Option<Vec<ContentFilterBuiltinEntry>>,
-    #[serde(skip)]
     #[builder(setter(custom), default)]
     clear_content_filter_builtins: bool,
     #[builder(setter(custom), default)]
     content_filters: Option<Vec<ContentFilterEntry>>,
-    #[serde(skip)]
     #[builder(setter(custom), default)]
     clear_content_filters: bool,
     #[builder(setter(strip_option), default)]
@@ -292,6 +287,33 @@ pub struct UpdateGuardrailRequest {
     #[builder(setter(strip_option), default)]
     enforce_zdr_xai: Option<bool>,
 }
+
+crate::utils::deserialize_nullable_patch!(
+    UpdateGuardrailRequest,
+    {
+        name: String,
+        description: String,
+        limit_usd: f64,
+        include_byok_in_budgets: bool,
+        enable_free_model_publication: bool,
+        enable_free_model_training: bool,
+        enable_paid_model_training: bool,
+        reset_interval: String,
+        enforce_zdr: bool,
+        enforce_zdr_anthropic: bool,
+        enforce_zdr_openai: bool,
+        enforce_zdr_google: bool,
+        enforce_zdr_other: bool,
+        enforce_zdr_xai: bool,
+    },
+    {
+        allowed_providers: Vec<String> => clear_allowed_providers,
+        allowed_models: Vec<String> => clear_allowed_models,
+        allowed_data_regions: Vec<String> => clear_allowed_data_regions,
+        content_filter_builtins: Vec<ContentFilterBuiltinEntry> => clear_content_filter_builtins,
+        content_filters: Vec<ContentFilterEntry> => clear_content_filters,
+    }
+);
 
 impl Serialize for UpdateGuardrailRequest {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

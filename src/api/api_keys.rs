@@ -175,22 +175,72 @@ impl ExternalApiKeyIdentity {
 }
 
 /// Optional key updates; the legacy helper retains its null-valued fields.
-#[derive(Serialize, Deserialize, Debug, Clone, Default, Builder)]
+#[derive(Debug, Clone, Default, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
 pub struct UpdateApiKeyRequest {
     #[builder(setter(into, strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub disabled: Option<bool>,
-    #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(setter(custom), default)]
     pub limit: Option<f64>,
+    #[builder(setter(custom), default)]
+    clear_limit: bool,
     #[builder(setter(into, strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub workspace_id: Option<String>,
+}
+
+crate::utils::deserialize_nullable_patch!(
+    UpdateApiKeyRequest,
+    {
+        name: String,
+        disabled: bool,
+        workspace_id: String,
+    },
+    {
+        limit: f64 => clear_limit,
+    }
+);
+
+impl Serialize for UpdateApiKeyRequest {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeMap;
+        let mut map = serializer.serialize_map(None)?;
+        if let Some(value) = &self.name {
+            map.serialize_entry("name", value)?;
+        }
+        if let Some(value) = self.disabled {
+            map.serialize_entry("disabled", &value)?;
+        }
+        if let Some(value) = self.limit {
+            map.serialize_entry("limit", &value)?;
+        } else if self.clear_limit {
+            map.serialize_entry("limit", &Option::<f64>::None)?;
+        }
+        if let Some(value) = &self.workspace_id {
+            map.serialize_entry("workspace_id", value)?;
+        }
+        map.end()
+    }
+}
+
+impl UpdateApiKeyRequestBuilder {
+    pub fn limit(&mut self, limit: f64) -> &mut Self {
+        self.limit = Some(Some(limit));
+        self.clear_limit = Some(false);
+        self
+    }
+
+    /// Remove the spending limit; omitting limit leaves it unchanged.
+    pub fn clear_limit(&mut self) -> &mut Self {
+        self.limit = Some(None);
+        self.clear_limit = Some(true);
+        self
+    }
 }
 
 impl UpdateApiKeyRequest {

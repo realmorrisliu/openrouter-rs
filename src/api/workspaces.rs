@@ -147,18 +147,10 @@ pub struct UpdateWorkspaceRequest {
     #[builder(setter(custom), default)]
     #[serde(
         default,
-        deserialize_with = "deserialize_nullable_option",
+        deserialize_with = "crate::utils::deserialize_nullable_option",
         skip_serializing_if = "Option::is_none"
     )]
     pub disabled_server_tools: Option<Option<Vec<String>>>,
-}
-
-fn deserialize_nullable_option<'de, D, T>(deserializer: D) -> Result<Option<Option<T>>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-    T: Deserialize<'de>,
-{
-    Option::<T>::deserialize(deserializer).map(Some)
 }
 
 impl UpdateWorkspaceRequestBuilder {

@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `SpeechRequest::input` now uses `SpeechInput` for text or ordered turns; existing `.input("text")` builder calls and text JSON retain their shape. Direct field access must handle the enum (see `MIGRATION.md`). Existing CLI key list/update calls retain their wire shapes; no CLI flags change.
 
 ### Fixed
+- Added explicit API-key limit clearing and preserved null clear operations during JSON deserialization for API-key, BYOK, guardrail and observability PATCH requests, retaining existing public field types and builder methods.
 - Corrected daemon-signing example and documentation to require an OIDC session credential instead of an ordinary API key, including the deprecated signing alias.
 - Corrected the live legacy `include_reasoning` test: `true` maps to an empty reasoning config and does not guarantee reasoning output. Explicit enablement remains covered separately, with a unit regression for legacy flag serialization.
 

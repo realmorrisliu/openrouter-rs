@@ -1719,6 +1719,7 @@ async fn issue_264_key_filters_and_workspace_updates_use_management_auth() {
         .unwrap();
     let request = UpdateApiKeyRequest::builder()
         .workspace_id("ws")
+        .clear_limit()
         .disabled(false)
         .build()
         .unwrap();
@@ -1741,7 +1742,7 @@ async fn issue_264_key_filters_and_workspace_updates_use_management_auth() {
     assert!(update.headers.contains("Bearer management-key"));
     assert_eq!(
         serde_json::from_str::<serde_json::Value>(&update.body).unwrap(),
-        json!({"workspace_id":"ws","disabled":false})
+        json!({"workspace_id":"ws","disabled":false,"limit":null})
     );
     server.join().unwrap();
     let missing = OpenRouterClient::builder()
@@ -1883,4 +1884,162 @@ async fn issue_264_daemon_signing_paths_auth_headers_and_errors() {
         missing.interns().sign_daemon("id", &request).await,
         Err(openrouter_rs::error::OpenRouterError::KeyNotConfigured)
     ));
+}
+
+#[test]
+fn nullable_patch_round_trips_preserve_clear_operations() {
+    use openrouter_rs::api::{
+        api_keys::UpdateApiKeyRequest, guardrails::UpdateGuardrailRequest,
+        observability::UpdateObservabilityDestinationRequest,
+    };
+    let key: UpdateApiKeyRequest =
+        serde_json::from_value(json!({"limit":null,"workspace_id":"ws","disabled":false})).unwrap();
+    assert_eq!(
+        serde_json::to_value(key).unwrap(),
+        json!({"limit":null,"workspace_id":"ws","disabled":false})
+    );
+    let byok = UpdateByokKeyRequest::builder()
+        .clear_name()
+        .clear_allowed_models()
+        .clear_allowed_api_key_hashes()
+        .clear_allowed_user_ids()
+        .clear_declared_zdr()
+        .clear_declared_region()
+        .disabled(false)
+        .build()
+        .unwrap();
+    let body = serde_json::to_value(byok).unwrap();
+    let restored: UpdateByokKeyRequest = serde_json::from_value(body.clone()).unwrap();
+    assert_eq!(serde_json::to_value(restored).unwrap(), body);
+    let guardrail = UpdateGuardrailRequest::builder()
+        .clear_allowed_providers()
+        .clear_allowed_models()
+        .clear_allowed_data_regions()
+        .clear_content_filter_builtins()
+        .clear_content_filters()
+        .enforce_zdr(false)
+        .build()
+        .unwrap();
+    let body = serde_json::to_value(guardrail).unwrap();
+    let restored: UpdateGuardrailRequest = serde_json::from_value(body.clone()).unwrap();
+    assert_eq!(serde_json::to_value(restored).unwrap(), body);
+    let observability = UpdateObservabilityDestinationRequest::builder()
+        .clear_api_key_hashes()
+        .clear_filter_rules()
+        .enabled(false)
+        .build()
+        .unwrap();
+    let body = serde_json::to_value(observability).unwrap();
+    let restored: UpdateObservabilityDestinationRequest =
+        serde_json::from_value(body.clone()).unwrap();
+    assert_eq!(serde_json::to_value(restored).unwrap(), body);
+}
+
+#[test]
+fn api_key_limit_omit_set_clear_and_reset() {
+    use openrouter_rs::api::api_keys::UpdateApiKeyRequest;
+    let mut builder = UpdateApiKeyRequest::builder();
+    assert_eq!(
+        serde_json::to_value(builder.build().unwrap()).unwrap(),
+        json!({})
+    );
+    builder.limit(0.0);
+    assert_eq!(
+        serde_json::to_value(builder.build().unwrap()).unwrap(),
+        json!({"limit":0.0})
+    );
+    builder.clear_limit();
+    assert_eq!(
+        serde_json::to_value(builder.build().unwrap()).unwrap(),
+        json!({"limit":null})
+    );
+    builder.limit(25.0);
+    assert_eq!(
+        serde_json::to_value(builder.build().unwrap()).unwrap(),
+        json!({"limit":25.0})
+    );
+    builder.clear_limit();
+    assert_eq!(
+        serde_json::to_value(builder.build().unwrap()).unwrap(),
+        json!({"limit":null})
+    );
+    for body in [json!({}), json!({"limit":0.0}), json!({"limit":null})] {
+        let restored: UpdateApiKeyRequest = serde_json::from_value(body.clone()).unwrap();
+        assert_eq!(serde_json::to_value(restored).unwrap(), body);
+    }
+    assert!(serde_json::from_value::<UpdateApiKeyRequest>(json!({"limit":"invalid"})).is_err());
+}
+
+#[test]
+fn nullable_patch_round_trips_preserve_set_and_omitted_fields() {
+    use openrouter_rs::api::{
+        guardrails::UpdateGuardrailRequest, observability::UpdateObservabilityDestinationRequest,
+    };
+    for body in [
+        json!({}),
+        json!({"name":"test","allowed_models":[],"allowed_api_key_hashes":[],"allowed_user_ids":[],"declared_region":"us","declared_zdr":false,"disabled":false}),
+    ] {
+        let restored: UpdateByokKeyRequest = serde_json::from_value(body.clone()).unwrap();
+        assert_eq!(serde_json::to_value(restored).unwrap(), body);
+    }
+    assert!(serde_json::from_value::<UpdateByokKeyRequest>(json!({"declared_region":42})).is_err());
+    for body in [
+        json!({}),
+        json!({"allowed_models":[],"allowed_providers":[],"allowed_data_regions":[],"content_filter_builtins":[],"content_filters":[],"enforce_zdr":false}),
+    ] {
+        let restored: UpdateGuardrailRequest = serde_json::from_value(body.clone()).unwrap();
+        assert_eq!(serde_json::to_value(restored).unwrap(), body);
+    }
+    assert!(
+        serde_json::from_value::<UpdateGuardrailRequest>(json!({"allowed_models":42})).is_err()
+    );
+    for body in [
+        json!({}),
+        json!({"api_key_hashes":[],"filter_rules":{"groups":[]},"enabled":false}),
+    ] {
+        let restored: UpdateObservabilityDestinationRequest =
+            serde_json::from_value(body.clone()).unwrap();
+        assert_eq!(serde_json::to_value(restored).unwrap(), body);
+    }
+    assert!(
+        serde_json::from_value::<UpdateObservabilityDestinationRequest>(
+            json!({"api_key_hashes":42})
+        )
+        .is_err()
+    );
+}
+
+#[test]
+fn nullable_patch_public_assignments_override_deserialized_clears() {
+    use openrouter_rs::api::{
+        api_keys::UpdateApiKeyRequest,
+        observability::{ObservabilityFilterRulesConfig, UpdateObservabilityDestinationRequest},
+    };
+    let mut key: UpdateApiKeyRequest = serde_json::from_value(json!({"limit":null})).unwrap();
+    key.limit = Some(0.0);
+    assert_eq!(serde_json::to_value(key).unwrap(), json!({"limit":0.0}));
+    let mut byok: UpdateByokKeyRequest = serde_json::from_value(json!({"name":null,"allowed_models":null,"allowed_api_key_hashes":null,"allowed_user_ids":null,"declared_zdr":null,"declared_region":null})).unwrap();
+    byok.name = Some("test".into());
+    byok.allowed_models = Some(vec![]);
+    byok.allowed_api_key_hashes = Some(vec![]);
+    byok.allowed_user_ids = Some(vec![]);
+    byok.declared_zdr = Some(false);
+    byok.declared_region = Some("us".into());
+    assert_eq!(
+        serde_json::to_value(byok).unwrap(),
+        json!({"name":"test","allowed_models":[],"allowed_api_key_hashes":[],"allowed_user_ids":[],"declared_zdr":false,"declared_region":"us"})
+    );
+    let mut observability: UpdateObservabilityDestinationRequest =
+        serde_json::from_value(json!({"api_key_hashes":null,"filter_rules":null})).unwrap();
+    observability.api_key_hashes = Some(vec![]);
+    observability.filter_rules = Some(
+        ObservabilityFilterRulesConfig::builder()
+            .groups(vec![])
+            .build()
+            .unwrap(),
+    );
+    assert_eq!(
+        serde_json::to_value(observability).unwrap(),
+        json!({"api_key_hashes":[],"filter_rules":{"groups":[]}})
+    );
 }

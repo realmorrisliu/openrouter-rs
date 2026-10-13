@@ -36,6 +36,41 @@ macro_rules! strip_option_map_setter {
     };
 }
 
+pub(crate) fn deserialize_nullable_option<'de, D, T>(
+    deserializer: D,
+) -> Result<Option<Option<T>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: serde::Deserialize<'de>,
+{
+    <Option<T> as serde::Deserialize>::deserialize(deserializer).map(Some)
+}
+
+// Keep public Option fields while retaining explicit-null clear flags on PATCH input.
+macro_rules! deserialize_nullable_patch {
+    ($request:ty, { $($field:ident: $field_type:ty),* $(,)? },
+        { $($nullable:ident: $nullable_type:ty => $clear:ident),* $(,)? }) => {
+        impl<'de> serde::Deserialize<'de> for $request {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where D: serde::Deserializer<'de> {
+                #[derive(serde::Deserialize)]
+                struct Wire {
+                    $($field: Option<$field_type>,)*
+                    $(#[serde(default, deserialize_with = "crate::utils::deserialize_nullable_option")]
+                    $nullable: Option<Option<$nullable_type>>,)*
+                }
+                let wire = <Wire as serde::Deserialize>::deserialize(deserializer)?;
+                Ok(Self {
+                    $($field: wire.$field,)*
+                    $($clear: wire.$nullable.as_ref().is_some_and(Option::is_none),
+                    $nullable: wire.$nullable.flatten(),)*
+                })
+            }
+        }
+    };
+}
+pub(crate) use deserialize_nullable_patch;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct SseFrame {
     pub event: Option<String>,
