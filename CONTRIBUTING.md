@@ -22,6 +22,7 @@ Requirements:
 
 - Rust `1.85+`
 - `just`
+- Python `3.10+` for the adoption metrics tests included in `just quality`
 - `OPENROUTER_API_KEY` for live API-backed examples and tests
 - `OPENROUTER_MANAGEMENT_KEY` for management-governed live tests
 
