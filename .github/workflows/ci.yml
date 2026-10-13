@@ -53,6 +53,9 @@ jobs:
       - name: Test adoption metrics collector
         run: just test-adoption-metrics
 
+      - name: Test Axum gateway streaming and cancellation
+        run: just test-axum-gateway
+
       - name: Run deterministic integration subsets
         run: just test-integration-subsets
 

@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added daily crates.io adoption snapshots with keyword rank, recent and trailing download totals, and published reverse-dependency counts, retained as GitHub Actions artifacts.
+- Added `/chat/stream` to the Axum gateway example, with bounded inputs, a request deadline, usage forwarding, explicit terminal/error events, and HTTP disconnect tests; added an opt-in real-API tutorial smoke workflow.
 
 ## [0.19.0] - 2026-10-13
 

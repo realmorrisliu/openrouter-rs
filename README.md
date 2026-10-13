@@ -197,7 +197,7 @@ The repo includes runnable examples for the highest-value workflows:
 
 | Example | Focus |
 | --- | --- |
-| [`examples/axum_chat_gateway.rs`](examples/axum_chat_gateway.rs) | Minimal `axum` server that proxies prompts through `OpenRouterClient` |
+| [`examples/axum_chat_gateway.rs`](examples/axum_chat_gateway.rs) | Local Axum gateway with JSON and SSE chat, bounded requests, usage forwarding, and disconnect handling |
 | [`examples/typed_tool_agent.rs`](examples/typed_tool_agent.rs) | Practical typed-tool agent loop with explicit tool dispatch |
 | [`examples/domain_chat_completion.rs`](examples/domain_chat_completion.rs) | Canonical `chat()` request with the domain-oriented client |
 | [`examples/custom_http_client.rs`](examples/custom_http_client.rs) | Inject a custom `reqwest::Client` (proxies, timeouts, middleware) |
