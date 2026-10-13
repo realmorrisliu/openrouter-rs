@@ -11,6 +11,7 @@ on:
         options:
           - stable
           - hot
+          - tutorial
   schedule:
     - cron: "0 6 * * 1"
 
@@ -23,6 +24,7 @@ permissions:
 
 jobs:
   integration:
+    if: github.event.inputs.tier != 'tutorial'
     name: Run core live integration tests
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -69,6 +71,7 @@ jobs:
           cargo test --test integration -- --nocapture --skip management::
 
   management-smoke:
+    if: github.event.inputs.tier != 'tutorial'
     name: Run management-key smoke integration tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -99,3 +102,27 @@ jobs:
           fi
 
           cargo test --test integration management:: -- --nocapture
+
+  tutorial-smoke:
+    name: Run real Axum streaming tutorial
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.tier == 'tutorial'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build the tutorial example
+        run: cargo build --locked --example axum_chat_gateway
+      - name: Verify real streaming through curl
+        run: python3 scripts/smoke_axum_gateway.py
+      - name: Retain tutorial verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: axum-tutorial-smoke
+          path: axum-smoke-artifacts/
+          if-no-files-found: warn
+          retention-days: 30
