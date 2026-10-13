@@ -11,6 +11,31 @@ from urllib.error import URLError
 from urllib.request import urlopen
 
 
+def validate_transcript(transcript):
+    chunks = []
+    events = []
+    for frame in transcript.split("\n\n"):
+        event = next((line[7:] for line in frame.splitlines() if line.startswith("event: ")), None)
+        if event is None:
+            continue
+        events.append(event)
+        if event == "chunk":
+            data = "\n".join(line[6:] for line in frame.splitlines() if line.startswith("data: "))
+            chunks.append(json.loads(data))
+    assert events and events[-1] == "done" and events.count("done") == 1, events
+    assert "error" not in events, transcript
+    assert len(chunks) > 1, "Expected multiple real streamed chunks"
+    text = "".join(choice.get("delta", {}).get("content") or "" for chunk in chunks for choice in chunk["choices"])
+    assert text.strip(), "Stream returned no text"
+    assert all(chunk["id"] for chunk in chunks)
+    usage = chunks[-1].get("usage")
+    assert isinstance(usage, dict), "Final chunk must contain usage"
+    for field in ("prompt_tokens", "completion_tokens", "total_tokens"):
+        value = usage.get(field)
+        assert type(value) is int and value >= 0, f"Invalid or missing usage.{field}"
+    return chunks, text, usage
+
+
 def main():
     if not os.environ.get("OPENROUTER_API_KEY"):
         raise RuntimeError("OPENROUTER_API_KEY is required; this live check must not silently skip")
@@ -54,23 +79,7 @@ def main():
                 assert curl.wait() == 0, "curl request failed"
             transcript = "".join(lines)
             (output / "stream.txt").write_text(transcript)
-            chunks = []
-            events = []
-            for frame in transcript.split("\n\n"):
-                event = next((line[7:] for line in frame.splitlines() if line.startswith("event: ")), None)
-                if event is None:
-                    continue
-                events.append(event)
-                if event == "chunk":
-                    data = "\n".join(line[6:] for line in frame.splitlines() if line.startswith("data: "))
-                    chunks.append(json.loads(data))
-            assert events and events[-1] == "done" and events.count("done") == 1, events
-            assert "error" not in events, transcript
-            assert len(chunks) > 1, "Expected multiple real streamed chunks"
-            text = "".join(choice.get("delta", {}).get("content") or "" for chunk in chunks for choice in chunk["choices"])
-            assert text.strip(), "Stream returned no text"
-            assert all(chunk["id"] for chunk in chunks)
-            usage = next((chunk["usage"] for chunk in reversed(chunks) if chunk.get("usage")), None)
+            chunks, text, usage = validate_transcript(transcript)
             report = {
                 "model": chunks[0]["model"], "generation_id": chunks[0]["id"],
                 "chunks": len(chunks), "first_event_seconds": first_event,

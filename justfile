@@ -32,6 +32,7 @@ test-adoption-metrics:
 
 test-axum-gateway:
     cargo test --example axum_chat_gateway
+    python3 -m unittest discover -s tests -p 'test_smoke_axum_gateway.py' -v
 
 test-integration-subsets:
     cargo test --test integration model_pool:: -- --nocapture
