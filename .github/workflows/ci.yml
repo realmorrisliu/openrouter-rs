@@ -50,6 +50,9 @@ jobs:
       - name: Run doctests
         run: just test-doc
 
+      - name: Test adoption metrics collector
+        run: just test-adoption-metrics
+
       - name: Run deterministic integration subsets
         run: just test-integration-subsets
 

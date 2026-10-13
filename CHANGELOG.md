@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Put SDK installation, a complete Quick Start, and common workflows before detailed API coverage in the README; updated the community setup page to use maintained installation guidance.
+
+### Added
+- Added daily crates.io adoption snapshots with keyword rank, recent and trailing download totals, and published reverse-dependency counts, retained as GitHub Actions artifacts.
+
 ## [0.19.0] - 2026-10-13
 
 ### Added

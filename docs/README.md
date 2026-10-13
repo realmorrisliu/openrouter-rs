@@ -39,7 +39,8 @@ If you are not sure where to start, use the groups below.
 
 ## Community And Distribution
 
-- [`community/awesome-openrouter/README.md`](community/awesome-openrouter/README.md) for the Awesome OpenRouter submission kit and related assets
+- [`community/awesome-openrouter/README.md`](community/awesome-openrouter/README.md) for SDK/CLI setup from the OpenRouter community listing and its historical submission assets
+- [`operations/adoption-metrics.md`](operations/adoption-metrics.md) for daily download/ranking snapshots, artifact retrieval, and weekly review
 
 ## How To Add New Docs
 

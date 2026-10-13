@@ -1,106 +1,52 @@
-# Awesome OpenRouter Submission Kit
+# Get Started with OpenRouter in Rust
 
-This directory is the repo-side source of truth for submitting this project to [`OpenRouterTeam/awesome-openrouter`](https://github.com/OpenRouterTeam/awesome-openrouter).
+Use [`openrouter-rs`](../../../README.md) for a typed Rust SDK, or [`openrouter-cli`](../../../crates/openrouter-cli/README.md) for terminal workflows. This is a community-maintained project, listed in [Works with OpenRouter](https://openrouter.ai/works-with-openrouter/openrouter-rs).
 
-## Submission Decision
+## SDK Setup
 
-Submit a single `openrouter-rs` entry and position it as the default community Rust SDK plus companion CLI for OpenRouter.
-
-Recommended wording:
-
-- Name: `openrouter-rs`
-- One-line description: `Community-maintained Rust SDK and companion CLI for OpenRouter, with typed clients for chat, responses, messages, models, embeddings, streaming, and management workflows.`
-- Tags: `coding`
-- Open-source URL: `https://github.com/realmorrisliu/openrouter-rs`
-
-Why this is the right shape:
-
-- The repo, docs.rs package, and most ecosystem recognition are already anchored on `openrouter-rs`.
-- `openrouter-cli` is real distribution surface, but it is best presented as a companion inside the same repo rather than as a second listing that splits traction.
-- A single entry keeps stars, crates downloads, examples, and maintenance signals consolidated for reviewers.
-
-## Stable Links
-
-Use these links in the external submission:
-
-- Project URL: `https://github.com/realmorrisliu/openrouter-rs`
-- Docs URL: `https://github.com/realmorrisliu/openrouter-rs/blob/main/docs/community/awesome-openrouter/README.md`
-- Open-source URL: `https://github.com/realmorrisliu/openrouter-rs`
-
-## OpenRouter Setup
-
-This page exists so the Awesome OpenRouter `docs:` field can point to a stable public page with basic OpenRouter setup guidance.
-
-### SDK
-
-Add the crate:
-
-```toml
-[dependencies]
-openrouter-rs = "0.8.0"
-tokio = { version = "1", features = ["full"] }
-```
-
-Set your OpenRouter API key:
+1. Create an [OpenRouter account](https://openrouter.ai/) and generate an [API key](https://openrouter.ai/settings/keys). Ensure your account can use the model you select; paid models require credits.
+2. Follow the [installation and Quick Start](../../../README.md#installation) for the current published SDK dependency, required Rust version, and complete `src/main.rs` example.
+3. Set `OPENROUTER_API_KEY` in the terminal that runs your application, then run `cargo run`. Never put your key into source code or a browser bundle.
 
 ```bash
-export OPENROUTER_API_KEY=sk-or-v1-...
+export OPENROUTER_API_KEY="your-openrouter-api-key"
+cargo run
 ```
 
-Start from the canonical examples:
+The Quick Start prints a chat response. Set `OPENROUTER_MODEL` to choose another model available to your account. If authentication fails, verify the key; if the API reports insufficient credits or an unavailable model, resolve that account/model condition before retrying.
 
-- SDK README: [`README.md`](../../../README.md)
-- docs.rs API docs: <https://docs.rs/openrouter-rs>
-- Chat example: [`examples/domain_chat_completion.rs`](../../../examples/domain_chat_completion.rs)
-- Responses example: [`examples/create_response.rs`](../../../examples/create_response.rs)
-- Messages example: [`examples/create_message.rs`](../../../examples/create_message.rs)
-- Typed tools example: [`examples/typed_tool_calling.rs`](../../../examples/typed_tool_calling.rs)
+Choose your next workflow:
 
-### CLI
+- [Chat](../../../examples/domain_chat_completion.rs) and [streaming](../../../examples/stream_chat_completion.rs)
+- [Typed tools](../../../examples/typed_tool_calling.rs) and a [bounded agent loop](../../../examples/typed_tool_agent.rs)
+- [Axum HTTP gateway](../../../examples/axum_chat_gateway.rs)
+- [Responses](../../../examples/create_response.rs) and [Messages](../../../examples/create_message.rs)
+- [API reference](https://docs.rs/openrouter-rs) and [upgrade guidance](../../../MIGRATION.md)
 
-The same repo also publishes `openrouter-cli` for profile, discovery, billing, and management workflows:
+Accepted endpoint support and live-test evidence are tracked in the [endpoint matrix](../../operations/official-endpoint-test-matrix.md).
+
+## CLI Setup
+
+Install the published companion CLI:
 
 ```bash
-cargo install openrouter-cli
-export OPENROUTER_API_KEY=sk-or-v1-...
+cargo install openrouter-cli --locked
+export OPENROUTER_API_KEY="your-openrouter-api-key"
 openrouter-cli --help
+openrouter-cli models list
+openrouter-cli usage credits
 ```
 
-Useful entrypoints:
+The SDK and CLI have independent release versions. See the [CLI README](../../../crates/openrouter-cli/README.md) for supported commands and configuration, and the [automation recipes](../../operations/cli-automation-workflows.md) for shell/CI usage. Management-governed commands require `OPENROUTER_MANAGEMENT_KEY`; chat and credits use the ordinary API key.
 
-- CLI README: [`crates/openrouter-cli/README.md`](../../../crates/openrouter-cli/README.md)
-- Show active profile: `openrouter-cli profile show`
-- List models: `openrouter-cli models list`
-- Check credits: `openrouter-cli usage credits`
+## Listing Maintenance
 
-## Included Assets
+This URL is the stable setup destination used by the [Awesome OpenRouter](https://github.com/OpenRouterTeam/awesome-openrouter) listing. Installation versions are maintained in the root README rather than duplicated here.
 
-- Draft listing entry: [`app.yaml`](app.yaml)
-- Draft external PR body: [`pr-draft.md`](pr-draft.md)
-- SVG source logo: [`logo.svg`](logo.svg)
-- PNG submission logo: [`logo.png`](logo.png)
+- Listing metadata: [`app.yaml`](app.yaml)
+- Logo assets: [`logo.svg`](logo.svg), [`logo.png`](logo.png)
+- Original submission text and dated traction evidence: [`pr-draft.md`](pr-draft.md)
 
-The logo combines the OpenRouter mark from `openrouter.ai` with the official Ferris `flat-happy` SVG from `rustacean.net` (CC0).
+The original submission draft is historical material, not current installation guidance. When updating an upstream listing, verify its existing entry first and update only changed metadata. Keep the SDK and companion CLI in the same project entry.
 
-## Traction Snapshot
-
-Use the following reviewer-facing signals in the Awesome OpenRouter PR body. Snapshot date: `2026-04-20`.
-
-- GitHub repository: `63` stars and `15` forks
-- `openrouter-rs` crate: `12,007` total downloads and `4,255` recent downloads on crates.io
-- `openrouter-cli` crate: published companion CLI with `59` downloads across its first three releases
-- Current stable SDK release is `0.8.0`, which ships on `reqwest + rustls` instead of the old `surf -> isahc -> curl` stack
-- Published API docs on docs.rs and runnable examples in-repo
-- Endpoint coverage, live test status, and weekly OpenAPI drift reporting are published in [`docs/operations/official-endpoint-test-matrix.md`](../../operations/official-endpoint-test-matrix.md) and [`docs/operations/openapi-drift-reporting.md`](../../operations/openapi-drift-reporting.md)
-- Contributor, security, support, release, MSRV, and breaking-change policies are public in-repo
-
-Refresh the numbers above if submission happens materially later than this snapshot date.
-
-## External Submission Checklist
-
-Before opening the PR against `OpenRouterTeam/awesome-openrouter`:
-
-1. Copy [`app.yaml`](app.yaml) and [`logo.png`](logo.png) into `apps/openrouter-rs/`
-2. Reconfirm the traction numbers and `date_added`
-3. Use [`pr-draft.md`](pr-draft.md) as the external PR body
-4. Do not edit the Awesome OpenRouter README directly
+The logo combines the OpenRouter mark with Ferris's `flat-happy` SVG from rustacean.net (CC0).
