@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Added Intern daemon request signing through `client.interns().sign_daemon(...)` and the deprecated `sign_daemon_access(...)` alias, with API-key authentication, attribution headers, digest validation and credential-safe error handling (#264).
+- Added Intern daemon request signing through `client.interns().sign_daemon(...)` and the deprecated `sign_daemon_access(...)` alias, requiring an `ori login --oidc` OAuth session with `vault:read`, with attribution headers, digest validation and credential-safe error handling (#264).
 - Added BYOK `declared_region` and explicit clearing, authenticated-key budgets/effective budget, API-key `last_used_at`, expired-key list filters, workspace moves, and video `expires_at` (#264).
 - Added speech turn input and top-level instructions, portable `deferred_tools` controls across Chat/Messages/Responses, chat function `defer_loading`, and Anthropic tool-search result blocks (#264).
 
@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `SpeechRequest::input` now uses `SpeechInput` for text or ordered turns; existing `.input("text")` builder calls and text JSON retain their shape. Direct field access must handle the enum (see `MIGRATION.md`). Existing CLI key list/update calls retain their wire shapes; no CLI flags change.
 
 ### Fixed
+- Corrected daemon-signing example and documentation to require an OIDC session credential instead of an ordinary API key, including the deprecated signing alias.
 - Corrected the live legacy `include_reasoning` test: `true` maps to an empty reasoning config and does not guarantee reasoning output. Explicit enablement remains covered separately, with a unit regression for legacy flag serialization.
 
 ## [0.18.0] - 2026-10-07

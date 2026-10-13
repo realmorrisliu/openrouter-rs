@@ -18,7 +18,7 @@ Chat response regression coverage:
 
 Drift review note:
 
-- Issue #264 (2026-10-13): accepted canonical `POST /interns/{internId}/daemon/sign` and the deprecated `daemon-access/sign` alias. Local HTTP tests cover encoded paths, digest request casing/validation, both routes, API-key selection, attribution headers, forbidden responses, malformed credential errors and absent auth. Signature values have no Debug implementation. These routes have no live qualification.
+- Issue #264 (2026-10-13): accepted canonical `POST /interns/{internId}/daemon/sign` and the deprecated `daemon-access/sign` alias. Local HTTP tests cover encoded paths, digest request casing/validation, both routes, OAuth session bearer forwarding, attribution headers, 403 responses for ordinary API keys and insufficient grants, malformed credential errors and absent auth. Signature values have no Debug implementation. These routes require an `ori login --oidc` session with `vault:read`, including the deprecated alias; ordinary API keys and `interns`-only grants are rejected with 403. The existing client `api_key` slot forwards the session token. Mock tests verify forwarding and error handling; session/scope validation remains server-owned and has no live qualification.
 - Added BYOK declared regions with omit/set/clear/reset semantics, key budgets/effective budget and last-used timestamps, expired-key filtering, key workspace moves, video expiration, speech turn input/instructions, portable deferred-tool controls, chat function deferral flags, and Messages tool-search result blocks (including streaming). Older responses and text-input builder calls remain compatible; direct speech input field access needs the documented enum migration.
 - Reviewed all 27 changed operations: Responses input/output/tool-search results, allowed callers/output schemas, failable server tools and Batch result bodies use existing flexible JSON; plugins preserve `cost_tier`/`judge_model`; provider names remain strings. End-user ID constraints and the 500-key bulk assignment limit remain server-validated; new conflict/forbidden statuses use existing typed error handling. Existing 13 deferred operations remain deferred.
 - CLI audit: key list/update retain existing positional methods and snapshots; optional new response fields are omitted when absent. CLI has no speech/chat/Messages/Responses/Intern signing commands. No CLI flags change. The legacy live reasoning assertion now follows upstream `include_reasoning: true` semantics (`reasoning: {}`); explicit enablement is separately tested.
@@ -144,8 +144,8 @@ Legend:
 | `DELETE /batches/{id}` | `client.batches().delete(...)` | Yes | Contract | No | P1 |
 | `GET /interns/{internId}/daemon` | `client.interns().daemon(...)` | Yes | Path | No | P1 |
 | `GET /interns/{internId}/daemon-access` | `client.interns().daemon_access(...)` (deprecated upstream alias) | Yes | Path | No | P1 |
-| `POST /interns/{internId}/daemon/sign` | `client.interns().sign_daemon(...)` | Yes | Path | No | Local HTTP tested; live qualification pending |
-| `POST /interns/{internId}/daemon-access/sign` | `client.interns().sign_daemon_access(...)` (deprecated upstream alias) | Yes | Path | No | Local HTTP tested; live qualification pending |
+| `POST /interns/{internId}/daemon/sign` | `client.interns().sign_daemon(...)` | Yes | Path | No | OIDC session with `vault:read`; local HTTP tested; live qualification pending |
+| `POST /interns/{internId}/daemon-access/sign` | `client.interns().sign_daemon_access(...)` (deprecated upstream alias) | Yes | Path | No | Same OIDC session and `vault:read` requirements as canonical signing route; local HTTP tested; live qualification pending |
 | `POST /interns/{internId}/invoke` | `client.interns().invoke(...)` | Yes | Contract | No | P1 |
 | `DELETE /interns/{internId}` | `client.interns().delete(...)` | Yes | Path | No | P1 |
 | `GET /interns` | `client.interns().list(...)` | Yes | Path | No | P1 |

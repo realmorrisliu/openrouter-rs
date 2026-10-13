@@ -2754,6 +2754,9 @@ pub struct InternsClient<'a> {
 
 impl InternsClient<'_> {
     /// Sign the SHA-256 digest of a daemon invocation body.
+    /// Configure the client's `api_key` bearer slot with the OAuth access token from
+    /// `ori login --oidc`, whose grant must include `vault:read`. Ordinary API keys
+    /// and `interns`-only grants are refused with 403 by the server.
     pub async fn sign_daemon(
         &self,
         intern_id: &str,
@@ -2775,7 +2778,8 @@ impl InternsClient<'_> {
         .await
     }
 
-    /// Deprecated upstream alias; prefer `sign_daemon`.
+    /// Deprecated upstream alias; uses the same OAuth session and `vault:read`
+    /// requirements as [`Self::sign_daemon`].
     #[deprecated(note = "use sign_daemon")]
     pub async fn sign_daemon_access(
         &self,

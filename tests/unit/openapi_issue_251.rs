@@ -1774,7 +1774,11 @@ async fn issue_264_daemon_signing_paths_auth_headers_and_errors() {
         (200, signature.to_string()),
         (
             403,
-            json!({"error":{"code":403,"message":"Forbidden"}}).to_string(),
+            json!({"error":{"code":403,"message":"OAuth session required"}}).to_string(),
+        ),
+        (
+            403,
+            json!({"error":{"code":403,"message":"vault:read grant required"}}).to_string(),
         ),
         (500, "signature-secret invalid error".into()),
         (
@@ -1785,7 +1789,7 @@ async fn issue_264_daemon_signing_paths_auth_headers_and_errors() {
     ]);
     let client = OpenRouterClient::builder()
         .base_url(base)
-        .api_key("api-key")
+        .api_key("oidc-session-token")
         .management_key("management-key")
         .x_title("test-app")
         .http_referer("https://example.com")
@@ -1816,7 +1820,7 @@ async fn issue_264_daemon_signing_paths_auth_headers_and_errors() {
             format!("POST /api/v1/interns/id%2Fencoded/{suffix} HTTP/1.1")
         );
         let headers = capture.headers.to_ascii_lowercase();
-        assert!(headers.contains("authorization: bearer api-key"));
+        assert!(headers.contains("authorization: bearer oidc-session-token"));
         assert!(headers.contains("x-openrouter-title: test-app"));
         assert!(headers.contains("http-referer: https://example.com"));
         assert!(headers.contains("x-openrouter-categories: test"));
@@ -1825,16 +1829,31 @@ async fn issue_264_daemon_signing_paths_auth_headers_and_errors() {
             json!({"bodySha256":"a".repeat(64)})
         );
     }
-    let error = client
-        .interns()
-        .sign_daemon("id", &request)
-        .await
-        .err()
-        .unwrap();
-    assert!(
-        matches!(error, openrouter_rs::error::OpenRouterError::Api(context) if context.status.as_u16() == 403)
-    );
-    rx.recv().unwrap();
+    // The server owns OAuth-session and grant validation; preserve its 403 errors.
+    for (credential, message) in [
+        ("ordinary-api-key", "OAuth session required"),
+        ("interns-only-session", "vault:read grant required"),
+    ] {
+        let mut refused = client.clone();
+        refused.set_api_key(credential);
+        let error = refused
+            .interns()
+            .sign_daemon("id", &request)
+            .await
+            .err()
+            .unwrap();
+        assert!(
+            matches!(error, openrouter_rs::error::OpenRouterError::Api(context)
+            if context.status.as_u16() == 403 && context.message == message)
+        );
+        let capture = rx.recv().unwrap();
+        assert!(
+            capture
+                .headers
+                .to_ascii_lowercase()
+                .contains(&format!("authorization: bearer {credential}"))
+        );
+    }
     for secret in ["signature-secret", "success-secret"] {
         let error = client
             .interns()

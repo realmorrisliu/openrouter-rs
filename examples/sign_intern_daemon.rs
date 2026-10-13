@@ -1,3 +1,6 @@
+//! Requires an OAuth access token from `ori login --oidc` with `vault:read` in its grant.
+//! Supply it through OPENROUTER_OIDC_ACCESS_TOKEN; ordinary API keys cannot sign.
+
 use openrouter_rs::{OpenRouterClient, api::interns::SignInternDaemonRequest};
 
 #[tokio::main]
@@ -7,8 +10,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .next()
         .ok_or("provide intern ID and body SHA-256 hex digest")?;
     let digest = args.next().ok_or("provide body SHA-256 hex digest")?;
+    let session_token = std::env::var("OPENROUTER_OIDC_ACCESS_TOKEN")?;
     let client = OpenRouterClient::builder()
-        .api_key(std::env::var("OPENROUTER_API_KEY")?)
+        // The existing api_key slot forwards this OAuth credential as a bearer token.
+        .api_key(session_token)
         .build()?;
     let request = SignInternDaemonRequest::builder()
         .body_sha256(digest)

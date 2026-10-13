@@ -678,16 +678,19 @@ pub struct SignInternDaemonResponse {
     pub user: String,
 }
 
+/// Sign a daemon request digest using an `ori login --oidc` OAuth session.
+/// The session grant must include `vault:read`; ordinary API keys and `interns`-only
+/// grants are refused with 403 by the server. `session_token` is the OAuth access token.
 pub async fn sign_daemon(
     base_url: &str,
-    api_key: &str,
+    session_token: &str,
     intern_id: &str,
     request: &SignInternDaemonRequest,
 ) -> Result<SignInternDaemonResponse, OpenRouterError> {
     sign_daemon_with_client(
         &crate::transport::new_client()?,
         base_url,
-        api_key,
+        session_token,
         (&None, &None, &None),
         intern_id,
         "daemon/sign",
@@ -696,18 +699,19 @@ pub async fn sign_daemon(
     .await
 }
 
-/// Deprecated upstream signing alias; prefer `sign_daemon`.
+/// Deprecated upstream signing alias; the OAuth session and `vault:read` requirements
+/// are the same as [`sign_daemon`].
 #[deprecated(note = "use sign_daemon")]
 pub async fn sign_daemon_access(
     base_url: &str,
-    api_key: &str,
+    session_token: &str,
     intern_id: &str,
     request: &SignInternDaemonRequest,
 ) -> Result<SignInternDaemonResponse, OpenRouterError> {
     sign_daemon_with_client(
         &crate::transport::new_client()?,
         base_url,
-        api_key,
+        session_token,
         (&None, &None, &None),
         intern_id,
         "daemon-access/sign",
@@ -719,7 +723,7 @@ pub async fn sign_daemon_access(
 pub(crate) async fn sign_daemon_with_client(
     http_client: &HttpClient,
     base_url: &str,
-    api_key: &str,
+    session_token: &str,
     metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
     intern_id: &str,
     path: &str,
@@ -739,7 +743,7 @@ pub(crate) async fn sign_daemon_with_client(
     transport_response::parse_credential_response(
         transport_request::with_client_request_headers(
             transport_request::post(http_client, &url),
-            api_key,
+            session_token,
             metadata.0,
             metadata.1,
             metadata.2,

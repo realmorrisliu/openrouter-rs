@@ -8,7 +8,7 @@ This document keeps historical migration guides intact because the repo still sm
 
 `client.management().list_api_keys_with_params(&params)` adds `ListApiKeysParams::include_expired`; `update_api_key_with_request(hash, &request)` adds `UpdateApiKeyRequest::workspace_id`. The existing positional methods remain available with their previous wire behavior.
 
-Use `client.interns().sign_daemon(...)` for signing; the upstream `sign_daemon_access(...)` alias is deprecated. Supply the lowercase SHA-256 hex digest of the exact daemon request body. Treat returned signature headers as credentials.
+Use `client.interns().sign_daemon(...)` for signing; the upstream `sign_daemon_access(...)` alias is deprecated. Supply the lowercase SHA-256 hex digest of the exact daemon request body. Signing requires an OAuth access token from `ori login --oidc` whose grant includes `vault:read`; ordinary API keys and `interns`-only grants receive 403. Pass that token through the existing `OpenRouterClient::builder().api_key(session_token)` bearer slot, or the standalone signing function's `session_token` argument. The example accepts it as `OPENROUTER_OIDC_ACCESS_TOKEN` and does not fall back to `OPENROUTER_API_KEY`. Scope and session validity are checked by the server. Treat returned signature headers as credentials.
 
 ## 0.16.x -> 0.17.0 Compatibility Notes
 
