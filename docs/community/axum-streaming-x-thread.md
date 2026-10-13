@@ -1,6 +1,8 @@
-# Axum streaming tutorial — X draft
+# Axum streaming tutorial — published X thread
 
-Status: prepared, not posted. Publish after the article URL is live.
+Published on October 13, 2026: https://x.com/realmorrisliu/status/2109853608443609370
+
+The five posts below record the published thread. Later tutorial model changes do not rewrite this historical validation.
 
 ## 1/5
 
@@ -24,7 +26,7 @@ The response body owns the upstream stream, so a disconnected caller releases it
 
 Verified on October 13 with openai/gpt-4o-mini:
 
-curl → Axum → OpenRouter → 40 chunks, generated text, final usage, and done.
+curl → Axum → OpenRouter → 43 chunks, generated text, final usage, and done.
 
 Six local HTTP tests cover incremental delivery, errors, input limits, timeouts, and disconnects. Published SDK 0.19.0 was tested too.
 
@@ -37,4 +39,4 @@ https://realmorrisliu.com/thoughts/streaming-openrouter-rust-axum?utm_source=x&u
 
 ---
 
-No benchmark or production-readiness claim. The live result is one verified request, not an availability promise. No X posting is included in this change.
+No benchmark or production-readiness claim. The live result is one verified request, not an availability promise. The thread was published after the production article was verified.

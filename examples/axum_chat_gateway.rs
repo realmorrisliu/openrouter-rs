@@ -32,10 +32,12 @@ use openrouter_rs::{
     OpenRouterClient,
     api::chat::{ChatCompletionRequest, Message},
     error::OpenRouterError,
-    types::{Role, completion::FinishReason},
+    types::{Effort, ReasoningConfig, Role, completion::FinishReason},
 };
 use serde::{Deserialize, Serialize};
 use tokio::time::{Instant, timeout, timeout_at};
+
+const TUTORIAL_MODEL: &str = "deepseek/deepseek-v4.1-flash";
 
 #[derive(Clone)]
 struct AppState {
@@ -51,6 +53,8 @@ struct ChatGatewayRequest {
     system: Option<String>,
     #[serde(default)]
     model: Option<String>,
+    #[serde(default)]
+    reasoning: Option<ReasoningConfig>,
     #[serde(default = "default_max_tokens")]
     max_tokens: u32,
 }
@@ -82,8 +86,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         env::var("OPENROUTER_API_KEY").expect("OPENROUTER_API_KEY environment variable not set");
     let bind_addr =
         env::var("OPENROUTER_AXUM_BIND").unwrap_or_else(|_| "127.0.0.1:3000".to_string());
-    let default_model =
-        env::var("OPENROUTER_MODEL").unwrap_or_else(|_| "openai/gpt-4o-mini".to_string());
+    let default_model = env::var("OPENROUTER_MODEL").unwrap_or_else(|_| TUTORIAL_MODEL.to_string());
 
     let http_client = reqwest::Client::builder()
         .connect_timeout(Duration::from_secs(10))
@@ -168,7 +171,14 @@ fn build_request(
     messages.push(Message::new(Role::User, payload.prompt));
 
     let model = payload.model.unwrap_or_else(|| state.default_model.clone());
-    ChatCompletionRequest::builder()
+    let mut builder = ChatCompletionRequest::builder();
+    // Explicit caller configuration takes precedence over the tutorial default.
+    if let Some(reasoning) = payload.reasoning {
+        builder.reasoning(reasoning);
+    } else if model == TUTORIAL_MODEL {
+        builder.reasoning_effort(Effort::None);
+    }
+    builder
         .model(model)
         .messages(messages)
         .max_tokens(payload.max_tokens)
@@ -303,7 +313,7 @@ mod tests {
                 .http_client(reqwest::Client::builder().no_proxy().build().unwrap())
                 .build()
                 .unwrap(),
-            default_model: "mock".into(),
+            default_model: TUTORIAL_MODEL.into(),
             request_timeout: duration,
         }))
         .await
@@ -342,6 +352,73 @@ mod tests {
         .await
     }
 
+    #[test]
+    fn reasoning_policy_follows_the_effective_model() {
+        for (default_model, override_model, expected_model, disabled) in [
+            (TUTORIAL_MODEL, None, TUTORIAL_MODEL, true),
+            (
+                TUTORIAL_MODEL,
+                Some("openai/o3-mini"),
+                "openai/o3-mini",
+                false,
+            ),
+            ("openai/o3-mini", None, "openai/o3-mini", false),
+            ("openai/o3-mini", Some(TUTORIAL_MODEL), TUTORIAL_MODEL, true),
+        ] {
+            let state = AppState {
+                client: OpenRouterClient::builder()
+                    .api_key("test-key")
+                    .build()
+                    .unwrap(),
+                default_model: default_model.into(),
+                request_timeout: Duration::from_secs(60),
+            };
+            let payload = ChatGatewayRequest {
+                prompt: "hello".into(),
+                system: None,
+                model: override_model.map(str::to_string),
+                reasoning: None,
+                max_tokens: 128,
+            };
+            let request = serde_json::to_value(build_request(&state, payload).unwrap()).unwrap();
+            assert_eq!(request["model"], expected_model);
+            if disabled {
+                assert_eq!(request["reasoning"], json!({"effort":"none"}));
+            } else {
+                assert!(request.get("reasoning").is_none(), "{request}");
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn explicit_reasoning_reaches_both_routes() {
+        for reasoning in [json!({"effort":"low"}), json!({"enabled":true}), json!({})] {
+            let expected = reasoning.clone();
+            let upstream = serve(Router::new().route("/chat/completions", post(move |Json(payload): Json<Value>| {
+                assert_eq!(payload["reasoning"], expected);
+                async move {
+                    if payload["stream"] == true {
+                        ([("content-type", "text/event-stream")], frame("hi", Some("stop"), None)).into_response()
+                    } else {
+                        Json(json!({"id":"mock", "object":"chat.completion", "created":1,
+                            "model":"mock", "choices":[{"index":0,"message":{"role":"assistant","content":"hi"},"finish_reason":"stop"}]})).into_response()
+                    }
+                }
+            }))).await;
+            let gateway = gateway(&upstream, Duration::from_secs(2)).await;
+            for path in ["/chat", "/chat/stream"] {
+                let response = request(
+                    &gateway,
+                    path,
+                    json!({"prompt":"hi", "reasoning":reasoning}),
+                )
+                .await;
+                assert_eq!(response.status(), StatusCode::OK);
+                assert!(response.text().await.unwrap().contains("hi"));
+            }
+        }
+    }
+
     #[tokio::test]
     async fn streams_before_completion_and_keeps_final_usage() {
         let release = Arc::new(Notify::new());
@@ -350,6 +427,7 @@ mod tests {
             "/chat/completions",
             post(move |Json(payload): Json<Value>| {
                 assert_eq!(payload["stream"], true);
+                assert_eq!(payload["reasoning"]["effort"], "none");
                 let release = producer.clone();
                 async move {
                     let frames = vec![
