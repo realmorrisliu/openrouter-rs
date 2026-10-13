@@ -61,4 +61,34 @@ Compare the same date window for both crates. Read daily ranks to assess sustain
 
 Website and X analytics can supplement the weekly record when available. They are not collected by this workflow. Downloads measure requests, not unique users or source-attributed installations; website clicks and command copies are interest signals, not proof of installation.
 
+## Website And X Measurement Acceptance
+
+The website already uses PostHog. Reuse its `$pageview` and `$autocapture` events before adding custom tracking: an article link click carries `$event_type = "click"`, `$external_click_url`, `$pathname`, and campaign properties. Do not sum an autocapture event and a custom event for the same click.
+
+Accept the collection path only after both checks succeed:
+
+1. In the browser, load the published article with the campaign parameters and click its runnable-source link. Confirm the script loads, the destination opens, and the collection request succeeds.
+2. In the authenticated PostHog project's Activity view, find the resulting pageview and click. Check the article path, exact GitHub target, timestamp, and `utm_source`, `utm_medium`, `utm_campaign`, and `utm_content`. HTTP 200 from the collector alone does not prove an event is queryable.
+
+For the Axum thread, the campaign is `utm_source=x&utm_medium=social&utm_campaign=openrouter-rs-2026-10&utm_content=axum-thread`. Accept both `/thoughts/streaming-openrouter-rust-axum` and its trailing-slash form, but filter the production host exactly. Count GitHub clicks only when the target is this SDK repository, a path inside it, or an anchor on it; clicks on API-run links are evidence lookups, not necessarily attempts to use the example.
+
+UTM properties can persist between pages. For a thread landing-page count, also require the current URL to contain the matching campaign parameters; a persisted `utm_source = "x"` by itself is insufficient. The canonical article URL remains free of those parameters.
+
+### Exclude Verification Traffic
+
+Before reporting campaign results, configure PostHog's internal/test-user filters to exclude localhost and known QA browser device IDs. A controlled production click proves tracking works; it is not reader conversion. Keep the device IDs in the private analytics configuration, not in this repository. Verify the rule persists after a reload, then confirm a filtered query excludes the known QA click while retaining unrelated traffic. Check the filter on each existing insight; a default for new insights is not proof that older insights or raw SQL are filtered.
+
+The saved PostHog insight **OpenRouter Axum: daily visits and GitHub clicks (QA excluded)** provides daily UTC counts of pageviews, distinct browser IDs, GitHub clicks, and X-tagged landing pageviews from the campaign's start. Its explicit QA exclusion must be updated if the verification browser changes. Distinct browser IDs are not unique people, and remaining visits may still include the author. Zero rows for a day do not by themselves prove the collector was working that day.
+
+### Record Distribution Results
+
+Read each post's available X analytics, especially the article-link post's impressions and link clicks. Keep unavailable fields as unavailable. Do not add the five posts' view counts and describe the sum as unique thread reach. Replies used to connect the author's own thread are not reader feedback.
+
+Use the same observation window and record QA exclusions:
+
+| Observed at (Asia/Shanghai) | Article pageviews / browser IDs | GitHub click events | X-tagged landing pageviews | X post URL | Impressions | X link clicks | Qualified feedback / next action |
+| --- | --- | ---: | ---: | --- | ---: | ---: | --- |
+
+Review after 48 hours and seven days. Website clicks, X link clicks, and crates.io downloads measure different actions and need not match. Preserve the existing collection events and fix query/filter errors before changing the website instrumentation. Record private dashboard references and screenshots locally; do not commit visitor identifiers or raw event payloads.
+
 The [official ranking policy](https://rust-lang.github.io/rfcs/1824-crates.io-default-ranking.html) explains recent-download sorting. The [download accounting announcement](https://blog.rust-lang.org/2024/03/11/crates-io-download-changes/) explains CDN-based download statistics.
