@@ -41,7 +41,7 @@ def main():
         raise RuntimeError("OPENROUTER_API_KEY is required; this live check must not silently skip")
     environment = os.environ.copy()
     environment["OPENROUTER_AXUM_BIND"] = "127.0.0.1:3000"
-    environment["OPENROUTER_MODEL"] = "openai/gpt-4o-mini"
+    environment["OPENROUTER_MODEL"] = "deepseek/deepseek-v4.1-flash"
     output = Path("axum-smoke-artifacts")
     output.mkdir(exist_ok=True)
     with tempfile.TemporaryFile() as server_log:

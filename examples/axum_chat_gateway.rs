@@ -83,7 +83,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let bind_addr =
         env::var("OPENROUTER_AXUM_BIND").unwrap_or_else(|_| "127.0.0.1:3000".to_string());
     let default_model =
-        env::var("OPENROUTER_MODEL").unwrap_or_else(|_| "openai/gpt-4o-mini".to_string());
+        env::var("OPENROUTER_MODEL").unwrap_or_else(|_| "deepseek/deepseek-v4.1-flash".to_string());
 
     let http_client = reqwest::Client::builder()
         .connect_timeout(Duration::from_secs(10))
