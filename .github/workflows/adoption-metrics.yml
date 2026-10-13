@@ -1,0 +1,39 @@
+name: Adoption Metrics
+
+on:
+  schedule:
+    - cron: "23 2 * * *"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/adoption-metrics.yml
+      - scripts/collect_adoption_metrics.py
+      - tests/test_adoption_metrics.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: adoption-metrics-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Test collection and snapshot semantics
+        run: python3 -m unittest discover -s tests -p 'test_adoption_metrics.py' -v
+      - name: Capture public registry metrics
+        run: python3 scripts/collect_adoption_metrics.py --output-dir adoption-metrics
+      - name: Retain snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: adoption-metrics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: adoption-metrics/*.json
+          if-no-files-found: error
+          retention-days: 90

@@ -19,15 +19,78 @@ Type-safe, async Rust SDK for the OpenRouter API.
 
 </div>
 
-`openrouter-rs` is a community-maintained Rust SDK for OpenRouter. It exposes a domain-oriented client for chat, responses, messages, rerank, audio speech/transcription, image generation, video generation, models, embeddings, files, presets, analytics, management, asynchronous batches, intern lifecycle/chat/invocation, vault secrets, and Decisions/System One APIs, plus a companion CLI in the same repository.
+`openrouter-rs` is a community-maintained Rust SDK for OpenRouter, with typed requests, streaming, tool calling, and access to OpenRouter's model, usage, and management APIs. A [companion CLI](crates/openrouter-cli/README.md) is available for terminal and automation workflows.
 
-The current repo snapshot implements `138 / 151` official OpenAPI method/path entries, with published live integration coverage tracked in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md).
+## Installation
 
-The September 30 review adds `batches()` for asynchronous submission/list/get/delete, Intern invocation and daemon access, URL audio/image references, SCIM group filters, and shared `ProviderPreferences::options`. Private Endpoints, Tools discovery, and effective vault secrets remain deferred; see the endpoint matrix. See [`domain_batches`](examples/domain_batches.rs) for batch submission. The upstream Coinbase charge endpoint is deprecated; use the OpenRouter web credits purchase flow.
+```toml
+[dependencies]
+openrouter-rs = "0.19.0"
+tokio = { version = "1", features = ["full"] }
+```
 
-The October 13 compatibility update adds daemon request signing with an OIDC session whose grant includes `vault:read`, BYOK declared regions, authenticated-key budgets, expired-key filtering and workspace moves. `UpdateApiKeyRequest::builder().clear_limit()` removes a spending limit; omitted limits stay unchanged. Speech accepts text or `Vec<SpeechTurn>` with optional instructions. Chat, Messages and Responses builders accept portable `deferred_tools` JSON; chat function tools also expose `defer_loading`. See [`sign_intern_daemon`](examples/sign_intern_daemon.rs) and the [input type migration note](MIGRATION.md#018x---0190-compatibility-notes).
+Requires Rust `1.85+` and Tokio `1.x`. To try it in a new project:
 
-The September OpenAPI update adds intern lifecycle/chat operations via `interns()`, scoped secret storage via `vault()`, and Decisions/System One via `decisions()`. It also adds container file listing, metadata, downloads and promotion via `files()`, OAuth workload token exchange/public signing keys and SCIM sync jobs via `management()`. See [`domain_interns`](examples/domain_interns.rs), [`domain_decisions`](examples/domain_decisions.rs), and [`domain_container_files`](examples/domain_container_files.rs) for usage.
+```bash
+cargo new openrouter-quickstart
+cd openrouter-quickstart
+```
+
+Add the dependencies above to `Cargo.toml`, then set your API key:
+
+```bash
+export OPENROUTER_API_KEY="your-openrouter-api-key"
+```
+
+## Quick Start
+
+Save this as `src/main.rs` and run `cargo run`:
+
+```rust
+use openrouter_rs::{
+    OpenRouterClient,
+    api::chat::{ChatCompletionRequest, Message},
+    types::Role,
+};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = OpenRouterClient::builder()
+        .api_key(std::env::var("OPENROUTER_API_KEY")?)
+        .build()?;
+
+    let request = ChatCompletionRequest::builder()
+        .model(std::env::var("OPENROUTER_MODEL").unwrap_or_else(|_| "openai/gpt-4o-mini".into()))
+        .messages(vec![Message::new(
+            Role::User,
+            "Explain Rust ownership in plain English.",
+        )])
+        .max_tokens(256)
+        .build()?;
+
+    let response = client.chat().create(&request).await?;
+    let choice = response.choices.first().ok_or("OpenRouter returned no choices")?;
+    println!("{}", choice.content().unwrap_or(""));
+
+    Ok(())
+}
+```
+
+The SDK keeps setup intentionally narrow: configure runtime values on `OpenRouterClient::builder()`, then choose the final `model` on each request builder. File/profile config resolution belongs in the companion CLI or in your application layer, not in the SDK core.
+
+Set `OPENROUTER_MODEL` to use another model ID available to your account. A successful request prints the model's reply. A missing key fails locally; for API authentication, credit, or model-availability errors, check your OpenRouter account and the returned error before retrying. API calls may consume credits.
+
+## Choose a Workflow
+
+These commands run from a checkout of this repository with `OPENROUTER_API_KEY` set:
+
+| Goal | Run | Guide |
+| --- | --- | --- |
+| Stream a chat response | `cargo run --example stream_chat_completion` | [Streaming example](examples/stream_chat_completion.rs) |
+| Execute typed tools in a bounded agent loop | `cargo run --example typed_tool_agent` | [Typed tool agent](examples/typed_tool_agent.rs) |
+| Inspect credits and manage API keys | `cargo run --example get_credits` | [CLI usage recipes](docs/operations/cli-automation-workflows.md) and [key management](examples/domain_management_api_keys.rs) |
+
+Management-governed endpoints require `OPENROUTER_MANAGEMENT_KEY`; ordinary chat and credits requests use `OPENROUTER_API_KEY`. For a minimal HTTP server, see the [Axum chat gateway](examples/axum_chat_gateway.rs).
 
 ## Why `openrouter-rs`
 
@@ -41,63 +104,14 @@ The September OpenAPI update adds intern lifecycle/chat operations via `interns(
 - Discovery, rankings and benchmark datasets, task classifications, rerank, audio speech/transcription, image generation, video generation, provider-backed files, embeddings, API-key management, preset creation/readback/versioning, analytics, BYOK provider credentials, observability destinations, workspace management, SCIM group mappings, organization members/settings, end-user registrations, guardrails, activity, credits, and generation metadata/content coverage
 - A companion CLI for profile resolution, discovery, management, and billing/usage workflows
 
-## Installation
-
-```toml
-[dependencies]
-openrouter-rs = "0.19.0"
-tokio = { version = "1", features = ["full"] }
-```
+Accepted endpoint coverage and live-test status are recorded separately in the [endpoint matrix](docs/operations/official-endpoint-test-matrix.md). See the [changelog](CHANGELOG.md) for release details and [migration guide](MIGRATION.md) when upgrading, including the [0.19 speech input change](MIGRATION.md#018x---0190-compatibility-notes).
 
 Legacy text completions are opt-in:
 
 ```toml
 [dependencies]
 openrouter-rs = { version = "0.19.0", features = ["legacy-completions"] }
-tokio = { version = "1", features = ["full"] }
 ```
-
-Requirements:
-
-- Rust `1.85+`
-- Tokio `1.x`
-- `OPENROUTER_API_KEY` for API-backed examples and live tests
-- `OPENROUTER_MANAGEMENT_KEY` for management-governed examples and tests
-
-## Quick Start
-
-```rust
-use openrouter_rs::{
-    OpenRouterClient,
-    api::chat::{ChatCompletionRequest, Message},
-    types::Role,
-};
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = OpenRouterClient::builder()
-        .api_key(std::env::var("OPENROUTER_API_KEY")?)
-        .http_referer("https://yourapp.example")
-        .x_title("my-openrouter-app")
-        .app_categories(["cli-agent"])
-        .build()?;
-
-    let request = ChatCompletionRequest::builder()
-        .model("anthropic/claude-sonnet-4")
-        .messages(vec![Message::new(
-            Role::User,
-            "Explain Rust ownership in plain English.",
-        )])
-        .build()?;
-
-    let response = client.chat().create(&request).await?;
-    println!("{}", response.choices[0].content().unwrap_or(""));
-
-    Ok(())
-}
-```
-
-The SDK keeps setup intentionally narrow: configure runtime values on `OpenRouterClient::builder()`, then choose the final `model` on each request builder. File/profile config resolution belongs in the companion CLI or in your application layer, not in the SDK core.
 
 ## API Surface
 
