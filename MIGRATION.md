@@ -2,7 +2,7 @@
 
 This document keeps historical migration guides intact because the repo still smoke-tests older domain/naming transitions.
 
-## Unreleased Compatibility Notes
+## 0.18.x -> 0.19.0 Compatibility Notes
 
 `SpeechRequest::input` is now `SpeechInput::Text(String)` or `SpeechInput::Turns(Vec<SpeechTurn>)` to match the upstream speech API. Existing builder calls such as `.input("Hello")` and `.input(String::from("Hello"))` work unchanged and serialize to the same string. For direct field assignment, use `request.input = text.into()`; for reads, match `SpeechInput::Text(text)` or `SpeechInput::Turns(turns)`. The retained `api::tts::TtsRequest` alias uses the same input type.
 

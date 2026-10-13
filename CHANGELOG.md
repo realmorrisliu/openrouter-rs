@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-10-13
+
 ### Added
 - Added Intern daemon request signing through `client.interns().sign_daemon(...)` and the deprecated `sign_daemon_access(...)` alias, requiring an `ori login --oidc` OAuth session with `vault:read`, with attribution headers, digest validation and credential-safe error handling (#264).
 - Added BYOK `declared_region` and explicit clearing, authenticated-key budgets/effective budget, API-key `last_used_at`, expired-key list filters, workspace moves, and video `expires_at` (#264).
@@ -14,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Reviewed issue #264 against the October 13 OpenAPI snapshot: `138 / 151` operations implemented; the existing 13 deferred operations remain deferred. Flexible Responses/Batch input/output/tools, plugin options and provider strings carry remaining schema additions; end-user constraints and the 500-key guardrail assignment limit remain server-validated.
-- `SpeechRequest::input` now uses `SpeechInput` for text or ordered turns; existing `.input("text")` builder calls and text JSON retain their shape. Direct field access must handle the enum (see `MIGRATION.md`). Existing CLI key list/update calls retain their wire shapes; no CLI flags change.
+- **Breaking:** `SpeechRequest::input` now uses `SpeechInput` for text or ordered turns; existing `.input("text")` builder calls and text JSON retain their shape. Direct field access must handle the enum (see `MIGRATION.md`). Existing CLI key list/update calls retain their wire shapes; no CLI flags change.
 
 ### Fixed
 - Added explicit API-key limit clearing and preserved null clear operations during JSON deserialization for API-key, BYOK, guardrail and observability PATCH requests, retaining existing public field types and builder methods.

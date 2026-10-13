@@ -25,7 +25,7 @@ The current repo snapshot implements `138 / 151` official OpenAPI method/path en
 
 The September 30 review adds `batches()` for asynchronous submission/list/get/delete, Intern invocation and daemon access, URL audio/image references, SCIM group filters, and shared `ProviderPreferences::options`. Private Endpoints, Tools discovery, and effective vault secrets remain deferred; see the endpoint matrix. See [`domain_batches`](examples/domain_batches.rs) for batch submission. The upstream Coinbase charge endpoint is deprecated; use the OpenRouter web credits purchase flow.
 
-The October 13 compatibility update adds daemon request signing with an OIDC session whose grant includes `vault:read`, BYOK declared regions, authenticated-key budgets, expired-key filtering and workspace moves. `UpdateApiKeyRequest::builder().clear_limit()` removes a spending limit; omitted limits stay unchanged. Speech accepts text or `Vec<SpeechTurn>` with optional instructions. Chat, Messages and Responses builders accept portable `deferred_tools` JSON; chat function tools also expose `defer_loading`. See [`sign_intern_daemon`](examples/sign_intern_daemon.rs) and the [input type migration note](MIGRATION.md#unreleased-compatibility-notes).
+The October 13 compatibility update adds daemon request signing with an OIDC session whose grant includes `vault:read`, BYOK declared regions, authenticated-key budgets, expired-key filtering and workspace moves. `UpdateApiKeyRequest::builder().clear_limit()` removes a spending limit; omitted limits stay unchanged. Speech accepts text or `Vec<SpeechTurn>` with optional instructions. Chat, Messages and Responses builders accept portable `deferred_tools` JSON; chat function tools also expose `defer_loading`. See [`sign_intern_daemon`](examples/sign_intern_daemon.rs) and the [input type migration note](MIGRATION.md#018x---0190-compatibility-notes).
 
 The September OpenAPI update adds intern lifecycle/chat operations via `interns()`, scoped secret storage via `vault()`, and Decisions/System One via `decisions()`. It also adds container file listing, metadata, downloads and promotion via `files()`, OAuth workload token exchange/public signing keys and SCIM sync jobs via `management()`. See [`domain_interns`](examples/domain_interns.rs), [`domain_decisions`](examples/domain_decisions.rs), and [`domain_container_files`](examples/domain_container_files.rs) for usage.
 
@@ -45,7 +45,7 @@ The September OpenAPI update adds intern lifecycle/chat operations via `interns(
 
 ```toml
 [dependencies]
-openrouter-rs = "0.18.0"
+openrouter-rs = "0.19.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -53,7 +53,7 @@ Legacy text completions are opt-in:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.18.0", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.19.0", features = ["legacy-completions"] }
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -395,7 +395,14 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 ### Unreleased
 
-### Version 0.18.0 *(Latest)*
+### Version 0.19.0 *(Latest)*
+
+- Added Intern daemon signing with an OIDC session carrying `vault:read`, BYOK declared regions, key budgets/last-used timestamps, expired-key filters, workspace moves and video expiration.
+- Added speech turn input/instructions, portable deferred-tool controls across Chat/Messages/Responses, chat function deferral and Messages tool-search result blocks.
+- **Breaking:** `SpeechRequest::input` (including the TTS alias) now uses `SpeechInput` for text or turns. Existing text builder calls work unchanged; direct field access needs the [0.19 migration notes](MIGRATION.md#018x---0190-compatibility-notes).
+- Added explicit key-limit clearing and preserved existing PATCH clear operations through JSON round trips. Corrected the legacy reasoning test and accepted the October 13 OpenAPI snapshot (`138 / 151` implemented; 13 deferred).
+
+### Version 0.18.0
 
 - Added prompt-cache usage details and assistant-message replay helpers that preserve modeled metadata, including reasoning summaries, signed/encrypted reasoning, and null content. Updated non-streaming and streaming tool-agent examples to retain context.
 - Added end-user registration management and organization settings, plus Batch fallback, audio provider, and activity cache-token fields. Preserved generic server-tool request types.
