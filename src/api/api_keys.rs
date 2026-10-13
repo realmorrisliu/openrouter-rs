@@ -1,3 +1,4 @@
+use derive_builder::Builder;
 use reqwest::Client as HttpClient;
 use serde::{Deserialize, Serialize};
 
@@ -10,6 +11,8 @@ use crate::{
 #[derive(Serialize, Deserialize, Debug)]
 #[non_exhaustive]
 pub struct ApiKey {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_used_at: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub external_user: Option<String>,
     pub name: Option<String>,
@@ -27,6 +30,10 @@ pub struct ApiKey {
 #[derive(Serialize, Debug)]
 #[non_exhaustive]
 pub struct ApiKeyDetails {
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub budgets: Vec<KeyBudget>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub effective_budget: Option<KeyBudget>,
     pub label: String,
     pub usage: f64,
     pub is_free_tier: bool,
@@ -41,6 +48,21 @@ pub struct ApiKeyDetails {
     pub limit_reset: Option<String>,
 }
 
+/// Budget contributing to the authenticated key's effective spend limit.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct KeyBudget {
+    pub scope: String,
+    pub guardrail_id: Option<String>,
+    pub budget_id: Option<String>,
+    pub limit_usd: f64,
+    pub spend_usd: f64,
+    pub remaining_usd: f64,
+    pub reset_interval: Option<String>,
+    pub resets_at: Option<String>,
+    pub include_byok: bool,
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 #[non_exhaustive]
 pub struct FreeModelDailyRequests {
@@ -51,6 +73,10 @@ pub struct FreeModelDailyRequests {
 
 #[derive(Deserialize)]
 struct ApiKeyDetailsWire {
+    #[serde(default)]
+    budgets: Vec<KeyBudget>,
+    #[serde(default)]
+    effective_budget: Option<KeyBudget>,
     label: String,
     usage: f64,
     is_free_tier: bool,
@@ -80,6 +106,8 @@ impl<'de> Deserialize<'de> for ApiKeyDetails {
     {
         let wire = ApiKeyDetailsWire::deserialize(deserializer)?;
         Ok(Self {
+            budgets: wire.budgets,
+            effective_budget: wire.effective_budget,
             label: wire.label,
             usage: wire.usage,
             is_free_tier: wire.is_free_tier,
@@ -146,21 +174,53 @@ impl ExternalApiKeyIdentity {
     }
 }
 
-#[derive(Serialize)]
-struct UpdateApiKeyRequest {
-    name: Option<String>,
-    disabled: Option<bool>,
-    limit: Option<f64>,
+/// Optional key updates; the legacy helper retains its null-valued fields.
+#[derive(Serialize, Deserialize, Debug, Clone, Default, Builder)]
+#[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
+pub struct UpdateApiKeyRequest {
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub disabled: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<f64>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workspace_id: Option<String>,
 }
 
-#[derive(Serialize)]
-struct ListApiKeysQuery {
+impl UpdateApiKeyRequest {
+    pub fn builder() -> UpdateApiKeyRequestBuilder {
+        UpdateApiKeyRequestBuilder::default()
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Default, Builder)]
+#[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
+pub struct ListApiKeysParams {
     #[serde(skip_serializing_if = "Option::is_none")]
-    offset: Option<u32>,
+    #[builder(setter(strip_option), default)]
+    pub offset: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    include_disabled: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    pub include_disabled: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    workspace_id: Option<String>,
+    #[builder(setter(into, strip_option), default)]
+    pub workspace_id: Option<String>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_expired: Option<bool>,
+}
+
+impl ListApiKeysParams {
+    pub fn builder() -> ListApiKeysParamsBuilder {
+        ListApiKeysParamsBuilder::default()
+    }
 }
 
 /// Get information on the API key associated with the current authentication session
@@ -278,12 +338,42 @@ pub(crate) async fn list_api_keys_in_workspace_with_client(
     include_disabled: Option<bool>,
     workspace_id: Option<&str>,
 ) -> Result<Vec<ApiKey>, OpenRouterError> {
+    list_api_keys_with_params_with_client(
+        http_client,
+        base_url,
+        management_key,
+        &ListApiKeysParams {
+            offset: pagination.and_then(|p| p.offset),
+            include_disabled,
+            workspace_id: workspace_id.map(ToOwned::to_owned),
+            include_expired: None,
+        },
+    )
+    .await
+}
+
+/// List keys, including optional expired keys and workspace filtering.
+pub async fn list_api_keys_with_params(
+    base_url: &str,
+    management_key: &str,
+    params: &ListApiKeysParams,
+) -> Result<Vec<ApiKey>, OpenRouterError> {
+    list_api_keys_with_params_with_client(
+        &crate::transport::new_client()?,
+        base_url,
+        management_key,
+        params,
+    )
+    .await
+}
+
+pub(crate) async fn list_api_keys_with_params_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    management_key: &str,
+    query: &ListApiKeysParams,
+) -> Result<Vec<ApiKey>, OpenRouterError> {
     let url = format!("{base_url}/keys");
-    let query = ListApiKeysQuery {
-        offset: pagination.and_then(|p| p.offset),
-        include_disabled,
-        workspace_id: workspace_id.map(ToOwned::to_owned),
-    };
     let req = transport_request::with_bearer_auth(
         transport_request::get(http_client, &url),
         management_key,
@@ -291,6 +381,7 @@ pub(crate) async fn list_api_keys_in_workspace_with_client(
     let response = if query.offset.is_none()
         && query.include_disabled.is_none()
         && query.workspace_id.is_none()
+        && query.include_expired.is_none()
     {
         req.send().await?
     } else {
@@ -557,13 +648,36 @@ pub(crate) async fn update_api_key_with_client(
     disabled: Option<bool>,
     limit: Option<f64>,
 ) -> Result<ApiKey, OpenRouterError> {
-    let url = format!("{base_url}/keys/{hash}");
-    let request = UpdateApiKeyRequest {
-        name,
-        disabled,
-        limit,
-    };
+    // Preserve the existing helper's wire shape, including explicit nulls.
+    let request = serde_json::json!({"name": name, "disabled": disabled, "limit": limit});
+    update_api_key_body_with_client(http_client, base_url, management_key, hash, &request).await
+}
 
+/// Update a key, optionally moving it to another workspace.
+pub async fn update_api_key_with_request(
+    base_url: &str,
+    management_key: &str,
+    hash: &str,
+    request: &UpdateApiKeyRequest,
+) -> Result<ApiKey, OpenRouterError> {
+    update_api_key_body_with_client(
+        &crate::transport::new_client()?,
+        base_url,
+        management_key,
+        hash,
+        request,
+    )
+    .await
+}
+
+pub(crate) async fn update_api_key_body_with_client<T: Serialize + ?Sized>(
+    http_client: &HttpClient,
+    base_url: &str,
+    management_key: &str,
+    hash: &str,
+    request: &T,
+) -> Result<ApiKey, OpenRouterError> {
+    let url = format!("{base_url}/keys/{}", urlencoding::encode(hash));
     let response = transport_request::with_bearer_auth(
         transport_request::patch(http_client, &url),
         management_key,

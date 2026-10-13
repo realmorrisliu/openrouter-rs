@@ -89,6 +89,9 @@ pub struct Tool {
     /// Function definition
     pub function: FunctionDefinition,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub defer_loading: Option<bool>,
+
     /// Optional cache-control directive for provider-side prompt caching.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cache_control: Option<Value>,
@@ -109,8 +112,10 @@ impl Tool {
                 description: description.to_string(),
                 parameters,
                 strict: None,
+                defer_loading: None,
             },
             cache_control: None,
+            defer_loading: None,
         }
     }
 }
@@ -122,10 +127,18 @@ pub struct ToolBuilder {
     description: Option<String>,
     parameters: Option<Value>,
     strict: Option<bool>,
+    defer_loading: Option<bool>,
+    function_defer_loading: Option<bool>,
     cache_control: Option<Value>,
 }
 
 impl ToolBuilder {
+    /// Defer this tool until portable tool discovery loads it.
+    pub fn defer_loading(&mut self, defer_loading: bool) -> &mut Self {
+        self.defer_loading = Some(defer_loading);
+        self
+    }
+
     /// Override the tool type. Defaults to `"function"`.
     pub fn tool_type(&mut self, tool_type: impl Into<String>) -> &mut Self {
         self.tool_type = Some(tool_type.into());
@@ -138,6 +151,7 @@ impl ToolBuilder {
         self.description = Some(function.description);
         self.parameters = Some(function.parameters);
         self.strict = function.strict;
+        self.function_defer_loading = function.defer_loading;
         self
     }
 
@@ -158,8 +172,10 @@ impl ToolBuilder {
                 description: self.description.clone().unwrap_or_default(),
                 parameters: self.parameters.clone().unwrap_or(Value::Null),
                 strict: self.strict,
+                defer_loading: self.function_defer_loading,
             },
             cache_control: self.cache_control.clone(),
+            defer_loading: self.defer_loading,
         })
     }
 }
@@ -188,6 +204,10 @@ pub struct FunctionDefinition {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub strict: Option<bool>,
+
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub defer_loading: Option<bool>,
 }
 
 impl FunctionDefinition {

@@ -260,12 +260,8 @@ async fn test_legacy_include_reasoning() -> Result<(), OpenRouterError> {
     let response = client.send_chat_completion(&request).await?;
     validate_chat_response(&response)?;
 
-    // With legacy include_reasoning: true, reasoning should be present
-    let reasoning = response.choices[0].reasoning();
-    assert!(
-        reasoning.is_some(),
-        "Reasoning should be present with include_reasoning: true"
-    );
+    // The legacy flag maps to reasoning: {}; returning reasoning depends on the model.
+    // Explicit enablement is covered by test_basic_reasoning.
 
     println!("Legacy include_reasoning test passed");
     Ok(())

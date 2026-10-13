@@ -649,3 +649,105 @@ pub(crate) async fn daemon_with_client(
     )
     .await
 }
+
+/// SHA-256 digest of the exact daemon request body, as lowercase hexadecimal.
+#[derive(Serialize, Deserialize, Debug, Clone, Builder)]
+#[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
+pub struct SignInternDaemonRequest {
+    #[builder(setter(into))]
+    #[serde(rename = "bodySha256")]
+    pub body_sha256: String,
+}
+
+impl SignInternDaemonRequest {
+    pub fn builder() -> SignInternDaemonRequestBuilder {
+        SignInternDaemonRequestBuilder::default()
+    }
+}
+
+/// Signed daemon request headers. Signature values are omitted from Debug output.
+#[derive(Serialize, Deserialize, Clone)]
+#[non_exhaustive]
+pub struct SignInternDaemonResponse {
+    #[serde(rename = "x-ori-invoke-signature")]
+    pub signature: String,
+    #[serde(rename = "x-ori-invoke-timestamp")]
+    pub timestamp: String,
+    #[serde(rename = "x-ori-invoke-user")]
+    pub user: String,
+}
+
+pub async fn sign_daemon(
+    base_url: &str,
+    api_key: &str,
+    intern_id: &str,
+    request: &SignInternDaemonRequest,
+) -> Result<SignInternDaemonResponse, OpenRouterError> {
+    sign_daemon_with_client(
+        &crate::transport::new_client()?,
+        base_url,
+        api_key,
+        (&None, &None, &None),
+        intern_id,
+        "daemon/sign",
+        request,
+    )
+    .await
+}
+
+/// Deprecated upstream signing alias; prefer `sign_daemon`.
+#[deprecated(note = "use sign_daemon")]
+pub async fn sign_daemon_access(
+    base_url: &str,
+    api_key: &str,
+    intern_id: &str,
+    request: &SignInternDaemonRequest,
+) -> Result<SignInternDaemonResponse, OpenRouterError> {
+    sign_daemon_with_client(
+        &crate::transport::new_client()?,
+        base_url,
+        api_key,
+        (&None, &None, &None),
+        intern_id,
+        "daemon-access/sign",
+        request,
+    )
+    .await
+}
+
+pub(crate) async fn sign_daemon_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
+    intern_id: &str,
+    path: &str,
+    request: &SignInternDaemonRequest,
+) -> Result<SignInternDaemonResponse, OpenRouterError> {
+    if request.body_sha256.len() != 64
+        || !request
+            .body_sha256
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        return Err(OpenRouterError::ConfigError(
+            "bodySha256 must be 64 lowercase hexadecimal characters".into(),
+        ));
+    }
+    let url = format!("{base_url}/interns/{}/{path}", encode(intern_id));
+    transport_response::parse_credential_response(
+        transport_request::with_client_request_headers(
+            transport_request::post(http_client, &url),
+            api_key,
+            metadata.0,
+            metadata.1,
+            metadata.2,
+        )?
+        .json(request)
+        .send()
+        .await?,
+        "intern daemon signature",
+    )
+    .await
+}

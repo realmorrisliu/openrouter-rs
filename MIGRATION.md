@@ -2,6 +2,14 @@
 
 This document keeps historical migration guides intact because the repo still smoke-tests older domain/naming transitions.
 
+## Unreleased Compatibility Notes
+
+`SpeechRequest::input` is now `SpeechInput::Text(String)` or `SpeechInput::Turns(Vec<SpeechTurn>)` to match the upstream speech API. Existing builder calls such as `.input("Hello")` and `.input(String::from("Hello"))` work unchanged and serialize to the same string. For direct field assignment, use `request.input = text.into()`; for reads, match `SpeechInput::Text(text)` or `SpeechInput::Turns(turns)`. The retained `api::tts::TtsRequest` alias uses the same input type.
+
+`client.management().list_api_keys_with_params(&params)` adds `ListApiKeysParams::include_expired`; `update_api_key_with_request(hash, &request)` adds `UpdateApiKeyRequest::workspace_id`. The existing positional methods remain available with their previous wire behavior.
+
+Use `client.interns().sign_daemon(...)` for signing; the upstream `sign_daemon_access(...)` alias is deprecated. Supply the lowercase SHA-256 hex digest of the exact daemon request body. Treat returned signature headers as credentials.
+
 ## 0.16.x -> 0.17.0 Compatibility Notes
 
 - Replace `client.interns().daemon_access(...)` / `api::interns::daemon_access(...)` with the corresponding `daemon(...)` method or function; the upstream alias and both SDK entry points are deprecated.

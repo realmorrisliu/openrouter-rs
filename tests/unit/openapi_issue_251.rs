@@ -1533,3 +1533,335 @@ async fn issue_257_generation_validation_errors() {
     );
     server.join().unwrap();
 }
+
+#[test]
+fn issue_264_speech_turns_and_legacy_text_round_trip() {
+    use openrouter_rs::api::audio::{SpeechInput, SpeechTurn};
+    let turn = SpeechTurn::builder()
+        .text("Hello")
+        .voice("alloy")
+        .instructions("Speak softly")
+        .build()
+        .unwrap();
+    let request = SpeechRequest::builder()
+        .model("test/model")
+        .input(vec![turn])
+        .instructions("Read the dialogue")
+        .build()
+        .unwrap();
+    let body = serde_json::to_value(request).unwrap();
+    assert_eq!(
+        body["input"],
+        json!([{"text":"Hello","voice":"alloy","instructions":"Speak softly"}])
+    );
+    assert_eq!(body["instructions"], "Read the dialogue");
+    let restored: SpeechRequest = serde_json::from_value(body.clone()).unwrap();
+    assert!(matches!(restored.input, SpeechInput::Turns(_)));
+    assert_eq!(serde_json::to_value(restored).unwrap(), body);
+    let text = SpeechRequest::builder()
+        .model("test/model")
+        .input("Hello")
+        .build()
+        .unwrap();
+    let body = serde_json::to_value(text).unwrap();
+    assert_eq!(body["input"], "Hello");
+    assert!(body.get("instructions").is_none());
+}
+
+#[test]
+fn issue_264_byok_region_omit_set_clear_reset() {
+    let mut builder = UpdateByokKeyRequest::builder();
+    assert_eq!(
+        serde_json::to_value(builder.build().unwrap()).unwrap(),
+        json!({})
+    );
+    builder.declared_region("europe");
+    assert_eq!(
+        serde_json::to_value(builder.build().unwrap()).unwrap(),
+        json!({"declared_region":"europe"})
+    );
+    builder.clear_declared_region();
+    assert_eq!(
+        serde_json::to_value(builder.build().unwrap()).unwrap(),
+        json!({"declared_region":null})
+    );
+    builder.declared_region("future-region");
+    assert_eq!(
+        serde_json::to_value(builder.build().unwrap()).unwrap(),
+        json!({"declared_region":"future-region"})
+    );
+    let create = CreateByokKeyRequest::builder()
+        .provider("openai")
+        .key("test")
+        .declared_region("us")
+        .build()
+        .unwrap();
+    assert_eq!(
+        serde_json::to_value(create).unwrap()["declared_region"],
+        "us"
+    );
+    let fixture = json!({"id":"key","provider":"openai","label":"test","disabled":false,"is_fallback":false,"sort_order":0,"created_at":"now"});
+    let old: ByokKey = serde_json::from_value(fixture.clone()).unwrap();
+    assert_eq!(old.declared_region, None);
+    let mut fixture = fixture;
+    fixture["declared_region"] = json!("europe");
+    let new: ByokKey = serde_json::from_value(fixture).unwrap();
+    assert_eq!(new.declared_region.as_deref(), Some("europe"));
+}
+
+#[test]
+fn issue_264_budget_and_expiry_fields_preserve_older_responses() {
+    let mut key = json!({"label":"test","usage":0,"is_free_tier":false,"rate_limit":{"requests":100,"interval":"1h"}});
+    let old: ApiKeyDetails = serde_json::from_value(key.clone()).unwrap();
+    assert!(old.budgets.is_empty() && old.effective_budget.is_none());
+    let budget = json!({"scope":"future-scope","guardrail_id":null,"budget_id":"budget","limit_usd":10.0,"spend_usd":1.0,"remaining_usd":9.0,"reset_interval":"weekly","resets_at":null,"include_byok":true});
+    key["budgets"] = json!([budget.clone()]);
+    key["effective_budget"] = budget.clone();
+    let key: ApiKeyDetails = serde_json::from_value(key).unwrap();
+    assert_eq!(key.budgets[0].scope, "future-scope");
+    assert_eq!(serde_json::to_value(key.effective_budget).unwrap(), budget);
+    let key: openrouter_rs::api::api_keys::ApiKey =
+        serde_json::from_value(json!({"last_used_at":"2026-10-12T00:00:00Z"})).unwrap();
+    assert_eq!(key.last_used_at.as_deref(), Some("2026-10-12T00:00:00Z"));
+    let video: openrouter_rs::api::videos::VideoGenerationResponse = serde_json::from_value(
+        json!({"id":"video","polling_url":"/video","status":"completed","expires_at":1791763200}),
+    )
+    .unwrap();
+    assert_eq!(video.expires_at, Some(1791763200));
+}
+
+#[test]
+fn issue_264_deferred_tools_round_trip_all_request_surfaces() {
+    use openrouter_rs::{
+        api::chat::{ChatCompletionRequest, Message},
+        types::{Role, Tool, tool::FunctionDefinition},
+    };
+    let control = json!({"protocol":"v1","profile":"portable","validation":"runtime","search":{"type":"bm25","max_results":3}});
+    let function = FunctionDefinition::builder()
+        .name("test")
+        .description("test")
+        .parameters(json!({}))
+        .defer_loading(true)
+        .build()
+        .unwrap();
+    let tool = Tool::builder()
+        .function(function)
+        .defer_loading(false)
+        .build()
+        .unwrap();
+    let chat = ChatCompletionRequest::builder()
+        .model("test/model")
+        .messages(vec![Message::new(Role::User, "hello")])
+        .tools(vec![tool])
+        .deferred_tools(control.clone())
+        .build()
+        .unwrap();
+    let body = serde_json::to_value(chat).unwrap();
+    assert_eq!(body["tools"][0]["defer_loading"], false);
+    assert_eq!(body["tools"][0]["function"]["defer_loading"], true);
+    assert_eq!(body["deferred_tools"], control);
+    let restored: ChatCompletionRequest = serde_json::from_value(body.clone()).unwrap();
+    assert_eq!(serde_json::to_value(restored).unwrap(), body);
+    let messages = AnthropicMessagesRequest::builder()
+        .model("test/model")
+        .max_tokens(100)
+        .messages(vec![AnthropicMessage::user("hello")])
+        .deferred_tools(control.clone())
+        .build()
+        .unwrap();
+    let body = serde_json::to_value(messages).unwrap();
+    assert_eq!(body["deferred_tools"], control);
+    let restored: AnthropicMessagesRequest = serde_json::from_value(body.clone()).unwrap();
+    assert_eq!(serde_json::to_value(restored).unwrap(), body);
+    let responses = openrouter_rs::api::responses::ResponsesRequest::builder()
+        .model("test/model").deferred_tools(control.clone()).input(json!([{"type":"tool_search_output","call_id":"call","execution":"client","tools":[]}]))
+        .tools(vec![json!({"type":"function","name":"test","allowed_callers":["programmatic"],"output_schema":{"type":"object"}})])
+        .build().unwrap();
+    let body = serde_json::to_value(responses).unwrap();
+    assert_eq!(body["deferred_tools"], control);
+    let restored: openrouter_rs::api::responses::ResponsesRequest =
+        serde_json::from_value(body.clone()).unwrap();
+    assert_eq!(serde_json::to_value(restored).unwrap(), body);
+    let result = json!({"type":"openrouter_tool_search_result","tool_use_id":"call","content":{"matches":[]}});
+    let block: openrouter_rs::api::messages::AnthropicContentPart =
+        serde_json::from_value(result.clone()).unwrap();
+    assert_eq!(serde_json::to_value(block).unwrap(), result);
+    let event = json!({"type":"content_block_start","index":0,"content_block":result});
+    let parsed: openrouter_rs::api::messages::AnthropicMessagesStreamEvent =
+        serde_json::from_value(event.clone()).unwrap();
+    assert_eq!(serde_json::to_value(parsed).unwrap(), event);
+}
+
+#[tokio::test]
+async fn issue_264_key_filters_and_workspace_updates_use_management_auth() {
+    use openrouter_rs::api::api_keys::{ListApiKeysParams, UpdateApiKeyRequest};
+    let (base, rx, server) = spawn_server_sequence(vec![
+        (200, json!({"data":[]}).to_string()),
+        (200, json!({"data":{"workspace_id":"ws"}}).to_string()),
+    ]);
+    let client = OpenRouterClient::builder()
+        .base_url(base)
+        .api_key("inference-key")
+        .management_key("management-key")
+        .build()
+        .unwrap();
+    let params = ListApiKeysParams::builder()
+        .offset(5)
+        .include_disabled(false)
+        .include_expired(true)
+        .workspace_id("ws")
+        .build()
+        .unwrap();
+    client
+        .management()
+        .list_api_keys_with_params(&params)
+        .await
+        .unwrap();
+    let request = UpdateApiKeyRequest::builder()
+        .workspace_id("ws")
+        .disabled(false)
+        .build()
+        .unwrap();
+    let result = client
+        .management()
+        .update_api_key_with_request("hash/encoded", &request)
+        .await
+        .unwrap();
+    assert_eq!(result.workspace_id.as_deref(), Some("ws"));
+    let list = rx.recv().unwrap();
+    assert!(
+        list.line.contains("offset=5")
+            && list.line.contains("include_disabled=false")
+            && list.line.contains("include_expired=true")
+            && list.line.contains("workspace_id=ws")
+    );
+    assert!(list.headers.contains("Bearer management-key"));
+    let update = rx.recv().unwrap();
+    assert_eq!(update.line, "PATCH /api/v1/keys/hash%2Fencoded HTTP/1.1");
+    assert!(update.headers.contains("Bearer management-key"));
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&update.body).unwrap(),
+        json!({"workspace_id":"ws","disabled":false})
+    );
+    server.join().unwrap();
+    let missing = OpenRouterClient::builder()
+        .api_key("inference-only")
+        .build()
+        .unwrap();
+    assert!(matches!(
+        missing
+            .management()
+            .list_api_keys_with_params(&params)
+            .await,
+        Err(openrouter_rs::error::OpenRouterError::KeyNotConfigured)
+    ));
+    assert!(matches!(
+        missing
+            .management()
+            .update_api_key_with_request("hash", &request)
+            .await,
+        Err(openrouter_rs::error::OpenRouterError::KeyNotConfigured)
+    ));
+}
+
+#[tokio::test]
+#[allow(deprecated)]
+async fn issue_264_daemon_signing_paths_auth_headers_and_errors() {
+    use openrouter_rs::api::interns::SignInternDaemonRequest;
+    let signature = json!({"x-ori-invoke-signature":"signed-secret","x-ori-invoke-timestamp":"123","x-ori-invoke-user":"user"});
+    let (base, rx, server) = spawn_server_sequence(vec![
+        (200, signature.to_string()),
+        (200, signature.to_string()),
+        (
+            403,
+            json!({"error":{"code":403,"message":"Forbidden"}}).to_string(),
+        ),
+        (500, "signature-secret invalid error".into()),
+        (
+            200,
+            json!({"x-ori-invoke-signature":"success-secret","x-ori-invoke-timestamp":123})
+                .to_string(),
+        ),
+    ]);
+    let client = OpenRouterClient::builder()
+        .base_url(base)
+        .api_key("api-key")
+        .management_key("management-key")
+        .x_title("test-app")
+        .http_referer("https://example.com")
+        .app_categories(["test"])
+        .build()
+        .unwrap();
+    let request = SignInternDaemonRequest::builder()
+        .body_sha256("a".repeat(64))
+        .build()
+        .unwrap();
+    let signed = client
+        .interns()
+        .sign_daemon("id/encoded", &request)
+        .await
+        .unwrap();
+    assert_eq!(signed.signature, "signed-secret");
+    assert_eq!(signed.timestamp, "123");
+    let alias = client
+        .interns()
+        .sign_daemon_access("id/encoded", &request)
+        .await
+        .unwrap();
+    assert_eq!(alias.user, "user");
+    for suffix in ["daemon/sign", "daemon-access/sign"] {
+        let capture = rx.recv().unwrap();
+        assert_eq!(
+            capture.line,
+            format!("POST /api/v1/interns/id%2Fencoded/{suffix} HTTP/1.1")
+        );
+        let headers = capture.headers.to_ascii_lowercase();
+        assert!(headers.contains("authorization: bearer api-key"));
+        assert!(headers.contains("x-openrouter-title: test-app"));
+        assert!(headers.contains("http-referer: https://example.com"));
+        assert!(headers.contains("x-openrouter-categories: test"));
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(&capture.body).unwrap(),
+            json!({"bodySha256":"a".repeat(64)})
+        );
+    }
+    let error = client
+        .interns()
+        .sign_daemon("id", &request)
+        .await
+        .err()
+        .unwrap();
+    assert!(
+        matches!(error, openrouter_rs::error::OpenRouterError::Api(context) if context.status.as_u16() == 403)
+    );
+    rx.recv().unwrap();
+    for secret in ["signature-secret", "success-secret"] {
+        let error = client
+            .interns()
+            .sign_daemon("id", &request)
+            .await
+            .err()
+            .unwrap();
+        assert!(!error.to_string().contains(secret));
+        rx.recv().unwrap();
+    }
+    server.join().unwrap();
+    for digest in ["".into(), "A".repeat(64), "g".repeat(64), "a".repeat(63)] {
+        let invalid = SignInternDaemonRequest::builder()
+            .body_sha256(digest)
+            .build()
+            .unwrap();
+        assert!(matches!(
+            client.interns().sign_daemon("id", &invalid).await,
+            Err(openrouter_rs::error::OpenRouterError::ConfigError(_))
+        ));
+    }
+    let missing = OpenRouterClient::builder()
+        .management_key("management-only")
+        .build()
+        .unwrap();
+    assert!(matches!(
+        missing.interns().sign_daemon("id", &request).await,
+        Err(openrouter_rs::error::OpenRouterError::KeyNotConfigured)
+    ));
+}

@@ -42,6 +42,8 @@ pub struct ByokKey {
     pub is_required: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub declared_zdr: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub declared_region: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub allowed_models: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -99,6 +101,9 @@ pub struct CreateByokKeyRequest {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub declared_zdr: Option<bool>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub declared_region: Option<String>,
 }
 
 impl CreateByokKeyRequest {
@@ -153,6 +158,11 @@ pub struct UpdateByokKeyRequest {
     #[serde(skip)]
     #[builder(setter(custom), default)]
     clear_declared_zdr: bool,
+    #[builder(setter(custom), default)]
+    pub declared_region: Option<String>,
+    #[serde(skip)]
+    #[builder(setter(custom), default)]
+    clear_declared_region: bool,
 }
 
 impl Serialize for UpdateByokKeyRequest {
@@ -201,6 +211,11 @@ impl Serialize for UpdateByokKeyRequest {
         } else if let Some(value) = &self.declared_zdr {
             map.serialize_entry("declared_zdr", value)?;
         }
+        if self.clear_declared_region {
+            map.serialize_entry("declared_region", &Option::<String>::None)?;
+        } else if let Some(value) = &self.declared_region {
+            map.serialize_entry("declared_region", value)?;
+        }
         map.end()
     }
 }
@@ -212,6 +227,18 @@ impl UpdateByokKeyRequest {
 }
 
 impl UpdateByokKeyRequestBuilder {
+    pub fn declared_region(&mut self, value: impl Into<String>) -> &mut Self {
+        self.declared_region = Some(Some(value.into()));
+        self.clear_declared_region = Some(false);
+        self
+    }
+
+    pub fn clear_declared_region(&mut self) -> &mut Self {
+        self.declared_region = Some(None);
+        self.clear_declared_region = Some(true);
+        self
+    }
+
     pub fn declared_zdr(&mut self, value: Option<bool>) -> &mut Self {
         self.declared_zdr = Some(value);
         self.clear_declared_zdr = Some(false);

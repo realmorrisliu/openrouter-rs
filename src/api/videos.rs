@@ -187,6 +187,8 @@ pub struct VideoGenerationUsage {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
 pub struct VideoGenerationResponse {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<i64>,
     pub id: String,
     pub polling_url: String,
     pub status: String,

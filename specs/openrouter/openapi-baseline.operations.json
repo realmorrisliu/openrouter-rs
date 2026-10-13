@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-10-06T15:20:08+00:00",
+  "captured_at": "2026-10-13T01:06:47+00:00",
   "info": {
     "contact": {
       "email": "support@openrouter.ai",
@@ -14,7 +14,7 @@
     "title": "OpenRouter API",
     "version": "1.0.0"
   },
-  "operation_count": 149,
+  "operation_count": 151,
   "operations": [
     {
       "deprecated": false,
@@ -40,7 +40,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b41607c68fe2b5ba",
+      "fingerprint": "f5414071f74c77a1",
       "id": "DELETE /end-users/{path_param_0}",
       "method": "DELETE",
       "operation_id": "deleteEndUser",
@@ -205,7 +205,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "0c5dc1589960ffd7",
+      "fingerprint": "0bd1548dd42bee6b",
       "id": "GET /batches/{path_param_0}",
       "method": "GET",
       "operation_id": "getBatches",
@@ -227,7 +227,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "616b90bdb001ca32",
+      "fingerprint": "bb30e6389f97aee3",
       "id": "GET /byok",
       "method": "GET",
       "operation_id": "listBYOKKeys",
@@ -238,7 +238,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "19ef1c38a56f70a3",
+      "fingerprint": "d6f2a92f712b7a3e",
       "id": "GET /byok/{path_param_0}",
       "method": "GET",
       "operation_id": "getBYOKKey",
@@ -348,7 +348,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "bb23dfeac1bb4812",
+      "fingerprint": "069e3b0ff80b9093",
       "id": "GET /end-users",
       "method": "GET",
       "operation_id": "listEndUsers",
@@ -359,7 +359,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "527ebed9457604ae",
+      "fingerprint": "48c10c933502d876",
       "id": "GET /end-users/{path_param_0}",
       "method": "GET",
       "operation_id": "getEndUser",
@@ -568,7 +568,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b0339d0fafd5e6d4",
+      "fingerprint": "a129b16a5f8173e4",
       "id": "GET /key",
       "method": "GET",
       "operation_id": "getCurrentKey",
@@ -579,7 +579,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "e2d8fd736c1ee7eb",
+      "fingerprint": "dd338d036267242c",
       "id": "GET /keys",
       "method": "GET",
       "operation_id": "list",
@@ -590,7 +590,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "66d0c028add7bd1c",
+      "fingerprint": "a40ab3a105f7ecf8",
       "id": "GET /keys/{path_param_0}",
       "method": "GET",
       "operation_id": "getKey",
@@ -898,7 +898,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b852d08514289e8f",
+      "fingerprint": "009d10ac8cd2e33a",
       "id": "GET /videos/{path_param_0}",
       "method": "GET",
       "operation_id": "getVideos",
@@ -975,7 +975,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "1cfe5011c6e2b74d",
+      "fingerprint": "9ed7231a6548ea2c",
       "id": "PATCH /byok/{path_param_0}",
       "method": "PATCH",
       "operation_id": "updateBYOKKey",
@@ -986,7 +986,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "6286dddb47062db8",
+      "fingerprint": "77f625b053d44e40",
       "id": "PATCH /end-users/{path_param_0}",
       "method": "PATCH",
       "operation_id": "updateEndUser",
@@ -1019,7 +1019,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "ea158c375dbf65fe",
+      "fingerprint": "608e1ed0f12d70c2",
       "id": "PATCH /keys/{path_param_0}",
       "method": "PATCH",
       "operation_id": "updateKeys",
@@ -1107,7 +1107,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "7f41be346ebd8d77",
+      "fingerprint": "733de666417942b5",
       "id": "POST /audio/speech",
       "method": "POST",
       "operation_id": "createAudioSpeech",
@@ -1151,7 +1151,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "bb53d14149e786fc",
+      "fingerprint": "943720059f75ec77",
       "id": "POST /batches",
       "method": "POST",
       "operation_id": "createBatches",
@@ -1162,7 +1162,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "e2b58e19ceea5b73",
+      "fingerprint": "7186a0f1b2fbfd48",
       "id": "POST /byok",
       "method": "POST",
       "operation_id": "createBYOKKey",
@@ -1173,7 +1173,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "5b20b2d580bbf26c",
+      "fingerprint": "3c6903b8bfae2fd5",
       "id": "POST /chat/completions",
       "method": "POST",
       "operation_id": "sendChatCompletionRequest",
@@ -1217,7 +1217,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "01e51d39cb4fa196",
+      "fingerprint": "2cc8598c528ee7e6",
       "id": "POST /end-users",
       "method": "POST",
       "operation_id": "createEndUser",
@@ -1261,7 +1261,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f18a910c3be04f1b",
+      "fingerprint": "33fad17bafef8294",
       "id": "POST /guardrails/{path_param_0}/assignments/keys",
       "method": "POST",
       "operation_id": "bulkAssignKeysToGuardrail",
@@ -1272,7 +1272,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "7f82a337c1e8d7b9",
+      "fingerprint": "3633fe61deb0d02a",
       "id": "POST /guardrails/{path_param_0}/assignments/keys/remove",
       "method": "POST",
       "operation_id": "bulkUnassignKeysFromGuardrail",
@@ -1337,6 +1337,28 @@
       ]
     },
     {
+      "deprecated": true,
+      "fingerprint": "84159ef03f5da588",
+      "id": "POST /interns/{path_param_0}/daemon-access/sign",
+      "method": "POST",
+      "operation_id": "signInternDaemonAccessRequest",
+      "path": "/interns/{path_param_0}/daemon-access/sign",
+      "tags": [
+        "Interns"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "314896cd85603ca6",
+      "id": "POST /interns/{path_param_0}/daemon/sign",
+      "method": "POST",
+      "operation_id": "signInternDaemonRequest",
+      "path": "/interns/{path_param_0}/daemon/sign",
+      "tags": [
+        "Interns"
+      ]
+    },
+    {
       "deprecated": false,
       "fingerprint": "21ee2da247cc3ce1",
       "id": "POST /interns/{path_param_0}/invoke",
@@ -1371,7 +1393,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "c273a79653c1e15e",
+      "fingerprint": "7a06e7e1702b46e7",
       "id": "POST /keys",
       "method": "POST",
       "operation_id": "createKeys",
@@ -1382,7 +1404,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "664c6e4ef26a2432",
+      "fingerprint": "e8c91392bcbc2a0e",
       "id": "POST /messages",
       "method": "POST",
       "operation_id": "createMessages",
@@ -1415,7 +1437,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "c33393b10e18aacc",
+      "fingerprint": "f767fb4a686a1cea",
       "id": "POST /presets/{path_param_0}/chat/completions",
       "method": "POST",
       "operation_id": "createPresetsChatCompletions",
@@ -1426,7 +1448,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "4e07b67cb68c3b93",
+      "fingerprint": "64988913b96537df",
       "id": "POST /presets/{path_param_0}/messages",
       "method": "POST",
       "operation_id": "createPresetsMessages",
@@ -1437,7 +1459,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "aa8b11145ecf5e58",
+      "fingerprint": "80265cae43577be2",
       "id": "POST /presets/{path_param_0}/responses",
       "method": "POST",
       "operation_id": "createPresetsResponses",
@@ -1514,7 +1536,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "202efd9b66521783",
+      "fingerprint": "95bfc4f5dce6d519",
       "id": "POST /responses",
       "method": "POST",
       "operation_id": "createResponses",
@@ -1570,7 +1592,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b27a64b8a9b7c56c",
+      "fingerprint": "cb43a09000bf027f",
       "id": "POST /videos",
       "method": "POST",
       "operation_id": "createVideos",
