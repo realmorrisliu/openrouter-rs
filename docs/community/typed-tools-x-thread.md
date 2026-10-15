@@ -1,9 +1,19 @@
-# Typed tools tutorial — X thread draft
+# Typed tools tutorial — published X thread
 
-Status: prepared, not published. Publish after the production article is verified.
-Keep at least 48 hours between primary threads; the Axum thread was published on
-October 13 at 11:47 Asia/Shanghai, so October 15 at 11:47 is the earliest slot.
-Choose the actual time from account analytics when available.
+Published on October 15, 2026 at 11:47 Asia/Shanghai:
+https://x.com/realmorrisliu/status/2110578158118605288
+
+The five posts below record the published thread. The production article, pinned
+source, and live verification run were checked before publication. All five posts
+were verified in the public conversation after X sent the scheduled thread.
+
+Publication links, in order:
+
+1. https://x.com/realmorrisliu/status/2110578158118605288
+2. https://x.com/realmorrisliu/status/2110578158370164877
+3. https://x.com/realmorrisliu/status/2110578158638616715
+4. https://x.com/realmorrisliu/status/2110578158919651563
+5. https://x.com/realmorrisliu/status/2110578159209046311
 
 ## 1/5
 
@@ -41,6 +51,5 @@ Evidence: https://github.com/realmorrisliu/openrouter-rs/actions/runs/3836223740
 Source: https://github.com/realmorrisliu/openrouter-rs/blob/f6d4a06832e891c51f00e178e122fa7ffbe0f906/examples/typed_tool_agent.rs
 
 Seven local tests and a separate project using published SDK 0.19.0 passed.
-Retain the actual publication URLs and date when the thread is published.
 Inspect results after 48 hours and seven days; exclude QA visits from PostHog.
 The screenshots/transcripts must use the labeled demo fixtures and contain no credentials.
