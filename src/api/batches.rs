@@ -18,6 +18,13 @@ pub struct CreateBatchRequest {
     pub endpoint: String,
     #[builder(setter(into))]
     pub model: String,
+    /// Callback URL notified when the batch reaches a terminal state.
+    ///
+    /// Upstream requires this property to appear before `requests` in the
+    /// request body, so declaration order is significant here.
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub callback_url: Option<String>,
     pub requests: Vec<BatchRequest>,
     #[builder(setter(into, strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -25,10 +32,6 @@ pub struct CreateBatchRequest {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub provider: Option<BatchProviderPreferences>,
-    /// Callback URL notified when the batch reaches a terminal state.
-    #[builder(setter(into, strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub callback_url: Option<String>,
 }
 
 impl CreateBatchRequest {

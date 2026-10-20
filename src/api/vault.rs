@@ -117,13 +117,23 @@ pub async fn list_secrets(
     offset: Option<u32>,
 ) -> Result<VaultSecretListResponse, OpenRouterError> {
     let http_client = crate::transport::new_client()?;
-    list_secrets_with_client(&http_client, base_url, api_key, intern_id, limit, offset).await
+    list_secrets_with_client(
+        &http_client,
+        base_url,
+        api_key,
+        (&None, &None, &None),
+        intern_id,
+        limit,
+        offset,
+    )
+    .await
 }
 
 pub(crate) async fn list_secrets_with_client(
     http_client: &HttpClient,
     base_url: &str,
     api_key: &str,
+    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
     intern_id: Option<&str>,
     limit: Option<u32>,
     offset: Option<u32>,
@@ -132,10 +142,16 @@ pub(crate) async fn list_secrets_with_client(
         Some(id) => format!("{base_url}/vault/interns/{}/secrets", encode(id)),
         None => format!("{base_url}/vault/secrets"),
     };
-    let response = with_auth(transport_request::get(http_client, &path), api_key)
-        .query(&VaultSecretsQuery { limit, offset })
-        .send()
-        .await?;
+    let response = transport_request::with_client_request_headers(
+        transport_request::get(http_client, &path),
+        api_key,
+        metadata.0,
+        metadata.1,
+        metadata.2,
+    )?
+    .query(&VaultSecretsQuery { limit, offset })
+    .send()
+    .await?;
     parse_result(response, "list vault secrets").await
 }
 
@@ -147,13 +163,23 @@ pub async fn store_secret(
     request: &VaultSecretWriteRequest,
 ) -> Result<VaultSecretResponse, OpenRouterError> {
     let http_client = crate::transport::new_client()?;
-    store_secret_with_client(&http_client, base_url, api_key, intern_id, name, request).await
+    store_secret_with_client(
+        &http_client,
+        base_url,
+        api_key,
+        (&None, &None, &None),
+        intern_id,
+        name,
+        request,
+    )
+    .await
 }
 
 pub(crate) async fn store_secret_with_client(
     http_client: &HttpClient,
     base_url: &str,
     api_key: &str,
+    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
     intern_id: Option<&str>,
     name: &str,
     request: &VaultSecretWriteRequest,
@@ -166,10 +192,16 @@ pub(crate) async fn store_secret_with_client(
         ),
         None => format!("{base_url}/vault/secrets/{}", encode(name)),
     };
-    let response = with_auth(transport_request::put(http_client, &path), api_key)
-        .json(request)
-        .send()
-        .await?;
+    let response = transport_request::with_client_request_headers(
+        transport_request::put(http_client, &path),
+        api_key,
+        metadata.0,
+        metadata.1,
+        metadata.2,
+    )?
+    .json(request)
+    .send()
+    .await?;
     parse_result(response, "store vault secret").await
 }
 
@@ -180,13 +212,22 @@ pub async fn delete_secret(
     name: &str,
 ) -> Result<(), OpenRouterError> {
     let http_client = crate::transport::new_client()?;
-    delete_secret_with_client(&http_client, base_url, api_key, intern_id, name).await
+    delete_secret_with_client(
+        &http_client,
+        base_url,
+        api_key,
+        (&None, &None, &None),
+        intern_id,
+        name,
+    )
+    .await
 }
 
 pub(crate) async fn delete_secret_with_client(
     http_client: &HttpClient,
     base_url: &str,
     api_key: &str,
+    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
     intern_id: Option<&str>,
     name: &str,
 ) -> Result<(), OpenRouterError> {
@@ -198,9 +239,15 @@ pub(crate) async fn delete_secret_with_client(
         ),
         None => format!("{base_url}/vault/secrets/{}", encode(name)),
     };
-    let response = with_auth(transport_request::delete(http_client, &path), api_key)
-        .send()
-        .await?;
+    let response = transport_request::with_client_request_headers(
+        transport_request::delete(http_client, &path),
+        api_key,
+        metadata.0,
+        metadata.1,
+        metadata.2,
+    )?
+    .send()
+    .await?;
     if response.status().is_success() {
         Ok(())
     } else {
@@ -219,6 +266,7 @@ pub async fn list_connections_for_intern(
         &crate::transport::new_client()?,
         base_url,
         api_key,
+        (&None, &None, &None),
         intern_id,
     )
     .await
@@ -228,12 +276,19 @@ pub(crate) async fn list_connections_for_intern_with_client(
     http_client: &HttpClient,
     base_url: &str,
     api_key: &str,
+    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
     intern_id: &str,
 ) -> Result<VaultInternConnectionListResponse, OpenRouterError> {
     let path = format!("{base_url}/vault/interns/{}/connections", encode(intern_id));
-    let response = with_auth(transport_request::get(http_client, &path), api_key)
-        .send()
-        .await?;
+    let response = transport_request::with_client_request_headers(
+        transport_request::get(http_client, &path),
+        api_key,
+        metadata.0,
+        metadata.1,
+        metadata.2,
+    )?
+    .send()
+    .await?;
     parse_result(response, "list intern connections").await
 }
 
@@ -244,13 +299,22 @@ pub async fn copy_secrets_to_intern(
     request: &VaultSecretCopyRequest,
 ) -> Result<VaultSecretCopyResponse, OpenRouterError> {
     let http_client = crate::transport::new_client()?;
-    copy_secrets_to_intern_with_client(&http_client, base_url, api_key, intern_id, request).await
+    copy_secrets_to_intern_with_client(
+        &http_client,
+        base_url,
+        api_key,
+        (&None, &None, &None),
+        intern_id,
+        request,
+    )
+    .await
 }
 
 pub(crate) async fn copy_secrets_to_intern_with_client(
     http_client: &HttpClient,
     base_url: &str,
     api_key: &str,
+    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
     intern_id: &str,
     request: &VaultSecretCopyRequest,
 ) -> Result<VaultSecretCopyResponse, OpenRouterError> {
@@ -258,15 +322,17 @@ pub(crate) async fn copy_secrets_to_intern_with_client(
         "{base_url}/vault/interns/{}/secrets/copy",
         encode(intern_id)
     );
-    let response = with_auth(transport_request::post(http_client, &path), api_key)
-        .json(request)
-        .send()
-        .await?;
+    let response = transport_request::with_client_request_headers(
+        transport_request::post(http_client, &path),
+        api_key,
+        metadata.0,
+        metadata.1,
+        metadata.2,
+    )?
+    .json(request)
+    .send()
+    .await?;
     parse_result(response, "copy vault secrets").await
-}
-
-fn with_auth(builder: reqwest::RequestBuilder, api_key: &str) -> reqwest::RequestBuilder {
-    transport_request::with_bearer_auth(builder, api_key)
 }
 
 async fn parse_result<T: for<'de> Deserialize<'de>>(

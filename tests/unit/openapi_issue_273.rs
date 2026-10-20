@@ -107,6 +107,17 @@ fn client(base_url: String) -> OpenRouterClient {
         .expect("build client")
 }
 
+fn attribution_client(base_url: String) -> OpenRouterClient {
+    OpenRouterClient::builder()
+        .base_url(base_url)
+        .api_key("test-key")
+        .http_referer("https://example.com/app")
+        .x_title("drift-test")
+        .app_categories(["docs", "sdk"])
+        .build()
+        .expect("build client")
+}
+
 #[test]
 fn issue_273_batch_lifecycle_and_callback_fields() {
     let request = CreateBatchRequest::builder()
@@ -120,6 +131,15 @@ fn issue_273_batch_lifecycle_and_callback_fields() {
     assert_eq!(
         value["callback_url"],
         Value::String("https://example.com/batches/hook".into())
+    );
+    let wire = serde_json::to_string(&request).expect("serialize batch request to JSON");
+    let callback = wire
+        .find("\"callback_url\"")
+        .expect("callback_url is present");
+    let requests = wire.find("\"requests\"").expect("requests is present");
+    assert!(
+        callback < requests,
+        "callback_url must appear before requests: {wire}"
     );
 
     let batch: Batch = serde_json::from_value(json!({
@@ -420,7 +440,7 @@ async fn issue_273_vault_intern_connections_path_and_response() {
         .into_bytes();
     let (base_url, rx, server) = spawn_server(body, "application/json");
 
-    let connections = client(base_url)
+    let connections = attribution_client(base_url)
         .vault()
         .list_connections_for_intern("intern-1")
         .await
@@ -439,6 +459,11 @@ async fn issue_273_vault_intern_connections_path_and_response() {
         captured.line,
         "GET /api/v1/vault/interns/intern-1/connections HTTP/1.1"
     );
+    let headers = captured.headers.to_ascii_lowercase();
+    assert!(headers.contains("http-referer: https://example.com/app"));
+    assert!(headers.contains("x-title: drift-test"));
+    assert!(headers.contains("x-openrouter-title: drift-test"));
+    assert!(headers.contains("x-openrouter-categories: docs,sdk"));
     server.join().expect("server joins");
 }
 
@@ -499,5 +524,41 @@ async fn issue_273_sign_daemon_route_is_forwarded() {
     let sent: Value = serde_json::from_str(&captured.body).expect("request body is JSON");
     assert_eq!(sent["route"]["method"], "POST");
     assert_eq!(sent["route"]["path"], "/api/invoke");
+    server.join().expect("server joins");
+}
+
+#[tokio::test]
+async fn issue_273_vault_store_keeps_attribution_headers() {
+    let body = json!({
+        "data": {
+            "name": "TOKEN",
+            "hosts": ["api.example.com"],
+            "fingerprint": "sha256:abc",
+            "created_at": "2026-10-19T00:00:00Z"
+        }
+    })
+    .to_string()
+    .into_bytes();
+    let (base_url, rx, server) = spawn_server(body, "application/json");
+
+    let request = openrouter_rs::api::vault::VaultSecretWriteRequest::builder()
+        .value("secret")
+        .hosts(["api.example.com"])
+        .build()
+        .expect("vault write builds");
+    let stored = attribution_client(base_url)
+        .vault()
+        .store("TOKEN", &request)
+        .await
+        .expect("vault store succeeds");
+    assert_eq!(stored.data.name, "TOKEN");
+
+    let captured = rx.recv().expect("captured request");
+    assert_eq!(captured.line, "PUT /api/v1/vault/secrets/TOKEN HTTP/1.1");
+    let headers = captured.headers.to_ascii_lowercase();
+    assert!(headers.contains("authorization: bearer test-key"));
+    assert!(headers.contains("http-referer: https://example.com/app"));
+    assert!(headers.contains("x-title: drift-test"));
+    assert!(headers.contains("x-openrouter-categories: docs,sdk"));
     server.join().expect("server joins");
 }
