@@ -91,6 +91,19 @@ impl ImageProviderOptions {
         self
     }
 
+    /// Provider data-retention policy (`allow` or `deny`); unknown future
+    /// policies remain representable as strings.
+    pub fn data_collection(mut self, policy: impl Into<String>) -> Self {
+        self.data_collection = Some(policy.into());
+        self
+    }
+
+    /// Restrict routing to ZDR (zero data retention) endpoints.
+    pub fn zdr(mut self, zdr: bool) -> Self {
+        self.zdr = Some(zdr);
+        self
+    }
+
     pub fn ignore<T, S>(mut self, providers: T) -> Self
     where
         T: IntoIterator<Item = S>,

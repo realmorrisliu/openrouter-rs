@@ -324,13 +324,19 @@ fn issue_273_video_urls_and_chat_alignment_payloads() {
 
 #[test]
 fn issue_273_image_provider_privacy_and_responses_stop() {
-    let provider: ImageProviderOptions = serde_json::from_value(json!({
+    let provider = ImageProviderOptions::default()
+        .data_collection("deny")
+        .zdr(true);
+    assert_eq!(provider.data_collection.as_deref(), Some("deny"));
+    assert_eq!(provider.zdr, Some(true));
+
+    let decoded: ImageProviderOptions = serde_json::from_value(json!({
         "data_collection": "deny",
         "zdr": true
     }))
     .expect("image provider options deserialize");
-    assert_eq!(provider.data_collection.as_deref(), Some("deny"));
-    assert_eq!(provider.zdr, Some(true));
+    assert_eq!(decoded.data_collection.as_deref(), Some("deny"));
+    assert_eq!(decoded.zdr, Some(true));
 
     let single = ResponsesRequest::builder()
         .model("openai/gpt-4o")

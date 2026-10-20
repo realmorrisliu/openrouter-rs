@@ -298,10 +298,14 @@ pub struct UpdateGuardrailRequest {
     enforce_zdr_other: Option<bool>,
     #[builder(setter(strip_option), default)]
     enforce_zdr_xai: Option<bool>,
-    #[builder(setter(strip_option), default)]
+    #[builder(setter(custom), default)]
     allow_safety_retention_google: Option<bool>,
-    #[builder(setter(strip_option), default)]
+    #[builder(setter(custom), default)]
+    clear_allow_safety_retention_google: bool,
+    #[builder(setter(custom), default)]
     allow_safety_retention_other: Option<bool>,
+    #[builder(setter(custom), default)]
+    clear_allow_safety_retention_other: bool,
 }
 
 crate::utils::deserialize_nullable_patch!(
@@ -321,8 +325,6 @@ crate::utils::deserialize_nullable_patch!(
         enforce_zdr_google: bool,
         enforce_zdr_other: bool,
         enforce_zdr_xai: bool,
-        allow_safety_retention_google: bool,
-        allow_safety_retention_other: bool,
     },
     {
         allowed_providers: Vec<String> => clear_allowed_providers,
@@ -330,6 +332,8 @@ crate::utils::deserialize_nullable_patch!(
         allowed_data_regions: Vec<String> => clear_allowed_data_regions,
         content_filter_builtins: Vec<ContentFilterBuiltinEntry> => clear_content_filter_builtins,
         content_filters: Vec<ContentFilterEntry> => clear_content_filters,
+        allow_safety_retention_google: bool => clear_allow_safety_retention_google,
+        allow_safety_retention_other: bool => clear_allow_safety_retention_other,
     }
 );
 
@@ -409,10 +413,14 @@ impl Serialize for UpdateGuardrailRequest {
         if let Some(value) = &self.enforce_zdr_xai {
             map.serialize_entry("enforce_zdr_xai", value)?;
         }
-        if let Some(value) = &self.allow_safety_retention_google {
+        if self.clear_allow_safety_retention_google {
+            map.serialize_entry("allow_safety_retention_google", &Option::<bool>::None)?;
+        } else if let Some(value) = &self.allow_safety_retention_google {
             map.serialize_entry("allow_safety_retention_google", value)?;
         }
-        if let Some(value) = &self.allow_safety_retention_other {
+        if self.clear_allow_safety_retention_other {
+            map.serialize_entry("allow_safety_retention_other", &Option::<bool>::None)?;
+        } else if let Some(value) = &self.allow_safety_retention_other {
             map.serialize_entry("allow_safety_retention_other", value)?;
         }
         map.end()
@@ -447,6 +455,30 @@ impl UpdateGuardrailRequestBuilder {
     {
         self.allowed_data_regions = Some(Some(items.into_iter().map(Into::into).collect()));
         self.clear_allowed_data_regions = Some(false);
+        self
+    }
+
+    pub fn allow_safety_retention_google(&mut self, value: bool) -> &mut Self {
+        self.allow_safety_retention_google = Some(Some(value));
+        self.clear_allow_safety_retention_google = Some(false);
+        self
+    }
+
+    pub fn clear_allow_safety_retention_google(&mut self) -> &mut Self {
+        self.allow_safety_retention_google = Some(None);
+        self.clear_allow_safety_retention_google = Some(true);
+        self
+    }
+
+    pub fn allow_safety_retention_other(&mut self, value: bool) -> &mut Self {
+        self.allow_safety_retention_other = Some(Some(value));
+        self.clear_allow_safety_retention_other = Some(false);
+        self
+    }
+
+    pub fn clear_allow_safety_retention_other(&mut self) -> &mut Self {
+        self.allow_safety_retention_other = Some(None);
+        self.clear_allow_safety_retention_other = Some(true);
         self
     }
 
