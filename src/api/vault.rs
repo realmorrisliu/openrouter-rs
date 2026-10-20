@@ -88,6 +88,19 @@ pub struct VaultSecretCopyResponse {
     pub data: Vec<VaultSecret>,
 }
 
+/// One connection available to an intern, keyed by its dashboard card.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct VaultInternConnection {
+    pub key: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct VaultInternConnectionListResponse {
+    pub data: Vec<VaultInternConnection>,
+}
+
 #[derive(Serialize)]
 struct VaultSecretsQuery {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -194,6 +207,34 @@ pub(crate) async fn delete_secret_with_client(
         transport_response::handle_error(response).await?;
         unreachable!()
     }
+}
+
+/// List the connections in scope for an intern (`GET /vault/interns/{internId}/connections`).
+pub async fn list_connections_for_intern(
+    base_url: &str,
+    api_key: &str,
+    intern_id: &str,
+) -> Result<VaultInternConnectionListResponse, OpenRouterError> {
+    list_connections_for_intern_with_client(
+        &crate::transport::new_client()?,
+        base_url,
+        api_key,
+        intern_id,
+    )
+    .await
+}
+
+pub(crate) async fn list_connections_for_intern_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    intern_id: &str,
+) -> Result<VaultInternConnectionListResponse, OpenRouterError> {
+    let path = format!("{base_url}/vault/interns/{}/connections", encode(intern_id));
+    let response = with_auth(transport_request::get(http_client, &path), api_key)
+        .send()
+        .await?;
+    parse_result(response, "list intern connections").await
 }
 
 pub async fn copy_secrets_to_intern(

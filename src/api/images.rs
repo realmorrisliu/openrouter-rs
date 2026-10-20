@@ -72,6 +72,10 @@ pub struct ImageProviderOptions {
     pub order: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sort: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data_collection: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub zdr: Option<bool>,
 }
 
 impl ImageProviderOptions {

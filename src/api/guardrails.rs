@@ -138,6 +138,12 @@ pub struct Guardrail {
     pub enforce_zdr_other: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub enforce_zdr_xai: Option<bool>,
+    /// Whether ZDR-only `google/*` requests may use endpoints that retain prompts for safety.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub allow_safety_retention_google: Option<bool>,
+    /// Whether ZDR-only non-Google requests may use endpoints that retain prompts for safety.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub allow_safety_retention_other: Option<bool>,
     pub created_at: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<String>,
@@ -214,6 +220,12 @@ pub struct CreateGuardrailRequest {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     enforce_zdr_xai: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    allow_safety_retention_google: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    allow_safety_retention_other: Option<bool>,
     #[builder(setter(into, strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     workspace_id: Option<String>,
@@ -286,6 +298,10 @@ pub struct UpdateGuardrailRequest {
     enforce_zdr_other: Option<bool>,
     #[builder(setter(strip_option), default)]
     enforce_zdr_xai: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    allow_safety_retention_google: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    allow_safety_retention_other: Option<bool>,
 }
 
 crate::utils::deserialize_nullable_patch!(
@@ -305,6 +321,8 @@ crate::utils::deserialize_nullable_patch!(
         enforce_zdr_google: bool,
         enforce_zdr_other: bool,
         enforce_zdr_xai: bool,
+        allow_safety_retention_google: bool,
+        allow_safety_retention_other: bool,
     },
     {
         allowed_providers: Vec<String> => clear_allowed_providers,
@@ -390,6 +408,12 @@ impl Serialize for UpdateGuardrailRequest {
         }
         if let Some(value) = &self.enforce_zdr_xai {
             map.serialize_entry("enforce_zdr_xai", value)?;
+        }
+        if let Some(value) = &self.allow_safety_retention_google {
+            map.serialize_entry("allow_safety_retention_google", value)?;
+        }
+        if let Some(value) = &self.allow_safety_retention_other {
+            map.serialize_entry("allow_safety_retention_other", value)?;
         }
         map.end()
     }

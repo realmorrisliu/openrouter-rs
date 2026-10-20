@@ -142,6 +142,11 @@ pub struct ResponsesRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     truncation: Option<String>,
 
+    /// Up to four stop sequences, or a single string; `Value` keeps both wire forms.
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    stop: Option<Value>,
+
     #[builder(setter(skip), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     stream: Option<bool>,

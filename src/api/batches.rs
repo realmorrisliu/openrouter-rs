@@ -25,6 +25,10 @@ pub struct CreateBatchRequest {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub provider: Option<BatchProviderPreferences>,
+    /// Callback URL notified when the batch reaches a terminal state.
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub callback_url: Option<String>,
 }
 
 impl CreateBatchRequest {
@@ -101,7 +105,11 @@ pub struct Batch {
     pub completion_window: String,
     pub status: String,
     pub created_at: i64,
+    /// Unix timestamp after which the assigned provider stops finishing requests.
+    pub expires_at: Option<i64>,
     pub finalized_at: Option<i64>,
+    /// Provider OpenRouter assigned to run the batch.
+    pub provider: Option<String>,
     pub request_counts: BatchRequestCounts,
     pub usage: Option<Value>,
     pub results: Option<Vec<BatchResult>>,
