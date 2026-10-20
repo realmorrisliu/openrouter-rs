@@ -189,6 +189,12 @@ pub struct PublicEndpoint {
     pub supports_image_reference: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub supports_multiple_audio_references: Option<bool>,
+    /// Service tier this endpoint sells, or `None` for a standard endpoint.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub service_tier: Option<String>,
+    /// Whether this STT endpoint can label transcript segments by speaker.
+    #[serde(default)]
+    pub supports_diarization: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub latency_last_30m: Option<PercentileStats>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -864,6 +870,9 @@ pub struct ListUserModelsParams {
     #[builder(default, setter(into, strip_option))]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub output_modalities: Option<String>,
+    #[builder(default, setter(into, strip_option))]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sort: Option<String>,
 }
 impl ListUserModelsParams {
     pub fn builder() -> ListUserModelsParamsBuilder {

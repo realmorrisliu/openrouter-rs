@@ -31,6 +31,12 @@ pub struct Intern {
     pub attached_vault_id: Option<String>,
     pub created_at: String,
     pub updated_at: String,
+    /// Whether the calling user created the intern; absent for organization keys.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_by_you: Option<bool>,
+    /// SHA-256 of the intern icon, or `None` when it has none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon_sha256: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -48,6 +54,14 @@ pub struct InternListResponse {
     pub has_more: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub next_cursor: Option<String>,
+}
+
+/// Icon bytes for one intern (`GET /interns/{internId}/icon`).
+#[derive(Debug, Clone)]
+#[non_exhaustive]
+pub struct InternIcon {
+    pub bytes: Vec<u8>,
+    pub content_type: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Builder)]
@@ -363,6 +377,62 @@ pub(crate) async fn get_intern_with_client(
     .await
 }
 
+/// Fetch an intern's icon bytes (`GET /interns/{internId}/icon`).
+/// Pass the intern's `icon_sha256` as `version` for a cacheable response.
+pub async fn get_intern_icon(
+    base_url: &str,
+    api_key: &str,
+    intern_id: &str,
+    version: Option<&str>,
+) -> Result<InternIcon, OpenRouterError> {
+    get_intern_icon_with_client(
+        &crate::transport::new_client()?,
+        base_url,
+        api_key,
+        (&None, &None, &None),
+        intern_id,
+        version,
+    )
+    .await
+}
+
+pub(crate) async fn get_intern_icon_with_client(
+    http_client: &HttpClient,
+    base_url: &str,
+    api_key: &str,
+    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
+    intern_id: &str,
+    version: Option<&str>,
+) -> Result<InternIcon, OpenRouterError> {
+    let url = format!("{base_url}/interns/{}/icon", encode(intern_id));
+    let mut request = transport_request::with_client_request_headers(
+        transport_request::get(http_client, &url),
+        api_key,
+        metadata.0,
+        metadata.1,
+        metadata.2,
+    )?;
+    if let Some(version) = version {
+        request = request.query(&[("v", version)]);
+    }
+    let response = request.send().await?;
+    if response.status().is_success() {
+        let content_type = response
+            .headers()
+            .get(reqwest::header::CONTENT_TYPE)
+            .and_then(|value| value.to_str().ok())
+            .map(str::to_string);
+        let bytes = response.bytes().await?.to_vec();
+        Ok(InternIcon {
+            bytes,
+            content_type,
+        })
+    } else {
+        transport_response::handle_error(response).await?;
+        unreachable!()
+    }
+}
+
 pub async fn update_intern(
     base_url: &str,
     api_key: &str,
@@ -658,11 +728,35 @@ pub struct SignInternDaemonRequest {
     #[builder(setter(into))]
     #[serde(rename = "bodySha256")]
     pub body_sha256: String,
+    /// Optional daemon route; when set the response also carries a single-use,
+    /// route-bound proof (`x-ori-invoke-signature-v2`, `x-ori-invoke-nonce`).
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub route: Option<SignInternDaemonRoute>,
 }
 
 impl SignInternDaemonRequest {
     pub fn builder() -> SignInternDaemonRequestBuilder {
         SignInternDaemonRequestBuilder::default()
+    }
+}
+
+/// Route a daemon signature proof is bound to.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct SignInternDaemonRoute {
+    /// Only `POST` is supported upstream today.
+    pub method: String,
+    /// Percent-encoded request path, without origin or query.
+    pub path: String,
+}
+
+impl SignInternDaemonRoute {
+    pub fn post(path: impl Into<String>) -> Self {
+        Self {
+            method: "POST".into(),
+            path: path.into(),
+        }
     }
 }
 
@@ -676,6 +770,20 @@ pub struct SignInternDaemonResponse {
     pub timestamp: String,
     #[serde(rename = "x-ori-invoke-user")]
     pub user: String,
+    /// Single-use id bound to [`SignInternDaemonResponse::signature_v2`].
+    #[serde(
+        rename = "x-ori-invoke-nonce",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub nonce: Option<String>,
+    /// Route-bound proof, present when the request named a `route`.
+    #[serde(
+        rename = "x-ori-invoke-signature-v2",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub signature_v2: Option<String>,
 }
 
 /// Sign a daemon request digest using an `ori login --oidc` OAuth session.

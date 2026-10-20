@@ -11,8 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Put SDK installation, a complete Quick Start, and common workflows before detailed API coverage in the README; updated the community setup page to use maintained installation guidance.
+- Vault list/store/delete/copy requests now forward the configured `HTTP-Referer`, `X-Title` and `X-OpenRouter-Categories` attribution headers, matching the declared endpoint parameters.
+- Accepted issue #273 against the October 20 OpenAPI snapshot: `140 / 153` operations implemented; the existing 13 deferred operations remain deferred. Chat `alignment`/`safeguard_results`, Responses `openrouter:armor_blocked` items, Armor/alignment plugin configuration and Decisions `box` variants stay on existing flexible `Value`/`Plugin`/`HashMap` surfaces; new 408/409/499 statuses use the shared error parser.
 
 ### Added
+- Added intern icon reads through `client.interns().get_icon(...)` and vault intern connection reads through `client.vault().list_connections_for_intern(...)` (#273).
+- Added Batch `callback_url`, `expires_at` and assigned `provider`; endpoint `service_tier`/`supports_diarization`; guardrail `allow_safety_retention_google`/`allow_safety_retention_other` with explicit clear builders; observability `broadcast_generation_cost_allocation`; video signed `urls`; image provider `data_collection`/`zdr`; intern `created_by_you`/`icon_sha256`; route-bound daemon signing (`route`, nonce and v2 signature); user-model `sort`; and Responses `stop` (#273).
 - Added daily crates.io adoption snapshots with keyword rank, recent and trailing download totals, and published reverse-dependency counts, retained as GitHub Actions artifacts.
 - Added `/chat/stream` to the Axum gateway example, with bounded inputs, a request deadline, usage forwarding, explicit terminal/error events, and HTTP disconnect tests; added an opt-in real-API tutorial smoke workflow.
 

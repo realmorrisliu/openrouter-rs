@@ -198,6 +198,9 @@ pub struct VideoGenerationResponse {
     pub generation_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub unsigned_urls: Option<Vec<String>>,
+    /// Signed download URLs for OpenRouter's stored copy, valid until `expires_at`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub urls: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub usage: Option<VideoGenerationUsage>,
 }

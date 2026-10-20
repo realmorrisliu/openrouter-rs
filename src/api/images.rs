@@ -72,6 +72,10 @@ pub struct ImageProviderOptions {
     pub order: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sort: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data_collection: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub zdr: Option<bool>,
 }
 
 impl ImageProviderOptions {
@@ -84,6 +88,19 @@ impl ImageProviderOptions {
 
     pub fn allow_fallbacks(mut self, allow_fallbacks: bool) -> Self {
         self.allow_fallbacks = Some(allow_fallbacks);
+        self
+    }
+
+    /// Provider data-retention policy (`allow` or `deny`); unknown future
+    /// policies remain representable as strings.
+    pub fn data_collection(mut self, policy: impl Into<String>) -> Self {
+        self.data_collection = Some(policy.into());
+        self
+    }
+
+    /// Restrict routing to ZDR (zero data retention) endpoints.
+    pub fn zdr(mut self, zdr: bool) -> Self {
+        self.zdr = Some(zdr);
         self
     }
 

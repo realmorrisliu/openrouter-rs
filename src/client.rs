@@ -2901,6 +2901,27 @@ impl InternsClient<'_> {
         .await
     }
 
+    /// Fetch an intern's icon bytes; pass `icon_sha256` as `version` for a cacheable response.
+    pub async fn get_icon(
+        &self,
+        intern_id: &str,
+        version: Option<&str>,
+    ) -> Result<interns::InternIcon, OpenRouterError> {
+        interns::get_intern_icon_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
+            intern_id,
+            version,
+        )
+        .await
+    }
+
     pub async fn update(
         &self,
         intern_id: &str,
@@ -2995,6 +3016,11 @@ impl VaultClient<'_> {
             self.client.http_client(),
             &self.client.base_url,
             self.client.require_api_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
             None,
             limit,
             offset,
@@ -3012,6 +3038,11 @@ impl VaultClient<'_> {
             self.client.http_client(),
             &self.client.base_url,
             self.client.require_api_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
             Some(intern_id),
             limit,
             offset,
@@ -3028,6 +3059,11 @@ impl VaultClient<'_> {
             self.client.http_client(),
             &self.client.base_url,
             self.client.require_api_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
             None,
             name,
             request,
@@ -3045,6 +3081,11 @@ impl VaultClient<'_> {
             self.client.http_client(),
             &self.client.base_url,
             self.client.require_api_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
             Some(intern_id),
             name,
             request,
@@ -3057,6 +3098,11 @@ impl VaultClient<'_> {
             self.client.http_client(),
             &self.client.base_url,
             self.client.require_api_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
             None,
             name,
         )
@@ -3072,8 +3118,32 @@ impl VaultClient<'_> {
             self.client.http_client(),
             &self.client.base_url,
             self.client.require_api_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
             Some(intern_id),
             name,
+        )
+        .await
+    }
+
+    /// List the connections in scope for an intern.
+    pub async fn list_connections_for_intern(
+        &self,
+        intern_id: &str,
+    ) -> Result<vault::VaultInternConnectionListResponse, OpenRouterError> {
+        vault::list_connections_for_intern_with_client(
+            self.client.http_client(),
+            &self.client.base_url,
+            self.client.require_api_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
+            intern_id,
         )
         .await
     }
@@ -3087,6 +3157,11 @@ impl VaultClient<'_> {
             self.client.http_client(),
             &self.client.base_url,
             self.client.require_api_key()?,
+            (
+                &self.client.x_title,
+                &self.client.http_referer,
+                &self.client.app_categories,
+            ),
             intern_id,
             request,
         )

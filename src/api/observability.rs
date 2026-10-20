@@ -100,6 +100,9 @@ pub struct ObservabilityDestination {
     /// Whether generation cost is broadcast to this destination.
     #[serde(default)]
     pub broadcast_generation_cost: bool,
+    /// Whether generation cost allocation is broadcast to this destination.
+    #[serde(default)]
+    pub broadcast_generation_cost_allocation: bool,
     /// Whether generation identity is broadcast to this destination.
     #[serde(default)]
     pub broadcast_generation_identity: bool,
@@ -153,6 +156,9 @@ pub struct CreateObservabilityDestinationRequest {
     pub broadcast_generation_cost: Option<bool>,
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub broadcast_generation_cost_allocation: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub broadcast_generation_identity: Option<bool>,
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -197,6 +203,8 @@ pub struct UpdateObservabilityDestinationRequest {
     #[builder(setter(strip_option), default)]
     pub broadcast_generation_cost: Option<bool>,
     #[builder(setter(strip_option), default)]
+    pub broadcast_generation_cost_allocation: Option<bool>,
+    #[builder(setter(strip_option), default)]
     pub broadcast_generation_identity: Option<bool>,
     #[builder(setter(strip_option), default)]
     pub broadcast_generation_request_context: Option<bool>,
@@ -212,6 +220,7 @@ crate::utils::deserialize_nullable_patch!(
         privacy_mode: bool,
         sampling_rate: f64,
         broadcast_generation_cost: bool,
+        broadcast_generation_cost_allocation: bool,
         broadcast_generation_identity: bool,
         broadcast_generation_request_context: bool,
     },
@@ -260,6 +269,9 @@ impl Serialize for UpdateObservabilityDestinationRequest {
         }
         if let Some(value) = &self.broadcast_generation_cost {
             map.serialize_entry("broadcast_generation_cost", value)?;
+        }
+        if let Some(value) = &self.broadcast_generation_cost_allocation {
+            map.serialize_entry("broadcast_generation_cost_allocation", value)?;
         }
         if let Some(value) = &self.broadcast_generation_identity {
             map.serialize_entry("broadcast_generation_identity", value)?;

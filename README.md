@@ -94,7 +94,7 @@ Management-governed endpoints require `OPENROUTER_MANAGEMENT_KEY`; ordinary chat
 
 ## Why `openrouter-rs`
 
-- Domain-oriented clients: `chat()`, `responses()`, `messages()`, `rerank()`, `audio().speech()`, `audio().transcriptions()`, `images()`, `videos()`, `files()`, `models()`, `management()`, and opt-in `legacy()`
+- Domain-oriented clients: `chat()`, `responses()`, `messages()`, `rerank()`, `audio().speech()`, `audio().transcriptions()`, `images()`, `videos()`, `files()`, `models()`, `batches()`, `interns()`, `vault()`, `decisions()`, `management()`, and opt-in `legacy()`
 - Typed request/response models with builder-style ergonomics
 - Tokio-native `reqwest + rustls` transport with no `surf` / `curl` dependency chain
 - Streaming support for chat, responses, messages, and image generation, including a unified stream abstraction
@@ -132,12 +132,29 @@ The canonical public surface is domain-oriented:
 | `models()` | `list`, `list_filtered`, `list_by_category`, `list_by_parameters`, `get`, `list_endpoints`, `list_providers`, `list_user_models`, `list_for_user_with_params`, `get_model_count`, `get_rankings_daily`, `get_rankings_daily_filtered`, `get_app_rankings`, `get_session_cost`, `get_task_classifications`, `get_benchmarks`, `list_zdr_endpoints`, `create_embedding`, `list_embedding_models` | `/model*`, `/models*`, `/providers`, `/datasets/*`, `/classifications/task`, `/benchmarks`, `/endpoints/zdr`, `/embeddings*` | API key |
 | `management()` | `create_api_key`, `create_api_key_in_workspace`, `create_api_key_with_options`, `list_api_keys`, `list_api_keys_in_workspace`, `list_presets`, `get_preset`, `list_preset_versions`, `get_preset_version`, `create_chat_completion_preset`, `create_response_preset`, `create_message_preset`, `get_analytics_meta`, `query_analytics`, `list_byok_keys`, `create_byok_key`, `get_byok_key`, `update_byok_key`, `delete_byok_key`, `list_observability_destinations`, `create_observability_destination`, `get_observability_destination`, `update_observability_destination`, `delete_observability_destination`, `create_auth_code`, `create_api_key_from_auth_code`, `list_guardrails`, `list_guardrails_in_workspace`, `create_guardrail`, `list_organization_members`, `get_organization_settings`, `update_organization_settings`, `list_end_users`, `create_end_user`, `get_end_user`, `update_end_user`, `delete_end_user`, `list_workspaces`, `create_workspace`, `get_workspace`, `update_workspace`, `delete_workspace`, `list_workspace_budgets`, `get_workspace_budget`, `upsert_workspace_budget`, `delete_workspace_budget`, `list_workspace_members`, `add_workspace_members`, `remove_workspace_members`, `get_activity`, `get_activity_with_params`, `get_credits`, `create_coinbase_charge`, `get_generation`, `get_generation_content`, `submit_generation_feedback` | `/keys*`, `/presets*`, `/analytics*`, `/byok*`, `/observability/destinations*`, `/auth/keys*`, `/guardrails*`, `/organization/*`, `/end-users*`, `/workspaces*`, `/activity`, `/credits*`, `/generation*`, `/key` | Governed endpoints require a management key; billing/session endpoints still use the normal API key because that is how OpenRouter authenticates them |
 | `batches()` | `list`, `create`, `get`, `delete` | `/batches*` | API key |
-| `interns()` | `list`, `create`, `get`, `update`, `delete`, `provision`, `suspend`, `chat_completion`, `invoke`, `daemon`, `daemon_access`, `sign_daemon`, `sign_daemon_access` | `/interns*` | API key for lifecycle/chat/invoke/daemon access; signing requires an `ori login --oidc` OAuth session with `vault:read`, configured in the client's `api_key` bearer slot |
-| `vault()` | `list`, `list_for_intern`, `store`, `store_for_intern`, `delete`, `delete_for_intern`, `copy_to_intern` | `/vault*` | API key |
+| `interns()` | `list`, `create`, `get`, `get_icon`, `update`, `delete`, `provision`, `suspend`, `chat_completion`, `invoke`, `daemon`, `daemon_access`, `sign_daemon`, `sign_daemon_access` | `/interns*` | API key for lifecycle/chat/invoke/daemon access; signing requires an `ori login --oidc` OAuth session with `vault:read`, configured in the client's `api_key` bearer slot |
+| `vault()` | `list`, `list_for_intern`, `list_connections_for_intern`, `store`, `store_for_intern`, `delete`, `delete_for_intern`, `copy_to_intern` | `/vault*` | API key |
 | `decisions()` | `create`, `create_system_one` | `/api/alpha/decisions`, `/systemone` | API key |
 | `management()` | `get_oauth_jwks`, `exchange_oauth_token` | `/oauth/jwks`, `/oauth/token` | Public signing keys; token exchange authenticates with the workload JWT |
 | `management()` | `list_scim_groups`, `list_scim_group_mappings`, `create_scim_group_mapping`, `get_scim_group_mapping`, `update_scim_group_mapping`, `delete_scim_group_mapping`, `create_scim_sync_job`, `get_scim_sync_job` | `/scim/groups`, `/scim/group-mappings*`, `/scim/sync-jobs*` | Management key |
 | `legacy()` | `completions().create` | `/completions` | `legacy-completions` feature + API key |
+
+Newer intern and vault reads follow the same domain-client style:
+
+```rust
+// Icon bytes for one intern, optionally cache-keyed by icon_sha256.
+let icon = client.interns().get_icon("intern-id", None).await?;
+
+// Connections (GitHub, Slack, MCP servers, ...) available to one intern.
+for connection in client
+    .vault()
+    .list_connections_for_intern("intern-id")
+    .await?
+    .data
+{
+    println!("{}", connection.key);
+}
+```
 
 At runtime, the builder/client exposes the values the SDK directly consumes:
 
@@ -226,7 +243,8 @@ The repo includes runnable examples for the highest-value workflows:
 | [`examples/create_video_generation.rs`](examples/create_video_generation.rs) | `videos().create(...)` |
 | [`examples/create_embedding.rs`](examples/create_embedding.rs) | `models().create_embedding(...)` |
 | [`examples/domain_batches.rs`](examples/domain_batches.rs) | `batches().create(...)` |
-| [`examples/domain_interns.rs`](examples/domain_interns.rs) | `interns().list(...)` |
+| [`examples/domain_interns.rs`](examples/domain_interns.rs) | `interns().list(...)` and `interns().get_icon(...)` |
+| [`examples/domain_vault.rs`](examples/domain_vault.rs) | `vault().list_connections_for_intern(...)` |
 | [`examples/sign_intern_daemon.rs`](examples/sign_intern_daemon.rs) | `interns().sign_daemon(...)` using `OPENROUTER_OIDC_ACCESS_TOKEN` (`vault:read` grant) |
 | [`examples/domain_decisions.rs`](examples/domain_decisions.rs) | `decisions().create(...)` |
 | [`examples/domain_management_api_keys.rs`](examples/domain_management_api_keys.rs) | API-key management via `management()` |
@@ -306,7 +324,7 @@ For copy-paste shell/CI recipes, see [`docs/operations/cli-automation-workflows.
 
 - Community-maintained third-party SDK; not affiliated with OpenRouter
 - Canonical docs and examples prefer the domain clients over older flat helpers
-- Accepted endpoint coverage is tracked against the current OpenAPI snapshot, and the current baseline is reviewed, with `138 / 151` operations implemented at the SDK surface and 13 newer operations deferred
+- Accepted endpoint coverage is tracked against the current OpenAPI snapshot, and the current baseline is reviewed, with `140 / 153` operations implemented at the SDK surface and 13 newer operations deferred
 - Live integration coverage and gaps are published in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md)
 - Migration guidance for the `0.9.x -> 0.10.0` public-model future-proofing release, the `0.8.x -> 0.9.0` audio speech release, the `0.7.x -> 0.8.0` transport/error-surface release, and the archived `0.5.x -> 0.6.x` naming guide lives in [`MIGRATION.md`](MIGRATION.md)
 - Legacy `POST /completions` support remains available behind the `legacy-completions` feature
@@ -408,6 +426,8 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 ## 📈 Release History
 
 ### Unreleased
+
+- Accepted the October 20 OpenAPI snapshot: `140 / 153` operations implemented, 13 deferred. Added intern icon and vault connection reads, Batch callback/expiry/provider metadata, endpoint service tiers and diarization support, guardrail safety-retention controls, observability cost-allocation broadcasting, video signed URLs, and Responses `stop`.
 
 ### Version 0.19.0 *(Latest)*
 
