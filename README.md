@@ -106,6 +106,8 @@ Management-governed endpoints require `OPENROUTER_MANAGEMENT_KEY`; ordinary chat
 
 Accepted endpoint coverage and live-test status are recorded separately in the [endpoint matrix](docs/operations/official-endpoint-test-matrix.md). See the [changelog](CHANGELOG.md) for release details and [migration guide](MIGRATION.md) when upgrading, including the [0.19 speech input change](MIGRATION.md#018x---0190-compatibility-notes).
 
+**Unreleased transport migration (planned for 0.20):** The development branch upgrades to `reqwest 0.13`, including the `reqwest::Client` accepted by `.http_client(...)`. Default native TLS uses platform certificate verification and AWS-LC; Linux deployments need an up-to-date OS CA bundle. See the [transport migration guide](MIGRATION.md#unreleased-019x---020x-transport-migration) for custom-client, trust-store, and Tokio feature changes.
+
 Legacy text completions are opt-in:
 
 ```toml

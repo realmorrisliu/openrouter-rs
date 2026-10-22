@@ -22,6 +22,7 @@ Requirements:
 
 - Rust `1.85+`
 - `just`
+- `cargo-audit` for dependency checks in `just quality-ci`; install with `cargo +stable install cargo-audit --locked` using an up-to-date stable toolchain, since the tool's MSRV can exceed the library's Rust `1.85` minimum
 - Python `3.10+` for the adoption metrics tests included in `just quality`
 - `OPENROUTER_API_KEY` for live API-backed examples and tests
 - `OPENROUTER_MANAGEMENT_KEY` for management-governed live tests
