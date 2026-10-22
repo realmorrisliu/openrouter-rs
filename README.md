@@ -25,7 +25,7 @@ Type-safe, async Rust SDK for the OpenRouter API.
 
 ```toml
 [dependencies]
-openrouter-rs = "0.19.0"
+openrouter-rs = "0.20.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -106,13 +106,13 @@ Management-governed endpoints require `OPENROUTER_MANAGEMENT_KEY`; ordinary chat
 
 Accepted endpoint coverage and live-test status are recorded separately in the [endpoint matrix](docs/operations/official-endpoint-test-matrix.md). See the [changelog](CHANGELOG.md) for release details and [migration guide](MIGRATION.md) when upgrading, including the [0.19 speech input change](MIGRATION.md#018x---0190-compatibility-notes).
 
-**Unreleased transport migration (planned for 0.20):** The development branch upgrades to `reqwest 0.13`, including the `reqwest::Client` accepted by `.http_client(...)`. Default native TLS uses platform certificate verification and AWS-LC; Linux deployments need an up-to-date OS CA bundle. See the [transport migration guide](MIGRATION.md#unreleased-019x---020x-transport-migration) for custom-client, trust-store, and Tokio feature changes.
+**0.20 transport migration:** The SDK now uses `reqwest 0.13`, including the `reqwest::Client` accepted by `.http_client(...)`. Default native TLS uses platform certificate verification and AWS-LC; Linux deployments need an up-to-date OS CA bundle. See the [transport migration guide](MIGRATION.md#019x---0200-compatibility-notes) for custom-client, trust-store, and Tokio feature changes.
 
 Legacy text completions are opt-in:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.19.0", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.20.0", features = ["legacy-completions"] }
 ```
 
 ## API Surface
@@ -429,9 +429,13 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 ### Unreleased
 
-- Accepted the October 20 OpenAPI snapshot: `140 / 153` operations implemented, 13 deferred. Added intern icon and vault connection reads, Batch callback/expiry/provider metadata, endpoint service tiers and diarization support, guardrail safety-retention controls, observability cost-allocation broadcasting, video signed URLs, and Responses `stop`.
+### Version 0.20.0 *(Latest)*
 
-### Version 0.19.0 *(Latest)*
+- **Breaking:** Upgraded the HTTP transport to `reqwest 0.13`; `.http_client(...)` now accepts only a `reqwest 0.13` client. Default native TLS uses platform certificate verification and AWS-LC, and the SDK's direct Tokio features narrowed to `io-util`. See the [0.20 migration notes](MIGRATION.md#019x---0200-compatibility-notes).
+- Added intern icon and vault connection reads, plus the October 20 schema surface: Batch callback/expiry/provider metadata, endpoint service tiers and diarization, guardrail safety-retention controls with clear builders, observability cost-allocation broadcasting, video signed URLs, image privacy controls, and Responses `stop`.
+- Accepted the October 20 OpenAPI snapshot (`140 / 153` operations implemented; 13 deferred), forwarded vault attribution headers, and added adoption-metrics plus Axum streaming coverage.
+
+### Version 0.19.0
 
 - Added Intern daemon signing with an OIDC session carrying `vault:read`, BYOK declared regions, key budgets/last-used timestamps, expired-key filters, workspace moves and video expiration.
 - Added speech turn input/instructions, portable deferred-tool controls across Chat/Messages/Responses, chat function deferral and Messages tool-search result blocks.

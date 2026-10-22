@@ -1165,7 +1165,7 @@ dependencies = [
 
 [[package]]
 name = "openrouter-rs"
-version = "0.19.0"
+version = "0.20.0"
 dependencies = [
  "axum",
  "derive_builder",
