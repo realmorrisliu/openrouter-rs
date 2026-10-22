@@ -50,6 +50,15 @@ jobs:
       - name: Run doctests
         run: just test-doc
 
+      - name: Test adoption metrics collector
+        run: just test-adoption-metrics
+
+      - name: Test Axum gateway streaming and cancellation
+        run: just test-axum-gateway
+
+      - name: Test typed-tool agent protocol and stopping limits
+        run: just test-typed-tool-agent
+
       - name: Run deterministic integration subsets
         run: just test-integration-subsets
 

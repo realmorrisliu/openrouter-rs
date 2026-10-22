@@ -27,6 +27,17 @@ test-lib:
 test-doc:
     cargo test --doc
 
+test-adoption-metrics:
+    python3 -m unittest discover -s tests -p 'test_adoption_metrics.py' -v
+
+test-axum-gateway:
+    cargo test --example axum_chat_gateway
+    python3 -m unittest discover -s tests -p 'test_smoke_axum_gateway.py' -v
+
+test-typed-tool-agent:
+    cargo test --example typed_tool_agent
+    python3 -m unittest discover -s tests -p 'test_smoke_typed_tool_agent.py' -v
+
 test-integration-subsets:
     cargo test --test integration model_pool:: -- --nocapture
     cargo test --test integration tools:: -- --nocapture
@@ -80,6 +91,6 @@ openapi-drift-check:
         --candidate-operations /tmp/openrouter-openapi-latest.operations.json \
         --fail-on-drift
 
-quality: fmt-check check clippy test-unit test-lib test-doc
+quality: fmt-check check clippy test-unit test-lib test-doc test-adoption-metrics test-axum-gateway test-typed-tool-agent
 
 quality-ci: quality test-integration-subsets test-cli check-migration-docs test-migration-smoke

@@ -19,27 +19,7 @@ Type-safe, async Rust SDK for the OpenRouter API.
 
 </div>
 
-`openrouter-rs` is a community-maintained Rust SDK for OpenRouter. It exposes a domain-oriented client for chat, responses, messages, rerank, audio speech/transcription, image generation, video generation, models, embeddings, files, presets, analytics, management, asynchronous batches, intern lifecycle/chat/invocation, vault secrets, and Decisions/System One APIs, plus a companion CLI in the same repository.
-
-The current repo snapshot implements `138 / 151` official OpenAPI method/path entries, with published live integration coverage tracked in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md).
-
-The September 30 review adds `batches()` for asynchronous submission/list/get/delete, Intern invocation and daemon access, URL audio/image references, SCIM group filters, and shared `ProviderPreferences::options`. Private Endpoints, Tools discovery, and effective vault secrets remain deferred; see the endpoint matrix. See [`domain_batches`](examples/domain_batches.rs) for batch submission. The upstream Coinbase charge endpoint is deprecated; use the OpenRouter web credits purchase flow.
-
-The October 13 compatibility update adds daemon request signing with an OIDC session whose grant includes `vault:read`, BYOK declared regions, authenticated-key budgets, expired-key filtering and workspace moves. `UpdateApiKeyRequest::builder().clear_limit()` removes a spending limit; omitted limits stay unchanged. Speech accepts text or `Vec<SpeechTurn>` with optional instructions. Chat, Messages and Responses builders accept portable `deferred_tools` JSON; chat function tools also expose `defer_loading`. See [`sign_intern_daemon`](examples/sign_intern_daemon.rs) and the [input type migration note](MIGRATION.md#018x---0190-compatibility-notes).
-
-The September OpenAPI update adds intern lifecycle/chat operations via `interns()`, scoped secret storage via `vault()`, and Decisions/System One via `decisions()`. It also adds container file listing, metadata, downloads and promotion via `files()`, OAuth workload token exchange/public signing keys and SCIM sync jobs via `management()`. See [`domain_interns`](examples/domain_interns.rs), [`domain_decisions`](examples/domain_decisions.rs), and [`domain_container_files`](examples/domain_container_files.rs) for usage.
-
-## Why `openrouter-rs`
-
-- Domain-oriented clients: `chat()`, `responses()`, `messages()`, `rerank()`, `audio().speech()`, `audio().transcriptions()`, `images()`, `videos()`, `files()`, `models()`, `management()`, and opt-in `legacy()`
-- Typed request/response models with builder-style ergonomics
-- Tokio-native `reqwest + rustls` transport with no `surf` / `curl` dependency chain
-- Streaming support for chat, responses, messages, and image generation, including a unified stream abstraction
-- Typed tools, manual JSON-schema tools, OpenRouter server tools, and multimodal chat content
-- Typed chat usage metadata for token counts, OpenRouter cost, provider cost breakdowns, and BYOK status
-- Opt-in OpenRouter response metadata for chat, Responses API, and Anthropic-compatible Messages requests
-- Discovery, rankings and benchmark datasets, task classifications, rerank, audio speech/transcription, image generation, video generation, provider-backed files, embeddings, API-key management, preset creation/readback/versioning, analytics, BYOK provider credentials, observability destinations, workspace management, SCIM group mappings, organization members/settings, end-user registrations, guardrails, activity, credits, and generation metadata/content coverage
-- A companion CLI for profile resolution, discovery, management, and billing/usage workflows
+`openrouter-rs` is a community-maintained Rust SDK for OpenRouter, with typed requests, streaming, tool calling, and access to OpenRouter's model, usage, and management APIs. A [companion CLI](crates/openrouter-cli/README.md) is available for terminal and automation workflows.
 
 ## Installation
 
@@ -49,22 +29,22 @@ openrouter-rs = "0.19.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
-Legacy text completions are opt-in:
+Requires Rust `1.85+` and Tokio `1.x`. To try it in a new project:
 
-```toml
-[dependencies]
-openrouter-rs = { version = "0.19.0", features = ["legacy-completions"] }
-tokio = { version = "1", features = ["full"] }
+```bash
+cargo new openrouter-quickstart
+cd openrouter-quickstart
 ```
 
-Requirements:
+Add the dependencies above to `Cargo.toml`, then set your API key:
 
-- Rust `1.85+`
-- Tokio `1.x`
-- `OPENROUTER_API_KEY` for API-backed examples and live tests
-- `OPENROUTER_MANAGEMENT_KEY` for management-governed examples and tests
+```bash
+export OPENROUTER_API_KEY="your-openrouter-api-key"
+```
 
 ## Quick Start
+
+Save this as `src/main.rs` and run `cargo run`:
 
 ```rust
 use openrouter_rs::{
@@ -77,27 +57,61 @@ use openrouter_rs::{
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = OpenRouterClient::builder()
         .api_key(std::env::var("OPENROUTER_API_KEY")?)
-        .http_referer("https://yourapp.example")
-        .x_title("my-openrouter-app")
-        .app_categories(["cli-agent"])
         .build()?;
 
     let request = ChatCompletionRequest::builder()
-        .model("anthropic/claude-sonnet-4")
+        .model(std::env::var("OPENROUTER_MODEL").unwrap_or_else(|_| "openai/gpt-4o-mini".into()))
         .messages(vec![Message::new(
             Role::User,
             "Explain Rust ownership in plain English.",
         )])
+        .max_tokens(256)
         .build()?;
 
     let response = client.chat().create(&request).await?;
-    println!("{}", response.choices[0].content().unwrap_or(""));
+    let choice = response.choices.first().ok_or("OpenRouter returned no choices")?;
+    println!("{}", choice.content().unwrap_or(""));
 
     Ok(())
 }
 ```
 
 The SDK keeps setup intentionally narrow: configure runtime values on `OpenRouterClient::builder()`, then choose the final `model` on each request builder. File/profile config resolution belongs in the companion CLI or in your application layer, not in the SDK core.
+
+Set `OPENROUTER_MODEL` to use another model ID available to your account. A successful request prints the model's reply. A missing key fails locally; for API authentication, credit, or model-availability errors, check your OpenRouter account and the returned error before retrying. API calls may consume credits.
+
+## Choose a Workflow
+
+These commands run from a checkout of this repository with `OPENROUTER_API_KEY` set:
+
+| Goal | Run | Guide |
+| --- | --- | --- |
+| Stream a chat response | `cargo run --example stream_chat_completion` | [Streaming example](examples/stream_chat_completion.rs) |
+| Execute typed tools against fixed demo fixtures in a bounded agent loop | `cargo run --example typed_tool_agent` | [Typed tool agent](examples/typed_tool_agent.rs) |
+| Inspect credits and manage API keys | `cargo run --example get_credits` | [CLI usage recipes](docs/operations/cli-automation-workflows.md) and [key management](examples/domain_management_api_keys.rs) |
+
+Management-governed endpoints require `OPENROUTER_MANAGEMENT_KEY`; ordinary chat and credits requests use `OPENROUTER_API_KEY`. For a minimal HTTP server, see the [Axum chat gateway](examples/axum_chat_gateway.rs).
+
+## Why `openrouter-rs`
+
+- Domain-oriented clients: `chat()`, `responses()`, `messages()`, `rerank()`, `audio().speech()`, `audio().transcriptions()`, `images()`, `videos()`, `files()`, `models()`, `batches()`, `interns()`, `vault()`, `decisions()`, `management()`, and opt-in `legacy()`
+- Typed request/response models with builder-style ergonomics
+- Tokio-native `reqwest + rustls` transport with no `surf` / `curl` dependency chain
+- Streaming support for chat, responses, messages, and image generation, including a unified stream abstraction
+- Typed tools, manual JSON-schema tools, OpenRouter server tools, and multimodal chat content
+- Typed chat usage metadata for token counts, OpenRouter cost, provider cost breakdowns, and BYOK status
+- Opt-in OpenRouter response metadata for chat, Responses API, and Anthropic-compatible Messages requests
+- Discovery, rankings and benchmark datasets, task classifications, rerank, audio speech/transcription, image generation, video generation, provider-backed files, embeddings, API-key management, preset creation/readback/versioning, analytics, BYOK provider credentials, observability destinations, workspace management, SCIM group mappings, organization members/settings, end-user registrations, guardrails, activity, credits, and generation metadata/content coverage
+- A companion CLI for profile resolution, discovery, management, and billing/usage workflows
+
+Accepted endpoint coverage and live-test status are recorded separately in the [endpoint matrix](docs/operations/official-endpoint-test-matrix.md). See the [changelog](CHANGELOG.md) for release details and [migration guide](MIGRATION.md) when upgrading, including the [0.19 speech input change](MIGRATION.md#018x---0190-compatibility-notes).
+
+Legacy text completions are opt-in:
+
+```toml
+[dependencies]
+openrouter-rs = { version = "0.19.0", features = ["legacy-completions"] }
+```
 
 ## API Surface
 
@@ -118,12 +132,29 @@ The canonical public surface is domain-oriented:
 | `models()` | `list`, `list_filtered`, `list_by_category`, `list_by_parameters`, `get`, `list_endpoints`, `list_providers`, `list_user_models`, `list_for_user_with_params`, `get_model_count`, `get_rankings_daily`, `get_rankings_daily_filtered`, `get_app_rankings`, `get_session_cost`, `get_task_classifications`, `get_benchmarks`, `list_zdr_endpoints`, `create_embedding`, `list_embedding_models` | `/model*`, `/models*`, `/providers`, `/datasets/*`, `/classifications/task`, `/benchmarks`, `/endpoints/zdr`, `/embeddings*` | API key |
 | `management()` | `create_api_key`, `create_api_key_in_workspace`, `create_api_key_with_options`, `list_api_keys`, `list_api_keys_in_workspace`, `list_presets`, `get_preset`, `list_preset_versions`, `get_preset_version`, `create_chat_completion_preset`, `create_response_preset`, `create_message_preset`, `get_analytics_meta`, `query_analytics`, `list_byok_keys`, `create_byok_key`, `get_byok_key`, `update_byok_key`, `delete_byok_key`, `list_observability_destinations`, `create_observability_destination`, `get_observability_destination`, `update_observability_destination`, `delete_observability_destination`, `create_auth_code`, `create_api_key_from_auth_code`, `list_guardrails`, `list_guardrails_in_workspace`, `create_guardrail`, `list_organization_members`, `get_organization_settings`, `update_organization_settings`, `list_end_users`, `create_end_user`, `get_end_user`, `update_end_user`, `delete_end_user`, `list_workspaces`, `create_workspace`, `get_workspace`, `update_workspace`, `delete_workspace`, `list_workspace_budgets`, `get_workspace_budget`, `upsert_workspace_budget`, `delete_workspace_budget`, `list_workspace_members`, `add_workspace_members`, `remove_workspace_members`, `get_activity`, `get_activity_with_params`, `get_credits`, `create_coinbase_charge`, `get_generation`, `get_generation_content`, `submit_generation_feedback` | `/keys*`, `/presets*`, `/analytics*`, `/byok*`, `/observability/destinations*`, `/auth/keys*`, `/guardrails*`, `/organization/*`, `/end-users*`, `/workspaces*`, `/activity`, `/credits*`, `/generation*`, `/key` | Governed endpoints require a management key; billing/session endpoints still use the normal API key because that is how OpenRouter authenticates them |
 | `batches()` | `list`, `create`, `get`, `delete` | `/batches*` | API key |
-| `interns()` | `list`, `create`, `get`, `update`, `delete`, `provision`, `suspend`, `chat_completion`, `invoke`, `daemon`, `daemon_access`, `sign_daemon`, `sign_daemon_access` | `/interns*` | API key for lifecycle/chat/invoke/daemon access; signing requires an `ori login --oidc` OAuth session with `vault:read`, configured in the client's `api_key` bearer slot |
-| `vault()` | `list`, `list_for_intern`, `store`, `store_for_intern`, `delete`, `delete_for_intern`, `copy_to_intern` | `/vault*` | API key |
+| `interns()` | `list`, `create`, `get`, `get_icon`, `update`, `delete`, `provision`, `suspend`, `chat_completion`, `invoke`, `daemon`, `daemon_access`, `sign_daemon`, `sign_daemon_access` | `/interns*` | API key for lifecycle/chat/invoke/daemon access; signing requires an `ori login --oidc` OAuth session with `vault:read`, configured in the client's `api_key` bearer slot |
+| `vault()` | `list`, `list_for_intern`, `list_connections_for_intern`, `store`, `store_for_intern`, `delete`, `delete_for_intern`, `copy_to_intern` | `/vault*` | API key |
 | `decisions()` | `create`, `create_system_one` | `/api/alpha/decisions`, `/systemone` | API key |
 | `management()` | `get_oauth_jwks`, `exchange_oauth_token` | `/oauth/jwks`, `/oauth/token` | Public signing keys; token exchange authenticates with the workload JWT |
 | `management()` | `list_scim_groups`, `list_scim_group_mappings`, `create_scim_group_mapping`, `get_scim_group_mapping`, `update_scim_group_mapping`, `delete_scim_group_mapping`, `create_scim_sync_job`, `get_scim_sync_job` | `/scim/groups`, `/scim/group-mappings*`, `/scim/sync-jobs*` | Management key |
 | `legacy()` | `completions().create` | `/completions` | `legacy-completions` feature + API key |
+
+Newer intern and vault reads follow the same domain-client style:
+
+```rust
+// Icon bytes for one intern, optionally cache-keyed by icon_sha256.
+let icon = client.interns().get_icon("intern-id", None).await?;
+
+// Connections (GitHub, Slack, MCP servers, ...) available to one intern.
+for connection in client
+    .vault()
+    .list_connections_for_intern("intern-id")
+    .await?
+    .data
+{
+    println!("{}", connection.key);
+}
+```
 
 At runtime, the builder/client exposes the values the SDK directly consumes:
 
@@ -183,7 +214,7 @@ The repo includes runnable examples for the highest-value workflows:
 
 | Example | Focus |
 | --- | --- |
-| [`examples/axum_chat_gateway.rs`](examples/axum_chat_gateway.rs) | Minimal `axum` server that proxies prompts through `OpenRouterClient` |
+| [`examples/axum_chat_gateway.rs`](examples/axum_chat_gateway.rs) | Local Axum gateway with JSON and SSE chat, bounded requests, usage forwarding, and disconnect handling |
 | [`examples/typed_tool_agent.rs`](examples/typed_tool_agent.rs) | Practical typed-tool agent loop with explicit tool dispatch |
 | [`examples/domain_chat_completion.rs`](examples/domain_chat_completion.rs) | Canonical `chat()` request with the domain-oriented client |
 | [`examples/custom_http_client.rs`](examples/custom_http_client.rs) | Inject a custom `reqwest::Client` (proxies, timeouts, middleware) |
@@ -212,7 +243,8 @@ The repo includes runnable examples for the highest-value workflows:
 | [`examples/create_video_generation.rs`](examples/create_video_generation.rs) | `videos().create(...)` |
 | [`examples/create_embedding.rs`](examples/create_embedding.rs) | `models().create_embedding(...)` |
 | [`examples/domain_batches.rs`](examples/domain_batches.rs) | `batches().create(...)` |
-| [`examples/domain_interns.rs`](examples/domain_interns.rs) | `interns().list(...)` |
+| [`examples/domain_interns.rs`](examples/domain_interns.rs) | `interns().list(...)` and `interns().get_icon(...)` |
+| [`examples/domain_vault.rs`](examples/domain_vault.rs) | `vault().list_connections_for_intern(...)` |
 | [`examples/sign_intern_daemon.rs`](examples/sign_intern_daemon.rs) | `interns().sign_daemon(...)` using `OPENROUTER_OIDC_ACCESS_TOKEN` (`vault:read` grant) |
 | [`examples/domain_decisions.rs`](examples/domain_decisions.rs) | `decisions().create(...)` |
 | [`examples/domain_management_api_keys.rs`](examples/domain_management_api_keys.rs) | API-key management via `management()` |
@@ -292,7 +324,7 @@ For copy-paste shell/CI recipes, see [`docs/operations/cli-automation-workflows.
 
 - Community-maintained third-party SDK; not affiliated with OpenRouter
 - Canonical docs and examples prefer the domain clients over older flat helpers
-- Accepted endpoint coverage is tracked against the current OpenAPI snapshot, and the current baseline is reviewed, with `138 / 151` operations implemented at the SDK surface and 13 newer operations deferred
+- Accepted endpoint coverage is tracked against the current OpenAPI snapshot, and the current baseline is reviewed, with `140 / 153` operations implemented at the SDK surface and 13 newer operations deferred
 - Live integration coverage and gaps are published in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md)
 - Migration guidance for the `0.9.x -> 0.10.0` public-model future-proofing release, the `0.8.x -> 0.9.0` audio speech release, the `0.7.x -> 0.8.0` transport/error-surface release, and the archived `0.5.x -> 0.6.x` naming guide lives in [`MIGRATION.md`](MIGRATION.md)
 - Legacy `POST /completions` support remains available behind the `legacy-completions` feature
@@ -394,6 +426,8 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 ## 📈 Release History
 
 ### Unreleased
+
+- Accepted the October 20 OpenAPI snapshot: `140 / 153` operations implemented, 13 deferred. Added intern icon and vault connection reads, Batch callback/expiry/provider metadata, endpoint service tiers and diarization support, guardrail safety-retention controls, observability cost-allocation broadcasting, video signed URLs, and Responses `stop`.
 
 ### Version 0.19.0 *(Latest)*
 

@@ -1,3 +1,5 @@
+> Historical submission draft (April 2026). For current installation instructions, use the [setup guide](README.md). Version and traction figures below describe that submission date.
+
 # PR Title
 
 Add `openrouter-rs` to Awesome OpenRouter

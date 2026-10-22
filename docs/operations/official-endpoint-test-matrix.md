@@ -1,15 +1,15 @@
 # Official Endpoint Test Matrix
 
-Snapshot date: 2026-10-13
+Snapshot date: 2026-10-20
 Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)  
 Tracked baseline: `specs/openrouter/openapi-baseline.json`  
 Weekly drift workflow: `.github/workflows/openapi-drift.yml`
 
 ## Coverage Summary
 
-- Official OpenAPI endpoints: `151` method+path entries.
-- SDK implementation coverage (`src/api` + domain client): `138 / 151` (`91.4%`).
-- Live integration coverage (`tests/integration`): `25 / 151` endpoints currently exercised.
+- Official OpenAPI endpoints: `153` method+path entries.
+- SDK implementation coverage (`src/api` + domain client): `140 / 153` (`91.5%`).
+- Live integration coverage (`tests/integration`): `25 / 153` endpoints currently exercised.
   - Covered live now: `GET /oauth/jwks`, `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `POST /rerank`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`, `GET /organization/members`
 
 Chat response regression coverage:
@@ -18,6 +18,7 @@ Chat response regression coverage:
 
 Drift review note:
 
+- Issue #273 (2026-10-20): accepted the two added operations `GET /interns/{internId}/icon` and `GET /vault/interns/{internId}/connections` through `client.interns().get_icon(...)` and `client.vault().list_connections_for_intern(...)`. Added Batch `callback_url`/`expires_at`/`provider`, endpoint `service_tier`/`supports_diarization`, guardrail `allow_safety_retention_*`, observability `broadcast_generation_cost_allocation`, video signed `urls`, intern `created_by_you`/`icon_sha256`, route-bound daemon signing (`route`, nonce and v2 signature), user-model `sort`, and Responses `stop`. Chat `alignment`/`safeguard_results` and Responses `openrouter:armor_blocked` items stay flexible (`Value`); Armor/alignment plugin configuration stays on `Plugin` maps. New 408/409/499 statuses use the shared error parser. No CLI flags change.
 - Issue #264 (2026-10-13): accepted canonical `POST /interns/{internId}/daemon/sign` and the deprecated `daemon-access/sign` alias. Local HTTP tests cover encoded paths, digest request casing/validation, both routes, OAuth session bearer forwarding, attribution headers, 403 responses for ordinary API keys and insufficient grants, malformed credential errors and absent auth. Signature values have no Debug implementation. These routes require an `ori login --oidc` session with `vault:read`, including the deprecated alias; ordinary API keys and `interns`-only grants are rejected with 403. The existing client `api_key` slot forwards the session token. Mock tests verify forwarding and error handling; session/scope validation remains server-owned and has no live qualification.
 - Added BYOK declared regions with omit/set/clear/reset semantics, key budgets/effective budget and last-used timestamps, expired-key filtering, key workspace moves, video expiration, speech turn input/instructions, portable deferred-tool controls, chat function deferral flags, and Messages tool-search result blocks (including streaming). Older responses and text-input builder calls remain compatible; direct speech input field access needs the documented enum migration.
 - Reviewed all 27 changed operations: Responses input/output/tool-search results, allowed callers/output schemas, failable server tools and Batch result bodies use existing flexible JSON; plugins preserve `cost_tier`/`judge_model`; provider names remain strings. End-user ID constraints and the 500-key bulk assignment limit remain server-validated; new conflict/forbidden statuses use existing typed error handling. Existing 13 deferred operations remain deferred.
@@ -151,6 +152,7 @@ Legend:
 | `DELETE /interns/{internId}` | `client.interns().delete(...)` | Yes | Path | No | P1 |
 | `GET /interns` | `client.interns().list(...)` | Yes | Path | No | P1 |
 | `GET /interns/{internId}` | `client.interns().get(...)` | Yes | Path | No | P1 |
+| `GET /interns/{internId}/icon` | `client.interns().get_icon(...)` | Yes | Path | No | P1 |
 | `PATCH /interns/{internId}` | `client.interns().update(...)` | Yes | Path | No | P1 |
 | `POST /interns` | `client.interns().create(...)` | Yes | Path | No | P1 |
 | `POST /interns/{internId}/chat/completions` | `client.interns().chat_completion(...)` | Yes | Path | No | P1 |
@@ -197,6 +199,7 @@ Legend:
 | `GET /workspaces` | `client.management().list_workspaces(...)` | Yes | Path | No | P1 |
 | `POST /systemone` | `client.decisions().create_system_one(...)` | Yes | Path | No | P2 |
 | `DELETE /vault/interns/{internId}/secrets/{name}` | `client.vault().delete_for_intern(...)` | Yes | Path | No | P1 |
+| `GET /vault/interns/{internId}/connections` | `client.vault().list_connections_for_intern(...)` | Yes | Path | No | P1 |
 | `GET /vault/interns/{internId}/secrets` | `client.vault().list_for_intern(...)` | Yes | Path | No | P1 |
 | `POST /vault/interns/{internId}/secrets/copy` | `client.vault().copy_to_intern(...)` | Yes | Path | No | P1 |
 | `PUT /vault/interns/{internId}/secrets/{name}` | `client.vault().store_for_intern(...)` | Yes | Path | No | P1 |

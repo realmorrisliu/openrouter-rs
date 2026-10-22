@@ -718,4 +718,10 @@ pub struct CompletionsResponse {
     pub service_tier: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub openrouter_metadata: Option<Value>,
+    /// Beta alignment-plugin evaluation, when the request enabled it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub alignment: Option<Value>,
+    /// OpenRouter Armor verdicts for client tool calls, keyed by tool-call id.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub safeguard_results: Option<Value>,
 }
