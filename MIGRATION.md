@@ -2,6 +2,39 @@
 
 This document keeps historical migration guides intact because the repo still smoke-tests older domain/naming transitions.
 
+## Unreleased: 0.19.x -> 0.20.x Transport Migration
+
+These changes are on the development branch and are planned for the next minor release, `0.20`. They are not part of the published `0.19.0` installation example in the README.
+
+### Custom HTTP Clients
+
+The SDK now uses `reqwest 0.13`. Its public `.http_client(...)` builder setter accepts that version's `reqwest::Client`; a client from `reqwest 0.12` is a different Rust type and cannot be passed to it. If you inject a client, update the application's direct `reqwest` dependency and any middleware that constructs it to compatible `0.13` versions. The setter's call syntax is unchanged; see the [custom HTTP client example](examples/custom_http_client.rs).
+
+For an application using the SDK's Rustls transport, a matching direct dependency is:
+
+```toml
+reqwest = { version = "0.13", default-features = false, features = ["rustls"] }
+```
+
+Enable additional features used by your own reqwest calls. In `0.13`, form and query support have explicit `form` and `query` feature flags; the SDK enables them for its own requests.
+
+### TLS Trust and Deployment
+
+The default native transport moves from bundled WebPKI roots and ring to `rustls-platform-verifier` and the AWS-LC default crypto provider. This changes where trusted roots come from and may change whether a certificate is accepted. Explicit custom clients or TLS configurations can select different behavior.
+
+| Deployment | Default certificate verification | Migration action |
+| --- | --- | --- |
+| Linux | OS CA roots loaded into the Rustls/WebPKI verifier; no automatic platform revocation checking | Install and update the distribution's CA bundle, including in container images, and maintain any required private CA configuration. |
+| macOS | Native platform verifier and system trust policy | Check system/private CA configuration and verify connections on the supported macOS versions. |
+
+The dependency minimums require patched `rustls` and `rustls-webpki` on applicable targets, plus an updated `webpki-root-certs` bundle where the platform verifier uses its bundled-root fallback. Update the application's own lockfile and rebuild deployed binaries. A library's `Cargo.lock` is not inherited by downstream applications, and these dependency updates do not refresh the operating system's trust store.
+
+### Tokio Features and Target Support
+
+The SDK's direct Tokio dependency now enables `io-util` instead of `full`. Native reqwest networking still needs a Tokio runtime. Applications should declare the features they use, such as `macros` and `rt-multi-thread` for `#[tokio::main]`, rather than relying on feature unification with the SDK. The README's explicit `tokio` dependency with `full` remains valid.
+
+This feature reduction is not a guarantee of browser WASM or WASI support for the full SDK. Validate the complete application, target, HTTP backend, and runtime before deploying to those environments.
+
 ## 0.18.x -> 0.19.0 Compatibility Notes
 
 `SpeechRequest::input` is now `SpeechInput::Text(String)` or `SpeechInput::Turns(Vec<SpeechTurn>)` to match the upstream speech API. Existing builder calls such as `.input("Hello")` and `.input(String::from("Hello"))` work unchanged and serialize to the same string. For direct field assignment, use `request.input = text.into()`; for reads, match `SpeechInput::Text(text)` or `SpeechInput::Turns(turns)`. The retained `api::tts::TtsRequest` alias uses the same input type.

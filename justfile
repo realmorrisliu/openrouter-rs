@@ -9,11 +9,17 @@ fmt:
 fmt-check:
     cargo fmt --all --check
 
+check-lib:
+    cargo check -p openrouter-rs --lib --locked
+
 check:
     cargo check --all-targets
 
 check-all-features:
     cargo check --all-targets --all-features
+
+audit:
+    cargo audit
 
 clippy:
     cargo clippy --all-targets --all-features -- -D warnings
@@ -91,6 +97,6 @@ openapi-drift-check:
         --candidate-operations /tmp/openrouter-openapi-latest.operations.json \
         --fail-on-drift
 
-quality: fmt-check check clippy test-unit test-lib test-doc test-adoption-metrics test-axum-gateway test-typed-tool-agent
+quality: fmt-check check-lib check clippy test-unit test-lib test-doc test-adoption-metrics test-axum-gateway test-typed-tool-agent
 
-quality-ci: quality test-integration-subsets test-cli check-migration-docs test-migration-smoke
+quality-ci: audit quality test-integration-subsets test-cli check-migration-docs test-migration-smoke
