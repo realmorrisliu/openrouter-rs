@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use reqwest::Client as HttpClient;
+use crate::transport::HttpClient;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
+use crate::transport::{HttpClient, multipart};
 use derive_builder::Builder;
-use reqwest::{Client as HttpClient, multipart};
 use serde::{Deserialize, Serialize};
 use urlencoding::encode;
 
@@ -212,9 +212,9 @@ fn workspace_query(workspace_id: Option<&str>) -> FileWorkspaceQuery {
 }
 
 fn apply_workspace_query(
-    req: reqwest::RequestBuilder,
+    req: crate::transport::RequestBuilder,
     workspace_id: Option<&str>,
-) -> reqwest::RequestBuilder {
+) -> crate::transport::RequestBuilder {
     let query = workspace_query(workspace_id);
     if query.workspace_id.is_none() {
         req

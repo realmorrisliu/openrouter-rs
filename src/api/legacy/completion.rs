@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
+use crate::transport::HttpClient;
 use derive_builder::Builder;
-use reqwest::Client as HttpClient;
 use serde::{Deserialize, Serialize};
 
 use crate::{

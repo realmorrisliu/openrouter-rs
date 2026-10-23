@@ -1,9 +1,10 @@
 use std::io::Error;
 
 use futures_util::{StreamExt, TryStreamExt, stream, stream::BoxStream};
-use reqwest::Response;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio_util::io::StreamReader;
+
+use super::Response;
 
 pub(crate) fn response_lines(response: Response) -> BoxStream<'static, std::io::Result<String>> {
     let byte_stream = response.bytes_stream().map_err(Error::other);

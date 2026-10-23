@@ -74,6 +74,28 @@ jobs:
       - name: Run CLI foundation tests
         run: just test-cli
 
+  wasip3-check:
+    name: WASI (wasip3) Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip2
+          components: clippy
+
+      - name: Install just
+        uses: taiki-e/install-action@just
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Clippy (wasip3 backend, no reqwest)
+        run: just check-wasip3
+
   msrv-check:
     name: MSRV Check (1.85.0)
     runs-on: ubuntu-latest

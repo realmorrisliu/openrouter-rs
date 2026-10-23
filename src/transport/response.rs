@@ -1,7 +1,7 @@
 use http::StatusCode;
-use reqwest::Response;
 use serde::de::DeserializeOwned;
 
+use super::Response;
 use crate::{
     api::errors::{parse_api_error, try_parse_api_error, unreadable_error_response},
     error::OpenRouterError,

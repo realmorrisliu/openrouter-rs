@@ -96,7 +96,7 @@ Management-governed endpoints require `OPENROUTER_MANAGEMENT_KEY`; ordinary chat
 
 - Domain-oriented clients: `chat()`, `responses()`, `messages()`, `rerank()`, `audio().speech()`, `audio().transcriptions()`, `images()`, `videos()`, `files()`, `models()`, `batches()`, `interns()`, `vault()`, `decisions()`, `management()`, and opt-in `legacy()`
 - Typed request/response models with builder-style ergonomics
-- Tokio-native `reqwest + rustls` transport with no `surf` / `curl` dependency chain
+- Tokio-native `reqwest + rustls` transport by default, or the host's `wasi:http` on `wasm32-wasip2` with the `wasip3` feature
 - Streaming support for chat, responses, messages, and image generation, including a unified stream abstraction
 - Typed tools, manual JSON-schema tools, OpenRouter server tools, and multimodal chat content
 - Typed chat usage metadata for token counts, OpenRouter cost, provider cost breakdowns, and BYOK status
@@ -114,6 +114,24 @@ Legacy text completions are opt-in:
 [dependencies]
 openrouter-rs = { version = "0.20.0", features = ["legacy-completions"] }
 ```
+
+### HTTP backends and WASI
+
+Requests go through one of two backends, chosen by cargo feature:
+
+| Feature | Default | Backend |
+| --- | --- | --- |
+| `reqwest` | yes | `reqwest 0.13` with rustls; needs a Tokio runtime; enables `.http_client(...)` |
+| `wasip3` | no | the host's `wasi:http/client` (WASI 0.3) on `wasm32-wasip2`; no effect on other targets |
+
+For a WASI component, drop reqwest:
+
+```toml
+[dependencies]
+openrouter-rs = { version = "0.20.0", default-features = false, features = ["wasip3"] }
+```
+
+The client API is the same on both backends, including streaming. When both features are on a WASI target, the default client uses `wasi:http`.
 
 ## API Surface
 
@@ -166,7 +184,7 @@ At runtime, the builder/client exposes the values the SDK directly consumes:
 - `http_referer`
 - `x_title`
 - `app_categories`
-- `http_client`
+- `http_client` (feature `reqwest`)
 
 Chat, Responses API, and Anthropic-compatible Messages request builders also expose `experimental_metadata(OpenRouterExperimentalMetadata::Enabled)` for OpenRouter's opt-in routing metadata response header.
 

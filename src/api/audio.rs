@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
 use derive_builder::Builder;
-use reqwest::{Client as HttpClient, StatusCode};
+use http::StatusCode;
+
+use crate::transport::HttpClient;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -558,7 +560,7 @@ async fn send_speech_request(
     request_metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
     request: &SpeechRequest,
     endpoint_path: &str,
-) -> Result<reqwest::Response, OpenRouterError> {
+) -> Result<crate::transport::Response, OpenRouterError> {
     let url = format!("{base_url}{endpoint_path}");
     Ok(transport_request::with_client_request_headers(
         transport_request::post(http_client, &url),

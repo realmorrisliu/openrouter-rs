@@ -1,5 +1,5 @@
+use crate::transport::HttpClient;
 use derive_builder::Builder;
-use reqwest::Client as HttpClient;
 use serde::{Deserialize, Serialize};
 use urlencoding::encode;
 
@@ -336,7 +336,7 @@ pub(crate) async fn copy_secrets_to_intern_with_client(
 }
 
 async fn parse_result<T: for<'de> Deserialize<'de>>(
-    response: reqwest::Response,
+    response: crate::transport::Response,
     context: &str,
 ) -> Result<T, OpenRouterError> {
     if response.status().is_success() {

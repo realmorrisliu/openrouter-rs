@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
+use crate::transport::HttpClient;
 use derive_builder::Builder;
 use futures_util::{StreamExt, stream::BoxStream};
-use reqwest::Client as HttpClient;
 use serde::{Deserialize, Deserializer, Serialize, de};
 use serde_json::Value;
 

@@ -1,4 +1,6 @@
-use reqwest::{Client, Method, RequestBuilder};
+use http::Method;
+
+use super::{HttpClient as Client, RequestBuilder};
 
 use crate::types::OpenRouterExperimentalMetadata;
 
@@ -133,18 +135,24 @@ fn serialize_app_categories(
 
 #[cfg(test)]
 mod tests {
-    use reqwest::header::AUTHORIZATION;
+    use http::header::AUTHORIZATION;
 
     use crate::types::OpenRouterExperimentalMetadata;
+
+    use crate::transport::HttpClient;
 
     use super::{
         post, with_client_request_headers, with_experimental_metadata_header,
         with_openrouter_files_tool_header,
     };
 
+    fn test_client() -> HttpClient {
+        crate::transport::new_client().expect("default client should build")
+    }
+
     #[test]
     fn test_with_client_request_headers_sets_auth_and_metadata() {
-        let client = reqwest::Client::new();
+        let client = test_client();
         let request = with_client_request_headers(
             post(&client, "http://example.com/test"),
             "test-key",
@@ -195,7 +203,7 @@ mod tests {
 
     #[test]
     fn test_with_client_request_headers_rejects_invalid_app_categories() {
-        let client = reqwest::Client::new();
+        let client = test_client();
         let error = with_client_request_headers(
             post(&client, "http://example.com/test"),
             "test-key",
@@ -213,7 +221,7 @@ mod tests {
 
     #[test]
     fn test_with_experimental_metadata_header_sets_level() {
-        let client = reqwest::Client::new();
+        let client = test_client();
         let request = with_experimental_metadata_header(
             post(&client, "http://example.com/test"),
             &Some(OpenRouterExperimentalMetadata::Enabled),
@@ -232,7 +240,7 @@ mod tests {
 
     #[test]
     fn test_with_openrouter_files_tool_header_sets_required_value() {
-        let client = reqwest::Client::new();
+        let client = test_client();
         let request =
             with_openrouter_files_tool_header(post(&client, "http://example.com/test"), true)
                 .build()

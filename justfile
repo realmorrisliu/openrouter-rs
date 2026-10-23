@@ -18,6 +18,9 @@ check:
 check-all-features:
     cargo check --all-targets --all-features
 
+check-wasip3:
+    cargo clippy -p openrouter-rs --lib --no-default-features --features wasip3 --target wasm32-wasip2 -- -D warnings
+
 audit:
     cargo audit
 

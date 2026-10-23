@@ -2,6 +2,10 @@
 
 This document keeps historical migration guides intact because the repo still smoke-tests older domain/naming transitions.
 
+## 0.20.0 -> Unreleased: HTTP Backend Features
+
+reqwest moved behind the default `reqwest` feature, and a `wasip3` feature adds a `wasi:http` backend for `wasm32-wasip2`. Default builds need no change. If your `Cargo.toml` sets `default-features = false` for `openrouter-rs`, add `features = ["reqwest"]` (or `["wasip3"]` for a WASI component). `.http_client(...)` and `From<reqwest::Error> for OpenRouterError` are available with the `reqwest` feature.
+
 ## 0.19.x -> 0.20.0 Compatibility Notes
 
 `0.20.0` upgrades the HTTP transport and TLS configuration. Applications that inject a custom `reqwest` client must move to `reqwest 0.13`, and deployments should verify their trust store after upgrading.
