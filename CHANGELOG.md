@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `From<HttpRequestError> for OpenRouterError`.
 
 ### Changed
+- Raised the SDK and CLI MSRV from Rust 1.85 to 1.93 to support WASI 0.3 component linking; this change requires a new minor release.
 - reqwest is now behind the default `reqwest` feature. Builds with default features are unchanged. A dependent that already set `default-features = false` must add `features = ["reqwest"]`; without a backend, the build fails with a message saying so.
 
 ## [0.20.0] - 2026-10-22

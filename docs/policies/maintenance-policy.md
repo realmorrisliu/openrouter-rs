@@ -32,11 +32,11 @@ When a change affects the public API surface, release-facing docs should be upda
 
 ## MSRV Policy
 
-The current MSRV is Rust `1.85`.
+The current MSRV is Rust `1.93`. The WASI 0.3 backend needs the component linker bundled with this toolchain: Rust 1.92 can check the library but cannot link the command component. CI builds that component to enforce the complete toolchain requirement.
 
 MSRV expectations:
 
-- CI enforces the current MSRV for `cargo check` on all targets with default and all features
+- CI enforces the current MSRV for `cargo check` on all targets with default and all features, plus the WASI command fixture with `--target wasm32-wasip2` (its SDK dependency disables default features and enables `wasip3`)
 - MSRV bumps must update the relevant source of truth, including `Cargo.toml`, CI, and README/docs references
 - MSRV bumps should ship in a new minor release line, not a patch release
 

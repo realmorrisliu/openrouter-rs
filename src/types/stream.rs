@@ -236,27 +236,27 @@ impl ToolAwareStream {
             }
 
             // Extract content delta
-            if let Some(content) = choice.content() {
-                if !content.is_empty() {
-                    self.pending_events
-                        .push_back(StreamEvent::ContentDelta(content.to_string()));
-                }
+            if let Some(content) = choice.content()
+                && !content.is_empty()
+            {
+                self.pending_events
+                    .push_back(StreamEvent::ContentDelta(content.to_string()));
             }
 
             // Extract reasoning delta
-            if let Some(reasoning) = choice.reasoning() {
-                if !reasoning.is_empty() {
-                    self.pending_events
-                        .push_back(StreamEvent::ReasoningDelta(reasoning.to_string()));
-                }
+            if let Some(reasoning) = choice.reasoning()
+                && !reasoning.is_empty()
+            {
+                self.pending_events
+                    .push_back(StreamEvent::ReasoningDelta(reasoning.to_string()));
             }
 
             // Extract reasoning details
-            if let Some(details) = choice.reasoning_details() {
-                if !details.is_empty() {
-                    self.pending_events
-                        .push_back(StreamEvent::ReasoningDetailsDelta(details.to_vec()));
-                }
+            if let Some(details) = choice.reasoning_details()
+                && !details.is_empty()
+            {
+                self.pending_events
+                    .push_back(StreamEvent::ReasoningDetailsDelta(details.to_vec()));
             }
 
             // Accumulate partial tool calls
@@ -436,30 +436,30 @@ pub fn adapt_chat_stream(
                     }
 
                     for choice in &response.choices {
-                        if let Some(content) = choice.content() {
-                            if !content.is_empty() {
-                                state.pending.push_back(UnifiedStreamEvent::ContentDelta(
-                                    content.to_string(),
-                                ));
-                            }
+                        if let Some(content) = choice.content()
+                            && !content.is_empty()
+                        {
+                            state
+                                .pending
+                                .push_back(UnifiedStreamEvent::ContentDelta(content.to_string()));
                         }
 
-                        if let Some(reasoning) = choice.reasoning() {
-                            if !reasoning.is_empty() {
-                                state.pending.push_back(UnifiedStreamEvent::ReasoningDelta(
-                                    reasoning.to_string(),
-                                ));
-                            }
+                        if let Some(reasoning) = choice.reasoning()
+                            && !reasoning.is_empty()
+                        {
+                            state.pending.push_back(UnifiedStreamEvent::ReasoningDelta(
+                                reasoning.to_string(),
+                            ));
                         }
 
-                        if let Some(reasoning_details) = choice.reasoning_details() {
-                            if !reasoning_details.is_empty() {
-                                state
-                                    .pending
-                                    .push_back(UnifiedStreamEvent::ReasoningDetailsDelta(
-                                        reasoning_details.to_vec(),
-                                    ));
-                            }
+                        if let Some(reasoning_details) = choice.reasoning_details()
+                            && !reasoning_details.is_empty()
+                        {
+                            state
+                                .pending
+                                .push_back(UnifiedStreamEvent::ReasoningDetailsDelta(
+                                    reasoning_details.to_vec(),
+                                ));
                         }
 
                         if let Some(partials) = choice.partial_tool_calls() {
@@ -543,13 +543,13 @@ pub fn adapt_responses_stream(
                         }
                     }
 
-                    if event_type.contains("output_text.delta") {
-                        if let Some(delta) = event.data.get("delta").and_then(Value::as_str) {
-                            state
-                                .pending
-                                .push_back(UnifiedStreamEvent::ContentDelta(delta.to_string()));
-                            emitted = true;
-                        }
+                    if event_type.contains("output_text.delta")
+                        && let Some(delta) = event.data.get("delta").and_then(Value::as_str)
+                    {
+                        state
+                            .pending
+                            .push_back(UnifiedStreamEvent::ContentDelta(delta.to_string()));
+                        emitted = true;
                     }
 
                     if !emitted && event_type.contains("reasoning") {

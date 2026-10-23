@@ -29,7 +29,7 @@ openrouter-rs = "0.20.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
-Requires Rust `1.85+` and Tokio `1.x`. To try it in a new project:
+Requires Rust `1.93+` and Tokio `1.x`. To try it in a new project:
 
 ```bash
 cargo new openrouter-quickstart
@@ -124,14 +124,16 @@ Requests go through one of two backends, chosen by cargo feature:
 | `reqwest` | yes | `reqwest 0.13` with rustls; needs a Tokio runtime; enables `.http_client(...)` |
 | `wasip3` | no | the host's `wasi:http/client` (WASI 0.3) on `wasm32-wasip2`; no effect on other targets |
 
-For a WASI component, drop reqwest:
+The WASI backend is unreleased and will ship in the next minor release. For a WASI component built from this repository, drop reqwest:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.20.0", default-features = false, features = ["wasip3"] }
+openrouter-rs = { git = "https://github.com/realmorrisliu/openrouter-rs", default-features = false, features = ["wasip3"] }
 ```
 
-The client API is the same on both backends, including streaming. When both features are on a WASI target, the default client uses `wasi:http`.
+The client API is the same on both backends, including streaming. When both features are on a WASI target, the default client uses `wasi:http`. The embedding host controls TLS, networking, redirects and timeouts; configure those policies in the host rather than assuming reqwest settings apply.
+
+See [`tests/fixtures/wasip3-smoke/src/lib.rs`](tests/fixtures/wasip3-smoke/src/lib.rs) for a runnable WASI 0.3 command component. `just test-wasip3` runs it against a loopback mock server using Wasmtime 50.0.0 (`wasmtime` on PATH, or set `WASMTIME`). It checks authentication, query encoding, multipart upload, binary download, API/body errors, incremental SSE and stream cancellation without an OpenRouter account. Install the compilation target with `rustup target add wasm32-wasip2`.
 
 ## API Surface
 
