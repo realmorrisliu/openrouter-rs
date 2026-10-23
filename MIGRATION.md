@@ -2,9 +2,9 @@
 
 This document keeps historical migration guides intact because the repo still smoke-tests older domain/naming transitions.
 
-## Unreleased: 0.19.x -> 0.20.x Transport Migration
+## 0.19.x -> 0.20.0 Compatibility Notes
 
-These changes are on the development branch and are planned for the next minor release, `0.20`. They are not part of the published `0.19.0` installation example in the README.
+`0.20.0` upgrades the HTTP transport and TLS configuration. Applications that inject a custom `reqwest` client must move to `reqwest 0.13`, and deployments should verify their trust store after upgrading.
 
 ### Custom HTTP Clients
 
