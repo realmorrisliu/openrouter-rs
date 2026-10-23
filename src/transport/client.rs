@@ -3,7 +3,9 @@
 //! `text`, …) so the backend is chosen by cargo feature, not at each call site.
 
 use bytes::Bytes;
-use futures_util::{StreamExt, TryStreamExt, stream::BoxStream};
+#[cfg(feature = "reqwest")]
+use futures_util::StreamExt;
+use futures_util::{TryStreamExt, stream::BoxStream};
 use http::{
     HeaderMap, HeaderName, HeaderValue, Method, StatusCode,
     header::{AUTHORIZATION, CONTENT_TYPE},
@@ -223,19 +225,25 @@ impl PreparedRequest {
 }
 
 /// A response whose status and headers have arrived; the body is read on demand.
-pub(crate) struct Response {
-    status: StatusCode,
-    headers: HeaderMap,
-    body: BoxStream<'static, Result<Bytes, HttpRequestError>>,
+pub(crate) enum Response {
+    #[cfg(feature = "reqwest")]
+    Reqwest(reqwest::Response),
+    #[cfg(all(feature = "wasip3", target_os = "wasi"))]
+    Wasip3 {
+        status: StatusCode,
+        headers: HeaderMap,
+        body: BoxStream<'static, Result<Bytes, HttpRequestError>>,
+    },
 }
 
 impl Response {
+    #[cfg(all(feature = "wasip3", target_os = "wasi"))]
     pub(crate) fn new(
         status: StatusCode,
         headers: HeaderMap,
         body: BoxStream<'static, Result<Bytes, HttpRequestError>>,
     ) -> Self {
-        Self {
+        Self::Wasip3 {
             status,
             headers,
             body,
@@ -243,32 +251,65 @@ impl Response {
     }
 
     pub(crate) fn status(&self) -> StatusCode {
-        self.status
+        match self {
+            #[cfg(feature = "reqwest")]
+            Self::Reqwest(response) => response.status(),
+            #[cfg(all(feature = "wasip3", target_os = "wasi"))]
+            Self::Wasip3 { status, .. } => *status,
+        }
     }
 
     pub(crate) fn headers(&self) -> &HeaderMap {
-        &self.headers
+        match self {
+            #[cfg(feature = "reqwest")]
+            Self::Reqwest(response) => response.headers(),
+            #[cfg(all(feature = "wasip3", target_os = "wasi"))]
+            Self::Wasip3 { headers, .. } => headers,
+        }
     }
 
     pub(crate) async fn bytes(self) -> Result<Bytes, HttpRequestError> {
-        let mut chunks: Vec<Bytes> = self.body.try_collect().await?;
-        if chunks.len() <= 1 {
-            return Ok(chunks.pop().unwrap_or_default());
+        match self {
+            #[cfg(feature = "reqwest")]
+            Self::Reqwest(response) => response.bytes().await.map_err(super::reqwest_error),
+            #[cfg(all(feature = "wasip3", target_os = "wasi"))]
+            Self::Wasip3 { body, .. } => {
+                let mut chunks: Vec<Bytes> = body.try_collect().await?;
+                if chunks.len() <= 1 {
+                    return Ok(chunks.pop().unwrap_or_default());
+                }
+                let mut body = Vec::with_capacity(chunks.iter().map(Bytes::len).sum());
+                for chunk in &chunks {
+                    body.extend_from_slice(chunk);
+                }
+                Ok(Bytes::from(body))
+            }
         }
-        let mut body = Vec::with_capacity(chunks.iter().map(Bytes::len).sum());
-        for chunk in &chunks {
-            body.extend_from_slice(chunk);
-        }
-        Ok(Bytes::from(body))
     }
 
     pub(crate) async fn text(self) -> Result<String, HttpRequestError> {
-        let bytes = self.bytes().await?;
-        Ok(String::from_utf8_lossy(&bytes).into_owned())
+        match self {
+            // Preserve downstream-enabled reqwest charset/BOM decoding.
+            #[cfg(feature = "reqwest")]
+            Self::Reqwest(response) => response.text().await.map_err(super::reqwest_error),
+            #[cfg(all(feature = "wasip3", target_os = "wasi"))]
+            response @ Self::Wasip3 { .. } => {
+                let bytes = response.bytes().await?;
+                Ok(String::from_utf8_lossy(&bytes).into_owned())
+            }
+        }
     }
 
     pub(crate) fn bytes_stream(self) -> BoxStream<'static, Result<Bytes, HttpRequestError>> {
-        self.body.boxed()
+        match self {
+            #[cfg(feature = "reqwest")]
+            Self::Reqwest(response) => response
+                .bytes_stream()
+                .map_err(super::reqwest_error)
+                .boxed(),
+            #[cfg(all(feature = "wasip3", target_os = "wasi"))]
+            Self::Wasip3 { body, .. } => body,
+        }
     }
 }
 
@@ -293,6 +334,27 @@ mod tests {
         crate::transport::new_client()
             .expect("default client should build")
             .request(Method::GET, url)
+    }
+
+    #[cfg(feature = "reqwest")]
+    #[tokio::test]
+    async fn test_native_text_preserves_reqwest_decoding() {
+        for (content_type, body) in [
+            ("text/plain; charset=windows-1252", vec![0xe9]),
+            ("application/json", b"\xef\xbb\xbf{}".to_vec()),
+        ] {
+            let response = || {
+                reqwest::Response::from(
+                    http::Response::builder()
+                        .header(CONTENT_TYPE, content_type)
+                        .body(body.clone())
+                        .unwrap(),
+                )
+            };
+            let expected = response().text().await.unwrap();
+            let actual = super::Response::Reqwest(response()).text().await.unwrap();
+            assert_eq!(actual, expected);
+        }
     }
 
     #[test]

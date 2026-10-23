@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added a `wasip3` feature that sends requests through the host's `wasi:http/client` (WASI 0.3), so the SDK runs in `wasm32-wasip2` components without reqwest. Streaming works, and the public futures and streams stay `Send`.
 - Added `From<HttpRequestError> for OpenRouterError`.
+- Added a real-host WASI transport smoke test and a native reqwest charset/BOM compatibility regression test.
 
 ### Changed
 - Raised the SDK and CLI MSRV from Rust 1.85 to 1.93 to support WASI 0.3 component linking; this change requires a new minor release.

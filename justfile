@@ -37,6 +37,7 @@ test-unit:
 
 test-lib:
     cargo test --lib
+    cargo test --lib --features reqwest/charset transport::client::tests::test_native_text_preserves_reqwest_decoding
 
 test-doc:
     cargo test --doc
