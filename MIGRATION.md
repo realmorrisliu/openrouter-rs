@@ -2,9 +2,9 @@
 
 This document keeps historical migration guides intact because the repo still smoke-tests older domain/naming transitions.
 
-## 0.20.0 -> Unreleased: HTTP Backend Features
+## 0.20.0 -> 0.21.0: HTTP Backend Features
 
-The SDK and CLI now require Rust 1.93 or newer, including the WASI backend. Upgrade your toolchain before adopting the next minor release.
+The SDK and CLI now require Rust 1.93 or newer, including the WASI backend. Upgrade your toolchain before adopting SDK 0.21.0 or building the CLI from this workspace.
 
 reqwest moved behind the default `reqwest` feature, and a `wasip3` feature adds a `wasi:http` backend for `wasm32-wasip2`. Default builds need no change. If your `Cargo.toml` sets `default-features = false` for `openrouter-rs`, add `features = ["reqwest"]` (or `["wasip3"]` for a WASI component). `.http_client(...)` and `From<reqwest::Error> for OpenRouterError` are available with the `reqwest` feature.
 

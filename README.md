@@ -25,7 +25,7 @@ Type-safe, async Rust SDK for the OpenRouter API.
 
 ```toml
 [dependencies]
-openrouter-rs = "0.20.0"
+openrouter-rs = "0.21.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -112,7 +112,7 @@ Legacy text completions are opt-in:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.20.0", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.21.0", features = ["legacy-completions"] }
 ```
 
 ### HTTP backends and WASI
@@ -124,11 +124,11 @@ Requests go through one of two backends, chosen by cargo feature:
 | `reqwest` | yes | `reqwest 0.13` with rustls; needs a Tokio runtime; enables `.http_client(...)` |
 | `wasip3` | no | the host's `wasi:http/client` (WASI 0.3) on `wasm32-wasip2`; no effect on other targets |
 
-The WASI backend is unreleased and will ship in the next minor release. For a WASI component built from this repository, drop reqwest:
+For a WASI component, disable the default reqwest backend and enable `wasip3`:
 
 ```toml
 [dependencies]
-openrouter-rs = { git = "https://github.com/realmorrisliu/openrouter-rs", default-features = false, features = ["wasip3"] }
+openrouter-rs = { version = "0.21.0", default-features = false, features = ["wasip3"] }
 ```
 
 The client API is the same on both backends, including streaming. When both features are on a WASI target, the default client uses `wasi:http`. The embedding host controls TLS, networking, redirects and timeouts; configure those policies in the host rather than assuming reqwest settings apply.
@@ -449,7 +449,13 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 ### Unreleased
 
-### Version 0.20.0 *(Latest)*
+### Version 0.21.0 *(Latest)*
+
+- Added opt-in WASI 0.3 HTTP transport for `wasm32-wasip2`, including streaming and `Send` futures, plus `From<HttpRequestError> for OpenRouterError`.
+- **Breaking:** Raised the SDK and workspace CLI MSRV to Rust 1.93. Consumers using `default-features = false` must explicitly enable `reqwest` or `wasip3`; see the [0.21 migration notes](MIGRATION.md#0200---0210-http-backend-features).
+- Preserved native reqwest charset/BOM decoding and added real-host WASI coverage for multipart, binary responses, errors, incremental SSE and cancellation.
+
+### Version 0.20.0
 
 - **Breaking:** Upgraded the HTTP transport to `reqwest 0.13`; `.http_client(...)` now accepts only a `reqwest 0.13` client. Default native TLS uses platform certificate verification and AWS-LC, and the SDK's direct Tokio features narrowed to `io-util`. See the [0.20 migration notes](MIGRATION.md#019x---0200-compatibility-notes).
 - Added intern icon and vault connection reads, plus the October 20 schema surface: Batch callback/expiry/provider metadata, endpoint service tiers and diarization, guardrail safety-retention controls with clear builders, observability cost-allocation broadcasting, video signed URLs, image privacy controls, and Responses `stop`.
