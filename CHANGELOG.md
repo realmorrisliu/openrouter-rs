@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added `reasoning_content` and `reasoning_text` to chat messages: decoded on response `Message` and streaming `Delta`, and sent on request `Message` (with `with_reasoning_content`/`with_reasoning_text`), so reasoning from OpenAI-compatible upstreams that use these fields round-trips through `Message::try_from`.
+- Added `ResponseUsage::completion_tokens_details` (`CompletionTokensDetails` with `reasoning_tokens`, `audio_tokens` and `image_tokens`).
+
 ## [0.21.0] - 2026-10-24
 
 ### Added

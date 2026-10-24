@@ -32,6 +32,7 @@ pub mod organization;
 pub mod pagination;
 pub mod presets;
 pub mod provider;
+pub mod reasoning_fields;
 pub mod rerank;
 pub mod response_format;
 pub mod responses;

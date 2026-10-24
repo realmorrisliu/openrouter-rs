@@ -437,6 +437,12 @@ pub struct Message {
     pub tool_calls: Option<Vec<crate::types::ToolCall>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reasoning: Option<String>,
+    /// Reasoning text in the field some OpenAI-compatible upstreams use and expect replayed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reasoning_content: Option<String>,
+    /// Reasoning text in the field some OpenAI-compatible upstreams use and expect replayed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reasoning_text: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reasoning_details: Option<Vec<crate::types::completion::ReasoningDetail>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -453,6 +459,8 @@ impl Message {
     pub fn new(role: Role, content: impl Into<Content>) -> Self {
         Self {
             reasoning: None,
+            reasoning_content: None,
+            reasoning_text: None,
             reasoning_details: None,
             refusal: None,
             annotations: None,
@@ -514,6 +522,16 @@ impl Message {
 
     pub fn with_model(mut self, model: impl Into<String>) -> Self {
         self.model = Some(model.into());
+        self
+    }
+
+    pub fn with_reasoning_content(mut self, reasoning_content: impl Into<String>) -> Self {
+        self.reasoning_content = Some(reasoning_content.into());
+        self
+    }
+
+    pub fn with_reasoning_text(mut self, reasoning_text: impl Into<String>) -> Self {
+        self.reasoning_text = Some(reasoning_text.into());
         self
     }
 }
