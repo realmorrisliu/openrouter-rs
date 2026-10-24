@@ -18,6 +18,14 @@ check:
 check-all-features:
     cargo check --all-targets --all-features
 
+test-wasip3:
+    cargo fmt --manifest-path tests/fixtures/wasip3-smoke/Cargo.toml --check
+    cargo build --locked --manifest-path tests/fixtures/wasip3-smoke/Cargo.toml --target wasm32-wasip2 --target-dir target/wasip3-smoke
+    python3 scripts/smoke_wasip3.py target/wasip3-smoke/wasm32-wasip2/debug/wasip3_smoke.wasm
+
+check-wasip3:
+    cargo clippy -p openrouter-rs --lib --no-default-features --features wasip3 --target wasm32-wasip2 -- -D warnings
+
 audit:
     cargo audit
 
@@ -29,6 +37,7 @@ test-unit:
 
 test-lib:
     cargo test --lib
+    cargo test --lib --features reqwest/charset transport::client::tests::test_native_text_preserves_reqwest_decoding
 
 test-doc:
     cargo test --doc

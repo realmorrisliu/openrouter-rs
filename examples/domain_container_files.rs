@@ -17,14 +17,14 @@ async fn main() -> Result<(), OpenRouterError> {
     for file in &files.data {
         println!("{}: {} ({} bytes)", file.id, file.path, file.bytes);
     }
-    if std::env::var("OPENROUTER_PROMOTE_CONTAINER_FILE").as_deref() == Ok("1") {
-        if let Some(file) = files.data.first() {
-            let promoted = client
-                .files()
-                .promote_container_file(&container_id, &file.id)
-                .await?;
-            println!("Reusable file: {}", promoted.id);
-        }
+    if std::env::var("OPENROUTER_PROMOTE_CONTAINER_FILE").as_deref() == Ok("1")
+        && let Some(file) = files.data.first()
+    {
+        let promoted = client
+            .files()
+            .promote_container_file(&container_id, &file.id)
+            .await?;
+        println!("Reusable file: {}", promoted.id);
     }
     Ok(())
 }

@@ -402,10 +402,10 @@ fn extract_text_from_content_value(value: &Value) -> Option<String> {
 
 fn extract_text_from_content_part(part: &serde_json::Map<String, Value>) -> Option<String> {
     let part_type = part.get("type").and_then(Value::as_str);
-    if let Some(kind) = part_type {
-        if !matches!(kind, "text" | "output_text" | "input_text") {
-            return None;
-        }
+    if let Some(kind) = part_type
+        && !matches!(kind, "text" | "output_text" | "input_text")
+    {
+        return None;
     }
 
     part.get("text")

@@ -29,7 +29,7 @@ openrouter-rs = "0.20.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
-Requires Rust `1.85+` and Tokio `1.x`. To try it in a new project:
+Requires Rust `1.93+` and Tokio `1.x`. To try it in a new project:
 
 ```bash
 cargo new openrouter-quickstart
@@ -96,7 +96,7 @@ Management-governed endpoints require `OPENROUTER_MANAGEMENT_KEY`; ordinary chat
 
 - Domain-oriented clients: `chat()`, `responses()`, `messages()`, `rerank()`, `audio().speech()`, `audio().transcriptions()`, `images()`, `videos()`, `files()`, `models()`, `batches()`, `interns()`, `vault()`, `decisions()`, `management()`, and opt-in `legacy()`
 - Typed request/response models with builder-style ergonomics
-- Tokio-native `reqwest + rustls` transport with no `surf` / `curl` dependency chain
+- Tokio-native `reqwest + rustls` transport by default, or the host's `wasi:http` on `wasm32-wasip2` with the `wasip3` feature
 - Streaming support for chat, responses, messages, and image generation, including a unified stream abstraction
 - Typed tools, manual JSON-schema tools, OpenRouter server tools, and multimodal chat content
 - Typed chat usage metadata for token counts, OpenRouter cost, provider cost breakdowns, and BYOK status
@@ -114,6 +114,26 @@ Legacy text completions are opt-in:
 [dependencies]
 openrouter-rs = { version = "0.20.0", features = ["legacy-completions"] }
 ```
+
+### HTTP backends and WASI
+
+Requests go through one of two backends, chosen by cargo feature:
+
+| Feature | Default | Backend |
+| --- | --- | --- |
+| `reqwest` | yes | `reqwest 0.13` with rustls; needs a Tokio runtime; enables `.http_client(...)` |
+| `wasip3` | no | the host's `wasi:http/client` (WASI 0.3) on `wasm32-wasip2`; no effect on other targets |
+
+The WASI backend is unreleased and will ship in the next minor release. For a WASI component built from this repository, drop reqwest:
+
+```toml
+[dependencies]
+openrouter-rs = { git = "https://github.com/realmorrisliu/openrouter-rs", default-features = false, features = ["wasip3"] }
+```
+
+The client API is the same on both backends, including streaming. When both features are on a WASI target, the default client uses `wasi:http`. The embedding host controls TLS, networking, redirects and timeouts; configure those policies in the host rather than assuming reqwest settings apply.
+
+See [`tests/fixtures/wasip3-smoke/src/lib.rs`](tests/fixtures/wasip3-smoke/src/lib.rs) for a runnable WASI 0.3 command component. `just test-wasip3` runs it against a loopback mock server using Wasmtime 50.0.0 (`wasmtime` on PATH, or set `WASMTIME`). It checks authentication, query encoding, multipart upload, binary download, API/body errors, incremental SSE and stream cancellation without an OpenRouter account. Install the compilation target with `rustup target add wasm32-wasip2`.
 
 ## API Surface
 
@@ -166,7 +186,7 @@ At runtime, the builder/client exposes the values the SDK directly consumes:
 - `http_referer`
 - `x_title`
 - `app_categories`
-- `http_client`
+- `http_client` (feature `reqwest`)
 
 Chat, Responses API, and Anthropic-compatible Messages request builders also expose `experimental_metadata(OpenRouterExperimentalMetadata::Enabled)` for OpenRouter's opt-in routing metadata response header.
 

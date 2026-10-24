@@ -5,7 +5,9 @@ use futures_util::{
     StreamExt,
     stream::{self, BoxStream},
 };
-use reqwest::{Client as HttpClient, header::CONTENT_TYPE};
+use http::header::CONTENT_TYPE;
+
+use crate::transport::HttpClient;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use urlencoding::encode;
@@ -535,7 +537,7 @@ pub(crate) async fn stream_image_generation_with_client(
     }
 }
 
-fn is_sse_response(response: &reqwest::Response) -> bool {
+fn is_sse_response(response: &crate::transport::Response) -> bool {
     response
         .headers()
         .get(CONTENT_TYPE)

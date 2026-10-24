@@ -20,9 +20,9 @@ The best contributions keep one change focused, keep docs/examples in sync with 
 
 Requirements:
 
-- Rust `1.85+`
+- Rust `1.93+`
 - `just`
-- `cargo-audit` for dependency checks in `just quality-ci`; install with `cargo +stable install cargo-audit --locked` using an up-to-date stable toolchain, since the tool's MSRV can exceed the library's Rust `1.85` minimum
+- `cargo-audit` for dependency checks in `just quality-ci`; install with `cargo +stable install cargo-audit --locked` using an up-to-date stable toolchain, since the tool's MSRV can exceed the library's Rust `1.93` minimum
 - Python `3.10+` for the adoption metrics tests included in `just quality`
 - `OPENROUTER_API_KEY` for live API-backed examples and tests
 - `OPENROUTER_MANAGEMENT_KEY` for management-governed live tests
@@ -32,6 +32,8 @@ Useful commands:
 ```bash
 just quality
 just quality-ci
+# When changing the WASI backend (requires Wasmtime 50.0.0 and wasm32-wasip2):
+just test-wasip3
 just test-live-contract
 OPENROUTER_MANAGEMENT_KEY=... just test-live-contract-management
 ```

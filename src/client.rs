@@ -42,8 +42,8 @@ pub struct OpenRouterClient {
     x_title: Option<String>,
     #[builder(setter(custom), default)]
     app_categories: Option<Vec<String>>,
-    #[builder(setter(into), default = "crate::transport::new_client()?")]
-    http_client: reqwest::Client,
+    #[builder(setter(custom), default = "crate::transport::new_client()?")]
+    http_client: crate::transport::HttpClient,
 }
 
 impl OpenRouterClient {
@@ -198,7 +198,7 @@ impl OpenRouterClient {
         LegacyClient { client: self }
     }
 
-    pub(crate) fn http_client(&self) -> &reqwest::Client {
+    pub(crate) fn http_client(&self) -> &crate::transport::HttpClient {
         &self.http_client
     }
 
@@ -211,6 +211,13 @@ impl OpenRouterClient {
 
 impl OpenRouterClientBuilder {
     strip_option_vec_setter!(app_categories, String);
+
+    /// Sends requests through a caller-configured `reqwest::Client` (feature `reqwest`).
+    #[cfg(feature = "reqwest")]
+    pub fn http_client<VALUE: Into<reqwest::Client>>(&mut self, value: VALUE) -> &mut Self {
+        self.http_client = Some(crate::transport::HttpClient::Reqwest(value.into()));
+        self
+    }
 }
 
 #[doc(hidden)]

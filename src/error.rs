@@ -262,8 +262,15 @@ pub enum OpenRouterError {
     Unknown(String),
 }
 
+impl From<HttpRequestError> for OpenRouterError {
+    fn from(err: HttpRequestError) -> Self {
+        OpenRouterError::HttpRequest(err)
+    }
+}
+
+#[cfg(feature = "reqwest")]
 impl From<reqwest::Error> for OpenRouterError {
     fn from(err: reqwest::Error) -> Self {
-        OpenRouterError::HttpRequest(HttpRequestError::new(err.to_string()))
+        OpenRouterError::HttpRequest(crate::transport::reqwest_error(err))
     }
 }

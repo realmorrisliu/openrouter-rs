@@ -1,5 +1,5 @@
+use crate::transport::HttpClient;
 use derive_builder::Builder;
-use reqwest::Client as HttpClient;
 use serde::{Deserialize, Serialize, Serializer, ser::SerializeMap};
 use serde_json::Value;
 use urlencoding::encode;

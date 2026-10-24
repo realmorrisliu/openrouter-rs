@@ -79,7 +79,7 @@ cargo run -p openrouter-cli -- --help
 ## Implementation Notes
 
 - Request and client construction use the builder pattern (`derive_builder`).
-- The crate uses `reqwest + rustls` for HTTP and `tokio` for async runtime.
+- HTTP goes through the crate-internal façade in `src/transport/` (`HttpClient`, `RequestBuilder`, `Response`). Endpoint modules must not name `reqwest` directly. Backends: `reqwest` (default feature, `reqwest + rustls` on Tokio) and `wasip3` (`wasi:http/client` on `wasm32-wasip2`, wrapped in `SendWrapper` so public futures stay `Send`). Check the WASI build with `just check-wasip3`.
 - Streaming is exposed in three forms:
   - raw endpoint streams
   - `ToolAwareStream` for assembled tool calls

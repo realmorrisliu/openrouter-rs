@@ -1,6 +1,8 @@
 use derive_builder::Builder;
 use futures_util::{StreamExt, stream::BoxStream};
-use reqwest::{Client as HttpClient, StatusCode};
+use http::StatusCode;
+
+use crate::transport::HttpClient;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize, Serializer, ser::SerializeMap};
 use serde_json::Value;
@@ -419,7 +421,7 @@ pub(crate) async fn get_intern_icon_with_client(
     if response.status().is_success() {
         let content_type = response
             .headers()
-            .get(reqwest::header::CONTENT_TYPE)
+            .get(http::header::CONTENT_TYPE)
             .and_then(|value| value.to_str().ok())
             .map(str::to_string);
         let bytes = response.bytes().await?.to_vec();
@@ -571,12 +573,15 @@ pub(crate) async fn chat_completion_with_client(
     unreachable!()
 }
 
-fn with_auth(builder: reqwest::RequestBuilder, api_key: &str) -> reqwest::RequestBuilder {
+fn with_auth(
+    builder: crate::transport::RequestBuilder,
+    api_key: &str,
+) -> crate::transport::RequestBuilder {
     transport_request::with_bearer_auth(builder, api_key)
 }
 
 async fn parse_result<T: for<'de> Deserialize<'de>>(
-    response: reqwest::Response,
+    response: crate::transport::Response,
     context: &str,
 ) -> Result<T, OpenRouterError> {
     if response.status().is_success() {

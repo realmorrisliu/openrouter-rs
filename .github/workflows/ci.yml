@@ -74,17 +74,48 @@ jobs:
       - name: Run CLI foundation tests
         run: just test-cli
 
-  msrv-check:
-    name: MSRV Check (1.85.0)
+  wasip3-check:
+    name: WASI (wasip3) Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Setup Rust (1.85.0)
+      - name: Setup Rust (stable)
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: 1.85.0
+          targets: wasm32-wasip2
+          components: clippy
+
+      - name: Install just
+        uses: taiki-e/install-action@just
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Clippy (wasip3 backend, no reqwest)
+        run: just check-wasip3
+
+      - name: Install Wasmtime
+        uses: taiki-e/install-action@v2
+        with:
+          tool: wasmtime@50.0.0
+
+      - name: Test WASI HTTP and streaming in a real host
+        run: just test-wasip3
+
+  msrv-check:
+    name: MSRV Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Rust (1.93.0)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.93.0
+          targets: wasm32-wasip2
 
       - name: Install just
         uses: taiki-e/install-action@just
@@ -100,6 +131,9 @@ jobs:
 
       - name: Cargo check (all targets/features)
         run: just check-all-features
+
+      - name: Build WASI command component at MSRV
+        run: cargo build --locked --manifest-path tests/fixtures/wasip3-smoke/Cargo.toml --target wasm32-wasip2 --target-dir target/wasip3-smoke
 
   migration-smoke:
     name: Migration Smoke Checks

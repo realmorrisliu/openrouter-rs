@@ -180,6 +180,11 @@
 //! Contributions are welcome! Please see our
 //! [GitHub repository](https://github.com/realmorrisliu/openrouter-rs) for issues and pull requests.
 
+#[cfg(not(any(feature = "reqwest", all(feature = "wasip3", target_os = "wasi"))))]
+compile_error!(
+    "openrouter-rs needs an HTTP backend: enable the `reqwest` feature, or `wasip3` on a WASI target"
+);
+
 pub mod api;
 pub mod client;
 pub mod error;

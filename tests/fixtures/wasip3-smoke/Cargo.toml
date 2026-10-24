@@ -1,0 +1,17 @@
+[package]
+name = "wasip3-smoke"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.93"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+openrouter-rs = { path = "../../..", default-features = false, features = ["wasip3"] }
+wasip3 = "0.9"
+futures-util = "0.3.31"
+
+# Avoid the SDK workspace's native-only dev dependencies on WASI.
+[workspace]

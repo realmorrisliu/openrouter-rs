@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
 use derive_builder::Builder;
-use reqwest::{Client as HttpClient, Url};
+use url::Url;
+
+use crate::transport::HttpClient;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -162,7 +164,7 @@ pub(crate) async fn create_system_one_with_client(
 }
 
 async fn parse_result<T: for<'de> Deserialize<'de>>(
-    response: reqwest::Response,
+    response: crate::transport::Response,
     context: &str,
 ) -> Result<T, OpenRouterError> {
     if response.status().is_success() {

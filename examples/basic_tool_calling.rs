@@ -259,11 +259,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .build()?;
 
                     let summary_response = client.chat().create(&summary_request).await?;
-                    if let Some(summary_choice) = summary_response.choices.first() {
-                        if let Some(summary_content) = summary_choice.content() {
-                            println!("🤖 Final summary:");
-                            println!("{}", summary_content);
-                        }
+                    if let Some(summary_choice) = summary_response.choices.first()
+                        && let Some(summary_content) = summary_choice.content()
+                    {
+                        println!("🤖 Final summary:");
+                        println!("{}", summary_content);
                     }
                 } else if let Some(final_content) = final_choice.content() {
                     println!("🤖 Final response:");
