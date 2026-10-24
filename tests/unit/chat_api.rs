@@ -411,6 +411,34 @@ async fn test_send_chat_completion_returns_contextual_parse_error_on_invalid_jso
 }
 
 #[tokio::test]
+async fn test_send_chat_completion_keeps_api_error_with_string_code() {
+    let (base_url, _rx, server) = spawn_server(
+        r#"{"error":{"message":"Provider rejected the request","code":"invalid_request_error"}}"#,
+        "application/json",
+    );
+
+    let request = ChatCompletionRequestBuilder::default()
+        .model("openai/gpt-4o-mini")
+        .messages(vec![Message::new(Role::User, "hello")])
+        .build()
+        .expect("chat request should build");
+
+    let error = send_chat_completion(&base_url, "api-key", &None, &None, &None, &request)
+        .await
+        .expect_err("error payload should fail");
+
+    match error {
+        openrouter_rs::error::OpenRouterError::Api(api_error) => {
+            assert_eq!(api_error.api_code, None);
+            assert_eq!(api_error.message, "Provider rejected the request");
+        }
+        other => panic!("expected API error, got {other:?}"),
+    }
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
 async fn test_send_chat_completion_treats_error_payload_with_200_status_as_api_error() {
     let (base_url, _rx, server) = spawn_server(
         r#"{"error":{"message":"Internal Server Error","code":500}}"#,

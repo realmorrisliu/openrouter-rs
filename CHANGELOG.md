@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- A chat completion choice now decodes by its shape (`message`, `delta` or `text`), so a bad field reports its own error instead of "data did not match any variant of untagged enum Choice".
+- A tool call without a `type` now decodes as a `"function"` call, as some providers omit it.
+- A top-level API error with a string `code` is now reported as `OpenRouterError::Api` with `api_code: None`, instead of losing its structured message.
+
+### Changed
+- **Breaking:** `ErrorResponse.code` (the error inside a choice) is now `Option<ErrorCode>`, which takes the number OpenRouter sends or the string some upstream providers send. See [MIGRATION.md](MIGRATION.md#021x---next-lenient-chat-completion-decoding).
+- **Breaking:** `ResponseCostDetails::upstream_inference_completions_cost` and `upstream_inference_prompt_cost` are now `Option<f64>`, since OpenRouter can send `null` for them.
+
 ## [0.21.0] - 2026-10-24
 
 ### Added

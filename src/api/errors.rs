@@ -13,9 +13,23 @@ struct ApiErrorResponse {
 
 #[derive(Deserialize, Debug)]
 struct ApiError {
+    #[serde(default, deserialize_with = "deserialize_error_code")]
     code: Option<i64>,
     message: String,
     metadata: Option<ApiErrorMetadata>,
+}
+
+/// Takes a numeric code as a number or a numeric string. Some upstream providers send a
+/// non-numeric string, which is dropped rather than failing the whole error body.
+fn deserialize_error_code<'de, D>(deserializer: D) -> Result<Option<i64>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    Ok(match Option::<Value>::deserialize(deserializer)? {
+        Some(Value::Number(code)) => code.as_i64(),
+        Some(Value::String(code)) => code.trim().parse().ok(),
+        _ => None,
+    })
 }
 
 #[derive(Deserialize, Debug)]

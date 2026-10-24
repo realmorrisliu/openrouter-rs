@@ -355,8 +355,11 @@ fn test_usage_deserializes_openrouter_cost_fields() {
 
     assert_eq!(usage.cost, Some(0.00025));
     assert_eq!(usage.is_byok, Some(false));
-    assert_eq!(cost_details.upstream_inference_prompt_cost, 0.0001);
-    assert_eq!(cost_details.upstream_inference_completions_cost, 0.00015);
+    assert_eq!(cost_details.upstream_inference_prompt_cost, Some(0.0001));
+    assert_eq!(
+        cost_details.upstream_inference_completions_cost,
+        Some(0.00015)
+    );
     assert_eq!(cost_details.upstream_inference_cost, None);
     let server_tool_use = usage
         .server_tool_use_details
