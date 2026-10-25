@@ -41,5 +41,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
     }
 
+    if let Some(cost) = response
+        .usage
+        .as_ref()
+        .and_then(|usage| usage.cost_details.as_ref())
+    {
+        println!(
+            "Upstream prompt cost: {:?}",
+            cost.upstream_inference_prompt_cost
+        );
+    }
+
     Ok(())
 }

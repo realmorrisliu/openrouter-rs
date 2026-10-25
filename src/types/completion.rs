@@ -64,10 +64,12 @@ impl ReasoningDetail {
 pub struct ResponseCostDetails {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub server_tool_cost: Option<f64>,
-    /// Upstream provider cost attributed to completion tokens.
-    pub upstream_inference_completions_cost: f64,
-    /// Upstream provider cost attributed to prompt tokens.
-    pub upstream_inference_prompt_cost: f64,
+    /// Upstream provider cost attributed to completion tokens; OpenRouter may send `null`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub upstream_inference_completions_cost: Option<f64>,
+    /// Upstream provider cost attributed to prompt tokens; OpenRouter may send `null`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub upstream_inference_prompt_cost: Option<f64>,
     /// Total upstream inference cost when provided separately by OpenRouter.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub upstream_inference_cost: Option<f64>,
@@ -184,12 +186,17 @@ impl FunctionCall {
     }
 }
 
+fn default_tool_call_type() -> String {
+    "function".to_string()
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
 pub struct ToolCall {
     pub id: String,
-    #[serde(rename = "type")]
-    pub type_: String, // Always "function" according to TS type
+    /// Always "function" according to the TS type; some providers omit it.
+    #[serde(rename = "type", default = "default_tool_call_type")]
+    pub type_: String,
     pub function: FunctionCall,
     #[serde(default)]
     pub index: Option<u32>,
@@ -372,10 +379,41 @@ impl ToolCall {
     }
 }
 
+/// The code of an error reported inside a choice.
+///
+/// OpenRouter sends a number, but some upstream providers send a string.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+#[serde(untagged)]
+pub enum ErrorCode {
+    Number(i64),
+    Text(String),
+}
+
+impl ErrorCode {
+    /// The code as a number, parsing a numeric string code.
+    pub fn as_i64(&self) -> Option<i64> {
+        match self {
+            ErrorCode::Number(code) => Some(*code),
+            ErrorCode::Text(code) => code.parse().ok(),
+        }
+    }
+}
+
+impl std::fmt::Display for ErrorCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrorCode::Number(code) => write!(f, "{code}"),
+            ErrorCode::Text(code) => f.write_str(code),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
 pub struct ErrorResponse {
-    pub code: i32,
+    #[serde(default)]
+    pub code: Option<ErrorCode>,
     pub message: String,
     pub metadata: Option<HashMap<String, Value>>,
 }
@@ -422,13 +460,43 @@ where
     Ok(value.as_ref().and_then(extract_text_from_content_value))
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Debug, Clone)]
 #[non_exhaustive]
 #[serde(untagged)]
 pub enum Choice {
     NonChat(NonChatChoice),
     NonStreaming(NonStreamingChoice),
     Streaming(StreamingChoice),
+}
+
+/// Picks the variant from the choice's shape (`message`, `delta` or `text`) instead of trying
+/// each in turn, so a bad field reports its own error rather than "did not match any variant".
+impl<'de> Deserialize<'de> for Choice {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        use serde::de::Error;
+
+        let value = Value::deserialize(deserializer)?;
+        let Value::Object(fields) = &value else {
+            return Err(D::Error::custom("a choice must be a JSON object"));
+        };
+        if fields.contains_key("message") {
+            serde_json::from_value(value)
+                .map(Choice::NonStreaming)
+                .map_err(|error| D::Error::custom(format!("invalid chat choice: {error}")))
+        } else if fields.contains_key("delta") {
+            serde_json::from_value(value)
+                .map(Choice::Streaming)
+                .map_err(|error| D::Error::custom(format!("invalid streaming choice: {error}")))
+        } else if fields.contains_key("text") {
+            serde_json::from_value(value)
+                .map(Choice::NonChat)
+                .map_err(|error| D::Error::custom(format!("invalid text choice: {error}")))
+        } else {
+            Err(D::Error::custom(
+                "a choice needs a `message`, `delta` or `text` field",
+            ))
+        }
+    }
 }
 
 impl Choice {

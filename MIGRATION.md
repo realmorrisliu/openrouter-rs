@@ -2,6 +2,23 @@
 
 This document keeps historical migration guides intact because the repo still smoke-tests older domain/naming transitions.
 
+## 0.21.x -> Next: Lenient Chat Completion Decoding
+
+Two chat completion response fields changed type so that payloads OpenRouter and its upstream providers actually send no longer fail to decode.
+
+- `ErrorResponse.code` (the error inside a choice) is now `Option<ErrorCode>` instead of `i32`. Some providers send a string code, and some send none. `ErrorCode::as_i64()` returns the numeric code, parsing a numeric string.
+- `ResponseCostDetails::upstream_inference_completions_cost` and `upstream_inference_prompt_cost` are now `Option<f64>` instead of `f64`, because OpenRouter can send `null`.
+
+```rust
+// Before
+let code: i32 = error.code;
+let prompt_cost: f64 = cost_details.upstream_inference_prompt_cost;
+
+// After
+let code: Option<i64> = error.code.as_ref().and_then(ErrorCode::as_i64);
+let prompt_cost: f64 = cost_details.upstream_inference_prompt_cost.unwrap_or_default();
+```
+
 ## 0.20.0 -> 0.21.0: HTTP Backend Features
 
 The SDK and CLI now require Rust 1.93 or newer, including the WASI backend. Upgrade your toolchain before adopting SDK 0.21.0 or building the CLI from this workspace.
