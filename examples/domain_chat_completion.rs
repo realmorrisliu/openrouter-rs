@@ -23,6 +23,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let response = client.chat().create(&request).await?;
     println!("{response:?}");
+    if let Some(reason) = response
+        .choices
+        .first()
+        .and_then(|choice| choice.finish_reason())
+    {
+        println!("Finish reason: {}", reason.as_str());
+    }
     if let Some(details) = response
         .usage
         .as_ref()
