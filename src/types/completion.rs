@@ -111,6 +111,18 @@ pub struct PromptTokensDetails {
     pub video_tokens: Option<u32>,
 }
 
+/// Completion token breakdown; `reasoning_tokens` are part of `completion_tokens`.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct CompletionTokensDetails {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reasoning_tokens: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audio_tokens: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub image_tokens: Option<u32>,
+}
+
 /// Token and billing usage reported for chat completion responses.
 ///
 /// Response payloads are intentionally constructed by deserialization rather than
@@ -141,6 +153,9 @@ pub struct ResponseUsage {
     /// Optional prompt token breakdown; absence does not imply a cache miss.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub prompt_tokens_details: Option<PromptTokensDetails>,
+    /// Optional completion token breakdown, including reasoning tokens.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub completion_tokens_details: Option<CompletionTokensDetails>,
     /// Total OpenRouter request cost when returned by the API.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cost: Option<f64>,
@@ -162,6 +177,7 @@ impl ResponseUsage {
             completion_tokens,
             total_tokens,
             prompt_tokens_details: None,
+            completion_tokens_details: None,
             cost: None,
             cost_details: None,
             is_byok: None,
@@ -740,6 +756,12 @@ pub struct Message {
     pub tool_calls: Option<Vec<ToolCall>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reasoning: Option<String>,
+    /// Reasoning text in the field some OpenAI-compatible upstreams use.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reasoning_content: Option<String>,
+    /// Reasoning text in the field some OpenAI-compatible upstreams use.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reasoning_text: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reasoning_details: Option<Vec<ReasoningDetail>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -765,6 +787,12 @@ pub struct Delta {
     pub tool_calls: Option<Vec<PartialToolCall>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reasoning: Option<String>,
+    /// Reasoning text in the field some OpenAI-compatible upstreams use.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reasoning_content: Option<String>,
+    /// Reasoning text in the field some OpenAI-compatible upstreams use.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reasoning_text: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reasoning_details: Option<Vec<ReasoningDetail>>,
     #[serde(skip_serializing_if = "Option::is_none")]

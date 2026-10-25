@@ -52,5 +52,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
     }
 
+    if let Some(details) = response
+        .usage
+        .as_ref()
+        .and_then(|usage| usage.completion_tokens_details.as_ref())
+    {
+        println!("Reasoning tokens: {:?}", details.reasoning_tokens);
+    }
+
     Ok(())
 }
