@@ -76,6 +76,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+Use `choice.finish_reason().map(|reason| reason.as_str())` to read the finish reason wire name, including unknown provider values preserved by `FinishReason::Other`.
+
 The SDK keeps setup intentionally narrow: configure runtime values on `OpenRouterClient::builder()`, then choose the final `model` on each request builder. File/profile config resolution belongs in the companion CLI or in your application layer, not in the SDK core.
 
 Set `OPENROUTER_MODEL` to use another model ID available to your account. A successful request prints the model's reply. A missing key fails locally; for API authentication, credit, or model-availability errors, check your OpenRouter account and the returned error before retrying. API calls may consume credits.
