@@ -14,6 +14,10 @@ Weekly drift workflow: `.github/workflows/openapi-drift.yml`
 
 Chat response regression coverage:
 
+- PR #280: local tests cover `reasoning_content`/`reasoning_text` response and raw-delta decoding, request replay, and optional completion-token details. Canonical reasoning getters and stream adapters keep their existing behavior. No new live qualification is claimed.
+
+- PR #279: local serde and mock HTTP tests cover shape-directed choice decoding, string error codes, omitted tool-call types, and nullable upstream chat costs. No endpoint or live coverage count changes.
+
 - Issues #259/#260: local serde/request tests cover non-streaming assistant-message replay (including null content, signed/encrypted reasoning and modeled metadata), getter behavior for streaming/legacy choices, and optional prompt-cache usage in both response envelopes. Regression coverage also verifies all four official reasoning variants across message replay and both chat stream adapters. The streaming tool example has a local test for ordered multi-chunk replay, including repeated reasoning indices. No new endpoint or live qualification is claimed. The CLI has no chat command consuming these types.
 
 Drift review note:

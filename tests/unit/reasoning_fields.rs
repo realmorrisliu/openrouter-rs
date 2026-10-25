@@ -87,12 +87,14 @@ fn test_request_message_reasoning_fields_serialize_only_when_set() {
 fn test_streaming_delta_decodes_reasoning_content() {
     let choice: Choice = serde_json::from_value(json!({
         "index": 0,
-        "delta": { "role": "assistant", "content": "", "reasoning_content": "Thinking" }
+        "delta": { "role": "assistant", "content": "", "reasoning_content": "Thinking", "reasoning_text": "Alternate" }
     }))
     .unwrap();
 
+    assert_eq!(choice.reasoning(), None);
     let Choice::Streaming(choice) = choice else {
         panic!("expected a streaming choice");
     };
     assert_eq!(choice.delta.reasoning_content.as_deref(), Some("Thinking"));
+    assert_eq!(choice.delta.reasoning_text.as_deref(), Some("Alternate"));
 }
