@@ -158,3 +158,32 @@ fn test_cost_details_accept_null_upstream_costs() {
     assert_eq!(missing.upstream_inference_prompt_cost, None);
     assert_eq!(serde_json::to_value(missing).unwrap(), json!({}));
 }
+
+#[test]
+fn test_invalid_chat_choice_does_not_fall_back_to_text() {
+    let error = serde_json::from_value::<Choice>(json!({
+        "message": { "tool_calls": "invalid" }, "text": "fallback"
+    }))
+    .unwrap_err()
+    .to_string();
+    assert!(error.contains("invalid chat choice"), "{error}");
+}
+
+#[test]
+fn test_numeric_string_error_codes_preserve_retry_status() {
+    use http::StatusCode;
+    use openrouter_rs::{api::errors::parse_api_error, error::OpenRouterError};
+
+    let error = parse_api_error(
+        StatusCode::OK,
+        None,
+        r#"{"error":{"code":" 429 ","message":"Slow down"}}"#,
+    );
+    let OpenRouterError::Api(error) = error else {
+        panic!("expected API error")
+    };
+    assert_eq!(error.api_code, Some(429));
+    assert_eq!(error.status, StatusCode::TOO_MANY_REQUESTS);
+    assert!(error.is_retryable());
+    assert_eq!(ErrorCode::Text("429".into()).as_i64(), Some(429));
+}

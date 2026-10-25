@@ -638,8 +638,19 @@ pub enum FinishReason {
 }
 
 impl FinishReason {
-    /// The wire-string form of this finish reason.
-    fn as_str(&self) -> &str {
+    /// The wire-string form of this finish reason, including the raw value of
+    /// [`FinishReason::Other`].
+    ///
+    /// ```rust
+    /// use openrouter_rs::types::completion::FinishReason;
+    ///
+    /// assert_eq!(FinishReason::ToolCalls.as_str(), "tool_calls");
+    /// assert_eq!(
+    ///     FinishReason::Other("function_call".to_string()).as_str(),
+    ///     "function_call"
+    /// );
+    /// ```
+    pub fn as_str(&self) -> &str {
         match self {
             FinishReason::ToolCalls => "tool_calls",
             FinishReason::Stop => "stop",

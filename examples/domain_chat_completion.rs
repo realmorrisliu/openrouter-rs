@@ -23,6 +23,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let response = client.chat().create(&request).await?;
     println!("{response:?}");
+    if let Some(reason) = response
+        .choices
+        .first()
+        .and_then(|choice| choice.finish_reason())
+    {
+        println!("Finish reason: {}", reason.as_str());
+    }
     if let Some(details) = response
         .usage
         .as_ref()
@@ -31,6 +38,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!(
             "Cached prompt tokens: {:?}; cache writes: {:?}",
             details.cached_tokens, details.cache_write_tokens
+        );
+    }
+
+    if let Some(cost) = response
+        .usage
+        .as_ref()
+        .and_then(|usage| usage.cost_details.as_ref())
+    {
+        println!(
+            "Upstream prompt cost: {:?}",
+            cost.upstream_inference_prompt_cost
         );
     }
 

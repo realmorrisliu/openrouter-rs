@@ -73,7 +73,7 @@ use crate::{
 /// Content and reasoning deltas are yielded immediately as they arrive.
 /// Tool calls are accumulated internally and emitted as complete objects
 /// only once in the final [`StreamEvent::Done`] event.
-// `Done` is yielded once per stream, so its size does not matter enough to box `usage`.
+// Keep the public by-value `usage` field; boxing it would break callers.
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
 #[non_exhaustive]
