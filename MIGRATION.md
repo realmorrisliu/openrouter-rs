@@ -2,7 +2,7 @@
 
 This document keeps historical migration guides intact because the repo still smoke-tests older domain/naming transitions.
 
-## 0.21.x -> Next: Lenient Chat Completion Decoding
+## 0.21.x -> 0.22.0: Lenient Chat Completion Decoding
 
 Two chat completion response fields changed type so that payloads OpenRouter and its upstream providers actually send no longer fail to decode.
 

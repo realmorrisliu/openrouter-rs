@@ -25,7 +25,7 @@ Type-safe, async Rust SDK for the OpenRouter API.
 
 ```toml
 [dependencies]
-openrouter-rs = "0.21.1"
+openrouter-rs = "0.22.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -78,7 +78,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 Chat response messages and raw streaming deltas preserve `reasoning_content` and `reasoning_text`; `Message::try_from` replays these fields on follow-up requests. Read completion-token breakdowns through `usage.completion_tokens_details`. `Choice::reasoning()` and the stream adapters still emit only the canonical `reasoning` field; inspect raw deltas for provider-specific fields.
 
-Chat responses accept nullable upstream costs and numeric or string choice error codes. Use `error.code.as_ref().and_then(|code| code.as_i64())` for numeric handling, and preserve `None` for unreported costs. See the [chat decoding migration](MIGRATION.md#021x---next-lenient-chat-completion-decoding) for the changed field types.
+Chat responses accept nullable upstream costs and numeric or string choice error codes. Use `error.code.as_ref().and_then(|code| code.as_i64())` for numeric handling, and preserve `None` for unreported costs. See the [chat decoding migration](MIGRATION.md#021x---0220-lenient-chat-completion-decoding) for the changed field types.
 
 Use `choice.finish_reason().map(|reason| reason.as_str())` to read the finish reason wire name, including unknown provider values preserved by `FinishReason::Other`.
 
@@ -118,7 +118,7 @@ Legacy text completions are opt-in:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.21.1", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.22.0", features = ["legacy-completions"] }
 ```
 
 ### HTTP backends and WASI
@@ -134,7 +134,7 @@ For a WASI component, disable the default reqwest backend and enable `wasip3`:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.21.1", default-features = false, features = ["wasip3"] }
+openrouter-rs = { version = "0.22.0", default-features = false, features = ["wasip3"] }
 ```
 
 The client API is the same on both backends, including streaming. When both features are on a WASI target, the default client uses `wasi:http`. The embedding host controls TLS, networking, redirects and timeouts; configure those policies in the host rather than assuming reqwest settings apply.
@@ -455,7 +455,13 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 ### Unreleased
 
-### Version 0.21.1 *(Latest)*
+### Version 0.22.0 *(Latest)*
+
+- Preserve `reasoning_content`/`reasoning_text` across chat responses, raw deltas and request replay; expose completion-token details.
+- Decode choices by shape with useful errors, accept omitted tool-call types, and preserve structured API errors with string codes.
+- **Breaking:** Choice error codes are now `Option<ErrorCode>` and upstream chat cost fields are `Option<f64>`. See the [migration guide](MIGRATION.md#021x---0220-lenient-chat-completion-decoding).
+
+### Version 0.21.1
 
 - Expose `FinishReason::as_str` to read wire names directly, including unknown provider finish reasons.
 
