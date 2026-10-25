@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-10-25
+
 ### Added
 - Added `reasoning_content` and `reasoning_text` to chat messages: decoded on response `Message` and streaming `Delta`, and sent on request `Message` (with `with_reasoning_content`/`with_reasoning_text`), so reasoning from OpenAI-compatible upstreams that use these fields round-trips through `Message::try_from`.
 - Added `ResponseUsage::completion_tokens_details` (`CompletionTokensDetails` with `reasoning_tokens`, `audio_tokens` and `image_tokens`).
@@ -17,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A top-level API error with a string `code` now preserves its structured message: numeric strings become numeric API codes, while non-numeric strings yield `api_code: None`.
 
 ### Changed
-- **Breaking:** `ErrorResponse.code` (the error inside a choice) is now `Option<ErrorCode>`, which takes the number OpenRouter sends or the string some upstream providers send. See [MIGRATION.md](MIGRATION.md#021x---next-lenient-chat-completion-decoding).
+- **Breaking:** `ErrorResponse.code` (the error inside a choice) is now `Option<ErrorCode>`, which takes the number OpenRouter sends or the string some upstream providers send. See [MIGRATION.md](MIGRATION.md#021x---0220-lenient-chat-completion-decoding).
 - **Breaking:** `ResponseCostDetails::upstream_inference_completions_cost` and `upstream_inference_prompt_cost` are now `Option<f64>`, since OpenRouter can send `null` for them.
 
 ## [0.21.1] - 2026-10-25
