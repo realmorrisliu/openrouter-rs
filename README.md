@@ -25,7 +25,7 @@ Type-safe, async Rust SDK for the OpenRouter API.
 
 ```toml
 [dependencies]
-openrouter-rs = "0.21.0"
+openrouter-rs = "0.21.1"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -114,7 +114,7 @@ Legacy text completions are opt-in:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.21.0", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.21.1", features = ["legacy-completions"] }
 ```
 
 ### HTTP backends and WASI
@@ -130,7 +130,7 @@ For a WASI component, disable the default reqwest backend and enable `wasip3`:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.21.0", default-features = false, features = ["wasip3"] }
+openrouter-rs = { version = "0.21.1", default-features = false, features = ["wasip3"] }
 ```
 
 The client API is the same on both backends, including streaming. When both features are on a WASI target, the default client uses `wasi:http`. The embedding host controls TLS, networking, redirects and timeouts; configure those policies in the host rather than assuming reqwest settings apply.
@@ -451,7 +451,11 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 ### Unreleased
 
-### Version 0.21.0 *(Latest)*
+### Version 0.21.1 *(Latest)*
+
+- Expose `FinishReason::as_str` to read wire names directly, including unknown provider finish reasons.
+
+### Version 0.21.0
 
 - Added opt-in WASI 0.3 HTTP transport for `wasm32-wasip2`, including streaming and `Send` futures, plus `From<HttpRequestError> for OpenRouterError`.
 - **Breaking:** Raised the SDK and workspace CLI MSRV to Rust 1.93. Consumers using `default-features = false` must explicitly enable `reqwest` or `wasip3`; see the [0.21 migration notes](MIGRATION.md#0200---0210-http-backend-features).
