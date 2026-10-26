@@ -170,8 +170,8 @@ async fn test_tool_builder_methods() {
         .unwrap();
 
     // Verify tools were added
-    assert!(request.tools().is_some());
-    let tools = request.tools().unwrap();
+    let tools: Vec<_> = request.function_tools().collect();
+    assert!(!tools.is_empty());
     assert_eq!(tools.len(), 2);
     assert_eq!(tools[0].function.name, "tool1");
     assert_eq!(tools[1].function.name, "tool2");
@@ -241,7 +241,7 @@ async fn test_real_tool_call() {
         .build()
         .unwrap();
 
-    let response = client.send_chat_completion(&request).await.unwrap();
+    let response = client.chat().create(&request).await.unwrap();
 
     // Check that we got a response
     assert!(!response.choices.is_empty());

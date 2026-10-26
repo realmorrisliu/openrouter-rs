@@ -2,12 +2,12 @@ use derive_builder::Builder;
 use futures_util::{StreamExt, stream::BoxStream};
 use http::StatusCode;
 
-use crate::transport::HttpClient;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize, Serializer, ser::SerializeMap};
 use serde_json::Value;
 use urlencoding::encode;
 
+use crate::transport::RequestContext;
 use crate::{
     error::OpenRouterError,
     transport::{
@@ -295,21 +295,16 @@ struct InternListQuery<'a> {
     workspace_id: Option<&'a str>,
 }
 
-pub async fn list_interns(
-    base_url: &str,
-    api_key: &str,
-    params: &ListInternsParams,
-) -> Result<InternListResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    list_interns_with_client(&http_client, base_url, api_key, params).await
-}
-
 pub(crate) async fn list_interns_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
     params: &ListInternsParams,
 ) -> Result<InternListResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let query = InternListQuery {
         limit: params.limit,
         status: params.status.as_ref().map(|items| items.join(",")),
@@ -323,26 +318,20 @@ pub(crate) async fn list_interns_with_client(
     .query(&query)
     .send()
     .await?;
-    parse_result(response, "list interns").await
-}
-
-pub async fn create_intern(
-    base_url: &str,
-    api_key: &str,
-    idempotency_key: Option<&str>,
-    request: &CreateInternRequest,
-) -> Result<Intern, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    create_intern_with_client(&http_client, base_url, api_key, idempotency_key, request).await
+    transport_response::parse_or_error(response, "list interns").await
 }
 
 pub(crate) async fn create_intern_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
     idempotency_key: Option<&str>,
     request: &CreateInternRequest,
 ) -> Result<Intern, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let mut builder = with_auth(
         transport_request::post(http_client, &format!("{base_url}/interns")),
         api_key,
@@ -351,26 +340,21 @@ pub(crate) async fn create_intern_with_client(
     if let Some(key) = idempotency_key {
         builder = builder.header("Idempotency-Key", key);
     }
-    parse_result(builder.send().await?, "create intern").await
-}
-
-pub async fn get_intern(
-    base_url: &str,
-    api_key: &str,
-    intern_id: &str,
-) -> Result<Intern, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    get_intern_with_client(&http_client, base_url, api_key, intern_id).await
+    transport_response::parse_or_error(builder.send().await?, "create intern").await
 }
 
 pub(crate) async fn get_intern_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
     intern_id: &str,
 ) -> Result<Intern, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/interns/{}", encode(intern_id));
-    parse_result(
+    transport_response::parse_or_error(
         with_auth(transport_request::get(http_client, &url), api_key)
             .send()
             .await?,
@@ -379,40 +363,27 @@ pub(crate) async fn get_intern_with_client(
     .await
 }
 
-/// Fetch an intern's icon bytes (`GET /interns/{internId}/icon`).
-/// Pass the intern's `icon_sha256` as `version` for a cacheable response.
-pub async fn get_intern_icon(
-    base_url: &str,
-    api_key: &str,
-    intern_id: &str,
-    version: Option<&str>,
-) -> Result<InternIcon, OpenRouterError> {
-    get_intern_icon_with_client(
-        &crate::transport::new_client()?,
-        base_url,
-        api_key,
-        (&None, &None, &None),
-        intern_id,
-        version,
-    )
-    .await
-}
-
 pub(crate) async fn get_intern_icon_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
-    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
+    ctx: &RequestContext<'_>,
     intern_id: &str,
     version: Option<&str>,
 ) -> Result<InternIcon, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        x_title,
+        http_referer,
+        app_categories,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/interns/{}/icon", encode(intern_id));
     let mut request = transport_request::with_client_request_headers(
         transport_request::get(http_client, &url),
         api_key,
-        metadata.0,
-        metadata.1,
-        metadata.2,
+        x_title,
+        http_referer,
+        app_categories,
     )?;
     if let Some(version) = version {
         request = request.query(&[("v", version)]);
@@ -430,125 +401,83 @@ pub(crate) async fn get_intern_icon_with_client(
             content_type,
         })
     } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
+        Err(transport_response::error_from_response(response).await)
     }
 }
 
-pub async fn update_intern(
-    base_url: &str,
-    api_key: &str,
-    intern_id: &str,
-    request: &UpdateInternRequest,
-) -> Result<Intern, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    update_intern_with_client(&http_client, base_url, api_key, intern_id, request).await
-}
-
 pub(crate) async fn update_intern_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
     intern_id: &str,
     request: &UpdateInternRequest,
 ) -> Result<Intern, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/interns/{}", encode(intern_id));
     let builder = with_auth(transport_request::patch(http_client, &url), api_key).json(request);
-    parse_result(builder.send().await?, "update intern").await
-}
-
-pub async fn delete_intern(
-    base_url: &str,
-    api_key: &str,
-    intern_id: &str,
-    request: Option<&DeleteInternRequest>,
-) -> Result<DeleteInternResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    delete_intern_with_client(&http_client, base_url, api_key, intern_id, request).await
+    transport_response::parse_or_error(builder.send().await?, "update intern").await
 }
 
 pub(crate) async fn delete_intern_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
     intern_id: &str,
     request: Option<&DeleteInternRequest>,
 ) -> Result<DeleteInternResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/interns/{}", encode(intern_id));
     let default_request = DeleteInternRequest::default();
     let request = request.unwrap_or(&default_request);
     let builder = with_auth(transport_request::delete(http_client, &url), api_key).json(request);
-    parse_result(builder.send().await?, "delete intern").await
-}
-
-pub async fn provision_intern(
-    base_url: &str,
-    api_key: &str,
-    intern_id: &str,
-) -> Result<ProvisionInternResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    action_with_client(&http_client, base_url, api_key, intern_id, "provision").await
-}
-
-pub async fn suspend_intern(
-    base_url: &str,
-    api_key: &str,
-    intern_id: &str,
-) -> Result<SuspendInternResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    action_with_client(&http_client, base_url, api_key, intern_id, "suspend").await
+    transport_response::parse_or_error(builder.send().await?, "delete intern").await
 }
 
 pub(crate) async fn action_with_client<T: DeserializeOwned>(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
     intern_id: &str,
     action: &str,
 ) -> Result<T, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/interns/{}/{action}", encode(intern_id));
     let builder = with_auth(transport_request::post(http_client, &url), api_key);
-    parse_result(builder.send().await?, action).await
-}
-
-pub async fn chat_completion(
-    base_url: &str,
-    api_key: &str,
-    x_title: &Option<String>,
-    http_referer: &Option<String>,
-    app_categories: &Option<Vec<String>>,
-    intern_id: &str,
-    request: &InternChatRequest,
-) -> Result<InternChatResult, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    chat_completion_with_client(
-        &http_client,
-        base_url,
-        api_key,
-        (x_title, http_referer, app_categories),
-        intern_id,
-        request,
-    )
-    .await
+    transport_response::parse_or_error(builder.send().await?, action).await
 }
 
 pub(crate) async fn chat_completion_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
-    request_metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
+    ctx: &RequestContext<'_>,
     intern_id: &str,
     request: &InternChatRequest,
 ) -> Result<InternChatResult, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        x_title,
+        http_referer,
+        app_categories,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/interns/{}/chat/completions", encode(intern_id));
     let mut body = serde_json::to_value(request)?;
     body["stream"] = Value::Bool(true);
     let request = transport_request::with_client_request_headers(
         transport_request::post(http_client, &url),
         api_key,
-        request_metadata.0,
-        request_metadata.1,
-        request_metadata.2,
+        x_title,
+        http_referer,
+        app_categories,
     )?;
     let response = request.json(&body).send().await?;
     if response.status() == StatusCode::ACCEPTED {
@@ -569,8 +498,7 @@ pub(crate) async fn chat_completion_with_client(
             .boxed();
         return Ok(InternChatResult::Streaming(events));
     }
-    transport_response::handle_error(response).await?;
-    unreachable!()
+    Err(transport_response::error_from_response(response).await)
 }
 
 fn with_auth(
@@ -578,18 +506,6 @@ fn with_auth(
     api_key: &str,
 ) -> crate::transport::RequestBuilder {
     transport_request::with_bearer_auth(builder, api_key)
-}
-
-async fn parse_result<T: for<'de> Deserialize<'de>>(
-    response: crate::transport::Response,
-    context: &str,
-) -> Result<T, OpenRouterError> {
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, context).await
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
 }
 
 #[derive(Serialize, Debug, Clone, Builder)]
@@ -624,39 +540,28 @@ pub struct InternDaemonAccess {
     pub token: String,
 }
 
-pub async fn invoke(
-    base_url: &str,
-    api_key: &str,
-    intern_id: &str,
-    request: &InternInvokeRequest,
-) -> Result<InternInvokeResponse, OpenRouterError> {
-    invoke_with_client(
-        &crate::transport::new_client()?,
-        base_url,
-        api_key,
-        (&None, &None, &None),
-        intern_id,
-        request,
-    )
-    .await
-}
-
 pub(crate) async fn invoke_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
-    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
+    ctx: &RequestContext<'_>,
     intern_id: &str,
     request: &InternInvokeRequest,
 ) -> Result<InternInvokeResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        x_title,
+        http_referer,
+        app_categories,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/interns/{}/invoke", encode(intern_id));
-    parse_result(
+    transport_response::parse_or_error(
         transport_request::with_client_request_headers(
             transport_request::post(http_client, &url),
             api_key,
-            metadata.0,
-            metadata.1,
-            metadata.2,
+            x_title,
+            http_referer,
+            app_categories,
         )?
         .json(request)
         .send()
@@ -666,57 +571,28 @@ pub(crate) async fn invoke_with_client(
     .await
 }
 
-/// Get daemon origin and bearer token.
-pub async fn daemon(
-    base_url: &str,
-    api_key: &str,
-    intern_id: &str,
-) -> Result<InternDaemonAccess, OpenRouterError> {
-    daemon_with_client(
-        &crate::transport::new_client()?,
-        base_url,
-        api_key,
-        (&None, &None, &None),
-        intern_id,
-        "daemon",
-    )
-    .await
-}
-
-/// Get daemon origin and bearer token using the deprecated upstream alias.
-#[deprecated(note = "use daemon")]
-pub async fn daemon_access(
-    base_url: &str,
-    api_key: &str,
-    intern_id: &str,
-) -> Result<InternDaemonAccess, OpenRouterError> {
-    daemon_with_client(
-        &crate::transport::new_client()?,
-        base_url,
-        api_key,
-        (&None, &None, &None),
-        intern_id,
-        "daemon-access",
-    )
-    .await
-}
-
 pub(crate) async fn daemon_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
-    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
+    ctx: &RequestContext<'_>,
     intern_id: &str,
     path: &str,
 ) -> Result<InternDaemonAccess, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        x_title,
+        http_referer,
+        app_categories,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/interns/{}/{path}", encode(intern_id));
     transport_response::parse_credential_response(
         transport_request::with_client_request_headers(
             transport_request::get(http_client, &url),
             api_key,
-            metadata.0,
-            metadata.1,
-            metadata.2,
+            x_title,
+            http_referer,
+            app_categories,
         )?
         .send()
         .await?,
@@ -791,57 +667,21 @@ pub struct SignInternDaemonResponse {
     pub signature_v2: Option<String>,
 }
 
-/// Sign a daemon request digest using an `ori login --oidc` OAuth session.
-/// The session grant must include `vault:read`; ordinary API keys and `interns`-only
-/// grants are refused with 403 by the server. `session_token` is the OAuth access token.
-pub async fn sign_daemon(
-    base_url: &str,
-    session_token: &str,
-    intern_id: &str,
-    request: &SignInternDaemonRequest,
-) -> Result<SignInternDaemonResponse, OpenRouterError> {
-    sign_daemon_with_client(
-        &crate::transport::new_client()?,
-        base_url,
-        session_token,
-        (&None, &None, &None),
-        intern_id,
-        "daemon/sign",
-        request,
-    )
-    .await
-}
-
-/// Deprecated upstream signing alias; the OAuth session and `vault:read` requirements
-/// are the same as [`sign_daemon`].
-#[deprecated(note = "use sign_daemon")]
-pub async fn sign_daemon_access(
-    base_url: &str,
-    session_token: &str,
-    intern_id: &str,
-    request: &SignInternDaemonRequest,
-) -> Result<SignInternDaemonResponse, OpenRouterError> {
-    sign_daemon_with_client(
-        &crate::transport::new_client()?,
-        base_url,
-        session_token,
-        (&None, &None, &None),
-        intern_id,
-        "daemon-access/sign",
-        request,
-    )
-    .await
-}
-
 pub(crate) async fn sign_daemon_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    session_token: &str,
-    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
+    ctx: &RequestContext<'_>,
     intern_id: &str,
     path: &str,
     request: &SignInternDaemonRequest,
 ) -> Result<SignInternDaemonResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: session_token,
+        x_title,
+        http_referer,
+        app_categories,
+        ..
+    } = *ctx;
     if request.body_sha256.len() != 64
         || !request
             .body_sha256
@@ -857,9 +697,9 @@ pub(crate) async fn sign_daemon_with_client(
         transport_request::with_client_request_headers(
             transport_request::post(http_client, &url),
             session_token,
-            metadata.0,
-            metadata.1,
-            metadata.2,
+            x_title,
+            http_referer,
+            app_categories,
         )?
         .json(request)
         .send()

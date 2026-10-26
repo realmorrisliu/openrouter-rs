@@ -1,8 +1,8 @@
-use crate::transport::HttpClient;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize, Serializer, ser::SerializeMap};
 use urlencoding::encode;
 
+use crate::transport::RequestContext;
 use crate::{
     error::OpenRouterError,
     strip_option_vec_setter,
@@ -652,62 +652,24 @@ fn with_pagination(url: String, pagination: Option<PaginationOptions>) -> String
     }
 }
 
-pub async fn list_guardrails(
-    base_url: &str,
-    management_key: &str,
-    pagination: Option<PaginationOptions>,
-) -> Result<GuardrailListResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    list_guardrails_in_workspace_with_client(
-        &http_client,
-        base_url,
-        management_key,
-        pagination,
-        None,
-    )
-    .await
-}
-
 pub(crate) async fn list_guardrails_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     pagination: Option<PaginationOptions>,
 ) -> Result<GuardrailListResponse, OpenRouterError> {
-    list_guardrails_in_workspace_with_client(
-        http_client,
-        base_url,
-        management_key,
-        pagination,
-        None,
-    )
-    .await
-}
-
-pub async fn list_guardrails_in_workspace(
-    base_url: &str,
-    management_key: &str,
-    pagination: Option<PaginationOptions>,
-    workspace_id: Option<&str>,
-) -> Result<GuardrailListResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    list_guardrails_in_workspace_with_client(
-        &http_client,
-        base_url,
-        management_key,
-        pagination,
-        workspace_id,
-    )
-    .await
+    list_guardrails_in_workspace_with_client(ctx, pagination, None).await
 }
 
 pub(crate) async fn list_guardrails_in_workspace_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     pagination: Option<PaginationOptions>,
     workspace_id: Option<&str>,
 ) -> Result<GuardrailListResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/guardrails");
     let query = ListGuardrailsQuery {
         offset: pagination.and_then(|p| p.offset),
@@ -718,471 +680,265 @@ pub(crate) async fn list_guardrails_in_workspace_with_client(
         transport_request::get(http_client, &url),
         management_key,
     );
-    let response =
-        if query.offset.is_none() && query.limit.is_none() && query.workspace_id.is_none() {
-            req.send().await?
-        } else {
-            req.query(&query).send().await?
-        };
-
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "guardrail list").await
+    let req = if query.offset.is_none() && query.limit.is_none() && query.workspace_id.is_none() {
+        req
     } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-pub async fn create_guardrail(
-    base_url: &str,
-    management_key: &str,
-    request: &CreateGuardrailRequest,
-) -> Result<Guardrail, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    create_guardrail_with_client(&http_client, base_url, management_key, request).await
+        req.query(&query)
+    };
+    transport_response::send_json(req, "guardrail list").await
 }
 
 pub(crate) async fn create_guardrail_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     request: &CreateGuardrailRequest,
 ) -> Result<Guardrail, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/guardrails");
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::post(http_client, &url),
         management_key,
     )
-    .json(request)
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        let payload: ApiResponse<Guardrail> =
-            transport_response::parse_json_response(response, "guardrail creation").await?;
-        Ok(payload.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-pub async fn get_guardrail(
-    base_url: &str,
-    management_key: &str,
-    id: &str,
-) -> Result<Guardrail, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    get_guardrail_with_client(&http_client, base_url, management_key, id).await
+    .json(request);
+    let payload: ApiResponse<Guardrail> =
+        transport_response::send_json(req, "guardrail creation").await?;
+    Ok(payload.data)
 }
 
 pub(crate) async fn get_guardrail_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     id: &str,
 ) -> Result<Guardrail, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/guardrails/{}", encode(id));
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::get(http_client, &url),
         management_key,
-    )
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        let payload: ApiResponse<Guardrail> =
-            transport_response::parse_json_response(response, "guardrail lookup").await?;
-        Ok(payload.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-pub async fn update_guardrail(
-    base_url: &str,
-    management_key: &str,
-    id: &str,
-    request: &UpdateGuardrailRequest,
-) -> Result<Guardrail, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    update_guardrail_with_client(&http_client, base_url, management_key, id, request).await
+    );
+    let payload: ApiResponse<Guardrail> =
+        transport_response::send_json(req, "guardrail lookup").await?;
+    Ok(payload.data)
 }
 
 pub(crate) async fn update_guardrail_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     id: &str,
     request: &UpdateGuardrailRequest,
 ) -> Result<Guardrail, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/guardrails/{}", encode(id));
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::patch(http_client, &url),
         management_key,
     )
-    .json(request)
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        let payload: ApiResponse<Guardrail> =
-            transport_response::parse_json_response(response, "guardrail update").await?;
-        Ok(payload.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-pub async fn delete_guardrail(
-    base_url: &str,
-    management_key: &str,
-    id: &str,
-) -> Result<bool, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    delete_guardrail_with_client(&http_client, base_url, management_key, id).await
+    .json(request);
+    let payload: ApiResponse<Guardrail> =
+        transport_response::send_json(req, "guardrail update").await?;
+    Ok(payload.data)
 }
 
 pub(crate) async fn delete_guardrail_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     id: &str,
 ) -> Result<bool, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/guardrails/{}", encode(id));
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::delete(http_client, &url),
         management_key,
-    )
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        let payload: DeleteGuardrailResponse =
-            transport_response::parse_json_response(response, "guardrail deletion").await?;
-        Ok(payload.deleted)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-pub async fn list_guardrail_key_assignments(
-    base_url: &str,
-    management_key: &str,
-    id: &str,
-    pagination: Option<PaginationOptions>,
-) -> Result<GuardrailKeyAssignmentsResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    list_guardrail_key_assignments_with_client(
-        &http_client,
-        base_url,
-        management_key,
-        id,
-        pagination,
-    )
-    .await
+    );
+    let payload: DeleteGuardrailResponse =
+        transport_response::send_json(req, "guardrail deletion").await?;
+    Ok(payload.deleted)
 }
 
 pub(crate) async fn list_guardrail_key_assignments_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     id: &str,
     pagination: Option<PaginationOptions>,
 ) -> Result<GuardrailKeyAssignmentsResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = with_pagination(
         format!("{base_url}/guardrails/{}/assignments/keys", encode(id)),
         pagination,
     );
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::get(http_client, &url),
         management_key,
-    )
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "guardrail key assignments").await
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-pub async fn bulk_assign_keys_to_guardrail(
-    base_url: &str,
-    management_key: &str,
-    id: &str,
-    request: &BulkKeyAssignmentRequest,
-) -> Result<AssignedCountResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    bulk_assign_keys_to_guardrail_with_client(&http_client, base_url, management_key, id, request)
-        .await
+    );
+    transport_response::send_json(req, "guardrail key assignments").await
 }
 
 pub(crate) async fn bulk_assign_keys_to_guardrail_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     id: &str,
     request: &BulkKeyAssignmentRequest,
 ) -> Result<AssignedCountResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/guardrails/{}/assignments/keys", encode(id));
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::post(http_client, &url),
         management_key,
     )
-    .json(request)
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "guardrail key bulk assignment").await
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-pub async fn bulk_unassign_keys_from_guardrail(
-    base_url: &str,
-    management_key: &str,
-    id: &str,
-    request: &BulkKeyAssignmentRequest,
-) -> Result<UnassignedCountResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    bulk_unassign_keys_from_guardrail_with_client(
-        &http_client,
-        base_url,
-        management_key,
-        id,
-        request,
-    )
-    .await
+    .json(request);
+    transport_response::send_json(req, "guardrail key bulk assignment").await
 }
 
 pub(crate) async fn bulk_unassign_keys_from_guardrail_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     id: &str,
     request: &BulkKeyAssignmentRequest,
 ) -> Result<UnassignedCountResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!(
         "{base_url}/guardrails/{}/assignments/keys/remove",
         encode(id)
     );
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::post(http_client, &url),
         management_key,
     )
-    .json(request)
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "guardrail key bulk removal").await
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-pub async fn list_guardrail_member_assignments(
-    base_url: &str,
-    management_key: &str,
-    id: &str,
-    pagination: Option<PaginationOptions>,
-) -> Result<GuardrailMemberAssignmentsResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    list_guardrail_member_assignments_with_client(
-        &http_client,
-        base_url,
-        management_key,
-        id,
-        pagination,
-    )
-    .await
+    .json(request);
+    transport_response::send_json(req, "guardrail key bulk removal").await
 }
 
 pub(crate) async fn list_guardrail_member_assignments_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     id: &str,
     pagination: Option<PaginationOptions>,
 ) -> Result<GuardrailMemberAssignmentsResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = with_pagination(
         format!("{base_url}/guardrails/{}/assignments/members", encode(id)),
         pagination,
     );
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::get(http_client, &url),
         management_key,
-    )
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "guardrail member assignments").await
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-pub async fn bulk_assign_members_to_guardrail(
-    base_url: &str,
-    management_key: &str,
-    id: &str,
-    request: &BulkMemberAssignmentRequest,
-) -> Result<AssignedCountResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    bulk_assign_members_to_guardrail_with_client(
-        &http_client,
-        base_url,
-        management_key,
-        id,
-        request,
-    )
-    .await
+    );
+    transport_response::send_json(req, "guardrail member assignments").await
 }
 
 pub(crate) async fn bulk_assign_members_to_guardrail_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     id: &str,
     request: &BulkMemberAssignmentRequest,
 ) -> Result<AssignedCountResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/guardrails/{}/assignments/members", encode(id));
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::post(http_client, &url),
         management_key,
     )
-    .json(request)
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "guardrail member bulk assignment").await
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-pub async fn bulk_unassign_members_from_guardrail(
-    base_url: &str,
-    management_key: &str,
-    id: &str,
-    request: &BulkMemberAssignmentRequest,
-) -> Result<UnassignedCountResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    bulk_unassign_members_from_guardrail_with_client(
-        &http_client,
-        base_url,
-        management_key,
-        id,
-        request,
-    )
-    .await
+    .json(request);
+    transport_response::send_json(req, "guardrail member bulk assignment").await
 }
 
 pub(crate) async fn bulk_unassign_members_from_guardrail_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     id: &str,
     request: &BulkMemberAssignmentRequest,
 ) -> Result<UnassignedCountResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!(
         "{base_url}/guardrails/{}/assignments/members/remove",
         encode(id)
     );
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::post(http_client, &url),
         management_key,
     )
-    .json(request)
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "guardrail member bulk removal").await
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-pub async fn list_key_assignments(
-    base_url: &str,
-    management_key: &str,
-    pagination: Option<PaginationOptions>,
-) -> Result<GuardrailKeyAssignmentsResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    list_key_assignments_with_client(&http_client, base_url, management_key, pagination).await
+    .json(request);
+    transport_response::send_json(req, "guardrail member bulk removal").await
 }
 
 pub(crate) async fn list_key_assignments_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     pagination: Option<PaginationOptions>,
 ) -> Result<GuardrailKeyAssignmentsResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = with_pagination(
         format!("{base_url}/guardrails/assignments/keys"),
         pagination,
     );
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::get(http_client, &url),
         management_key,
-    )
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "global key assignments").await
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-pub async fn list_member_assignments(
-    base_url: &str,
-    management_key: &str,
-    pagination: Option<PaginationOptions>,
-) -> Result<GuardrailMemberAssignmentsResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    list_member_assignments_with_client(&http_client, base_url, management_key, pagination).await
+    );
+    transport_response::send_json(req, "global key assignments").await
 }
 
 pub(crate) async fn list_member_assignments_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     pagination: Option<PaginationOptions>,
 ) -> Result<GuardrailMemberAssignmentsResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = with_pagination(
         format!("{base_url}/guardrails/assignments/members"),
         pagination,
     );
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::get(http_client, &url),
         management_key,
-    )
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "global member assignments").await
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
+    );
+    transport_response::send_json(req, "global member assignments").await
 }

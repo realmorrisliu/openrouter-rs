@@ -9,7 +9,7 @@ async fn test_list_models() -> Result<(), OpenRouterError> {
 
     rate_limit_delay().await;
 
-    let models = client.list_models().await?;
+    let models = client.models().list().await?;
 
     assert!(!models.is_empty(), "model list should not be empty");
     assert!(

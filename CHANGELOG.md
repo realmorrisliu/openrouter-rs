@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking
+- Removed the 162 `api::<module>::<function>(base_url, api_key, …)` endpoint functions. Each built its own client, so a call silently ignored timeouts, proxies, TLS configuration, and attribution headers; every endpoint is now reachable only through a domain client. `MIGRATION.md` maps each removed function to its replacement.
+- Removed the 109 flat `OpenRouterClient` methods; their domain-client equivalents are unchanged.
+- `HttpRequestError` now carries a failure `kind` (`Timeout`, `Connect`, `Request`, `Body`, `Decode`, `Other`), the request `url`, and `is_timeout()`/`is_connect()`. The type stays `Clone + PartialEq + Eq` and backend-neutral; each backend fills in what it can distinguish.
+- `ApiErrorContext` exposes `retry_after`, parsed from the `Retry-After` delta-seconds form.
+- The unified terminal event maps each source's own token field names, so Responses and Messages streams report usage instead of dropping it.
+- Removed `ToolAwareStream`, `StreamEvent`, and `ChatClient::stream_tool_aware`. `stream_unified` is the single event model; `UnifiedStreamEvent::Done` now carries assembled `tool_calls` and typed `usage`.
+- An API error delivered inside a chat stream is now `OpenRouterError::Api` instead of a serialization error.
+- `ChatCompletionRequest` stores one `tools: Option<Vec<ChatTool>>` list instead of separate function and server tool lists. `tools()` returns an iterator over `ChatTool`; `function_tools()` and `server_tools()` filter it. `ChatCompletionRequestBuilder::server_tools` now preserves function tools instead of replacing the list.
+- Added an `Other(String)` variant to `Role`, `ObjectType`, and `AnthropicRole`, and marked `OpenRouterError` `#[non_exhaustive]`, so an unrecognized upstream value no longer fails the containing response.
+
+### Changed
+- Every JSON endpoint now decodes through one shared success/error path, removing 116 `unreachable!()` call sites and the per-endpoint branch duplication.
+- Endpoint functions take one `RequestContext` instead of repeating the transport, credential, and attribution arguments.
+- Split `src/client.rs` into `client/{mod,domains,management}.rs`.
+- Added `[package.metadata.docs.rs]` so published documentation builds with all features.
+- Removed the unused `dotenvy_macro` dependency and the empty `src/generated/` placeholder module.
+
 ## [0.22.0] - 2026-10-25
 
 ### Added

@@ -1,3 +1,4 @@
+use crate::test_client;
 use std::{
     io::{Read, Write},
     net::TcpListener,
@@ -75,7 +76,9 @@ async fn test_get_generation_path_and_auth_header() {
         r#"{"data":{"id":"gen_123","total_cost":0.1,"created_at":"2026-03-02T00:00:00Z","model":"openai/gpt-4o-mini","origin":"chat","usage":42.0,"is_byok":false}}"#,
     );
 
-    let response = generation::get_generation(&base_url, "api-key", "gen_123")
+    let response = test_client(&base_url, "api-key")
+        .management()
+        .get_generation("gen_123")
         .await
         .expect("get generation should succeed");
     assert_eq!(response.id, "gen_123");
@@ -106,7 +109,9 @@ async fn test_get_generation_content_path_and_auth_header() {
         r#"{"data":{"input":{"prompt":"What is the meaning of life?"},"output":{"completion":"42"}}}"#,
     );
 
-    let response = generation::get_generation_content(&base_url, "api-key", "gen_123")
+    let response = test_client(&base_url, "api-key")
+        .management()
+        .get_generation_content("gen_123")
         .await
         .expect("get generation content should succeed");
     assert_eq!(response.input["prompt"], "What is the meaning of life?");
@@ -141,7 +146,9 @@ async fn test_submit_generation_feedback_path_and_management_auth() {
         .build()
         .expect("feedback request should build");
 
-    let response = generation::submit_generation_feedback(&base_url, "management-key", &request)
+    let response = test_client(&base_url, "management-key")
+        .management()
+        .submit_generation_feedback(&request)
         .await
         .expect("feedback request should succeed");
     assert!(response.success);

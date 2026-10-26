@@ -7,7 +7,7 @@ async fn test_get_current_api_key_info() -> Result<(), OpenRouterError> {
     let client = create_test_client()?;
     rate_limit_delay().await;
 
-    let key_info = client.get_current_api_key_info().await?;
+    let key_info = client.management().get_current_api_key_info().await?;
 
     assert!(!key_info.label.is_empty(), "API key should have a label");
     assert!(key_info.usage >= 0.0, "Usage should be non-negative");

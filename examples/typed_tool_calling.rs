@@ -265,7 +265,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!(
         "🤖 Sending request with {} typed tools...",
-        request.tools().map_or(0, |t| t.len())
+        request.function_tools().count()
     );
 
     match client.chat().create(&request).await {

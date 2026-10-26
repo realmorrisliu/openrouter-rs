@@ -1,3 +1,4 @@
+use crate::test_client_with_attribution;
 use std::{
     io::{Read, Write},
     net::TcpListener,
@@ -7,7 +8,7 @@ use std::{
 };
 
 use openrouter_rs::{
-    api::rerank::{self, RerankDocumentInput, RerankRequest, RerankResponse},
+    api::rerank::{RerankDocumentInput, RerankRequest, RerankResponse},
     types::ProviderPreferences,
 };
 
@@ -193,14 +194,18 @@ async fn test_create_rerank_path_body_and_headers() {
         .build()
         .expect("rerank request should build");
 
-    let response = rerank::create_rerank(
+    let x_title = Some("openrouter-rs".to_string());
+    let http_referer = Some("https://example.com".to_string());
+    let app_categories = Some(vec!["cli-agent".to_string()]);
+    let response = test_client_with_attribution(
         &base_url,
         "api-key",
-        &Some("openrouter-rs".to_string()),
-        &Some("https://example.com".to_string()),
-        &Some(vec!["cli-agent".to_string()]),
-        &request,
+        &x_title,
+        &http_referer,
+        &app_categories,
     )
+    .rerank()
+    .create(&request)
     .await
     .expect("rerank request should succeed");
     assert_eq!(response.results.len(), 1);

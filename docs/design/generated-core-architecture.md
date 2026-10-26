@@ -221,15 +221,15 @@ OpenAPI can describe payload shapes, but it does not define:
 
 - how chunk streams should be aggregated
 - how chat/messages/responses streams should be unified
-- how tool-aware streaming should surface partial state
+- how tool-call fragments should be assembled into complete calls
 
 So the generated layer may eventually provide raw chunk structs, but the SDK should keep:
 
-- `stream()`
-- `stream_tool_aware()`
-- `stream_unified()`
+- `stream()` — the raw chunk stream that backs the adapters
+- `stream_unified()` — the single event model, including assembled tool calls
 
-as handwritten wrappers.
+as handwritten wrappers. The former `stream_tool_aware()` wrapper was folded into
+`stream_unified()` in 0.23.0.
 
 ### Typed Tools
 

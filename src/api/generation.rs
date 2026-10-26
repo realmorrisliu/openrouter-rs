@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use crate::transport::HttpClient;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::transport::RequestContext;
 use crate::{
     error::OpenRouterError,
     transport::{request as transport_request, response as transport_response},
@@ -104,38 +104,25 @@ pub struct GenerationData {
     pub api_type: Option<String>,
 }
 
-pub async fn submit_generation_feedback(
-    base_url: &str,
-    management_key: &str,
-    request: &GenerationFeedbackRequest,
-) -> Result<GenerationFeedbackData, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    submit_generation_feedback_with_client(&http_client, base_url, management_key, request).await
-}
-
 pub(crate) async fn submit_generation_feedback_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     request: &GenerationFeedbackRequest,
 ) -> Result<GenerationFeedbackData, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/generation/feedback");
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::post(http_client, &url),
         management_key,
     )
-    .json(request)
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        let payload: ApiResponse<GenerationFeedbackData> =
-            transport_response::parse_json_response(response, "generation feedback").await?;
-        Ok(payload.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
+    .json(request);
+    let payload: ApiResponse<GenerationFeedbackData> =
+        transport_response::send_json(req, "generation feedback").await?;
+    Ok(payload.data)
 }
 
 /// One failed upstream attempt recorded behind a stored generation error.
@@ -182,80 +169,42 @@ pub struct GenerationContentData {
     pub error: Option<GenerationContentError>,
 }
 
-/// Returns metadata about a specific generation request
-///
-/// # Arguments
-///
-/// * `base_url` - The base URL of the OpenRouter API.
-/// * `api_key` - The API key for authentication
-/// * `id` - The ID of the generation request
-///
-/// # Returns
-///
-/// * `Result<GenerationData, OpenRouterError>` - The metadata of the generation request or an error
-pub async fn get_generation(
-    base_url: &str,
-    api_key: &str,
-    id: impl Into<String>,
-) -> Result<GenerationData, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    get_generation_with_client(&http_client, base_url, api_key, id).await
-}
-
 pub(crate) async fn get_generation_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
     id: impl Into<String>,
 ) -> Result<GenerationData, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let id = id.into();
     let url = format!("{base_url}/generation?id={id}");
 
-    let response =
-        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
-            .send()
-            .await?;
-
-    if response.status().is_success() {
-        let generation_response: ApiResponse<_> =
-            transport_response::parse_json_response(response, "generation").await?;
-        Ok(generation_response.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Returns the stored prompt/input and completion/output content for a specific generation.
-pub async fn get_generation_content(
-    base_url: &str,
-    api_key: &str,
-    id: impl Into<String>,
-) -> Result<GenerationContentData, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    get_generation_content_with_client(&http_client, base_url, api_key, id).await
+    let req =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
+    let generation_response: ApiResponse<_> =
+        transport_response::send_json(req, "generation").await?;
+    Ok(generation_response.data)
 }
 
 pub(crate) async fn get_generation_content_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
     id: impl Into<String>,
 ) -> Result<GenerationContentData, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let id = id.into();
     let url = format!("{base_url}/generation/content?id={id}");
 
-    let response =
-        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
-            .send()
-            .await?;
-
-    if response.status().is_success() {
-        let generation_response: ApiResponse<_> =
-            transport_response::parse_json_response(response, "generation content").await?;
-        Ok(generation_response.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
+    let req =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
+    let generation_response: ApiResponse<_> =
+        transport_response::send_json(req, "generation content").await?;
+    Ok(generation_response.data)
 }

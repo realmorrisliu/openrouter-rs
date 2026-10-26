@@ -5,6 +5,17 @@ Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted fro
 Tracked baseline: `specs/openrouter/openapi-baseline.json`  
 Weekly drift workflow: `.github/workflows/openapi-drift.yml`
 
+## Public Access Path
+
+Every endpoint in this matrix is reached through a domain client
+(`client.chat()`, `client.responses()`, `client.messages()`, `client.audio()`,
+`client.images()`, `client.videos()`, `client.files()`, `client.models()`,
+`client.rerank()`, `client.batches()`, `client.interns()`, `client.vault()`,
+`client.decisions()`, `client.management()`). Since 0.23.0 the `api::*` endpoint
+free functions and the flat `OpenRouterClient` methods no longer exist, so the
+implementation column counts domain-client coverage only. Endpoint paths did not
+change.
+
 ## Coverage Summary
 
 - Official OpenAPI endpoints: `153` method+path entries.

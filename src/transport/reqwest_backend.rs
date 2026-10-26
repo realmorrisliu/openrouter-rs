@@ -1,7 +1,7 @@
 //! Sends through a `reqwest::Client` (feature `reqwest`).
 
 use super::client::{PreparedRequest, RequestBody, Response};
-use crate::error::HttpRequestError;
+use crate::error::{HttpRequestError, HttpRequestErrorKind};
 
 pub(super) async fn send(
     client: &reqwest::Client,
@@ -39,5 +39,22 @@ fn into_reqwest_form(
 }
 
 pub(crate) fn transport_error(error: reqwest::Error) -> HttpRequestError {
-    HttpRequestError::new(error.to_string())
+    let kind = if error.is_timeout() {
+        HttpRequestErrorKind::Timeout
+    } else if error.is_connect() {
+        HttpRequestErrorKind::Connect
+    } else if error.is_body() {
+        HttpRequestErrorKind::Body
+    } else if error.is_decode() {
+        HttpRequestErrorKind::Decode
+    } else if error.is_request() || error.is_builder() {
+        HttpRequestErrorKind::Request
+    } else {
+        HttpRequestErrorKind::Other
+    };
+    let classified = HttpRequestError::classified(kind, error.to_string());
+    match error.url() {
+        Some(url) => classified.with_url(url.as_str()),
+        None => classified,
+    }
 }

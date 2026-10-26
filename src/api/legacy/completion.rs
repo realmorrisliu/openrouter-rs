@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use crate::transport::HttpClient;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
+use crate::transport::RequestContext;
 use crate::{
     error::OpenRouterError,
     strip_option_map_setter, strip_option_vec_setter,
@@ -120,68 +120,29 @@ impl CompletionRequest {
     }
 }
 
-/// Send a completion request to a selected model (text-only format)
-///
-/// # Arguments
-///
-/// * `base_url` - The API URL for the request.
-/// * `api_key` - The API key for authentication.
-/// * `x_title` - The name of the site for the request.
-/// * `http_referer` - The URL of the site for the request.
-/// * `request` - The completion request containing the model, prompt, and other optional parameters.
-///
-/// # Returns
-///
-/// * `Result<CompletionsResponse, OpenRouterError>` - The response from the completion request, containing the generated text and other details.
-pub async fn send_completion_request(
-    base_url: &str,
-    api_key: &str,
-    x_title: &Option<String>,
-    http_referer: &Option<String>,
-    app_categories: &Option<Vec<String>>,
+pub(crate) async fn send_completion_request_with_client(
+    ctx: &RequestContext<'_>,
     request: &CompletionRequest,
 ) -> Result<CompletionsResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    send_completion_request_with_client(
-        &http_client,
+    let RequestContext {
+        http_client,
         base_url,
-        api_key,
+        credential: api_key,
         x_title,
         http_referer,
         app_categories,
-        request,
-    )
-    .await
-}
-
-pub(crate) async fn send_completion_request_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
-    x_title: &Option<String>,
-    http_referer: &Option<String>,
-    app_categories: &Option<Vec<String>>,
-    request: &CompletionRequest,
-) -> Result<CompletionsResponse, OpenRouterError> {
+        ..
+    } = *ctx;
     let url = format!("{base_url}/completions");
 
-    let response = transport_request::with_client_request_headers(
+    let req = transport_request::with_client_request_headers(
         transport_request::post(http_client, &url),
         api_key,
         x_title,
         http_referer,
         app_categories,
     )?
-    .json(request)
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        let completion_response =
-            transport_response::parse_json_response(response, "legacy completion").await?;
-        Ok(completion_response)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
+    .json(request);
+    let completion_response = transport_response::send_json(req, "legacy completion").await?;
+    Ok(completion_response)
 }

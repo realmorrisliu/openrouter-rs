@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use crate::transport::HttpClient;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use urlencoding::encode;
 
+use crate::transport::RequestContext;
 use crate::{
     api::{
         chat::ChatCompletionRequest, messages::AnthropicMessagesRequest,
@@ -125,200 +125,122 @@ fn with_pagination(url: String, pagination: Option<PaginationOptions>) -> String
     format!("{url}?{query}")
 }
 
-/// List presets (`GET /presets`).
-pub async fn list_presets(
-    base_url: &str,
-    management_key: &str,
-    pagination: Option<PaginationOptions>,
-) -> Result<ListPresetsResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    list_presets_with_client(&http_client, base_url, management_key, pagination).await
-}
-
 pub(crate) async fn list_presets_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     pagination: Option<PaginationOptions>,
 ) -> Result<ListPresetsResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = with_pagination(format!("{base_url}/presets"), pagination);
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::get(http_client, &url),
         management_key,
-    )
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "preset list").await
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Get a preset with its designated version (`GET /presets/{slug}`).
-pub async fn get_preset(
-    base_url: &str,
-    management_key: &str,
-    slug: &str,
-) -> Result<PresetWithDesignatedVersion, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    get_preset_with_client(&http_client, base_url, management_key, slug).await
+    );
+    transport_response::send_json(req, "preset list").await
 }
 
 pub(crate) async fn get_preset_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     slug: &str,
 ) -> Result<PresetWithDesignatedVersion, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let encoded_slug = encode(slug);
     let url = format!("{base_url}/presets/{encoded_slug}");
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::get(http_client, &url),
         management_key,
-    )
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        let payload: ApiResponse<PresetWithDesignatedVersion> =
-            transport_response::parse_json_response(response, "preset").await?;
-        Ok(payload.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// List versions for a preset (`GET /presets/{slug}/versions`).
-pub async fn list_preset_versions(
-    base_url: &str,
-    management_key: &str,
-    slug: &str,
-    pagination: Option<PaginationOptions>,
-) -> Result<ListPresetVersionsResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    list_preset_versions_with_client(&http_client, base_url, management_key, slug, pagination).await
+    );
+    let payload: ApiResponse<PresetWithDesignatedVersion> =
+        transport_response::send_json(req, "preset").await?;
+    Ok(payload.data)
 }
 
 pub(crate) async fn list_preset_versions_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     slug: &str,
     pagination: Option<PaginationOptions>,
 ) -> Result<ListPresetVersionsResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let encoded_slug = encode(slug);
     let url = with_pagination(
         format!("{base_url}/presets/{encoded_slug}/versions"),
         pagination,
     );
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::get(http_client, &url),
         management_key,
-    )
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "preset version list").await
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Get a specific preset version (`GET /presets/{slug}/versions/{version}`).
-pub async fn get_preset_version(
-    base_url: &str,
-    management_key: &str,
-    slug: &str,
-    version: &str,
-) -> Result<PresetDesignatedVersion, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    get_preset_version_with_client(&http_client, base_url, management_key, slug, version).await
+    );
+    transport_response::send_json(req, "preset version list").await
 }
 
 pub(crate) async fn get_preset_version_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     slug: &str,
     version: &str,
 ) -> Result<PresetDesignatedVersion, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let encoded_slug = encode(slug);
     let encoded_version = encode(version);
     let url = format!("{base_url}/presets/{encoded_slug}/versions/{encoded_version}");
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::get(http_client, &url),
         management_key,
-    )
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        let payload: ApiResponse<PresetDesignatedVersion> =
-            transport_response::parse_json_response(response, "preset version").await?;
-        Ok(payload.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
+    );
+    let payload: ApiResponse<PresetDesignatedVersion> =
+        transport_response::send_json(req, "preset version").await?;
+    Ok(payload.data)
 }
 
 async fn create_preset_with_client<T: Serialize + ?Sized>(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     slug: &str,
     suffix: &str,
     request: &T,
     context: &str,
 ) -> Result<PresetWithDesignatedVersion, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = preset_url(base_url, slug, suffix);
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::post(http_client, &url),
         management_key,
     )
-    .json(request)
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        let parsed: ApiResponse<PresetWithDesignatedVersion> =
-            transport_response::parse_json_response(response, context).await?;
-        Ok(parsed.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Create or update a preset from a chat-completions request body.
-pub async fn create_chat_completion_preset(
-    base_url: &str,
-    management_key: &str,
-    slug: &str,
-    request: &ChatCompletionRequest,
-) -> Result<PresetWithDesignatedVersion, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    create_chat_completion_preset_with_client(&http_client, base_url, management_key, slug, request)
-        .await
+    .json(request);
+    let parsed: ApiResponse<PresetWithDesignatedVersion> =
+        transport_response::send_json(req, context).await?;
+    Ok(parsed.data)
 }
 
 pub(crate) async fn create_chat_completion_preset_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     slug: &str,
     request: &ChatCompletionRequest,
 ) -> Result<PresetWithDesignatedVersion, OpenRouterError> {
     create_preset_with_client(
-        http_client,
-        base_url,
-        management_key,
+        ctx,
         slug,
         "chat/completions",
         request,
@@ -327,62 +249,18 @@ pub(crate) async fn create_chat_completion_preset_with_client(
     .await
 }
 
-/// Create or update a preset from a Responses API request body.
-pub async fn create_response_preset(
-    base_url: &str,
-    management_key: &str,
-    slug: &str,
-    request: &ResponsesRequest,
-) -> Result<PresetWithDesignatedVersion, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    create_response_preset_with_client(&http_client, base_url, management_key, slug, request).await
-}
-
 pub(crate) async fn create_response_preset_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     slug: &str,
     request: &ResponsesRequest,
 ) -> Result<PresetWithDesignatedVersion, OpenRouterError> {
-    create_preset_with_client(
-        http_client,
-        base_url,
-        management_key,
-        slug,
-        "responses",
-        request,
-        "response preset",
-    )
-    .await
-}
-
-/// Create or update a preset from an Anthropic-compatible Messages request body.
-pub async fn create_message_preset(
-    base_url: &str,
-    management_key: &str,
-    slug: &str,
-    request: &AnthropicMessagesRequest,
-) -> Result<PresetWithDesignatedVersion, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    create_message_preset_with_client(&http_client, base_url, management_key, slug, request).await
+    create_preset_with_client(ctx, slug, "responses", request, "response preset").await
 }
 
 pub(crate) async fn create_message_preset_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     slug: &str,
     request: &AnthropicMessagesRequest,
 ) -> Result<PresetWithDesignatedVersion, OpenRouterError> {
-    create_preset_with_client(
-        http_client,
-        base_url,
-        management_key,
-        slug,
-        "messages",
-        request,
-        "message preset",
-    )
-    .await
+    create_preset_with_client(ctx, slug, "messages", request, "message preset").await
 }

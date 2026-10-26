@@ -151,10 +151,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build()?;
 
     println!("   Model: DeepSeek Chat v3.1 (Free)");
-    println!(
-        "   Tools defined: {}",
-        request.tools().map_or(0, |t| t.len())
-    );
+    println!("   Tools defined: {}", request.function_tools().count());
     println!("   Tool choice: Auto");
     println!("   Parallel calls: Enabled");
 

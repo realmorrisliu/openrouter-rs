@@ -1,9 +1,9 @@
-use crate::transport::HttpClient;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize, Serializer, ser::SerializeMap};
 use serde_json::Value;
 use urlencoding::encode;
 
+use crate::transport::RequestContext;
 use crate::{
     error::OpenRouterError,
     strip_option_vec_setter,
@@ -324,31 +324,17 @@ struct DeleteObservabilityDestinationResponse {
     deleted: bool,
 }
 
-/// List observability destinations (`GET /observability/destinations`).
-pub async fn list_observability_destinations(
-    base_url: &str,
-    management_key: &str,
-    pagination: Option<PaginationOptions>,
-    workspace_id: Option<&str>,
-) -> Result<ObservabilityDestinationListResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    list_observability_destinations_with_client(
-        &http_client,
-        base_url,
-        management_key,
-        pagination,
-        workspace_id,
-    )
-    .await
-}
-
 pub(crate) async fn list_observability_destinations_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     pagination: Option<PaginationOptions>,
     workspace_id: Option<&str>,
 ) -> Result<ObservabilityDestinationListResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/observability/destinations");
     let query = ListObservabilityDestinationsQuery {
         offset: pagination.and_then(|p| p.offset),
@@ -359,169 +345,93 @@ pub(crate) async fn list_observability_destinations_with_client(
         transport_request::get(http_client, &url),
         management_key,
     );
-    let response =
-        if query.offset.is_none() && query.limit.is_none() && query.workspace_id.is_none() {
-            req.send().await?
-        } else {
-            req.query(&query).send().await?
-        };
-
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "observability destination list").await
+    let req = if query.offset.is_none() && query.limit.is_none() && query.workspace_id.is_none() {
+        req
     } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Create an observability destination (`POST /observability/destinations`).
-pub async fn create_observability_destination(
-    base_url: &str,
-    management_key: &str,
-    request: &CreateObservabilityDestinationRequest,
-) -> Result<ObservabilityDestination, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    create_observability_destination_with_client(&http_client, base_url, management_key, request)
-        .await
+        req.query(&query)
+    };
+    transport_response::send_json(req, "observability destination list").await
 }
 
 pub(crate) async fn create_observability_destination_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     request: &CreateObservabilityDestinationRequest,
 ) -> Result<ObservabilityDestination, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/observability/destinations");
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::post(http_client, &url),
         management_key,
     )
-    .json(request)
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        let payload: ApiResponse<ObservabilityDestination> =
-            transport_response::parse_json_response(response, "observability destination creation")
-                .await?;
-        Ok(payload.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Get an observability destination (`GET /observability/destinations/{id}`).
-pub async fn get_observability_destination(
-    base_url: &str,
-    management_key: &str,
-    id: &str,
-) -> Result<ObservabilityDestination, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    get_observability_destination_with_client(&http_client, base_url, management_key, id).await
+    .json(request);
+    let payload: ApiResponse<ObservabilityDestination> =
+        transport_response::send_json(req, "observability destination creation").await?;
+    Ok(payload.data)
 }
 
 pub(crate) async fn get_observability_destination_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     id: &str,
 ) -> Result<ObservabilityDestination, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/observability/destinations/{}", encode(id));
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::get(http_client, &url),
         management_key,
-    )
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        let payload: ApiResponse<ObservabilityDestination> =
-            transport_response::parse_json_response(response, "observability destination lookup")
-                .await?;
-        Ok(payload.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Update an observability destination (`PATCH /observability/destinations/{id}`).
-pub async fn update_observability_destination(
-    base_url: &str,
-    management_key: &str,
-    id: &str,
-    request: &UpdateObservabilityDestinationRequest,
-) -> Result<ObservabilityDestination, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    update_observability_destination_with_client(
-        &http_client,
-        base_url,
-        management_key,
-        id,
-        request,
-    )
-    .await
+    );
+    let payload: ApiResponse<ObservabilityDestination> =
+        transport_response::send_json(req, "observability destination lookup").await?;
+    Ok(payload.data)
 }
 
 pub(crate) async fn update_observability_destination_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     id: &str,
     request: &UpdateObservabilityDestinationRequest,
 ) -> Result<ObservabilityDestination, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/observability/destinations/{}", encode(id));
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::patch(http_client, &url),
         management_key,
     )
-    .json(request)
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        let payload: ApiResponse<ObservabilityDestination> =
-            transport_response::parse_json_response(response, "observability destination update")
-                .await?;
-        Ok(payload.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Delete an observability destination (`DELETE /observability/destinations/{id}`).
-pub async fn delete_observability_destination(
-    base_url: &str,
-    management_key: &str,
-    id: &str,
-) -> Result<bool, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    delete_observability_destination_with_client(&http_client, base_url, management_key, id).await
+    .json(request);
+    let payload: ApiResponse<ObservabilityDestination> =
+        transport_response::send_json(req, "observability destination update").await?;
+    Ok(payload.data)
 }
 
 pub(crate) async fn delete_observability_destination_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     id: &str,
 ) -> Result<bool, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/observability/destinations/{}", encode(id));
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::delete(http_client, &url),
         management_key,
-    )
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        let payload: DeleteObservabilityDestinationResponse =
-            transport_response::parse_json_response(response, "observability destination deletion")
-                .await?;
-        Ok(payload.deleted)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
+    );
+    let payload: DeleteObservabilityDestinationResponse =
+        transport_response::send_json(req, "observability destination deletion").await?;
+    Ok(payload.deleted)
 }

@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use crate::transport::HttpClient;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::transport::RequestContext;
 use crate::{
     error::OpenRouterError,
     strip_option_vec_setter,
@@ -258,69 +258,42 @@ pub struct AnalyticsQueryResponse {
     pub extra: HashMap<String, Value>,
 }
 
-/// Get analytics query metadata (`GET /analytics/meta`).
-pub async fn get_analytics_meta(
-    base_url: &str,
-    management_key: &str,
-) -> Result<AnalyticsMeta, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    get_analytics_meta_with_client(&http_client, base_url, management_key).await
-}
-
 pub(crate) async fn get_analytics_meta_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
 ) -> Result<AnalyticsMeta, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/analytics/meta");
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::get(http_client, &url),
         management_key,
-    )
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        let payload: ApiResponse<AnalyticsMeta> =
-            transport_response::parse_json_response(response, "analytics meta").await?;
-        Ok(payload.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Query analytics (`POST /analytics/query`).
-pub async fn query_analytics(
-    base_url: &str,
-    management_key: &str,
-    request: &AnalyticsQueryRequest,
-) -> Result<AnalyticsQueryResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    query_analytics_with_client(&http_client, base_url, management_key, request).await
+    );
+    let payload: ApiResponse<AnalyticsMeta> =
+        transport_response::send_json(req, "analytics meta").await?;
+    Ok(payload.data)
 }
 
 pub(crate) async fn query_analytics_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     request: &AnalyticsQueryRequest,
 ) -> Result<AnalyticsQueryResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/analytics/query");
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::post(http_client, &url),
         management_key,
     )
-    .json(request)
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        let payload: ApiResponse<AnalyticsQueryResponse> =
-            transport_response::parse_json_response(response, "analytics query").await?;
-        Ok(payload.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
+    .json(request);
+    let payload: ApiResponse<AnalyticsQueryResponse> =
+        transport_response::send_json(req, "analytics query").await?;
+    Ok(payload.data)
 }

@@ -1,3 +1,5 @@
+use crate::test_client;
+use crate::test_client_with_attribution;
 use std::{
     io::{Read, Write},
     net::TcpListener,
@@ -14,7 +16,6 @@ use openrouter_rs::api::{
         AnthropicMessagesRequest, AnthropicMessagesResponse, AnthropicMessagesStreamEvent,
         AnthropicOutputConfig, AnthropicOutputEffort, AnthropicRole, AnthropicSystemPrompt,
         AnthropicSystemTextBlock, AnthropicThinking, AnthropicTool, AnthropicToolChoice,
-        create_message, stream_messages,
     },
 };
 use openrouter_rs::types::{OpenRouterExperimentalMetadata, ServerTool};
@@ -494,7 +495,9 @@ async fn test_stream_messages_parses_event_and_data_lines() {
         .expect("messages request should build");
 
     let base_url = format!("http://{addr}/api/v1");
-    let mut stream = stream_messages(&base_url, "test-key", &None, &None, &None, &request)
+    let mut stream = test_client(&base_url, "test-key")
+        .messages()
+        .stream(&request)
         .await
         .expect("stream_messages should succeed");
 
@@ -613,7 +616,9 @@ async fn test_stream_messages_parses_multiline_sse_frames() {
         .expect("messages request should build");
 
     let base_url = format!("http://{addr}/api/v1");
-    let mut stream = stream_messages(&base_url, "test-key", &None, &None, &None, &request)
+    let mut stream = test_client(&base_url, "test-key")
+        .messages()
+        .stream(&request)
         .await
         .expect("stream_messages should succeed");
 
@@ -717,14 +722,15 @@ async fn test_create_message_sets_stream_false_and_headers() {
     let app_categories = Some(vec!["cli-agent".to_string()]);
 
     let base_url = format!("http://{addr}/api/v1");
-    let response = create_message(
+    let response = test_client_with_attribution(
         &base_url,
         "api-key",
         &x_title,
         &http_referer,
         &app_categories,
-        &request,
     )
+    .messages()
+    .create(&request)
     .await
     .expect("create_message should succeed");
     assert_eq!(response.id.as_deref(), Some("msg_1"));

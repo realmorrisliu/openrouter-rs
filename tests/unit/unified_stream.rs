@@ -115,6 +115,7 @@ async fn test_unified_chat_stream_mixed_sequence() {
             model,
             finish_reason,
             usage,
+            ..
         } => {
             assert_eq!(*source, UnifiedStreamSource::Chat);
             assert_eq!(id.as_deref(), Some("gen_1"));
@@ -172,7 +173,7 @@ async fn test_unified_responses_stream_mixed_sequence() {
                     "id": "resp_1",
                     "model": "openai/gpt-5",
                     "status": "completed",
-                    "usage": { "total_tokens": 10 }
+                    "usage": { "input_tokens": 6, "output_tokens": 4, "total_tokens": 10 }
                 }
             }),
         )),
@@ -192,18 +193,13 @@ async fn test_unified_responses_stream_mixed_sequence() {
             model,
             finish_reason,
             usage,
+            ..
         } => {
             assert_eq!(*source, UnifiedStreamSource::Responses);
             assert_eq!(id.as_deref(), Some("resp_1"));
             assert_eq!(model.as_deref(), Some("openai/gpt-5"));
             assert_eq!(finish_reason.as_deref(), Some("completed"));
-            assert_eq!(
-                usage
-                    .as_ref()
-                    .and_then(|u| u.get("total_tokens"))
-                    .and_then(|v| v.as_u64()),
-                Some(10)
-            );
+            assert_eq!(usage.as_ref().map(|u| u.total_tokens), Some(10));
         }
         other => panic!("expected Done event, got {other:?}"),
     }
@@ -467,4 +463,150 @@ async fn test_unified_messages_tool_start_preserves_content_block_index() {
             ..
         }
     ));
+}
+
+/// The Responses API names token counts `input_tokens`/`output_tokens`, so the
+/// adapter must project them onto the typed usage instead of deserializing the
+/// wire object directly.
+#[tokio::test]
+async fn responses_stream_maps_its_usage_field_names() {
+    let events = vec![
+        Ok(responses_event(
+            "response.created",
+            json!({ "response": { "id": "resp_1", "model": "openai/gpt-5" } }),
+        )),
+        Ok(responses_event(
+            "response.completed",
+            json!({
+                "response": {
+                    "id": "resp_1",
+                    "model": "openai/gpt-5",
+                    "status": "completed",
+                    "usage": { "input_tokens": 10, "output_tokens": 25, "total_tokens": 35 }
+                }
+            }),
+        )),
+    ];
+
+    let unified: Vec<_> = adapt_responses_stream(stream::iter(events).boxed())
+        .collect()
+        .await;
+
+    match &unified[1] {
+        UnifiedStreamEvent::Done { usage, .. } => {
+            let usage = usage.as_ref().expect("responses usage should be mapped");
+            assert_eq!(usage.prompt_tokens, 10);
+            assert_eq!(usage.completion_tokens, 25);
+            assert_eq!(usage.total_tokens, 35);
+        }
+        other => panic!("expected Done, got {other:?}"),
+    }
+}
+
+/// The Messages API also uses `input_tokens`/`output_tokens` and omits a total,
+/// which the adapter synthesizes.
+#[tokio::test]
+async fn messages_stream_maps_its_usage_field_names() {
+    let events = vec![
+        Ok(messages_event(
+            "message_start",
+            json!({
+                "type": "message_start",
+                "message": {
+                    "id": "msg_1",
+                    "type": "message",
+                    "role": "assistant",
+                    "content": [],
+                    "model": "anthropic/claude-sonnet-4",
+                    "stop_reason": null,
+                    "stop_sequence": null,
+                    "usage": { "input_tokens": 7, "output_tokens": 0 }
+                }
+            }),
+        )),
+        Ok(messages_event(
+            "message_delta",
+            json!({
+                "type": "message_delta",
+                "delta": { "stop_reason": "end_turn" },
+                "usage": { "output_tokens": 11 }
+            }),
+        )),
+        Ok(messages_event(
+            "message_stop",
+            json!({ "type": "message_stop" }),
+        )),
+    ];
+
+    let unified: Vec<_> = adapt_messages_stream(stream::iter(events).boxed())
+        .collect()
+        .await;
+
+    match unified.last().expect("terminal event") {
+        UnifiedStreamEvent::Done { usage, .. } => {
+            let usage = usage.as_ref().expect("messages usage should be mapped");
+            assert_eq!(usage.prompt_tokens, 7);
+            assert_eq!(usage.completion_tokens, 11);
+            assert_eq!(
+                usage.total_tokens, 18,
+                "the adapter synthesizes the total the Messages API omits"
+            );
+        }
+        other => panic!("expected Done, got {other:?}"),
+    }
+}
+
+/// A Messages stream reports the input count only at `message_start` and only a
+/// cumulative output count afterwards, so the terminal usage must merge both.
+#[tokio::test]
+async fn messages_stream_keeps_the_input_count_from_message_start() {
+    let events = vec![
+        Ok(messages_event(
+            "message_start",
+            json!({
+                "type": "message_start",
+                "message": {
+                    "id": "msg_2",
+                    "type": "message",
+                    "role": "assistant",
+                    "content": [],
+                    "model": "anthropic/claude-sonnet-4",
+                    "stop_reason": null,
+                    "stop_sequence": null,
+                    "usage": { "input_tokens": 42, "output_tokens": 1 }
+                }
+            }),
+        )),
+        Ok(messages_event(
+            "message_delta",
+            json!({
+                "type": "message_delta",
+                "delta": { "stop_reason": "end_turn" },
+                "usage": { "output_tokens": 13 }
+            }),
+        )),
+        Ok(messages_event(
+            "message_stop",
+            json!({ "type": "message_stop" }),
+        )),
+    ];
+
+    let unified: Vec<_> = adapt_messages_stream(stream::iter(events).boxed())
+        .collect()
+        .await;
+
+    match unified.last().expect("terminal event") {
+        UnifiedStreamEvent::Done { usage, .. } => {
+            let usage = usage
+                .as_ref()
+                .expect("usage should survive a partial delta");
+            assert_eq!(usage.prompt_tokens, 42, "input count from message_start");
+            assert_eq!(
+                usage.completion_tokens, 13,
+                "cumulative output count from message_delta"
+            );
+            assert_eq!(usage.total_tokens, 55);
+        }
+        other => panic!("expected Done, got {other:?}"),
+    }
 }

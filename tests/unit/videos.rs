@@ -1,3 +1,4 @@
+use crate::test_client;
 use std::{
     collections::HashMap,
     io::{Read, Write},
@@ -8,7 +9,7 @@ use std::{
 };
 
 use openrouter_rs::api::videos::{
-    self, VideoFrameImage, VideoGenerationRequest, VideoGenerationResponse, VideoInputReference,
+    VideoFrameImage, VideoGenerationRequest, VideoGenerationResponse, VideoInputReference,
     VideoModel, VideoProviderOptions,
 };
 
@@ -221,16 +222,11 @@ async fn test_create_video_generation_path_body_and_headers() {
         .build()
         .expect("video request should build");
 
-    let response = videos::create_video_generation(
-        &base_url,
-        "api-key",
-        &Some("openrouter-rs".to_string()),
-        &Some("https://example.com".to_string()),
-        &Some(vec!["cli-agent".to_string()]),
-        &request,
-    )
-    .await
-    .expect("video generation request should succeed");
+    let response = test_client(&base_url, "api-key")
+        .videos()
+        .create(&request)
+        .await
+        .expect("video generation request should succeed");
     assert_eq!(response.id, "job-abc123");
     assert_eq!(response.status, "pending");
 
@@ -298,7 +294,9 @@ async fn test_list_video_models_path_and_auth_header() {
     });
 
     let base_url = format!("http://{addr}/api/v1");
-    let models = videos::list_video_models(&base_url, "api-key")
+    let models = test_client(&base_url, "api-key")
+        .videos()
+        .list_models()
         .await
         .expect("list video models should succeed");
     assert!(models.is_empty());
@@ -366,7 +364,9 @@ async fn test_get_video_generation_path_and_auth_header() {
     });
 
     let base_url = format!("http://{addr}/api/v1");
-    let response = videos::get_video_generation(&base_url, "api-key", "job-abc123")
+    let response = test_client(&base_url, "api-key")
+        .videos()
+        .get_generation("job-abc123")
         .await
         .expect("get video generation should succeed");
     assert_eq!(response.status, "completed");
@@ -424,7 +424,9 @@ async fn test_get_video_content_path_query_and_auth_header() {
     });
 
     let base_url = format!("http://{addr}/api/v1");
-    let content = videos::get_video_content(&base_url, "api-key", "job-abc123", Some(1))
+    let content = test_client(&base_url, "api-key")
+        .videos()
+        .get_content("job-abc123", Some(1))
         .await
         .expect("get video content should succeed");
     assert_eq!(content, b"video-bytes");

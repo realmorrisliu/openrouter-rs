@@ -1,7 +1,7 @@
-use crate::transport::HttpClient;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
+use crate::transport::RequestContext;
 use crate::{
     error::OpenRouterError,
     transport::{request as transport_request, response as transport_response},
@@ -273,125 +273,40 @@ impl ListApiKeysParams {
     }
 }
 
-/// Get information on the API key associated with the current authentication session
-///
-/// # Arguments
-///
-/// * `base_url` - The base URL of the OpenRouter API.
-/// * `api_key` - The API key for authentication.
-///
-/// # Returns
-///
-/// * `Result<ApiKeyDetails, OpenRouterError>` - The details of the current API key.
-pub async fn get_current_api_key(
-    base_url: &str,
-    api_key: &str,
-) -> Result<ApiKeyDetails, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    get_current_api_key_with_client(&http_client, base_url, api_key).await
-}
-
 pub(crate) async fn get_current_api_key_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
 ) -> Result<ApiKeyDetails, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/key");
 
-    let response =
-        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
-            .send()
-            .await?;
-
-    if response.status().is_success() {
-        let api_response: ApiResponse<_> =
-            transport_response::parse_json_response(response, "current API key").await?;
-        Ok(api_response.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Returns a list of all API keys associated with the account. Requires a management API key.
-///
-/// # Arguments
-///
-/// * `base_url` - The base URL of the OpenRouter API.
-/// * `management_key` - The management API key for authentication.
-/// * `pagination` - Optional pagination options for the API keys list.
-/// * `include_disabled` - Optional flag to include disabled API keys.
-///
-/// # Returns
-///
-/// * `Result<Vec<ApiKey>, OpenRouterError>` - A list of API keys.
-pub async fn list_api_keys(
-    base_url: &str,
-    management_key: &str,
-    pagination: Option<PaginationOptions>,
-    include_disabled: Option<bool>,
-) -> Result<Vec<ApiKey>, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    list_api_keys_in_workspace_with_client(
-        &http_client,
-        base_url,
-        management_key,
-        pagination,
-        include_disabled,
-        None,
-    )
-    .await
+    let req =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
+    let api_response: ApiResponse<_> =
+        transport_response::send_json(req, "current API key").await?;
+    Ok(api_response.data)
 }
 
 pub(crate) async fn list_api_keys_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     pagination: Option<PaginationOptions>,
     include_disabled: Option<bool>,
 ) -> Result<Vec<ApiKey>, OpenRouterError> {
-    list_api_keys_in_workspace_with_client(
-        http_client,
-        base_url,
-        management_key,
-        pagination,
-        include_disabled,
-        None,
-    )
-    .await
-}
-
-pub async fn list_api_keys_in_workspace(
-    base_url: &str,
-    management_key: &str,
-    pagination: Option<PaginationOptions>,
-    include_disabled: Option<bool>,
-    workspace_id: Option<&str>,
-) -> Result<Vec<ApiKey>, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    list_api_keys_in_workspace_with_client(
-        &http_client,
-        base_url,
-        management_key,
-        pagination,
-        include_disabled,
-        workspace_id,
-    )
-    .await
+    list_api_keys_in_workspace_with_client(ctx, pagination, include_disabled, None).await
 }
 
 pub(crate) async fn list_api_keys_in_workspace_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     pagination: Option<PaginationOptions>,
     include_disabled: Option<bool>,
     workspace_id: Option<&str>,
 ) -> Result<Vec<ApiKey>, OpenRouterError> {
     list_api_keys_with_params_with_client(
-        http_client,
-        base_url,
-        management_key,
+        ctx,
         &ListApiKeysParams {
             offset: pagination.and_then(|p| p.offset),
             include_disabled,
@@ -402,123 +317,44 @@ pub(crate) async fn list_api_keys_in_workspace_with_client(
     .await
 }
 
-/// List keys, including optional expired keys and workspace filtering.
-pub async fn list_api_keys_with_params(
-    base_url: &str,
-    management_key: &str,
-    params: &ListApiKeysParams,
-) -> Result<Vec<ApiKey>, OpenRouterError> {
-    list_api_keys_with_params_with_client(
-        &crate::transport::new_client()?,
-        base_url,
-        management_key,
-        params,
-    )
-    .await
-}
-
 pub(crate) async fn list_api_keys_with_params_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     query: &ListApiKeysParams,
 ) -> Result<Vec<ApiKey>, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/keys");
     let req = transport_request::with_bearer_auth(
         transport_request::get(http_client, &url),
         management_key,
     );
-    let response = if query.offset.is_none()
+    let req = if query.offset.is_none()
         && query.include_disabled.is_none()
         && query.workspace_id.is_none()
         && query.include_expired.is_none()
     {
-        req.send().await?
+        req
     } else {
-        req.query(&query).send().await?
+        req.query(&query)
     };
-
-    if response.status().is_success() {
-        let api_response: ApiResponse<_> =
-            transport_response::parse_json_response(response, "API key list").await?;
-        Ok(api_response.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Creates a new API key. Requires a management API key.
-///
-/// # Arguments
-///
-/// * `base_url` - The base URL of the OpenRouter API.
-/// * `management_key` - The management API key for authentication.
-/// * `name` - The display name for the new API key.
-/// * `limit` - Optional credit limit for the new API key.
-///
-/// # Returns
-///
-/// * `Result<ApiKey, OpenRouterError>` - The created API key.
-pub async fn create_api_key(
-    base_url: &str,
-    management_key: &str,
-    name: &str,
-    limit: Option<f64>,
-) -> Result<ApiKey, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    create_api_key_in_workspace_with_client(
-        &http_client,
-        base_url,
-        management_key,
-        name,
-        limit,
-        None,
-    )
-    .await
+    let api_response: ApiResponse<_> = transport_response::send_json(req, "API key list").await?;
+    Ok(api_response.data)
 }
 
 pub(crate) async fn create_api_key_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     name: &str,
     limit: Option<f64>,
 ) -> Result<ApiKey, OpenRouterError> {
-    create_api_key_in_workspace_with_client(
-        http_client,
-        base_url,
-        management_key,
-        name,
-        limit,
-        None,
-    )
-    .await
-}
-
-pub async fn create_api_key_in_workspace(
-    base_url: &str,
-    management_key: &str,
-    name: &str,
-    limit: Option<f64>,
-    workspace_id: Option<&str>,
-) -> Result<ApiKey, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    create_api_key_in_workspace_with_client(
-        &http_client,
-        base_url,
-        management_key,
-        name,
-        limit,
-        workspace_id,
-    )
-    .await
+    create_api_key_in_workspace_with_client(ctx, name, limit, None).await
 }
 
 pub(crate) async fn create_api_key_in_workspace_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     name: &str,
     limit: Option<f64>,
     workspace_id: Option<&str>,
@@ -529,28 +365,19 @@ pub(crate) async fn create_api_key_in_workspace_with_client(
         workspace_id: workspace_id.map(ToOwned::to_owned),
         external: None,
     };
-    create_api_key_with_options_with_client(http_client, base_url, management_key, &request).await
+    create_api_key_with_options_with_client(ctx, &request).await
 }
 
-pub async fn create_api_key_with_options(
-    base_url: &str,
-    management_key: &str,
-    request: &CreateApiKeyRequest,
-) -> Result<ApiKey, OpenRouterError> {
-    create_api_key_with_options_with_client(
-        &crate::transport::new_client()?,
-        base_url,
-        management_key,
-        request,
-    )
-    .await
-}
 pub(crate) async fn create_api_key_with_options_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     request: &CreateApiKeyRequest,
 ) -> Result<ApiKey, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/keys");
 
     let response = transport_request::with_bearer_auth(
@@ -566,133 +393,48 @@ pub(crate) async fn create_api_key_with_options_with_client(
     Ok(api_response.data)
 }
 
-/// Returns details about a specific API key. Requires a management API key.
-///
-/// # Arguments
-///
-/// * `base_url` - The base URL of the OpenRouter API.
-/// * `management_key` - The management API key for authentication.
-/// * `hash` - The hash of the API key to retrieve.
-///
-/// # Returns
-///
-/// * `Result<ApiKey, OpenRouterError>` - The details of the specified API key.
-pub async fn get_api_key(
-    base_url: &str,
-    management_key: &str,
-    hash: &str,
-) -> Result<ApiKey, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    get_api_key_with_client(&http_client, base_url, management_key, hash).await
-}
-
 pub(crate) async fn get_api_key_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     hash: &str,
 ) -> Result<ApiKey, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/keys/{hash}");
 
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::get(http_client, &url),
         management_key,
-    )
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        let api_response: ApiResponse<_> =
-            transport_response::parse_json_response(response, "API key").await?;
-        Ok(api_response.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Deletes an API key. Requires a management API key.
-///
-/// # Arguments
-///
-/// * `base_url` - The base URL of the OpenRouter API.
-/// * `management_key` - The management API key for authentication.
-/// * `hash` - The hash of the API key to delete.
-///
-/// # Returns
-///
-/// * `Result<bool, OpenRouterError>` - A boolean indicating whether the deletion was successful.
-pub async fn delete_api_key(
-    base_url: &str,
-    management_key: &str,
-    hash: &str,
-) -> Result<bool, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    delete_api_key_with_client(&http_client, base_url, management_key, hash).await
+    );
+    let api_response: ApiResponse<_> = transport_response::send_json(req, "API key").await?;
+    Ok(api_response.data)
 }
 
 pub(crate) async fn delete_api_key_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     hash: &str,
 ) -> Result<bool, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/keys/{hash}");
 
-    let response = transport_request::with_bearer_auth(
+    transport_response::send_unit(transport_request::with_bearer_auth(
         transport_request::delete(http_client, &url),
         management_key,
-    )
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        Ok(true)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Updates an existing API key. Requires a management API key.
-///
-/// # Arguments
-///
-/// * `base_url` - The base URL of the OpenRouter API.
-/// * `management_key` - The management API key for authentication.
-/// * `hash` - The hash of the API key to update.
-/// * `name` - Optional new display name for the API key.
-/// * `disabled` - Optional flag to disable the API key.
-/// * `limit` - Optional new credit limit for the API key.
-///
-/// # Returns
-///
-/// * `Result<ApiKey, OpenRouterError>` - The updated API key.
-pub async fn update_api_key(
-    base_url: &str,
-    management_key: &str,
-    hash: &str,
-    name: Option<String>,
-    disabled: Option<bool>,
-    limit: Option<f64>,
-) -> Result<ApiKey, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    update_api_key_with_client(
-        &http_client,
-        base_url,
-        management_key,
-        hash,
-        name,
-        disabled,
-        limit,
-    )
+    ))
     .await
+    .map(|()| true)
 }
 
 pub(crate) async fn update_api_key_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     hash: &str,
     name: Option<String>,
     disabled: Option<bool>,
@@ -700,48 +442,26 @@ pub(crate) async fn update_api_key_with_client(
 ) -> Result<ApiKey, OpenRouterError> {
     // Preserve the existing helper's wire shape, including explicit nulls.
     let request = serde_json::json!({"name": name, "disabled": disabled, "limit": limit});
-    update_api_key_body_with_client(http_client, base_url, management_key, hash, &request).await
-}
-
-/// Update a key, optionally moving it to another workspace.
-pub async fn update_api_key_with_request(
-    base_url: &str,
-    management_key: &str,
-    hash: &str,
-    request: &UpdateApiKeyRequest,
-) -> Result<ApiKey, OpenRouterError> {
-    update_api_key_body_with_client(
-        &crate::transport::new_client()?,
-        base_url,
-        management_key,
-        hash,
-        request,
-    )
-    .await
+    update_api_key_body_with_client(ctx, hash, &request).await
 }
 
 pub(crate) async fn update_api_key_body_with_client<T: Serialize + ?Sized>(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     hash: &str,
     request: &T,
 ) -> Result<ApiKey, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/keys/{}", urlencoding::encode(hash));
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::patch(http_client, &url),
         management_key,
     )
-    .json(&request)
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        let api_response: ApiResponse<_> =
-            transport_response::parse_json_response(response, "API key update").await?;
-        Ok(api_response.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
+    .json(&request);
+    let api_response: ApiResponse<_> = transport_response::send_json(req, "API key update").await?;
+    Ok(api_response.data)
 }

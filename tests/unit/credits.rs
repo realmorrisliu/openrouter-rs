@@ -1,3 +1,4 @@
+use crate::test_client;
 use std::{
     io::{Read, Write},
     net::TcpListener,
@@ -6,7 +7,7 @@ use std::{
     time::Duration,
 };
 
-use openrouter_rs::api::credits::{self, CoinbaseChargeRequest};
+use openrouter_rs::api::credits::CoinbaseChargeRequest;
 
 struct CapturedRequest {
     request_line: String,
@@ -103,7 +104,9 @@ async fn test_get_credits_path_and_auth_header() {
     let (base_url, rx, server) =
         spawn_json_server(r#"{"data":{"total_credits":100.0,"total_usage":12.5}}"#);
 
-    let credits = credits::get_credits(&base_url, "api-key")
+    let credits = test_client(&base_url, "api-key")
+        .management()
+        .get_credits()
         .await
         .expect("get credits should succeed");
     assert_eq!(credits.total_credits, 100.0);
@@ -132,7 +135,9 @@ async fn test_create_coinbase_charge_path_body_and_auth_header() {
     );
 
     let request = CoinbaseChargeRequest::new(25.0, "0xabc", 8453);
-    let response = credits::create_coinbase_charge(&base_url, "api-key", &request)
+    let response = test_client(&base_url, "api-key")
+        .management()
+        .create_coinbase_charge(&request)
         .await
         .expect("create coinbase charge should succeed");
     assert_eq!(response.chain_id, 8453);

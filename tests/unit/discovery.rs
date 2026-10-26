@@ -1,3 +1,4 @@
+use crate::test_client;
 use std::{
     io::{Read, Write},
     net::TcpListener,
@@ -8,10 +9,10 @@ use std::{
 
 use openrouter_rs::{
     api::discovery::{
-        self, ActivityItem, ActivityParams, AppRankingsParams, AppRankingsResponse,
-        BenchmarksAAResponse, BenchmarksDAResponse, BigNumber, ModelsCountData, Provider,
-        PublicEndpoint, RankingsDailyParams, RankingsDailyResponse, SessionCostParams,
-        TaskClassificationsResponse, UnifiedBenchmarkItem, UnifiedBenchmarksParams, UserModel,
+        ActivityItem, ActivityParams, AppRankingsParams, AppRankingsResponse, BenchmarksAAResponse,
+        BenchmarksDAResponse, BigNumber, ModelsCountData, Provider, PublicEndpoint,
+        RankingsDailyParams, RankingsDailyResponse, SessionCostParams, TaskClassificationsResponse,
+        UnifiedBenchmarkItem, UnifiedBenchmarksParams, UserModel,
     },
     types::{ApiResponse, Effort},
 };
@@ -464,7 +465,9 @@ async fn test_list_models_for_user_request_path() {
     });
 
     let base_url = format!("http://{addr}/api/v1");
-    let models = discovery::list_models_for_user(&base_url, "test-key")
+    let models = test_client(&base_url, "test-key")
+        .models()
+        .list_user_models()
         .await
         .expect("models/user request should succeed");
     assert!(models.is_empty());
@@ -518,7 +521,9 @@ async fn test_get_activity_with_date_query_and_auth_header() {
     });
 
     let base_url = format!("http://{addr}/api/v1");
-    let items = discovery::get_activity(&base_url, "mgmt-key", Some("2025-08-24"))
+    let items = test_client(&base_url, "mgmt-key")
+        .management()
+        .get_activity(Some("2025-08-24"))
         .await
         .expect("activity request should succeed");
     assert!(items.is_empty());
@@ -547,7 +552,9 @@ async fn test_get_activity_with_date_query_and_auth_header() {
 async fn test_list_providers_request_path_and_auth_header() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":[]}"#);
 
-    let providers = discovery::list_providers(&base_url, "api-key")
+    let providers = test_client(&base_url, "api-key")
+        .models()
+        .list_providers()
         .await
         .expect("providers request should succeed");
     assert!(providers.is_empty(), "response payload should parse");
@@ -572,7 +579,9 @@ async fn test_list_providers_request_path_and_auth_header() {
 async fn test_count_models_request_path_and_auth_header() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":{"count":123}}"#);
 
-    let count = discovery::count_models(&base_url, "api-key")
+    let count = test_client(&base_url, "api-key")
+        .models()
+        .get_model_count()
         .await
         .expect("models/count request should succeed");
     assert_eq!(count.count, 123);
@@ -597,7 +606,9 @@ async fn test_count_models_request_path_and_auth_header() {
 async fn test_list_zdr_endpoints_request_path_and_auth_header() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":[]}"#);
 
-    let endpoints = discovery::list_zdr_endpoints(&base_url, "api-key")
+    let endpoints = test_client(&base_url, "api-key")
+        .models()
+        .list_zdr_endpoints()
         .await
         .expect("endpoints/zdr request should succeed");
     assert!(endpoints.is_empty(), "response payload should parse");
@@ -624,10 +635,11 @@ async fn test_get_rankings_daily_with_date_query_and_auth_header() {
         r#"{"data":[],"meta":{"as_of":"2026-05-12T02:00:00Z","version":"v1","start_date":"2026-04-12","end_date":"2026-05-11"}}"#,
     );
 
-    let rankings =
-        discovery::get_rankings_daily(&base_url, "api-key", Some("2026-04-12"), Some("2026-05-11"))
-            .await
-            .expect("rankings daily request should succeed");
+    let rankings = test_client(&base_url, "api-key")
+        .models()
+        .get_rankings_daily(Some("2026-04-12"), Some("2026-05-11"))
+        .await
+        .expect("rankings daily request should succeed");
     assert!(rankings.data.is_empty(), "response payload should parse");
     assert_eq!(rankings.meta.start_date, "2026-04-12");
 
@@ -664,7 +676,9 @@ async fn test_get_rankings_daily_with_extended_filters() {
         .build()
         .expect("rankings filters should build");
 
-    discovery::get_rankings_daily_with_params(&base_url, "api-key", Some(&params))
+    test_client(&base_url, "api-key")
+        .models()
+        .get_rankings_daily_filtered(Some(&params))
         .await
         .expect("rankings request should succeed");
     let captured = rx
@@ -694,7 +708,9 @@ async fn test_get_app_rankings_path_query_and_auth_header() {
         .build()
         .expect("app rankings params should build");
 
-    let rankings = discovery::get_app_rankings(&base_url, "api-key", Some(&params))
+    let rankings = test_client(&base_url, "api-key")
+        .models()
+        .get_app_rankings(Some(&params))
         .await
         .expect("app rankings request should succeed");
     assert!(rankings.data.is_empty());
@@ -723,7 +739,9 @@ async fn test_get_task_classifications_path_query_and_auth_header() {
         r#"{"data":{"window_days":7,"as_of":"2026-06-17","classifications":[],"macro_categories":[]}}"#,
     );
 
-    let response = discovery::get_task_classifications(&base_url, "api-key", Some("7d"))
+    let response = test_client(&base_url, "api-key")
+        .models()
+        .get_task_classifications(Some("7d"))
         .await
         .expect("task classifications request should succeed");
     assert_eq!(response.data.window_days, 7);
@@ -757,7 +775,9 @@ async fn test_get_benchmarks_path_queries_and_auth_header() {
         .max_results(25)
         .build()
         .expect("benchmark params should build");
-    let aa = discovery::get_benchmarks(&base_url, "api-key", &params)
+    let aa = test_client(&base_url, "api-key")
+        .models()
+        .get_benchmarks(&params)
         .await
         .expect("benchmark request should succeed");
     assert_eq!(aa.meta.source.as_deref(), Some("artificial-analysis"));
@@ -784,7 +804,9 @@ async fn test_get_benchmarks_path_queries_and_auth_header() {
         .max_results(20)
         .build()
         .expect("benchmark params should build");
-    let da = discovery::get_benchmarks(&base_url, "api-key", &params)
+    let da = test_client(&base_url, "api-key")
+        .models()
+        .get_benchmarks(&params)
         .await
         .expect("Design Arena benchmark request should succeed");
     assert!(matches!(
@@ -809,7 +831,9 @@ async fn test_get_benchmarks_all_sources_omits_source_query() {
         r#"{"data":[],"meta":{"as_of":"2026-06-03T12:00:00Z","version":"v1","source":null,"source_url":null,"citation":null,"model_count":0,"task_type":null}}"#,
     );
     let params = UnifiedBenchmarksParams::default();
-    let benchmarks = discovery::get_benchmarks(&base_url, "api-key", &params)
+    let benchmarks = test_client(&base_url, "api-key")
+        .models()
+        .get_benchmarks(&params)
         .await
         .expect("benchmark request should succeed");
     assert!(benchmarks.data.is_empty());
@@ -830,10 +854,11 @@ async fn test_get_benchmarks_deserializes_openrouter_rows() {
         r#"{"data":[{"source":"openrouter","model_permaslug":"openai/gpt-4o","display_name":"GPT-4o","benchmark_type":"gpqa_diamond","accuracy":0.72,"accuracy_stddev":0.03,"avg_cost_per_task":0.002,"total_tasks":300,"last_run_timestamp":"2026-06-03T12:00:00Z"}],"meta":{"as_of":"2026-06-03T12:00:00Z","version":"v1","source":"openrouter","source_url":null,"citation":null,"model_count":1,"task_type":null}}"#,
     );
 
-    let response =
-        discovery::get_benchmarks(&base_url, "api-key", &UnifiedBenchmarksParams::openrouter())
-            .await
-            .expect("OpenRouter benchmarks should deserialize");
+    let response = test_client(&base_url, "api-key")
+        .models()
+        .get_benchmarks(&UnifiedBenchmarksParams::openrouter())
+        .await
+        .expect("OpenRouter benchmarks should deserialize");
 
     assert!(matches!(
         &response.data[0],
@@ -854,7 +879,9 @@ async fn test_get_benchmarks_deserializes_openrouter_rows() {
 async fn test_get_activity_without_date_uses_base_path() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":[]}"#);
 
-    let items = discovery::get_activity(&base_url, "mgmt-key", None)
+    let items = test_client(&base_url, "mgmt-key")
+        .management()
+        .get_activity(None)
         .await
         .expect("activity request without date should succeed");
     assert!(items.is_empty(), "response payload should parse");
@@ -887,7 +914,9 @@ async fn test_get_activity_with_workspace_filters() {
         .build()
         .expect("activity params should build");
 
-    let items = discovery::get_activity_with_params(&base_url, "mgmt-key", Some(&params))
+    let items = test_client(&base_url, "mgmt-key")
+        .management()
+        .get_activity_with_params(Some(&params))
         .await
         .expect("activity request should succeed");
     assert_eq!(items[0].workspace_id.as_deref(), Some("ws_123"));
@@ -917,7 +946,9 @@ async fn test_get_benchmarks_search_filters() {
         .build()
         .expect("benchmark params should build");
 
-    discovery::get_benchmarks(&base_url, "api-key", &params)
+    test_client(&base_url, "api-key")
+        .models()
+        .get_benchmarks(&params)
         .await
         .expect("benchmark request should succeed");
 
@@ -944,7 +975,9 @@ async fn test_get_session_cost_with_filters() {
         .build()
         .expect("session cost params should build");
 
-    let response = discovery::get_session_cost(&base_url, "api-key", Some(&params))
+    let response = test_client(&base_url, "api-key")
+        .models()
+        .get_session_cost(Some(&params))
         .await
         .expect("session cost request should succeed");
     assert_eq!(response.data[0].app_slug, "hermes-agent");
@@ -968,7 +1001,9 @@ async fn test_get_session_cost_without_params_uses_base_path() {
         r#"{"data":[],"meta":{"as_of":"2026-05-12T02:00:00.000Z","version":"v1","window_days":null,"window_end_date":null}}"#,
     );
 
-    let response = discovery::get_session_cost(&base_url, "api-key", None)
+    let response = test_client(&base_url, "api-key")
+        .models()
+        .get_session_cost(None)
         .await
         .expect("session cost request should succeed");
     assert!(response.data.is_empty());

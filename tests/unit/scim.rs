@@ -1,3 +1,4 @@
+use crate::test_client;
 use std::{
     io::{Read, Write},
     net::TcpListener,
@@ -62,13 +63,11 @@ async fn test_list_scim_groups_path_and_response() {
         r#"{"data":[{"id":"group-1","organization_id":"org-1","external_id":null,"display_name":"Engineering","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}],"total_count":1}"#,
     );
 
-    let response = scim::list_scim_groups(
-        &base_url,
-        "mgmt-key",
-        Some(PaginationOptions::with_offset_and_limit(5, 25)),
-    )
-    .await
-    .expect("SCIM groups should list");
+    let response = test_client(&base_url, "mgmt-key")
+        .management()
+        .list_scim_groups(Some(PaginationOptions::with_offset_and_limit(5, 25)))
+        .await
+        .expect("SCIM groups should list");
 
     assert_eq!(response.total_count, 1);
     assert_eq!(response.data[0].display_name, "Engineering");
@@ -86,7 +85,9 @@ async fn test_list_scim_group_mappings_path_and_response() {
         r#"{"data":[{"id":"mapping-1","organization_id":"org-1","scim_group_id":"group-1","workspace_id":"workspace-1","role":"member","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}],"total_count":1}"#,
     );
 
-    let response = scim::list_scim_group_mappings(&base_url, "mgmt-key", None)
+    let response = test_client(&base_url, "mgmt-key")
+        .management()
+        .list_scim_group_mappings(None)
         .await
         .expect("SCIM mappings should list");
 
@@ -111,7 +112,9 @@ async fn test_create_scim_group_mapping_path_body_and_response() {
         .build()
         .expect("mapping request should build");
 
-    let mapping = scim::create_scim_group_mapping(&base_url, "mgmt-key", &body)
+    let mapping = test_client(&base_url, "mgmt-key")
+        .management()
+        .create_scim_group_mapping(&body)
         .await
         .expect("SCIM mapping should be created");
 
@@ -132,7 +135,9 @@ async fn test_get_scim_group_mapping_encodes_id() {
         r#"{"data":{"id":"mapping-1","organization_id":"org-1","scim_group_id":"group-1","workspace_id":"workspace-1","role":"member","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}}"#,
     );
 
-    let mapping = scim::get_scim_group_mapping(&base_url, "mgmt-key", "mapping 1")
+    let mapping = test_client(&base_url, "mgmt-key")
+        .management()
+        .get_scim_group_mapping("mapping 1")
         .await
         .expect("SCIM mapping should be returned");
 
@@ -154,7 +159,9 @@ async fn test_update_scim_group_mapping_path_body_and_response() {
         .build()
         .expect("update request should build");
 
-    let mapping = scim::update_scim_group_mapping(&base_url, "mgmt-key", "mapping-1", &body)
+    let mapping = test_client(&base_url, "mgmt-key")
+        .management()
+        .update_scim_group_mapping("mapping-1", &body)
         .await
         .expect("SCIM mapping should update");
 
@@ -171,7 +178,9 @@ async fn test_update_scim_group_mapping_path_body_and_response() {
 async fn test_delete_scim_group_mapping_requires_keep_members_query() {
     let (base_url, rx, server) = spawn_json_server(r#"{"deleted":true}"#);
 
-    let deleted = scim::delete_scim_group_mapping(&base_url, "mgmt-key", "mapping-1", false)
+    let deleted = test_client(&base_url, "mgmt-key")
+        .management()
+        .delete_scim_group_mapping("mapping-1", false)
         .await
         .expect("SCIM mapping should delete");
 

@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
-use crate::transport::HttpClient;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use urlencoding::encode;
 
+use crate::transport::RequestContext;
 use crate::{
     error::OpenRouterError,
     transport::{request as transport_request, response as transport_response},
@@ -388,37 +388,8 @@ impl ListModelsParams {
     }
 }
 
-/// Returns a list of models available through the API
-///
-/// # Arguments
-///
-/// * `base_url` - The base URL of the OpenRouter API.
-/// * `api_key` - The API key for authentication.
-/// * `category` - Optional category filter for the models.
-/// * `supported_parameters` - Optional supported-parameter filter for the models.
-///
-/// # Returns
-///
-/// * `Result<Vec<Model>, OpenRouterError>` - A list of models or an error.
-pub async fn list_models(
-    base_url: &str,
-    api_key: &str,
-    category: Option<ModelCategory>,
-    supported_parameters: Option<SupportedParameters>,
-) -> Result<Vec<Model>, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    let params = ListModelsParams {
-        category,
-        supported_parameters,
-        ..Default::default()
-    };
-    list_models_with_params_and_client(&http_client, base_url, api_key, Some(&params)).await
-}
-
 pub(crate) async fn list_models_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
     category: Option<ModelCategory>,
     supported_parameters: Option<SupportedParameters>,
 ) -> Result<Vec<Model>, OpenRouterError> {
@@ -427,126 +398,72 @@ pub(crate) async fn list_models_with_client(
         supported_parameters,
         ..Default::default()
     };
-    list_models_with_params_and_client(http_client, base_url, api_key, Some(&params)).await
-}
-
-/// Returns a list of models using the full upstream filter surface.
-pub async fn list_models_with_params(
-    base_url: &str,
-    api_key: &str,
-    params: Option<&ListModelsParams>,
-) -> Result<Vec<Model>, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    list_models_with_params_and_client(&http_client, base_url, api_key, params).await
+    list_models_with_params_and_client(ctx, Some(&params)).await
 }
 
 pub(crate) async fn list_models_with_params_and_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
     params: Option<&ListModelsParams>,
 ) -> Result<Vec<Model>, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/models");
     let req =
         transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
-    let response = match params {
-        Some(params) if !params.is_empty() => req.query(params).send().await?,
-        _ => req.send().await?,
+    let req = match params {
+        Some(params) if !params.is_empty() => req.query(params),
+        _ => req,
     };
-
-    if response.status().is_success() {
-        let model_list_response: ApiResponse<_> =
-            transport_response::parse_json_response(response, "model list").await?;
-        Ok(model_list_response.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Returns metadata about a specific model.
-pub async fn get_model(
-    base_url: &str,
-    api_key: &str,
-    author: &str,
-    slug: &str,
-) -> Result<Model, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    get_model_with_client(&http_client, base_url, api_key, author, slug).await
+    let model_list_response: ApiResponse<_> =
+        transport_response::send_json(req, "model list").await?;
+    Ok(model_list_response.data)
 }
 
 pub(crate) async fn get_model_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
     author: &str,
     slug: &str,
 ) -> Result<Model, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let encoded_author = encode(author);
     let encoded_slug = encode(slug);
     let url = format!("{base_url}/model/{encoded_author}/{encoded_slug}");
 
-    let response =
-        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
-            .send()
-            .await?;
-
-    if response.status().is_success() {
-        let model_response: ApiResponse<_> =
-            transport_response::parse_json_response(response, "model").await?;
-        Ok(model_response.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Returns details about the endpoints for a specific model
-///
-/// # Arguments
-///
-/// * `base_url` - The base URL of the OpenRouter API.
-/// * `api_key` - The API key for authentication.
-/// * `author` - The author of the model.
-/// * `slug` - The slug identifier for the model.
-///
-/// # Returns
-///
-/// * `Result<EndpointData, OpenRouterError>` - The endpoint data or an error.
-pub async fn list_model_endpoints(
-    base_url: &str,
-    api_key: &str,
-    author: &str,
-    slug: &str,
-) -> Result<EndpointData, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    list_model_endpoints_with_client(&http_client, base_url, api_key, author, slug).await
+    let req =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
+    let model_response: ApiResponse<_> = transport_response::send_json(req, "model").await?;
+    Ok(model_response.data)
 }
 
 pub(crate) async fn list_model_endpoints_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
     author: &str,
     slug: &str,
 ) -> Result<EndpointData, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let encoded_author = encode(author);
     let encoded_slug = encode(slug);
     let url = format!("{base_url}/models/{encoded_author}/{encoded_slug}/endpoints");
 
-    let response =
-        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
-            .send()
-            .await?;
-
-    if response.status().is_success() {
-        let endpoint_list_response: ApiResponse<_> =
-            transport_response::parse_json_response(response, "model endpoint list").await?;
-        Ok(endpoint_list_response.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
+    let req =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
+    let endpoint_list_response: ApiResponse<_> =
+        transport_response::send_json(req, "model endpoint list").await?;
+    Ok(endpoint_list_response.data)
 }
 
 /// Tool choice modes supported by a model endpoint.

@@ -6,7 +6,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = OpenRouterClient::builder().api_key(api_key).build()?;
 
     let endpoints = client
-        .list_model_endpoints("deepseek", "deepseek-chat:free")
+        .models()
+        .list_endpoints("deepseek", "deepseek-chat:free")
         .await?;
     println!("{endpoints:?}");
 

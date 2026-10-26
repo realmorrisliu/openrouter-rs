@@ -11,7 +11,7 @@ use http_body_util::{BodyDataStream, Full};
 use send_wrapper::SendWrapper;
 
 use super::client::{PreparedRequest, RequestBody, Response};
-use crate::error::HttpRequestError;
+use crate::error::{HttpRequestError, HttpRequestErrorKind};
 
 pub(super) async fn send(request: PreparedRequest) -> Result<Response, HttpRequestError> {
     SendWrapper::new(send_local(request)).await
@@ -64,6 +64,18 @@ fn boundary() -> String {
     format!("{a:016x}-{b:016x}-{c:016x}-{d:016x}")
 }
 
+/// Classifies a host failure by the stage that produced it. The WASI host API
+/// does not distinguish a timeout from a refused connection, so both surface as
+/// `Connect`; request building and body reading are separable.
 fn failed(what: &str, error: &dyn std::fmt::Debug) -> HttpRequestError {
-    HttpRequestError::new(format!("{what}: {error:?}"))
+    let kind = if what.contains("body") {
+        HttpRequestErrorKind::Body
+    } else if what.contains("not answered") {
+        HttpRequestErrorKind::Connect
+    } else if what.contains("request") || what.contains("multipart") {
+        HttpRequestErrorKind::Request
+    } else {
+        HttpRequestErrorKind::Other
+    };
+    HttpRequestError::classified(kind, format!("{what}: {error:?}"))
 }

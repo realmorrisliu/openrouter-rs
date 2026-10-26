@@ -7,7 +7,10 @@ async fn test_create_api_key_requires_management_key() {
         .build()
         .expect("client should build");
 
-    let result = client.create_api_key("new-key", Some(10.0)).await;
+    let result = client
+        .management()
+        .create_api_key("new-key", Some(10.0))
+        .await;
     assert!(
         matches!(result, Err(OpenRouterError::KeyNotConfigured)),
         "create_api_key should require management_key"
@@ -21,7 +24,7 @@ async fn test_guardrails_endpoints_require_management_key() {
         .build()
         .expect("client should build");
 
-    let result = client.list_guardrails(None).await;
+    let result = client.management().list_guardrails(None).await;
     assert!(
         matches!(result, Err(OpenRouterError::KeyNotConfigured)),
         "list_guardrails should require management_key"
@@ -35,7 +38,7 @@ async fn test_activity_endpoint_requires_management_key() {
         .build()
         .expect("client should build");
 
-    let result = client.get_activity(None).await;
+    let result = client.management().get_activity(None).await;
     assert!(
         matches!(result, Err(OpenRouterError::KeyNotConfigured)),
         "get_activity should require management_key"
@@ -50,7 +53,7 @@ async fn test_clear_management_key_removes_management_access() {
         .expect("client should build");
     client.clear_management_key();
 
-    let result = client.delete_api_key("hash").await;
+    let result = client.management().delete_api_key("hash").await;
     assert!(
         matches!(result, Err(OpenRouterError::KeyNotConfigured)),
         "delete_api_key should fail after clearing management_key"

@@ -1,3 +1,4 @@
+use crate::test_client;
 use http::StatusCode;
 use std::{
     io::{Read, Write},
@@ -5,10 +6,7 @@ use std::{
     thread,
 };
 
-use openrouter_rs::{
-    api::models,
-    error::{ApiErrorKind, HttpRequestError, OpenRouterError},
-};
+use openrouter_rs::error::{ApiErrorKind, HttpRequestError, OpenRouterError};
 
 fn spawn_error_server(
     status_line: &str,
@@ -66,7 +64,7 @@ async fn test_normalized_generic_api_error_shape() {
         Some("req_123"),
     );
 
-    let result = models::list_models(&base_url, "test-key", None, None).await;
+    let result = test_client(&base_url, "test-key").models().list().await;
     let error = result.expect_err("request should fail");
     match error {
         OpenRouterError::Api(api_error) => {
@@ -110,7 +108,7 @@ async fn test_api_error_preserves_top_level_openrouter_metadata() {
         Some("req_guardrail"),
     );
 
-    let result = models::list_models(&base_url, "test-key", None, None).await;
+    let result = test_client(&base_url, "test-key").models().list().await;
     let error = result.expect_err("request should fail");
     match error {
         OpenRouterError::Api(api_error) => {
@@ -182,7 +180,9 @@ async fn test_unreadable_error_body_preserves_read_failure_context() {
     });
 
     let base_url = format!("http://{addr}/api/v1");
-    let error = models::list_models(&base_url, "test-key", None, None)
+    let error = test_client(&base_url, "test-key")
+        .models()
+        .list()
         .await
         .expect_err("request should fail");
 
@@ -230,7 +230,7 @@ async fn test_normalized_provider_error_shape() {
         Some("req_provider"),
     );
 
-    let result = models::list_models(&base_url, "test-key", None, None).await;
+    let result = test_client(&base_url, "test-key").models().list().await;
     let error = result.expect_err("request should fail");
     match error {
         OpenRouterError::Api(api_error) => {
@@ -276,7 +276,7 @@ async fn test_normalized_moderation_error_shape() {
         Some("req_mod"),
     );
 
-    let result = models::list_models(&base_url, "test-key", None, None).await;
+    let result = test_client(&base_url, "test-key").models().list().await;
     let error = result.expect_err("request should fail");
     match error {
         OpenRouterError::Api(api_error) => {
@@ -359,7 +359,7 @@ async fn test_plain_text_error_is_still_normalized() {
     });
 
     let base_url = format!("http://{addr}/api/v1");
-    let result = models::list_models(&base_url, "test-key", None, None).await;
+    let result = test_client(&base_url, "test-key").models().list().await;
     let error = result.expect_err("request should fail");
     match error {
         OpenRouterError::Api(api_error) => {

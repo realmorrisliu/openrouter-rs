@@ -1,10 +1,10 @@
 //! Asynchronous batches for chat, Responses, Messages, and embeddings.
-use crate::transport::HttpClient;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use urlencoding::encode;
 
+use crate::transport::RequestContext;
 use crate::{
     error::OpenRouterError,
     transport::{request, response},
@@ -182,28 +182,19 @@ pub struct BatchUpstreamDeletion {
     pub status: String,
 }
 
-pub async fn list(
-    base_url: &str,
-    api_key: &str,
-    params: &ListBatchesParams,
-) -> Result<ListBatchesResponse, OpenRouterError> {
-    list_with_client(
-        &crate::transport::new_client()?,
-        base_url,
-        api_key,
-        (&None, &None, &None),
-        params,
-    )
-    .await
-}
-
 pub(crate) async fn list_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
-    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
+    ctx: &RequestContext<'_>,
     params: &ListBatchesParams,
 ) -> Result<ListBatchesResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        x_title,
+        http_referer,
+        app_categories,
+        ..
+    } = *ctx;
     let mut query = Vec::new();
     if let Some(limit) = params.limit {
         query.push(("limit", limit.to_string()));
@@ -224,9 +215,9 @@ pub(crate) async fn list_with_client(
         request::with_client_request_headers(
             request::get(http_client, &format!("{base_url}/batches")),
             api_key,
-            metadata.0,
-            metadata.1,
-            metadata.2,
+            x_title,
+            http_referer,
+            app_categories,
         )?
         .query(&query)
         .send()
@@ -235,35 +226,26 @@ pub(crate) async fn list_with_client(
     .await
 }
 
-pub async fn create(
-    base_url: &str,
-    api_key: &str,
-    body: &CreateBatchRequest,
-) -> Result<Batch, OpenRouterError> {
-    create_with_client(
-        &crate::transport::new_client()?,
-        base_url,
-        api_key,
-        (&None, &None, &None),
-        body,
-    )
-    .await
-}
-
 pub(crate) async fn create_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
-    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
+    ctx: &RequestContext<'_>,
     body: &CreateBatchRequest,
 ) -> Result<Batch, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        x_title,
+        http_referer,
+        app_categories,
+        ..
+    } = *ctx;
     parse(
         request::with_client_request_headers(
             request::post(http_client, &format!("{base_url}/batches")),
             api_key,
-            metadata.0,
-            metadata.1,
-            metadata.2,
+            x_title,
+            http_referer,
+            app_categories,
         )?
         .json(body)
         .send()
@@ -272,32 +254,27 @@ pub(crate) async fn create_with_client(
     .await
 }
 
-pub async fn get(base_url: &str, api_key: &str, batch_id: &str) -> Result<Batch, OpenRouterError> {
-    get_with_client(
-        &crate::transport::new_client()?,
-        base_url,
-        api_key,
-        (&None, &None, &None),
-        batch_id,
-    )
-    .await
-}
-
 pub(crate) async fn get_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
-    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
+    ctx: &RequestContext<'_>,
     batch_id: &str,
 ) -> Result<Batch, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        x_title,
+        http_referer,
+        app_categories,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/batches/{}", encode(batch_id));
     parse(
         request::with_client_request_headers(
             request::get(http_client, &url),
             api_key,
-            metadata.0,
-            metadata.1,
-            metadata.2,
+            x_title,
+            http_referer,
+            app_categories,
         )?
         .send()
         .await?,
@@ -305,36 +282,27 @@ pub(crate) async fn get_with_client(
     .await
 }
 
-pub async fn delete(
-    base_url: &str,
-    api_key: &str,
-    batch_id: &str,
-) -> Result<DeleteBatchResponse, OpenRouterError> {
-    delete_with_client(
-        &crate::transport::new_client()?,
-        base_url,
-        api_key,
-        (&None, &None, &None),
-        batch_id,
-    )
-    .await
-}
-
 pub(crate) async fn delete_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
-    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
+    ctx: &RequestContext<'_>,
     batch_id: &str,
 ) -> Result<DeleteBatchResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        x_title,
+        http_referer,
+        app_categories,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/batches/{}", encode(batch_id));
     parse(
         request::with_client_request_headers(
             request::delete(http_client, &url),
             api_key,
-            metadata.0,
-            metadata.1,
-            metadata.2,
+            x_title,
+            http_referer,
+            app_categories,
         )?
         .send()
         .await?,
@@ -345,9 +313,5 @@ pub(crate) async fn delete_with_client(
 async fn parse<T: serde::de::DeserializeOwned>(
     res: crate::transport::Response,
 ) -> Result<T, OpenRouterError> {
-    if res.status().is_success() {
-        response::parse_json_response(res, "batch").await
-    } else {
-        Err(response::error_from_response(res).await)
-    }
+    response::parse_or_error(res, "batch").await
 }

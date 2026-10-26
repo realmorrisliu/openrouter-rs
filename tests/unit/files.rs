@@ -1,3 +1,4 @@
+use crate::test_client;
 use std::{
     io::{Read, Write},
     net::TcpListener,
@@ -158,7 +159,9 @@ async fn test_list_provider_files_sends_provider_pagination_query() {
         .build()
         .expect("provider list params should build");
 
-    let files = files::list_provider_files(&base_url, "api-key", &params)
+    let files = test_client(&base_url, "api-key")
+        .files()
+        .list_for_provider(&params)
         .await
         .expect("provider file list should succeed");
     assert_eq!(files.shape, "openai");
@@ -186,7 +189,9 @@ async fn test_get_provider_file_sends_provider_and_workspace_query() {
         .build()
         .expect("file query should build");
 
-    let file = files::get_provider_file_metadata(&base_url, "api-key", "file/123", &query)
+    let file = test_client(&base_url, "api-key")
+        .files()
+        .get_metadata_for_provider("file/123", &query)
         .await
         .expect("provider file metadata should succeed");
     assert_eq!(file.shape, "anthropic");
@@ -209,15 +214,11 @@ async fn test_list_files_path_query_and_auth_header() {
         "application/json",
     );
 
-    let files = files::list_files(
-        &base_url,
-        "api-key",
-        Some(20),
-        Some("cursor_1"),
-        Some("ws_123"),
-    )
-    .await
-    .expect("list files should succeed");
+    let files = test_client(&base_url, "api-key")
+        .files()
+        .list(Some(20), Some("cursor_1"), Some("ws_123"))
+        .await
+        .expect("list files should succeed");
     assert!(files.data.is_empty());
 
     let captured = rx
@@ -241,7 +242,9 @@ async fn test_list_files_path_query_and_auth_header() {
 #[tokio::test]
 async fn test_get_download_delete_file_paths() {
     let (base_url, rx, server) = spawn_server(file_metadata_json().as_bytes(), "application/json");
-    let metadata = files::get_file_metadata(&base_url, "api-key", "file 123", Some("ws_123"))
+    let metadata = test_client(&base_url, "api-key")
+        .files()
+        .get_metadata("file 123", Some("ws_123"))
         .await
         .expect("get file metadata should succeed");
     assert_eq!(metadata.id, "file_123");
@@ -255,7 +258,9 @@ async fn test_get_download_delete_file_paths() {
     server.join().expect("metadata server thread should finish");
 
     let (base_url, rx, server) = spawn_server(b"file bytes", "application/octet-stream");
-    let bytes = files::download_file_content(&base_url, "api-key", "file 123", None)
+    let bytes = test_client(&base_url, "api-key")
+        .files()
+        .download_content("file 123", None)
         .await
         .expect("download file content should succeed");
     assert_eq!(bytes, b"file bytes");
@@ -272,7 +277,9 @@ async fn test_get_download_delete_file_paths() {
         br#"{"id":"file_123","type":"file_deleted"}"#,
         "application/json",
     );
-    let deleted = files::delete_file(&base_url, "api-key", "file_123", Some("ws_123"))
+    let deleted = test_client(&base_url, "api-key")
+        .files()
+        .delete("file_123", Some("ws_123"))
         .await
         .expect("delete file should succeed");
     assert_eq!(deleted.id, "file_123");
@@ -296,7 +303,9 @@ async fn test_upload_file_uses_multipart_file_part() {
         .build()
         .expect("upload request should build");
 
-    let uploaded = files::upload_file(&base_url, "api-key", &request, Some("ws_123"))
+    let uploaded = test_client(&base_url, "api-key")
+        .files()
+        .upload(&request, Some("ws_123"))
         .await
         .expect("upload file should succeed");
     assert_eq!(uploaded.id, "file_123");

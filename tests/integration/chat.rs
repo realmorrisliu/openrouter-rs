@@ -28,7 +28,7 @@ async fn test_basic_chat_completion() -> Result<(), OpenRouterError> {
         .temperature(0.1)
         .build()?;
 
-    let response = client.send_chat_completion(&request).await?;
+    let response = client.chat().create(&request).await?;
     validate_chat_response(&response)?;
 
     println!(
@@ -97,7 +97,7 @@ async fn test_stable_regression_chat_completion() -> Result<(), OpenRouterError>
         .temperature(0.1)
         .build()?;
 
-    let response = client.send_chat_completion(&request).await?;
+    let response = client.chat().create(&request).await?;
 
     // Basic validation
     assert!(!response.id.is_empty(), "Response ID should not be empty");
@@ -130,7 +130,7 @@ async fn test_basic_reasoning() -> Result<(), OpenRouterError> {
         .enable_reasoning()
         .build()?;
 
-    let response = client.send_chat_completion(&request).await?;
+    let response = client.chat().create(&request).await?;
     validate_chat_response(&response)?;
 
     // Test reasoning content
@@ -166,7 +166,7 @@ async fn test_reasoning_effort_levels() -> Result<(), OpenRouterError> {
             .reasoning_effort(effort.clone())
             .build()?;
 
-        let response = client.send_chat_completion(&request).await?;
+        let response = client.chat().create(&request).await?;
         validate_chat_response(&response)?;
 
         let reasoning = response.choices[0].reasoning();
@@ -201,7 +201,7 @@ async fn test_reasoning_max_tokens() -> Result<(), OpenRouterError> {
         .reasoning_max_tokens(1000)
         .build()?;
 
-    let response = client.send_chat_completion(&request).await?;
+    let response = client.chat().create(&request).await?;
     validate_chat_response(&response)?;
 
     let reasoning = response.choices[0].reasoning();
@@ -230,7 +230,7 @@ async fn test_excluded_reasoning() -> Result<(), OpenRouterError> {
         .exclude_reasoning()
         .build()?;
 
-    let response = client.send_chat_completion(&request).await?;
+    let response = client.chat().create(&request).await?;
     validate_chat_response_envelope(&response)?;
 
     let reasoning = response.choices[0].reasoning();
@@ -257,7 +257,7 @@ async fn test_legacy_include_reasoning() -> Result<(), OpenRouterError> {
         .include_reasoning(true)
         .build()?;
 
-    let response = client.send_chat_completion(&request).await?;
+    let response = client.chat().create(&request).await?;
     validate_chat_response(&response)?;
 
     // The legacy flag maps to reasoning: {}; returning reasoning depends on the model.

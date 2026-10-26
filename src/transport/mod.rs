@@ -29,3 +29,18 @@ pub(crate) fn new_client() -> Result<HttpClient, OpenRouterError> {
             .map_err(OpenRouterError::from)
     }
 }
+
+/// Per-request client configuration.
+///
+/// Bundles the values every endpoint function needs so signatures do not repeat
+/// the same argument clump, and so a new configuration field does not force a
+/// signature change everywhere.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct RequestContext<'a> {
+    pub http_client: &'a HttpClient,
+    pub base_url: &'a str,
+    pub credential: &'a str,
+    pub x_title: &'a Option<String>,
+    pub http_referer: &'a Option<String>,
+    pub app_categories: &'a Option<Vec<String>>,
+}

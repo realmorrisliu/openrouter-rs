@@ -1,7 +1,7 @@
-use crate::transport::HttpClient;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
+use crate::transport::RequestContext;
 use crate::{
     api::chat::TraceOptions,
     error::OpenRouterError,
@@ -142,53 +142,27 @@ pub struct RerankResponse {
     pub usage: Option<RerankUsage>,
 }
 
-/// Submit a rerank request.
-pub async fn create_rerank(
-    base_url: &str,
-    api_key: &str,
-    x_title: &Option<String>,
-    http_referer: &Option<String>,
-    app_categories: &Option<Vec<String>>,
+pub(crate) async fn create_rerank_with_client(
+    ctx: &RequestContext<'_>,
     request: &RerankRequest,
 ) -> Result<RerankResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    create_rerank_with_client(
-        &http_client,
+    let RequestContext {
+        http_client,
         base_url,
-        api_key,
+        credential: api_key,
         x_title,
         http_referer,
         app_categories,
-        request,
-    )
-    .await
-}
-
-pub(crate) async fn create_rerank_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
-    x_title: &Option<String>,
-    http_referer: &Option<String>,
-    app_categories: &Option<Vec<String>>,
-    request: &RerankRequest,
-) -> Result<RerankResponse, OpenRouterError> {
+        ..
+    } = *ctx;
     let url = format!("{base_url}/rerank");
-    let response = transport_request::with_client_request_headers(
+    let req = transport_request::with_client_request_headers(
         transport_request::post(http_client, &url),
         api_key,
         x_title,
         http_referer,
         app_categories,
     )?
-    .json(request)
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "rerank").await
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
+    .json(request);
+    transport_response::send_json(req, "rerank").await
 }

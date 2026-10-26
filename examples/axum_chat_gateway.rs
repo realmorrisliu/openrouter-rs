@@ -264,6 +264,12 @@ fn map_sdk_error(error: OpenRouterError) -> (StatusCode, Json<ErrorResponse>) {
             StatusCode::INTERNAL_SERVER_ERROR,
             "Gateway configuration or request error",
         ),
+        // The error enum is non-exhaustive, so a future variant must still map
+        // to a safe response.
+        _ => error_response(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Gateway configuration or request error",
+        ),
     }
 }
 

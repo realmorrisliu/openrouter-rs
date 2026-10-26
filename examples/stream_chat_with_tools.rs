@@ -1,6 +1,6 @@
 //! # Streaming with Tool Calls Example
 //!
-//! This example demonstrates how to use `ToolAwareStream` to handle streaming
+//! This example demonstrates how to use the unified chat stream to handle streaming
 //! responses that include tool calls. Content is printed in real time as it
 //! arrives, while tool call fragments are automatically accumulated and
 //! delivered as complete objects once the stream finishes.
@@ -17,27 +17,27 @@ use futures_util::StreamExt;
 use openrouter_rs::{
     OpenRouterClient,
     api::chat::{ChatCompletionRequest, Content, Message},
-    types::stream::StreamEvent,
-    types::{Role, Tool, completion::FinishReason},
+    types::stream::UnifiedStreamEvent,
+    types::{Role, Tool},
 };
 use serde_json::json;
 
 // Keep reasoning objects in arrival order; do not merge or deduplicate indices.
 // https://openrouter.ai/docs/guides/best-practices/reasoning-tokens#streaming-response
-fn record_assistant_delta(message: &mut Message, event: &StreamEvent) {
+fn record_assistant_delta(message: &mut Message, event: &UnifiedStreamEvent) {
     match event {
-        StreamEvent::ContentDelta(text) => {
+        UnifiedStreamEvent::ContentDelta(text) => {
             if let Content::Text(content) = &mut message.content {
                 content.push_str(text);
             }
         }
-        StreamEvent::ReasoningDelta(text) => {
+        UnifiedStreamEvent::ReasoningDelta(text) => {
             message
                 .reasoning
                 .get_or_insert_with(String::new)
                 .push_str(text);
         }
-        StreamEvent::ReasoningDetailsDelta(details) => {
+        UnifiedStreamEvent::ReasoningDetailsDelta(details) => {
             message
                 .reasoning_details
                 .get_or_insert_with(Vec::new)
@@ -91,37 +91,38 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("--- Streaming with tool-aware processing ---\n");
 
     // Use the tool-aware stream wrapper
-    let mut stream = client.chat().stream_tool_aware(&request).await?;
+    let mut stream = client.chat().stream_unified(&request).await?;
 
     let mut assistant_message = Message::new(Role::Assistant, "");
     while let Some(event) = stream.next().await {
         record_assistant_delta(&mut assistant_message, &event);
         match event {
-            StreamEvent::ContentDelta(text) => {
+            UnifiedStreamEvent::ContentDelta(text) => {
                 // Content is printed immediately as it streams in
                 print!("{}", text);
             }
-            StreamEvent::ReasoningDelta(text) => {
+            UnifiedStreamEvent::ReasoningDelta(text) => {
                 print!("[reasoning] {}", text);
             }
-            StreamEvent::ReasoningDetailsDelta(details) => {
+            UnifiedStreamEvent::ReasoningDetailsDelta(details) => {
                 for detail in &details {
                     if let Some(content) = detail.content() {
                         print!("[detail] {}", content);
                     }
                 }
             }
-            StreamEvent::Done {
+            UnifiedStreamEvent::Done {
                 tool_calls,
                 finish_reason,
                 usage,
                 id,
                 model,
+                ..
             } => {
                 println!();
                 println!("\n--- Stream complete ---");
-                println!("  ID: {}", id);
-                println!("  Model: {}", model);
+                println!("  ID: {}", id.as_deref().unwrap_or("-"));
+                println!("  Model: {}", model.as_deref().unwrap_or("-"));
 
                 if let Some(reason) = &finish_reason {
                     println!("  Finish reason: {:?}", reason);
@@ -142,7 +143,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
 
                     // If tools were called, simulate execution and send results back
-                    if matches!(finish_reason, Some(FinishReason::ToolCalls)) {
+                    if finish_reason.as_deref() == Some("tool_calls") {
                         println!("\n--- Simulating tool execution ---\n");
 
                         let mut messages = request.messages().to_vec();
@@ -165,20 +166,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             .max_tokens(500)
                             .build()?;
 
-                        let mut stream2 = client.chat().stream_tool_aware(&follow_up).await?;
+                        let mut stream2 = client.chat().stream_unified(&follow_up).await?;
 
                         while let Some(event2) = stream2.next().await {
                             match event2 {
-                                StreamEvent::ContentDelta(text) => print!("{}", text),
-                                StreamEvent::Done { .. } => println!("\n\n--- Done ---"),
-                                StreamEvent::Error(e) => eprintln!("\nError: {}", e),
+                                UnifiedStreamEvent::ContentDelta(text) => print!("{}", text),
+                                UnifiedStreamEvent::Done { .. } => println!("\n\n--- Done ---"),
+                                UnifiedStreamEvent::Error(e) => eprintln!("\nError: {}", e),
                                 _ => {}
                             }
                         }
                     }
                 }
             }
-            StreamEvent::Error(e) => {
+            UnifiedStreamEvent::Error(e) => {
                 eprintln!("\nStream error: {}", e);
             }
             _ => {}
@@ -204,12 +205,16 @@ mod tests {
         ]);
         let mut message = Message::new(Role::Assistant, "");
         for event in [
-            StreamEvent::ContentDelta("Let me ".into()),
-            StreamEvent::ReasoningDelta("Check ".into()),
-            StreamEvent::ReasoningDetailsDelta(serde_json::from_value(first.clone()).unwrap()),
-            StreamEvent::ContentDelta("check.".into()),
-            StreamEvent::ReasoningDelta("weather".into()),
-            StreamEvent::ReasoningDetailsDelta(serde_json::from_value(second.clone()).unwrap()),
+            UnifiedStreamEvent::ContentDelta("Let me ".into()),
+            UnifiedStreamEvent::ReasoningDelta("Check ".into()),
+            UnifiedStreamEvent::ReasoningDetailsDelta(
+                serde_json::from_value(first.clone()).unwrap(),
+            ),
+            UnifiedStreamEvent::ContentDelta("check.".into()),
+            UnifiedStreamEvent::ReasoningDelta("weather".into()),
+            UnifiedStreamEvent::ReasoningDetailsDelta(
+                serde_json::from_value(second.clone()).unwrap(),
+            ),
         ] {
             record_assistant_delta(&mut message, &event);
         }

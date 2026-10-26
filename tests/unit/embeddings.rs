@@ -1,3 +1,5 @@
+use crate::test_client;
+use crate::test_client_with_attribution;
 use std::{
     io::{Read, Write},
     net::TcpListener,
@@ -7,7 +9,7 @@ use std::{
 };
 
 use openrouter_rs::api::embeddings::{
-    self, EmbeddingContentPart, EmbeddingInput, EmbeddingMultimodalInput, EmbeddingRequest,
+    EmbeddingContentPart, EmbeddingInput, EmbeddingMultimodalInput, EmbeddingRequest,
     EmbeddingResponse, EmbeddingVector,
 };
 
@@ -217,7 +219,9 @@ async fn test_list_embedding_models_path_and_auth_header() {
     });
 
     let base_url = format!("http://{addr}/api/v1");
-    let models = embeddings::list_embedding_models(&base_url, "api-key")
+    let models = test_client(&base_url, "api-key")
+        .models()
+        .list_embedding_models()
         .await
         .expect("list embedding models should succeed");
     assert!(models.is_empty(), "response payload should parse");
@@ -317,14 +321,15 @@ async fn test_create_embedding_path_body_and_headers() {
     let x_title = Some("openrouter-rs-tests".to_string());
     let http_referer = Some("https://github.com/realmorrisliu/openrouter-rs".to_string());
     let app_categories = Some(vec!["cli-agent".to_string()]);
-    let response = embeddings::create_embedding(
+    let response = test_client_with_attribution(
         &base_url,
         "api-key",
         &x_title,
         &http_referer,
         &app_categories,
-        &request,
     )
+    .models()
+    .create_embedding(&request)
     .await
     .expect("create embedding should succeed");
     assert_eq!(response.object, "list");

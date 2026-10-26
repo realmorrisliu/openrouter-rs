@@ -14,10 +14,7 @@ use crate::{
     types::{
         ModelCategory, PaginationOptions, SupportedParameters,
         completion::CompletionsResponse,
-        stream::{
-            ToolAwareStream, UnifiedStream, adapt_chat_stream, adapt_messages_stream,
-            adapt_responses_stream,
-        },
+        stream::{UnifiedStream, adapt_chat_stream, adapt_messages_stream, adapt_responses_stream},
     },
 };
 
@@ -202,6 +199,20 @@ impl OpenRouterClient {
         &self.http_client
     }
 
+    pub(crate) fn request_context<'a>(
+        &'a self,
+        credential: &'a str,
+    ) -> crate::transport::RequestContext<'a> {
+        crate::transport::RequestContext {
+            http_client: &self.http_client,
+            base_url: &self.base_url,
+            credential,
+            x_title: &self.x_title,
+            http_referer: &self.http_referer,
+            app_categories: &self.app_categories,
+        }
+    }
+
     fn require_api_key(&self) -> Result<&str, OpenRouterError> {
         self.api_key
             .as_deref()
@@ -220,2467 +231,6 @@ impl OpenRouterClientBuilder {
     }
 }
 
-#[doc(hidden)]
-impl OpenRouterClient {
-    /// Creates a new API key. Requires a management API key.
-    ///
-    /// # Arguments
-    ///
-    /// * `name` - The display name for the new API key.
-    /// * `limit` - Optional credit limit for the new API key.
-    ///
-    /// # Returns
-    ///
-    /// * `Result<api_keys::ApiKey, OpenRouterError>` - The created API key.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// # use openrouter_rs::OpenRouterClient;
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OpenRouterClient::builder().management_key("your_management_key").build()?;
-    /// let api_key = client.create_api_key("New API Key", Some(100.0)).await?;
-    /// println!("{:?}", api_key);
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub async fn create_api_key(
-        &self,
-        name: &str,
-        limit: Option<f64>,
-    ) -> Result<api_keys::ApiKey, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            api_keys::create_api_key_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                name,
-                limit,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Creates a new API key in the specified workspace. Requires a management API key.
-    pub async fn create_api_key_in_workspace(
-        &self,
-        name: &str,
-        limit: Option<f64>,
-        workspace_id: Option<&str>,
-    ) -> Result<api_keys::ApiKey, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            api_keys::create_api_key_in_workspace_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                name,
-                limit,
-                workspace_id,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Get information on the API key associated with the current authentication session.
-    ///
-    /// # Returns
-    ///
-    /// * `Result<api_keys::ApiKeyDetails, OpenRouterError>` - The details of the current API key.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// # use openrouter_rs::OpenRouterClient;
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
-    /// let api_key_details = client.get_current_api_key_info().await?;
-    /// println!("{:?}", api_key_details);
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub async fn get_current_api_key_info(
-        &self,
-    ) -> Result<api_keys::ApiKeyDetails, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            api_keys::get_current_api_key_with_client(self.http_client(), &self.base_url, api_key)
-                .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Deletes an API key. Requires a management API key.
-    ///
-    /// # Arguments
-    ///
-    /// * `hash` - The hash of the API key to delete.
-    ///
-    /// # Returns
-    ///
-    /// * `Result<bool, OpenRouterError>` - A boolean indicating whether the deletion was successful.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// # use openrouter_rs::OpenRouterClient;
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OpenRouterClient::builder().management_key("your_management_key").build()?;
-    /// let success = client.delete_api_key("api_key_hash").await?;
-    /// println!("Deletion successful: {}", success);
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub async fn delete_api_key(&self, hash: &str) -> Result<bool, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            api_keys::delete_api_key_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                hash,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Updates an existing API key. Requires a management API key.
-    ///
-    /// # Arguments
-    ///
-    /// * `hash` - The hash of the API key to update.
-    /// * `name` - Optional new display name for the API key.
-    /// * `disabled` - Optional flag to disable the API key.
-    /// * `limit` - Optional new credit limit for the API key.
-    ///
-    /// # Returns
-    ///
-    /// * `Result<api_keys::ApiKey, OpenRouterError>` - The updated API key.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// # use openrouter_rs::OpenRouterClient;
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OpenRouterClient::builder().management_key("your_management_key").build()?;
-    /// let updated_api_key = client.update_api_key("api_key_hash", Some("Updated Name".to_string()), Some(false), Some(200.0)).await?;
-    /// println!("{:?}", updated_api_key);
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub async fn update_api_key(
-        &self,
-        hash: &str,
-        name: Option<String>,
-        disabled: Option<bool>,
-        limit: Option<f64>,
-    ) -> Result<api_keys::ApiKey, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            api_keys::update_api_key_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                hash,
-                name,
-                disabled,
-                limit,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    async fn list_api_keys_paginated(
-        &self,
-        pagination: Option<PaginationOptions>,
-        include_disabled: Option<bool>,
-    ) -> Result<Vec<api_keys::ApiKey>, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            api_keys::list_api_keys_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                pagination,
-                include_disabled,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    async fn list_api_keys_in_workspace_paginated(
-        &self,
-        pagination: Option<PaginationOptions>,
-        include_disabled: Option<bool>,
-        workspace_id: Option<&str>,
-    ) -> Result<Vec<api_keys::ApiKey>, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            api_keys::list_api_keys_in_workspace_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                pagination,
-                include_disabled,
-                workspace_id,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Returns details about a specific API key. Requires a management API key.
-    ///
-    /// # Arguments
-    ///
-    /// * `hash` - The hash of the API key to retrieve.
-    ///
-    /// # Returns
-    ///
-    /// * `Result<api_keys::ApiKey, OpenRouterError>` - The details of the specified API key.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// # use openrouter_rs::OpenRouterClient;
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OpenRouterClient::builder().management_key("your_management_key").build()?;
-    /// let api_key = client.get_api_key("api_key_hash").await?;
-    /// println!("{:?}", api_key);
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub async fn get_api_key(&self, hash: &str) -> Result<api_keys::ApiKey, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            api_keys::get_api_key_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                hash,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Create an authorization code for PKCE flow (`POST /auth/keys/code`).
-    ///
-    /// # Arguments
-    ///
-    /// * `request` - The auth-code creation request built with `CreateAuthCodeRequest::builder()`.
-    ///
-    /// # Returns
-    ///
-    /// * `Result<auth::AuthCodeData, OpenRouterError>` - The created authorization code payload.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// # use openrouter_rs::{OpenRouterClient, api::auth};
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
-    ///
-    /// let create = auth::CreateAuthCodeRequest::builder()
-    ///     .callback_url("https://myapp.com/auth/callback")
-    ///     .code_challenge("E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM")
-    ///     .code_challenge_method(auth::CodeChallengeMethod::S256)
-    ///     .build()?;
-    ///
-    /// let auth_code = client.create_auth_code(&create).await?;
-    ///
-    /// let exchanged = client
-    ///     .exchange_code_for_api_key(
-    ///         &auth_code.id,
-    ///         Some("your_pkce_code_verifier"),
-    ///         Some(auth::CodeChallengeMethod::S256),
-    ///     )
-    ///     .await?;
-    ///
-    /// println!("New key: {}", exchanged.key);
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub async fn create_auth_code(
-        &self,
-        request: &auth::CreateAuthCodeRequest,
-    ) -> Result<auth::AuthCodeData, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            auth::create_auth_code_with_client(self.http_client(), &self.base_url, api_key, request)
-                .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// List guardrails (`GET /guardrails`). Requires a management key.
-    pub async fn list_guardrails(
-        &self,
-        pagination: Option<PaginationOptions>,
-    ) -> Result<guardrails::GuardrailListResponse, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            guardrails::list_guardrails_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                pagination,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// List guardrails scoped to a workspace (`GET /guardrails?workspace_id=...`).
-    pub async fn list_guardrails_in_workspace(
-        &self,
-        pagination: Option<PaginationOptions>,
-        workspace_id: Option<&str>,
-    ) -> Result<guardrails::GuardrailListResponse, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            guardrails::list_guardrails_in_workspace_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                pagination,
-                workspace_id,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Create a guardrail (`POST /guardrails`). Requires a management key.
-    pub async fn create_guardrail(
-        &self,
-        request: &guardrails::CreateGuardrailRequest,
-    ) -> Result<guardrails::Guardrail, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            guardrails::create_guardrail_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Get a guardrail by ID (`GET /guardrails/{id}`). Requires a management key.
-    pub async fn get_guardrail(&self, id: &str) -> Result<guardrails::Guardrail, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            guardrails::get_guardrail_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                id,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Update a guardrail (`PATCH /guardrails/{id}`). Requires a management key.
-    pub async fn update_guardrail(
-        &self,
-        id: &str,
-        request: &guardrails::UpdateGuardrailRequest,
-    ) -> Result<guardrails::Guardrail, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            guardrails::update_guardrail_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                id,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Delete a guardrail (`DELETE /guardrails/{id}`). Requires a management key.
-    pub async fn delete_guardrail(&self, id: &str) -> Result<bool, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            guardrails::delete_guardrail_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                id,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// List key assignments for a guardrail (`GET /guardrails/{id}/assignments/keys`).
-    pub async fn list_guardrail_key_assignments(
-        &self,
-        id: &str,
-        pagination: Option<PaginationOptions>,
-    ) -> Result<guardrails::GuardrailKeyAssignmentsResponse, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            guardrails::list_guardrail_key_assignments_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                id,
-                pagination,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Bulk assign key hashes to a guardrail (`POST /guardrails/{id}/assignments/keys`).
-    pub async fn bulk_assign_keys_to_guardrail(
-        &self,
-        id: &str,
-        request: &guardrails::BulkKeyAssignmentRequest,
-    ) -> Result<guardrails::AssignedCountResponse, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            guardrails::bulk_assign_keys_to_guardrail_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                id,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Bulk unassign key hashes from a guardrail (`POST /guardrails/{id}/assignments/keys/remove`).
-    pub async fn bulk_unassign_keys_from_guardrail(
-        &self,
-        id: &str,
-        request: &guardrails::BulkKeyAssignmentRequest,
-    ) -> Result<guardrails::UnassignedCountResponse, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            guardrails::bulk_unassign_keys_from_guardrail_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                id,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// List member assignments for a guardrail (`GET /guardrails/{id}/assignments/members`).
-    pub async fn list_guardrail_member_assignments(
-        &self,
-        id: &str,
-        pagination: Option<PaginationOptions>,
-    ) -> Result<guardrails::GuardrailMemberAssignmentsResponse, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            guardrails::list_guardrail_member_assignments_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                id,
-                pagination,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Bulk assign members to a guardrail (`POST /guardrails/{id}/assignments/members`).
-    pub async fn bulk_assign_members_to_guardrail(
-        &self,
-        id: &str,
-        request: &guardrails::BulkMemberAssignmentRequest,
-    ) -> Result<guardrails::AssignedCountResponse, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            guardrails::bulk_assign_members_to_guardrail_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                id,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Bulk unassign members from a guardrail (`POST /guardrails/{id}/assignments/members/remove`).
-    pub async fn bulk_unassign_members_from_guardrail(
-        &self,
-        id: &str,
-        request: &guardrails::BulkMemberAssignmentRequest,
-    ) -> Result<guardrails::UnassignedCountResponse, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            guardrails::bulk_unassign_members_from_guardrail_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                id,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// List all key assignments (`GET /guardrails/assignments/keys`). Requires a management key.
-    pub async fn list_key_assignments(
-        &self,
-        pagination: Option<PaginationOptions>,
-    ) -> Result<guardrails::GuardrailKeyAssignmentsResponse, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            guardrails::list_key_assignments_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                pagination,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// List all member assignments (`GET /guardrails/assignments/members`). Requires a management key.
-    pub async fn list_member_assignments(
-        &self,
-        pagination: Option<PaginationOptions>,
-    ) -> Result<guardrails::GuardrailMemberAssignmentsResponse, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            guardrails::list_member_assignments_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                pagination,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Exchange an authorization code from the PKCE flow for a user-controlled API key.
-    ///
-    /// # Arguments
-    ///
-    /// * `code` - The authorization code received from the OAuth redirect.
-    /// * `code_verifier` - The code verifier if code_challenge was used in the authorization request.
-    /// * `code_challenge_method` - The method used to generate the code challenge.
-    ///
-    /// # Returns
-    ///
-    /// * `Result<auth::AuthResponse, OpenRouterError>` - The API key and user ID associated with the API key.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// # use openrouter_rs::{OpenRouterClient, api::auth};
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
-    /// let auth_response = client.exchange_code_for_api_key(
-    ///     "auth_code",
-    ///     Some("code_verifier"),
-    ///     Some(auth::CodeChallengeMethod::S256),
-    /// ).await?;
-    /// println!("{:?}", auth_response);
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub async fn exchange_code_for_api_key(
-        &self,
-        code: &str,
-        code_verifier: Option<&str>,
-        code_challenge_method: Option<auth::CodeChallengeMethod>,
-    ) -> Result<auth::AuthResponse, OpenRouterError> {
-        auth::exchange_code_for_api_key_with_client(
-            self.http_client(),
-            &self.base_url,
-            code,
-            code_verifier,
-            code_challenge_method,
-        )
-        .await
-    }
-
-    /// Send a chat completion request to a selected model.
-    ///
-    /// # Arguments
-    ///
-    /// * `request` - The chat completion request built using ChatCompletionRequest::builder().
-    ///
-    /// # Returns
-    ///
-    /// * `Result<chat::ChatCompletionResponse, OpenRouterError>` - The response from the chat completion request.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// # use openrouter_rs::{OpenRouterClient, api::chat::{self, Message}, types::Role};
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
-    /// let request = chat::ChatCompletionRequest::builder()
-    ///     .model("deepseek/deepseek-chat-v3-0324:free")
-    ///     .messages(vec![Message::new(Role::User, "What is the meaning of life?")])
-    ///     .max_tokens(100)
-    ///     .temperature(0.7)
-    ///     .build()?;
-    /// let response = client.send_chat_completion(&request).await?;
-    /// println!("{:?}", response);
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub async fn send_chat_completion(
-        &self,
-        request: &chat::ChatCompletionRequest,
-    ) -> Result<CompletionsResponse, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            chat::send_chat_completion_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                &self.x_title,
-                &self.http_referer,
-                &self.app_categories,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Streams chat completion events from a selected model.
-    ///
-    /// # Arguments
-    ///
-    /// * `request` - The chat completion request built using ChatCompletionRequest::builder().
-    ///
-    /// # Returns
-    ///
-    /// * `Result<BoxStream<'static, Result<CompletionsResponse, OpenRouterError>>, OpenRouterError>` - A stream of chat completion events or an error.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// # use futures_util::StreamExt;
-    /// # use openrouter_rs::{OpenRouterClient, api::chat::{self, Message}, types::Role};
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
-    /// let request = chat::ChatCompletionRequest::builder()
-    ///     .model("deepseek/deepseek-chat-v3-0324:free")
-    ///     .messages(vec![Message::new(Role::User, "Tell me a joke.")])
-    ///     .max_tokens(50)
-    ///     .temperature(0.5)
-    ///     .build()?;
-    /// let mut stream = client.stream_chat_completion(&request).await?;
-    /// while let Some(event) = stream.next().await {
-    ///     match event {
-    ///         Ok(event) => println!("{:?}", event),
-    ///         Err(e) => eprintln!("Error: {:?}", e),
-    ///     }
-    /// }
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub async fn stream_chat_completion(
-        &self,
-        request: &chat::ChatCompletionRequest,
-    ) -> Result<BoxStream<'static, Result<CompletionsResponse, OpenRouterError>>, OpenRouterError>
-    {
-        if let Some(api_key) = &self.api_key {
-            chat::stream_chat_completion_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                &self.x_title,
-                &self.http_referer,
-                &self.app_categories,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Streams chat completion events with tool-call-aware processing.
-    ///
-    /// Returns a [`ToolAwareStream`] that yields [`StreamEvent`](crate::types::stream::StreamEvent)
-    /// values. Content and reasoning deltas are forwarded immediately, while
-    /// tool call fragments are accumulated internally and emitted as complete
-    /// [`ToolCall`](crate::types::completion::ToolCall) objects in the final
-    /// [`StreamEvent::Done`](crate::types::stream::StreamEvent::Done) event.
-    ///
-    /// This is the recommended way to stream responses when using tool calling.
-    ///
-    /// # Arguments
-    ///
-    /// * `request` - The chat completion request (should include tools).
-    ///
-    /// # Returns
-    ///
-    /// * `Result<ToolAwareStream, OpenRouterError>` - A stream of [`StreamEvent`](crate::types::stream::StreamEvent) values.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// use futures_util::StreamExt;
-    /// use openrouter_rs::types::stream::StreamEvent;
-    ///
-    /// # async fn example(client: openrouter_rs::OpenRouterClient, request: openrouter_rs::api::chat::ChatCompletionRequest) -> Result<(), Box<dyn std::error::Error>> {
-    /// let mut stream = client.stream_chat_completion_tool_aware(&request).await?;
-    ///
-    /// while let Some(event) = stream.next().await {
-    ///     match event {
-    ///         StreamEvent::ContentDelta(text) => print!("{}", text),
-    ///         StreamEvent::Done { tool_calls, .. } => {
-    ///             for tc in &tool_calls {
-    ///                 println!("Tool call: {}", tc.name());
-    ///             }
-    ///         },
-    ///         _ => {}
-    ///     }
-    /// }
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub async fn stream_chat_completion_tool_aware(
-        &self,
-        request: &chat::ChatCompletionRequest,
-    ) -> Result<ToolAwareStream, OpenRouterError> {
-        let raw_stream = self.stream_chat_completion(request).await?;
-        Ok(ToolAwareStream::new(raw_stream))
-    }
-
-    /// Stream chat completion events through the unified stream abstraction.
-    pub async fn stream_chat_completion_unified(
-        &self,
-        request: &chat::ChatCompletionRequest,
-    ) -> Result<UnifiedStream, OpenRouterError> {
-        let raw_stream = self.stream_chat_completion(request).await?;
-        Ok(adapt_chat_stream(raw_stream))
-    }
-
-    /// Create a non-streaming response using the OpenRouter Responses API.
-    ///
-    /// # Arguments
-    ///
-    /// * `request` - The responses request built using `ResponsesRequest::builder()`.
-    ///
-    /// # Returns
-    ///
-    /// * `Result<responses::ResponsesResponse, OpenRouterError>` - The response payload.
-    pub async fn create_response(
-        &self,
-        request: &responses::ResponsesRequest,
-    ) -> Result<responses::ResponsesResponse, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            responses::create_response_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                &self.x_title,
-                &self.http_referer,
-                &self.app_categories,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Stream response events from the OpenRouter Responses API.
-    ///
-    /// # Arguments
-    ///
-    /// * `request` - The responses request built using `ResponsesRequest::builder()`.
-    ///
-    /// # Returns
-    ///
-    /// * `Result<BoxStream<'static, Result<responses::ResponsesStreamEvent, OpenRouterError>>, OpenRouterError>` - A stream of response events.
-    pub async fn stream_response(
-        &self,
-        request: &responses::ResponsesRequest,
-    ) -> Result<
-        BoxStream<'static, Result<responses::ResponsesStreamEvent, OpenRouterError>>,
-        OpenRouterError,
-    > {
-        if let Some(api_key) = &self.api_key {
-            responses::stream_response_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                &self.x_title,
-                &self.http_referer,
-                &self.app_categories,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Stream Responses API events through the unified stream abstraction.
-    pub async fn stream_response_unified(
-        &self,
-        request: &responses::ResponsesRequest,
-    ) -> Result<UnifiedStream, OpenRouterError> {
-        let raw_stream = self.stream_response(request).await?;
-        Ok(adapt_responses_stream(raw_stream))
-    }
-
-    /// Create a non-streaming message using the Anthropic-compatible `/messages` API.
-    pub async fn create_message(
-        &self,
-        request: &messages::AnthropicMessagesRequest,
-    ) -> Result<messages::AnthropicMessagesResponse, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            messages::create_message_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                &self.x_title,
-                &self.http_referer,
-                &self.app_categories,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Stream SSE events from the Anthropic-compatible `/messages` API.
-    pub async fn stream_messages(
-        &self,
-        request: &messages::AnthropicMessagesRequest,
-    ) -> Result<
-        BoxStream<'static, Result<messages::AnthropicMessagesSseEvent, OpenRouterError>>,
-        OpenRouterError,
-    > {
-        if let Some(api_key) = &self.api_key {
-            messages::stream_messages_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                &self.x_title,
-                &self.http_referer,
-                &self.app_categories,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Stream Messages API events through the unified stream abstraction.
-    pub async fn stream_messages_unified(
-        &self,
-        request: &messages::AnthropicMessagesRequest,
-    ) -> Result<UnifiedStream, OpenRouterError> {
-        let raw_stream = self.stream_messages(request).await?;
-        Ok(adapt_messages_stream(raw_stream))
-    }
-
-    /// Create or update a preset from a chat-completions request body.
-    ///
-    /// Equivalent to `POST /presets/{slug}/chat/completions`.
-    pub async fn create_chat_completion_preset(
-        &self,
-        slug: &str,
-        request: &chat::ChatCompletionRequest,
-    ) -> Result<presets::PresetWithDesignatedVersion, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            presets::create_chat_completion_preset_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                slug,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Create or update a preset from a Responses API request body.
-    ///
-    /// Equivalent to `POST /presets/{slug}/responses`.
-    pub async fn create_response_preset(
-        &self,
-        slug: &str,
-        request: &responses::ResponsesRequest,
-    ) -> Result<presets::PresetWithDesignatedVersion, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            presets::create_response_preset_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                slug,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Create or update a preset from an Anthropic-compatible Messages request body.
-    ///
-    /// Equivalent to `POST /presets/{slug}/messages`.
-    pub async fn create_message_preset(
-        &self,
-        slug: &str,
-        request: &messages::AnthropicMessagesRequest,
-    ) -> Result<presets::PresetWithDesignatedVersion, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            presets::create_message_preset_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                slug,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// List presets for the configured management key.
-    pub async fn list_presets(
-        &self,
-        pagination: Option<PaginationOptions>,
-    ) -> Result<presets::ListPresetsResponse, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            presets::list_presets_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                pagination,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Get one preset with its designated version.
-    pub async fn get_preset(
-        &self,
-        slug: &str,
-    ) -> Result<presets::PresetWithDesignatedVersion, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            presets::get_preset_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                slug,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// List versions for one preset.
-    pub async fn list_preset_versions(
-        &self,
-        slug: &str,
-        pagination: Option<PaginationOptions>,
-    ) -> Result<presets::ListPresetVersionsResponse, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            presets::list_preset_versions_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                slug,
-                pagination,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Get a specific preset version.
-    pub async fn get_preset_version(
-        &self,
-        slug: &str,
-        version: &str,
-    ) -> Result<presets::PresetDesignatedVersion, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            presets::get_preset_version_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                slug,
-                version,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Submit an embeddings request.
-    ///
-    /// # Arguments
-    ///
-    /// * `request` - The embeddings request built using `EmbeddingRequest::builder()`.
-    ///
-    /// # Returns
-    ///
-    /// * `Result<embeddings::EmbeddingResponse, OpenRouterError>` - The embeddings response.
-    pub async fn create_embedding(
-        &self,
-        request: &embeddings::EmbeddingRequest,
-    ) -> Result<embeddings::EmbeddingResponse, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            embeddings::create_embedding_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                &self.x_title,
-                &self.http_referer,
-                &self.app_categories,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Submit a rerank request.
-    pub async fn create_rerank(
-        &self,
-        request: &rerank::RerankRequest,
-    ) -> Result<rerank::RerankResponse, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            rerank::create_rerank_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                &self.x_title,
-                &self.http_referer,
-                &self.app_categories,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Submit a speech request and return raw audio bytes.
-    pub async fn create_speech(
-        &self,
-        request: &audio::SpeechRequest,
-    ) -> Result<Vec<u8>, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            audio::create_speech_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                &self.x_title,
-                &self.http_referer,
-                &self.app_categories,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Submit an audio transcription request.
-    pub async fn create_transcription(
-        &self,
-        request: &audio::TranscriptionRequest,
-    ) -> Result<audio::TranscriptionResponse, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            audio::create_transcription_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                &self.x_title,
-                &self.http_referer,
-                &self.app_categories,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Submit a text-to-speech request and return raw audio bytes.
-    #[deprecated(note = "use create_speech")]
-    pub async fn create_tts(
-        &self,
-        request: &audio::SpeechRequest,
-    ) -> Result<Vec<u8>, OpenRouterError> {
-        self.create_speech(request).await
-    }
-
-    /// Submit an image generation request.
-    pub async fn create_image_generation(
-        &self,
-        request: &images::ImageGenerationRequest,
-    ) -> Result<images::ImageGenerationResponse, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            images::create_image_generation_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                &self.x_title,
-                &self.http_referer,
-                &self.app_categories,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Stream image generation events.
-    pub async fn stream_image_generation(
-        &self,
-        request: &images::ImageGenerationRequest,
-    ) -> Result<
-        BoxStream<'static, Result<images::ImageStreamingResponse, OpenRouterError>>,
-        OpenRouterError,
-    > {
-        if let Some(api_key) = &self.api_key {
-            images::stream_image_generation_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                &self.x_title,
-                &self.http_referer,
-                &self.app_categories,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// List all available image generation models.
-    pub async fn list_image_models(&self) -> Result<Vec<images::ImageModel>, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            images::list_image_models_with_client(self.http_client(), &self.base_url, api_key).await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// List provider endpoints for one image generation model.
-    pub async fn list_image_model_endpoints(
-        &self,
-        author: &str,
-        slug: &str,
-    ) -> Result<images::ImageModelEndpointsResponse, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            images::list_image_model_endpoints_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                author,
-                slug,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Submit a video generation request.
-    pub async fn create_video_generation(
-        &self,
-        request: &videos::VideoGenerationRequest,
-    ) -> Result<videos::VideoGenerationResponse, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            videos::create_video_generation_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                &self.x_title,
-                &self.http_referer,
-                &self.app_categories,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// List all available video generation models.
-    pub async fn list_video_models(&self) -> Result<Vec<videos::VideoModel>, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            videos::list_video_models_with_client(self.http_client(), &self.base_url, api_key).await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Get the status of one video generation job.
-    pub async fn get_video_generation(
-        &self,
-        job_id: &str,
-    ) -> Result<videos::VideoGenerationResponse, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            videos::get_video_generation_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                job_id,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Download the binary output for a completed video generation job.
-    pub async fn get_video_content(
-        &self,
-        job_id: &str,
-        index: Option<u32>,
-    ) -> Result<Vec<u8>, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            videos::get_video_content_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                job_id,
-                index,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// List files in the default or selected workspace.
-    pub async fn list_files(
-        &self,
-        limit: Option<u32>,
-        cursor: Option<&str>,
-        workspace_id: Option<&str>,
-    ) -> Result<files::FileListResponse, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            files::list_files_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                limit,
-                cursor,
-                workspace_id,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Upload a file into the default or selected workspace.
-    pub async fn upload_file(
-        &self,
-        request: &files::UploadFileRequest,
-        workspace_id: Option<&str>,
-    ) -> Result<files::FileMetadata, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            files::upload_file_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                request,
-                workspace_id,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Get metadata for one file.
-    pub async fn get_file_metadata(
-        &self,
-        file_id: &str,
-        workspace_id: Option<&str>,
-    ) -> Result<files::FileMetadata, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            files::get_file_metadata_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                file_id,
-                workspace_id,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Download raw content for one file.
-    pub async fn download_file_content(
-        &self,
-        file_id: &str,
-        workspace_id: Option<&str>,
-    ) -> Result<Vec<u8>, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            files::download_file_content_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                file_id,
-                workspace_id,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Delete one file.
-    pub async fn delete_file(
-        &self,
-        file_id: &str,
-        workspace_id: Option<&str>,
-    ) -> Result<files::FileDeleteResponse, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            files::delete_file_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                file_id,
-                workspace_id,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// List all available embeddings models.
-    pub async fn list_embedding_models(&self) -> Result<Vec<models::Model>, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            embeddings::list_embedding_models_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Creates and hydrates a Coinbase Commerce charge for cryptocurrency payments.
-    ///
-    /// # Arguments
-    ///
-    /// * `request` - The request data built using CoinbaseChargeRequest::builder().
-    ///
-    /// # Returns
-    ///
-    /// * `Result<credits::CoinbaseChargeData, OpenRouterError>` - The response data containing the charge details.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// # use openrouter_rs::{OpenRouterClient, api::credits};
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
-    /// let request = credits::CoinbaseChargeRequest::builder()
-    ///     .amount(100.0)
-    ///     .sender("sender_address")
-    ///     .chain_id(1)
-    ///     .build()?;
-    /// let response = client.create_coinbase_charge(&request).await?;
-    /// println!("{:?}", response);
-    /// # Ok(())
-    /// # }
-    /// ```
-    #[deprecated(note = "upstream deprecated Coinbase charges; use the web credits purchase flow")]
-    pub async fn create_coinbase_charge(
-        &self,
-        request: &credits::CoinbaseChargeRequest,
-    ) -> Result<credits::CoinbaseChargeData, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            credits::create_coinbase_charge_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Returns the total credits purchased and used for the authenticated user.
-    ///
-    /// # Returns
-    ///
-    /// * `Result<credits::CreditsData, OpenRouterError>` - The response data containing the total credits and usage.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// # use openrouter_rs::OpenRouterClient;
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
-    /// let credits_data = client.get_credits().await?;
-    /// println!("{:?}", credits_data);
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub async fn get_credits(&self) -> Result<credits::CreditsData, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            credits::get_credits_with_client(self.http_client(), &self.base_url, api_key).await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Returns metadata about a specific generation request.
-    ///
-    /// # Arguments
-    ///
-    /// * `id` - The generation identifier returned by OpenRouter.
-    ///
-    /// # Returns
-    ///
-    /// * `Result<generation::GenerationData, OpenRouterError>` - The metadata of the generation request or an error.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// # use openrouter_rs::OpenRouterClient;
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
-    /// let generation_data = client.get_generation("generation_id").await?;
-    /// println!("{:?}", generation_data);
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub async fn get_generation(
-        &self,
-        id: impl Into<String>,
-    ) -> Result<generation::GenerationData, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            generation::get_generation_with_client(self.http_client(), &self.base_url, api_key, id)
-                .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Returns the stored prompt/input and completion/output content for a specific generation.
-    ///
-    /// # Arguments
-    ///
-    /// * `id` - The generation identifier returned by OpenRouter.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// # use openrouter_rs::OpenRouterClient;
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
-    /// let generation_content = client.get_generation_content("generation_id").await?;
-    /// println!("{:?}", generation_content.output);
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub async fn get_generation_content(
-        &self,
-        id: impl Into<String>,
-    ) -> Result<generation::GenerationContentData, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            generation::get_generation_content_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                id,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Submit structured feedback for a generation. Requires a management key.
-    pub async fn submit_generation_feedback(
-        &self,
-        request: &generation::GenerationFeedbackRequest,
-    ) -> Result<generation::GenerationFeedbackData, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            generation::submit_generation_feedback_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Returns a list of models available through the API.
-    ///
-    /// # Returns
-    ///
-    /// * `Result<Vec<models::Model>, OpenRouterError>` - A list of models or an error.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// # use openrouter_rs::OpenRouterClient;
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
-    /// let models = client.list_models().await?;
-    /// println!("{:?}", models);
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub async fn list_models(&self) -> Result<Vec<models::Model>, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            models::list_models_with_client(self.http_client(), &self.base_url, api_key, None, None)
-                .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Returns a list of models using the extended OpenAPI filter surface.
-    pub async fn list_models_filtered(
-        &self,
-        params: Option<&models::ListModelsParams>,
-    ) -> Result<Vec<models::Model>, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            models::list_models_with_params_and_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                params,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Returns metadata about one model.
-    pub async fn get_model(
-        &self,
-        author: &str,
-        slug: &str,
-    ) -> Result<models::Model, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            models::get_model_with_client(self.http_client(), &self.base_url, api_key, author, slug)
-                .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Returns a list of models available through the API by category.
-    ///
-    /// # Arguments
-    ///
-    /// * `category` - The category of the models.
-    ///
-    /// # Returns
-    ///
-    /// * `Result<Vec<models::Model>, OpenRouterError>` - A list of models or an error.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// # use openrouter_rs::{OpenRouterClient, types::ModelCategory};
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
-    /// let models = client.list_models_by_category(ModelCategory::Programming).await?;
-    /// println!("{:?}", models);
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub async fn list_models_by_category(
-        &self,
-        category: ModelCategory,
-    ) -> Result<Vec<models::Model>, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            models::list_models_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                Some(category),
-                None,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Returns a list of models available for the specified supported parameters.
-    ///
-    /// # Arguments
-    ///
-    /// * `supported_parameters` - The supported parameters for the models.
-    ///
-    /// # Returns
-    ///
-    /// * `Result<Vec<models::Model>, OpenRouterError>` - A list of models or an error.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// # use openrouter_rs::{OpenRouterClient, types::SupportedParameters};
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
-    /// let models = client.list_models_by_parameters(SupportedParameters::Tools).await?;
-    /// println!("{:?}", models);
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub async fn list_models_by_parameters(
-        &self,
-        supported_parameters: SupportedParameters,
-    ) -> Result<Vec<models::Model>, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            models::list_models_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                None,
-                Some(supported_parameters),
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Returns details about the endpoints for a specific model.
-    ///
-    /// # Arguments
-    ///
-    /// * `author` - The author of the model.
-    /// * `slug` - The slug identifier for the model.
-    ///
-    /// # Returns
-    ///
-    /// * `Result<models::EndpointData, OpenRouterError>` - The endpoint data or an error.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// # use openrouter_rs::OpenRouterClient;
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = OpenRouterClient::builder().api_key("your_api_key").build()?;
-    /// let endpoint_data = client.list_model_endpoints("author_name", "model_slug").await?;
-    /// println!("{:?}", endpoint_data);
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub async fn list_model_endpoints(
-        &self,
-        author: &str,
-        slug: &str,
-    ) -> Result<models::EndpointData, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            models::list_model_endpoints_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                author,
-                slug,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// List all providers.
-    ///
-    /// This endpoint is public, but this SDK method still requires `api_key`
-    /// for consistency with other client operations.
-    pub async fn list_providers(&self) -> Result<Vec<discovery::Provider>, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            discovery::list_providers_with_client(self.http_client(), &self.base_url, api_key).await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// List models filtered by user provider preferences, privacy settings, and guardrails.
-    ///
-    /// Equivalent to `GET /models/user`.
-    pub async fn list_models_for_user(&self) -> Result<Vec<discovery::UserModel>, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            discovery::list_models_for_user_with_client(self.http_client(), &self.base_url, api_key)
-                .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Get the total number of available models.
-    ///
-    /// Equivalent to `GET /models/count`.
-    pub async fn count_models(&self) -> Result<discovery::ModelsCountData, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            discovery::count_models_with_client(self.http_client(), &self.base_url, api_key).await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Return daily token totals for top public models.
-    ///
-    /// Equivalent to `GET /datasets/rankings-daily`.
-    pub async fn get_rankings_daily(
-        &self,
-        start_date: Option<&str>,
-        end_date: Option<&str>,
-    ) -> Result<discovery::RankingsDailyResponse, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            discovery::get_rankings_daily_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                start_date,
-                end_date,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Return daily rankings using the full upstream filter surface.
-    pub async fn get_rankings_daily_filtered(
-        &self,
-        params: Option<&discovery::RankingsDailyParams>,
-    ) -> Result<discovery::RankingsDailyResponse, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            discovery::get_rankings_daily_with_params_and_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                params,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Return aggregated cost-per-session cells (`GET /datasets/session-cost`).
-    ///
-    /// Weekly refreshed, privacy-preserving medians of per-session USD spend for
-    /// the published harnesses. Licensed under CC BY 4.0 by OpenRouter.
-    pub async fn get_session_cost(
-        &self,
-        params: Option<&discovery::SessionCostParams>,
-    ) -> Result<discovery::SessionCostResponse, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            discovery::get_session_cost_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                params,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Return ranked applications over a date window.
-    pub async fn get_app_rankings(
-        &self,
-        params: Option<&discovery::AppRankingsParams>,
-    ) -> Result<discovery::AppRankingsResponse, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            discovery::get_app_rankings_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                params,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Return task classification market-share data.
-    ///
-    /// Equivalent to `GET /classifications/task`.
-    pub async fn get_task_classifications(
-        &self,
-        window: Option<&str>,
-    ) -> Result<discovery::TaskClassificationsResponse, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            discovery::get_task_classifications_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                window,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Return benchmark rows from a selected source.
-    ///
-    /// Equivalent to `GET /benchmarks`.
-    pub async fn get_benchmarks(
-        &self,
-        params: &discovery::UnifiedBenchmarksParams,
-    ) -> Result<discovery::UnifiedBenchmarksResponse, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            discovery::get_benchmarks_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                params,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Return Artificial Analysis benchmark rows.
-    #[deprecated(note = "use get_benchmarks with source `artificial-analysis`")]
-    #[allow(deprecated)]
-    pub async fn get_benchmarks_artificial_analysis(
-        &self,
-        max_results: Option<u32>,
-    ) -> Result<discovery::BenchmarksAAResponse, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            discovery::get_benchmarks_artificial_analysis_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                max_results,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Return Design Arena benchmark rows.
-    #[deprecated(note = "use get_benchmarks with source `design-arena`")]
-    #[allow(deprecated)]
-    pub async fn get_benchmarks_design_arena(
-        &self,
-        arena: Option<&str>,
-        category: Option<&str>,
-        max_results: Option<u32>,
-    ) -> Result<discovery::BenchmarksDAResponse, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            discovery::get_benchmarks_design_arena_with_client(
-                self.http_client(),
-                &self.base_url,
-                api_key,
-                arena,
-                category,
-                max_results,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Preview ZDR-compatible endpoints.
-    ///
-    /// Equivalent to `GET /endpoints/zdr`.
-    pub async fn list_zdr_endpoints(
-        &self,
-    ) -> Result<Vec<discovery::PublicEndpoint>, OpenRouterError> {
-        if let Some(api_key) = &self.api_key {
-            discovery::list_zdr_endpoints_with_client(self.http_client(), &self.base_url, api_key)
-                .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Get activity grouped by endpoint for the last 30 UTC days.
-    ///
-    /// Equivalent to `GET /activity`.
-    ///
-    /// Requires a management API key. In this SDK, configure that via
-    /// `OpenRouterClientBuilder::management_key(...)`.
-    ///
-    /// `date` is optional and should be `YYYY-MM-DD`.
-    pub async fn get_activity(
-        &self,
-        date: Option<&str>,
-    ) -> Result<Vec<discovery::ActivityItem>, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            discovery::get_activity_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                date,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Get activity grouped by endpoint with the full filter surface (`GET /activity`).
-    ///
-    /// Requires a management API key. In this SDK, configure that via
-    /// `OpenRouterClientBuilder::management_key(...)`.
-    pub async fn get_activity_with_params(
-        &self,
-        params: Option<&discovery::ActivityParams>,
-    ) -> Result<Vec<discovery::ActivityItem>, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            discovery::get_activity_with_params_and_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                params,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Get analytics metadata (`GET /analytics/meta`).
-    pub async fn get_analytics_meta(&self) -> Result<analytics::AnalyticsMeta, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            analytics::get_analytics_meta_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Query analytics (`POST /analytics/query`).
-    pub async fn query_analytics(
-        &self,
-        request: &analytics::AnalyticsQueryRequest,
-    ) -> Result<analytics::AnalyticsQueryResponse, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            analytics::query_analytics_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// List BYOK provider credentials (`GET /byok`). Requires a management key.
-    pub async fn list_byok_keys(
-        &self,
-        pagination: Option<PaginationOptions>,
-        workspace_id: Option<&str>,
-        provider: Option<&str>,
-    ) -> Result<byok::ByokKeyListResponse, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            byok::list_byok_keys_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                pagination,
-                workspace_id,
-                provider,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Create a BYOK provider credential (`POST /byok`). Requires a management key.
-    pub async fn create_byok_key(
-        &self,
-        request: &byok::CreateByokKeyRequest,
-    ) -> Result<byok::ByokKey, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            byok::create_byok_key_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Get a BYOK provider credential (`GET /byok/{id}`). Requires a management key.
-    pub async fn get_byok_key(&self, id: &str) -> Result<byok::ByokKey, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            byok::get_byok_key_with_client(self.http_client(), &self.base_url, management_key, id)
-                .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Update a BYOK provider credential (`PATCH /byok/{id}`). Requires a management key.
-    pub async fn update_byok_key(
-        &self,
-        id: &str,
-        request: &byok::UpdateByokKeyRequest,
-    ) -> Result<byok::ByokKey, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            byok::update_byok_key_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                id,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Delete a BYOK provider credential (`DELETE /byok/{id}`). Requires a management key.
-    pub async fn delete_byok_key(&self, id: &str) -> Result<bool, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            byok::delete_byok_key_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                id,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// List observability destinations (`GET /observability/destinations`).
-    pub async fn list_observability_destinations(
-        &self,
-        pagination: Option<PaginationOptions>,
-        workspace_id: Option<&str>,
-    ) -> Result<observability::ObservabilityDestinationListResponse, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            observability::list_observability_destinations_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                pagination,
-                workspace_id,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Create an observability destination (`POST /observability/destinations`).
-    pub async fn create_observability_destination(
-        &self,
-        request: &observability::CreateObservabilityDestinationRequest,
-    ) -> Result<observability::ObservabilityDestination, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            observability::create_observability_destination_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Get an observability destination (`GET /observability/destinations/{id}`).
-    pub async fn get_observability_destination(
-        &self,
-        id: &str,
-    ) -> Result<observability::ObservabilityDestination, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            observability::get_observability_destination_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                id,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Update an observability destination (`PATCH /observability/destinations/{id}`).
-    pub async fn update_observability_destination(
-        &self,
-        id: &str,
-        request: &observability::UpdateObservabilityDestinationRequest,
-    ) -> Result<observability::ObservabilityDestination, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            observability::update_observability_destination_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                id,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Delete an observability destination (`DELETE /observability/destinations/{id}`).
-    pub async fn delete_observability_destination(
-        &self,
-        id: &str,
-    ) -> Result<bool, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            observability::delete_observability_destination_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                id,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// List organization members for the configured management key.
-    pub async fn list_organization_members(
-        &self,
-        pagination: Option<PaginationOptions>,
-    ) -> Result<organization::OrganizationMembersResponse, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            organization::list_organization_members_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                pagination,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// List workspaces for the configured management key.
-    pub async fn list_workspaces(
-        &self,
-        pagination: Option<PaginationOptions>,
-    ) -> Result<workspaces::WorkspaceListResponse, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            workspaces::list_workspaces_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                pagination,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Create a workspace (`POST /workspaces`).
-    pub async fn create_workspace(
-        &self,
-        request: &workspaces::CreateWorkspaceRequest,
-    ) -> Result<workspaces::Workspace, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            workspaces::create_workspace_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Get a workspace (`GET /workspaces/{id}`).
-    pub async fn get_workspace(&self, id: &str) -> Result<workspaces::Workspace, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            workspaces::get_workspace_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                id,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Update a workspace (`PATCH /workspaces/{id}`).
-    pub async fn update_workspace(
-        &self,
-        id: &str,
-        request: &workspaces::UpdateWorkspaceRequest,
-    ) -> Result<workspaces::Workspace, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            workspaces::update_workspace_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                id,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Update a workspace and clear I/O logging API key filters (`PATCH /workspaces/{id}`).
-    pub async fn update_workspace_with_cleared_io_logging_api_key_ids(
-        &self,
-        id: &str,
-        request: &workspaces::UpdateWorkspaceRequest,
-    ) -> Result<workspaces::Workspace, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            workspaces::update_workspace_with_cleared_io_logging_api_key_ids_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                id,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Delete a workspace (`DELETE /workspaces/{id}`).
-    ///
-    /// Pass `Some(true)` for `confirm_default_workspace_deletion` to confirm
-    /// deleting the workspace's default settings along with it.
-    pub async fn delete_workspace(
-        &self,
-        id: &str,
-        confirm_default_workspace_deletion: Option<bool>,
-    ) -> Result<bool, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            workspaces::delete_workspace_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                id,
-                confirm_default_workspace_deletion,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// List budgets configured for a workspace (`GET /workspaces/{id}/budgets`).
-    pub async fn list_workspace_budgets(
-        &self,
-        id: &str,
-    ) -> Result<workspaces::ListWorkspaceBudgetsResponse, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            workspaces::list_workspace_budgets_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                id,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Retrieve the budget for one interval (`GET /workspaces/{id}/budgets/{interval}`).
-    pub async fn get_workspace_budget(
-        &self,
-        id: &str,
-        interval: &str,
-    ) -> Result<workspaces::GetWorkspaceBudgetResponse, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            workspaces::get_workspace_budget_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                id,
-                interval,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Create or update a workspace budget (`PUT /workspaces/{id}/budgets/{interval}`).
-    pub async fn upsert_workspace_budget(
-        &self,
-        id: &str,
-        interval: &str,
-        request: &workspaces::UpsertWorkspaceBudgetRequest,
-    ) -> Result<workspaces::UpsertWorkspaceBudgetResponse, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            workspaces::upsert_workspace_budget_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                id,
-                interval,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Delete a workspace budget (`DELETE /workspaces/{id}/budgets/{interval}`).
-    pub async fn delete_workspace_budget(
-        &self,
-        id: &str,
-        interval: &str,
-    ) -> Result<bool, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            workspaces::delete_workspace_budget_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                id,
-                interval,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// List organization members assigned to a workspace (`GET /workspaces/{id}/members`).
-    pub async fn list_workspace_members(
-        &self,
-        id: &str,
-        pagination: Option<PaginationOptions>,
-    ) -> Result<workspaces::ListWorkspaceMembersResponse, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            workspaces::list_workspace_members_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                id,
-                pagination,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Add multiple organization members to a workspace (`POST /workspaces/{id}/members/add`).
-    pub async fn add_workspace_members(
-        &self,
-        id: &str,
-        request: &workspaces::WorkspaceMembersRequest,
-    ) -> Result<workspaces::WorkspaceMembersAddResponse, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            workspaces::add_workspace_members_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                id,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-
-    /// Remove multiple organization members from a workspace (`POST /workspaces/{id}/members/remove`).
-    pub async fn remove_workspace_members(
-        &self,
-        id: &str,
-        request: &workspaces::WorkspaceMembersRequest,
-    ) -> Result<workspaces::WorkspaceMembersRemoveResponse, OpenRouterError> {
-        if let Some(management_key) = &self.management_key {
-            workspaces::remove_workspace_members_with_client(
-                self.http_client(),
-                &self.base_url,
-                management_key,
-                id,
-                request,
-            )
-            .await
-        } else {
-            Err(OpenRouterError::KeyNotConfigured)
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy)]
 pub struct BatchesClient<'a> {
     client: &'a OpenRouterClient,
@@ -2692,14 +242,7 @@ impl BatchesClient<'_> {
         params: &batches::ListBatchesParams,
     ) -> Result<batches::ListBatchesResponse, OpenRouterError> {
         batches::list_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.client.require_api_key()?),
             params,
         )
         .await
@@ -2709,28 +252,14 @@ impl BatchesClient<'_> {
         request: &batches::CreateBatchRequest,
     ) -> Result<batches::Batch, OpenRouterError> {
         batches::create_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.client.require_api_key()?),
             request,
         )
         .await
     }
     pub async fn get(&self, batch_id: &str) -> Result<batches::Batch, OpenRouterError> {
         batches::get_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.client.require_api_key()?),
             batch_id,
         )
         .await
@@ -2740,14 +269,7 @@ impl BatchesClient<'_> {
         batch_id: &str,
     ) -> Result<batches::DeleteBatchResponse, OpenRouterError> {
         batches::delete_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.client.require_api_key()?),
             batch_id,
         )
         .await
@@ -2770,14 +292,7 @@ impl InternsClient<'_> {
         request: &interns::SignInternDaemonRequest,
     ) -> Result<interns::SignInternDaemonResponse, OpenRouterError> {
         interns::sign_daemon_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.client.require_api_key()?),
             intern_id,
             "daemon/sign",
             request,
@@ -2794,14 +309,7 @@ impl InternsClient<'_> {
         request: &interns::SignInternDaemonRequest,
     ) -> Result<interns::SignInternDaemonResponse, OpenRouterError> {
         interns::sign_daemon_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.client.require_api_key()?),
             intern_id,
             "daemon-access/sign",
             request,
@@ -2816,14 +324,7 @@ impl InternsClient<'_> {
         request: &interns::InternInvokeRequest,
     ) -> Result<interns::InternInvokeResponse, OpenRouterError> {
         interns::invoke_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.client.require_api_key()?),
             intern_id,
             request,
         )
@@ -2835,14 +336,7 @@ impl InternsClient<'_> {
         intern_id: &str,
     ) -> Result<interns::InternDaemonAccess, OpenRouterError> {
         interns::daemon_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.client.require_api_key()?),
             intern_id,
             "daemon",
         )
@@ -2856,14 +350,7 @@ impl InternsClient<'_> {
         intern_id: &str,
     ) -> Result<interns::InternDaemonAccess, OpenRouterError> {
         interns::daemon_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.client.require_api_key()?),
             intern_id,
             "daemon-access",
         )
@@ -2875,9 +362,7 @@ impl InternsClient<'_> {
         params: &interns::ListInternsParams,
     ) -> Result<interns::InternListResponse, OpenRouterError> {
         interns::list_interns_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
+            &self.client.request_context(self.client.require_api_key()?),
             params,
         )
         .await
@@ -2889,9 +374,7 @@ impl InternsClient<'_> {
         idempotency_key: Option<&str>,
     ) -> Result<interns::Intern, OpenRouterError> {
         interns::create_intern_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
+            &self.client.request_context(self.client.require_api_key()?),
             idempotency_key,
             request,
         )
@@ -2900,9 +383,7 @@ impl InternsClient<'_> {
 
     pub async fn get(&self, intern_id: &str) -> Result<interns::Intern, OpenRouterError> {
         interns::get_intern_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
+            &self.client.request_context(self.client.require_api_key()?),
             intern_id,
         )
         .await
@@ -2915,14 +396,7 @@ impl InternsClient<'_> {
         version: Option<&str>,
     ) -> Result<interns::InternIcon, OpenRouterError> {
         interns::get_intern_icon_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.client.require_api_key()?),
             intern_id,
             version,
         )
@@ -2935,9 +409,7 @@ impl InternsClient<'_> {
         request: &interns::UpdateInternRequest,
     ) -> Result<interns::Intern, OpenRouterError> {
         interns::update_intern_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
+            &self.client.request_context(self.client.require_api_key()?),
             intern_id,
             request,
         )
@@ -2950,9 +422,7 @@ impl InternsClient<'_> {
         request: Option<&interns::DeleteInternRequest>,
     ) -> Result<interns::DeleteInternResponse, OpenRouterError> {
         interns::delete_intern_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
+            &self.client.request_context(self.client.require_api_key()?),
             intern_id,
             request,
         )
@@ -2964,9 +434,7 @@ impl InternsClient<'_> {
         intern_id: &str,
     ) -> Result<interns::ProvisionInternResponse, OpenRouterError> {
         interns::action_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
+            &self.client.request_context(self.client.require_api_key()?),
             intern_id,
             "provision",
         )
@@ -2978,9 +446,7 @@ impl InternsClient<'_> {
         intern_id: &str,
     ) -> Result<interns::SuspendInternResponse, OpenRouterError> {
         interns::action_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
+            &self.client.request_context(self.client.require_api_key()?),
             intern_id,
             "suspend",
         )
@@ -2993,14 +459,7 @@ impl InternsClient<'_> {
         request: &interns::InternChatRequest,
     ) -> Result<interns::InternChatResult, OpenRouterError> {
         interns::chat_completion_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.client.require_api_key()?),
             intern_id,
             request,
         )
@@ -3020,14 +479,7 @@ impl VaultClient<'_> {
         offset: Option<u32>,
     ) -> Result<vault::VaultSecretListResponse, OpenRouterError> {
         vault::list_secrets_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.client.require_api_key()?),
             None,
             limit,
             offset,
@@ -3042,14 +494,7 @@ impl VaultClient<'_> {
         offset: Option<u32>,
     ) -> Result<vault::VaultSecretListResponse, OpenRouterError> {
         vault::list_secrets_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.client.require_api_key()?),
             Some(intern_id),
             limit,
             offset,
@@ -3063,14 +508,7 @@ impl VaultClient<'_> {
         request: &vault::VaultSecretWriteRequest,
     ) -> Result<vault::VaultSecretResponse, OpenRouterError> {
         vault::store_secret_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.client.require_api_key()?),
             None,
             name,
             request,
@@ -3085,14 +523,7 @@ impl VaultClient<'_> {
         request: &vault::VaultSecretWriteRequest,
     ) -> Result<vault::VaultSecretResponse, OpenRouterError> {
         vault::store_secret_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.client.require_api_key()?),
             Some(intern_id),
             name,
             request,
@@ -3102,14 +533,7 @@ impl VaultClient<'_> {
 
     pub async fn delete(&self, name: &str) -> Result<(), OpenRouterError> {
         vault::delete_secret_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.client.require_api_key()?),
             None,
             name,
         )
@@ -3122,14 +546,7 @@ impl VaultClient<'_> {
         name: &str,
     ) -> Result<(), OpenRouterError> {
         vault::delete_secret_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.client.require_api_key()?),
             Some(intern_id),
             name,
         )
@@ -3142,14 +559,7 @@ impl VaultClient<'_> {
         intern_id: &str,
     ) -> Result<vault::VaultInternConnectionListResponse, OpenRouterError> {
         vault::list_connections_for_intern_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.client.require_api_key()?),
             intern_id,
         )
         .await
@@ -3161,14 +571,7 @@ impl VaultClient<'_> {
         request: &vault::VaultSecretCopyRequest,
     ) -> Result<vault::VaultSecretCopyResponse, OpenRouterError> {
         vault::copy_secrets_to_intern_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.client.require_api_key()?),
             intern_id,
             request,
         )
@@ -3187,12 +590,7 @@ impl DecisionsClient<'_> {
         request: &decisions::DecisionsRequest,
     ) -> Result<decisions::DecisionsResponse, OpenRouterError> {
         decisions::create_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
-            &self.client.x_title,
-            &self.client.http_referer,
-            &self.client.app_categories,
+            &self.client.request_context(self.client.require_api_key()?),
             request,
         )
         .await
@@ -3203,12 +601,7 @@ impl DecisionsClient<'_> {
         request: &decisions::DecisionsRequest,
     ) -> Result<decisions::DecisionsResponse, OpenRouterError> {
         decisions::create_system_one_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client.require_api_key()?,
-            &self.client.x_title,
-            &self.client.http_referer,
-            &self.client.app_categories,
+            &self.client.request_context(self.client.require_api_key()?),
             request,
         )
         .await
@@ -3227,7 +620,11 @@ impl<'a> ChatClient<'a> {
         &self,
         request: &chat::ChatCompletionRequest,
     ) -> Result<CompletionsResponse, OpenRouterError> {
-        self.client.send_chat_completion(request).await
+        chat::send_chat_completion_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            request,
+        )
+        .await
     }
 
     /// Stream chat completion chunks.
@@ -3236,23 +633,26 @@ impl<'a> ChatClient<'a> {
         request: &chat::ChatCompletionRequest,
     ) -> Result<BoxStream<'static, Result<CompletionsResponse, OpenRouterError>>, OpenRouterError>
     {
-        self.client.stream_chat_completion(request).await
+        chat::stream_chat_completion_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            request,
+        )
+        .await
     }
 
-    /// Stream chat completion chunks with tool-call-aware aggregation.
-    pub async fn stream_tool_aware(
-        &self,
-        request: &chat::ChatCompletionRequest,
-    ) -> Result<ToolAwareStream, OpenRouterError> {
-        self.client.stream_chat_completion_tool_aware(request).await
-    }
-
-    /// Stream chat events using the unified stream abstraction.
+    /// Stream chat events through the unified event model.
+    ///
+    /// The terminal event carries the fully assembled tool calls.
     pub async fn stream_unified(
         &self,
         request: &chat::ChatCompletionRequest,
     ) -> Result<UnifiedStream, OpenRouterError> {
-        self.client.stream_chat_completion_unified(request).await
+        let raw = chat::stream_chat_completion_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            request,
+        )
+        .await?;
+        Ok(adapt_chat_stream(raw))
     }
 }
 
@@ -3268,7 +668,11 @@ impl<'a> ResponsesClient<'a> {
         &self,
         request: &responses::ResponsesRequest,
     ) -> Result<responses::ResponsesResponse, OpenRouterError> {
-        self.client.create_response(request).await
+        responses::create_response_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            request,
+        )
+        .await
     }
 
     /// Stream response events (`POST /responses`, `stream=true`).
@@ -3279,15 +683,24 @@ impl<'a> ResponsesClient<'a> {
         BoxStream<'static, Result<responses::ResponsesStreamEvent, OpenRouterError>>,
         OpenRouterError,
     > {
-        self.client.stream_response(request).await
+        responses::stream_response_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            request,
+        )
+        .await
     }
 
-    /// Stream response events using the unified stream abstraction.
+    /// Stream response events through the unified event model.
     pub async fn stream_unified(
         &self,
         request: &responses::ResponsesRequest,
     ) -> Result<UnifiedStream, OpenRouterError> {
-        self.client.stream_response_unified(request).await
+        let raw = responses::stream_response_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            request,
+        )
+        .await?;
+        Ok(adapt_responses_stream(raw))
     }
 }
 
@@ -3303,7 +716,11 @@ impl<'a> MessagesClient<'a> {
         &self,
         request: &messages::AnthropicMessagesRequest,
     ) -> Result<messages::AnthropicMessagesResponse, OpenRouterError> {
-        self.client.create_message(request).await
+        messages::create_message_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            request,
+        )
+        .await
     }
 
     /// Stream SSE events from `/messages`.
@@ -3314,15 +731,24 @@ impl<'a> MessagesClient<'a> {
         BoxStream<'static, Result<messages::AnthropicMessagesSseEvent, OpenRouterError>>,
         OpenRouterError,
     > {
-        self.client.stream_messages(request).await
+        messages::stream_messages_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            request,
+        )
+        .await
     }
 
-    /// Stream messages events using the unified stream abstraction.
+    /// Stream messages events through the unified event model.
     pub async fn stream_unified(
         &self,
         request: &messages::AnthropicMessagesRequest,
     ) -> Result<UnifiedStream, OpenRouterError> {
-        self.client.stream_messages_unified(request).await
+        let raw = messages::stream_messages_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            request,
+        )
+        .await?;
+        Ok(adapt_messages_stream(raw))
     }
 }
 
@@ -3338,7 +764,11 @@ impl<'a> RerankClient<'a> {
         &self,
         request: &rerank::RerankRequest,
     ) -> Result<rerank::RerankResponse, OpenRouterError> {
-        self.client.create_rerank(request).await
+        rerank::create_rerank_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            request,
+        )
+        .await
     }
 }
 
@@ -3373,7 +803,11 @@ pub struct SpeechClient<'a> {
 impl<'a> SpeechClient<'a> {
     /// Create speech audio bytes (`POST /audio/speech`).
     pub async fn create(&self, request: &audio::SpeechRequest) -> Result<Vec<u8>, OpenRouterError> {
-        self.client.create_speech(request).await
+        audio::create_speech_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            request,
+        )
+        .await
     }
 }
 
@@ -3392,7 +826,11 @@ impl<'a> TranscriptionsClient<'a> {
         &self,
         request: &audio::TranscriptionRequest,
     ) -> Result<audio::TranscriptionResponse, OpenRouterError> {
-        self.client.create_transcription(request).await
+        audio::create_transcription_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            request,
+        )
+        .await
     }
 }
 
@@ -3408,7 +846,11 @@ impl<'a> ImagesClient<'a> {
         &self,
         request: &images::ImageGenerationRequest,
     ) -> Result<images::ImageGenerationResponse, OpenRouterError> {
-        self.client.create_image_generation(request).await
+        images::create_image_generation_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            request,
+        )
+        .await
     }
 
     /// Stream image generation events (`POST /images`, `stream=true`).
@@ -3419,12 +861,19 @@ impl<'a> ImagesClient<'a> {
         BoxStream<'static, Result<images::ImageStreamingResponse, OpenRouterError>>,
         OpenRouterError,
     > {
-        self.client.stream_image_generation(request).await
+        images::stream_image_generation_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            request,
+        )
+        .await
     }
 
     /// List available image generation models (`GET /images/models`).
     pub async fn list_models(&self) -> Result<Vec<images::ImageModel>, OpenRouterError> {
-        self.client.list_image_models().await
+        images::list_image_models_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+        )
+        .await
     }
 
     /// List provider endpoints for one image generation model.
@@ -3433,7 +882,12 @@ impl<'a> ImagesClient<'a> {
         author: &str,
         slug: &str,
     ) -> Result<images::ImageModelEndpointsResponse, OpenRouterError> {
-        self.client.list_image_model_endpoints(author, slug).await
+        images::list_image_model_endpoints_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            author,
+            slug,
+        )
+        .await
     }
 }
 
@@ -3449,12 +903,19 @@ impl<'a> VideosClient<'a> {
         &self,
         request: &videos::VideoGenerationRequest,
     ) -> Result<videos::VideoGenerationResponse, OpenRouterError> {
-        self.client.create_video_generation(request).await
+        videos::create_video_generation_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            request,
+        )
+        .await
     }
 
     /// List available video generation models (`GET /videos/models`).
     pub async fn list_models(&self) -> Result<Vec<videos::VideoModel>, OpenRouterError> {
-        self.client.list_video_models().await
+        videos::list_video_models_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+        )
+        .await
     }
 
     /// Poll a submitted video generation (`GET /videos/{jobId}`).
@@ -3462,7 +923,11 @@ impl<'a> VideosClient<'a> {
         &self,
         job_id: &str,
     ) -> Result<videos::VideoGenerationResponse, OpenRouterError> {
-        self.client.get_video_generation(job_id).await
+        videos::get_video_generation_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            job_id,
+        )
+        .await
     }
 
     /// Download video output bytes for a completed job (`GET /videos/{jobId}/content`).
@@ -3471,7 +936,12 @@ impl<'a> VideosClient<'a> {
         job_id: &str,
         index: Option<u32>,
     ) -> Result<Vec<u8>, OpenRouterError> {
-        self.client.get_video_content(job_id, index).await
+        videos::get_video_content_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            job_id,
+            index,
+        )
+        .await
     }
 }
 
@@ -3489,9 +959,7 @@ impl<'a> FilesClient<'a> {
         file_id: &str,
     ) -> Result<files::ProviderFileMetadata, OpenRouterError> {
         files::promote_container_file_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.api_key()?,
+            &self.client.request_context(self.api_key()?),
             container_id,
             file_id,
         )
@@ -3505,9 +973,7 @@ impl<'a> FilesClient<'a> {
         file_id: &str,
     ) -> Result<Vec<u8>, OpenRouterError> {
         files::download_container_file_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.api_key()?,
+            &self.client.request_context(self.api_key()?),
             container_id,
             file_id,
         )
@@ -3521,9 +987,7 @@ impl<'a> FilesClient<'a> {
         file_id: &str,
     ) -> Result<files::ContainerFile, OpenRouterError> {
         files::get_container_file_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.api_key()?,
+            &self.client.request_context(self.api_key()?),
             container_id,
             file_id,
         )
@@ -3538,9 +1002,7 @@ impl<'a> FilesClient<'a> {
         limit: Option<u32>,
     ) -> Result<files::ContainerFileListResponse, OpenRouterError> {
         files::list_container_files_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.api_key()?,
+            &self.client.request_context(self.api_key()?),
             container_id,
             after,
             limit,
@@ -3562,7 +1024,13 @@ impl<'a> FilesClient<'a> {
         cursor: Option<&str>,
         workspace_id: Option<&str>,
     ) -> Result<files::FileListResponse, OpenRouterError> {
-        self.client.list_files(limit, cursor, workspace_id).await
+        files::list_files_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            limit,
+            cursor,
+            workspace_id,
+        )
+        .await
     }
 
     /// Upload a file (`POST /files`).
@@ -3571,7 +1039,12 @@ impl<'a> FilesClient<'a> {
         request: &files::UploadFileRequest,
         workspace_id: Option<&str>,
     ) -> Result<files::FileMetadata, OpenRouterError> {
-        self.client.upload_file(request, workspace_id).await
+        files::upload_file_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            request,
+            workspace_id,
+        )
+        .await
     }
 
     /// Get file metadata (`GET /files/{file_id}`).
@@ -3580,7 +1053,12 @@ impl<'a> FilesClient<'a> {
         file_id: &str,
         workspace_id: Option<&str>,
     ) -> Result<files::FileMetadata, OpenRouterError> {
-        self.client.get_file_metadata(file_id, workspace_id).await
+        files::get_file_metadata_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            file_id,
+            workspace_id,
+        )
+        .await
     }
 
     /// Download file content (`GET /files/{file_id}/content`).
@@ -3589,9 +1067,12 @@ impl<'a> FilesClient<'a> {
         file_id: &str,
         workspace_id: Option<&str>,
     ) -> Result<Vec<u8>, OpenRouterError> {
-        self.client
-            .download_file_content(file_id, workspace_id)
-            .await
+        files::download_file_content_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            file_id,
+            workspace_id,
+        )
+        .await
     }
 
     /// Delete a file (`DELETE /files/{file_id}`).
@@ -3600,7 +1081,12 @@ impl<'a> FilesClient<'a> {
         file_id: &str,
         workspace_id: Option<&str>,
     ) -> Result<files::FileDeleteResponse, OpenRouterError> {
-        self.client.delete_file(file_id, workspace_id).await
+        files::delete_file_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            file_id,
+            workspace_id,
+        )
+        .await
     }
 
     /// List files in the response shape negotiated with a backing provider.
@@ -3609,9 +1095,7 @@ impl<'a> FilesClient<'a> {
         params: &files::ListFilesParams,
     ) -> Result<files::ProviderFileListResponse, OpenRouterError> {
         files::list_provider_files_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.api_key()?,
+            &self.client.request_context(self.api_key()?),
             params,
         )
         .await
@@ -3624,9 +1108,7 @@ impl<'a> FilesClient<'a> {
         query: &files::FileQuery,
     ) -> Result<files::ProviderFileMetadata, OpenRouterError> {
         files::upload_provider_file_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.api_key()?,
+            &self.client.request_context(self.api_key()?),
             request,
             query,
         )
@@ -3640,9 +1122,7 @@ impl<'a> FilesClient<'a> {
         query: &files::FileQuery,
     ) -> Result<files::ProviderFileMetadata, OpenRouterError> {
         files::get_provider_file_metadata_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.api_key()?,
+            &self.client.request_context(self.api_key()?),
             file_id,
             query,
         )
@@ -3656,9 +1136,7 @@ impl<'a> FilesClient<'a> {
         query: &files::FileQuery,
     ) -> Result<Vec<u8>, OpenRouterError> {
         files::download_provider_file_content_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.api_key()?,
+            &self.client.request_context(self.api_key()?),
             file_id,
             query,
         )
@@ -3672,9 +1150,7 @@ impl<'a> FilesClient<'a> {
         query: &files::FileQuery,
     ) -> Result<files::ProviderFileDeleteResponse, OpenRouterError> {
         files::delete_provider_file_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.api_key()?,
+            &self.client.request_context(self.api_key()?),
             file_id,
             query,
         )
@@ -3700,9 +1176,7 @@ impl<'a> ModelsClient<'a> {
             .as_deref()
             .ok_or(OpenRouterError::KeyNotConfigured)?;
         discovery::list_models_for_user_with_params_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            api_key,
+            &self.client.request_context(api_key),
             params,
         )
         .await
@@ -3710,7 +1184,12 @@ impl<'a> ModelsClient<'a> {
 
     /// List all models (`GET /models`).
     pub async fn list(&self) -> Result<Vec<models::Model>, OpenRouterError> {
-        self.client.list_models().await
+        models::list_models_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            None,
+            None,
+        )
+        .await
     }
 
     /// List models with the extended filter surface (`GET /models?...`).
@@ -3718,7 +1197,11 @@ impl<'a> ModelsClient<'a> {
         &self,
         params: Option<&models::ListModelsParams>,
     ) -> Result<Vec<models::Model>, OpenRouterError> {
-        self.client.list_models_filtered(params).await
+        models::list_models_with_params_and_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            params,
+        )
+        .await
     }
 
     /// List models by category (`GET /models?category=...`).
@@ -3726,7 +1209,12 @@ impl<'a> ModelsClient<'a> {
         &self,
         category: ModelCategory,
     ) -> Result<Vec<models::Model>, OpenRouterError> {
-        self.client.list_models_by_category(category).await
+        models::list_models_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            Some(category),
+            None,
+        )
+        .await
     }
 
     /// List models by supported parameter (`GET /models?supported_parameters=...`).
@@ -3734,9 +1222,12 @@ impl<'a> ModelsClient<'a> {
         &self,
         supported_parameters: SupportedParameters,
     ) -> Result<Vec<models::Model>, OpenRouterError> {
-        self.client
-            .list_models_by_parameters(supported_parameters)
-            .await
+        models::list_models_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            None,
+            Some(supported_parameters),
+        )
+        .await
     }
 
     /// List model endpoints (`GET /models/{author}/{slug}/endpoints`).
@@ -3745,27 +1236,46 @@ impl<'a> ModelsClient<'a> {
         author: &str,
         slug: &str,
     ) -> Result<models::EndpointData, OpenRouterError> {
-        self.client.list_model_endpoints(author, slug).await
+        models::list_model_endpoints_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            author,
+            slug,
+        )
+        .await
     }
 
     /// Get metadata about one model (`GET /model/{author}/{slug}`).
     pub async fn get(&self, author: &str, slug: &str) -> Result<models::Model, OpenRouterError> {
-        self.client.get_model(author, slug).await
+        models::get_model_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            author,
+            slug,
+        )
+        .await
     }
 
     /// List providers (`GET /providers`).
     pub async fn list_providers(&self) -> Result<Vec<discovery::Provider>, OpenRouterError> {
-        self.client.list_providers().await
+        discovery::list_providers_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+        )
+        .await
     }
 
     /// List user-filtered models (`GET /models/user`).
     pub async fn list_user_models(&self) -> Result<Vec<discovery::UserModel>, OpenRouterError> {
-        self.client.list_models_for_user().await
+        discovery::list_models_for_user_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+        )
+        .await
     }
 
     /// Get available model count (`GET /models/count`).
     pub async fn get_model_count(&self) -> Result<discovery::ModelsCountData, OpenRouterError> {
-        self.client.count_models().await
+        discovery::count_models_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+        )
+        .await
     }
 
     /// Return daily token totals for top public models (`GET /datasets/rankings-daily`).
@@ -3774,7 +1284,12 @@ impl<'a> ModelsClient<'a> {
         start_date: Option<&str>,
         end_date: Option<&str>,
     ) -> Result<discovery::RankingsDailyResponse, OpenRouterError> {
-        self.client.get_rankings_daily(start_date, end_date).await
+        discovery::get_rankings_daily_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            start_date,
+            end_date,
+        )
+        .await
     }
 
     /// Return daily rankings using all upstream filters.
@@ -3782,7 +1297,11 @@ impl<'a> ModelsClient<'a> {
         &self,
         params: Option<&discovery::RankingsDailyParams>,
     ) -> Result<discovery::RankingsDailyResponse, OpenRouterError> {
-        self.client.get_rankings_daily_filtered(params).await
+        discovery::get_rankings_daily_with_params_and_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            params,
+        )
+        .await
     }
 
     /// Return aggregated cost-per-session cells (`GET /datasets/session-cost`).
@@ -3790,7 +1309,11 @@ impl<'a> ModelsClient<'a> {
         &self,
         params: Option<&discovery::SessionCostParams>,
     ) -> Result<discovery::SessionCostResponse, OpenRouterError> {
-        self.client.get_session_cost(params).await
+        discovery::get_session_cost_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            params,
+        )
+        .await
     }
 
     /// Return ranked applications (`GET /datasets/app-rankings`).
@@ -3798,7 +1321,11 @@ impl<'a> ModelsClient<'a> {
         &self,
         params: Option<&discovery::AppRankingsParams>,
     ) -> Result<discovery::AppRankingsResponse, OpenRouterError> {
-        self.client.get_app_rankings(params).await
+        discovery::get_app_rankings_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            params,
+        )
+        .await
     }
 
     /// Return task classification market-share data (`GET /classifications/task`).
@@ -3806,7 +1333,11 @@ impl<'a> ModelsClient<'a> {
         &self,
         window: Option<&str>,
     ) -> Result<discovery::TaskClassificationsResponse, OpenRouterError> {
-        self.client.get_task_classifications(window).await
+        discovery::get_task_classifications_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            window,
+        )
+        .await
     }
 
     /// Return benchmark rows from a selected source (`GET /benchmarks`).
@@ -3814,7 +1345,11 @@ impl<'a> ModelsClient<'a> {
         &self,
         params: &discovery::UnifiedBenchmarksParams,
     ) -> Result<discovery::UnifiedBenchmarksResponse, OpenRouterError> {
-        self.client.get_benchmarks(params).await
+        discovery::get_benchmarks_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            params,
+        )
+        .await
     }
 
     /// Return Artificial Analysis benchmark rows.
@@ -3824,9 +1359,11 @@ impl<'a> ModelsClient<'a> {
         &self,
         max_results: Option<u32>,
     ) -> Result<discovery::BenchmarksAAResponse, OpenRouterError> {
-        self.client
-            .get_benchmarks_artificial_analysis(max_results)
-            .await
+        discovery::get_benchmarks_artificial_analysis_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            max_results,
+        )
+        .await
     }
 
     /// Return Design Arena benchmark rows.
@@ -3838,16 +1375,23 @@ impl<'a> ModelsClient<'a> {
         category: Option<&str>,
         max_results: Option<u32>,
     ) -> Result<discovery::BenchmarksDAResponse, OpenRouterError> {
-        self.client
-            .get_benchmarks_design_arena(arena, category, max_results)
-            .await
+        discovery::get_benchmarks_design_arena_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            arena,
+            category,
+            max_results,
+        )
+        .await
     }
 
     /// List ZDR-compatible endpoints (`GET /endpoints/zdr`).
     pub async fn list_zdr_endpoints(
         &self,
     ) -> Result<Vec<discovery::PublicEndpoint>, OpenRouterError> {
-        self.client.list_zdr_endpoints().await
+        discovery::list_zdr_endpoints_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+        )
+        .await
     }
 
     /// Create an embedding (`POST /embeddings`).
@@ -3855,12 +1399,19 @@ impl<'a> ModelsClient<'a> {
         &self,
         request: &embeddings::EmbeddingRequest,
     ) -> Result<embeddings::EmbeddingResponse, OpenRouterError> {
-        self.client.create_embedding(request).await
+        embeddings::create_embedding_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            request,
+        )
+        .await
     }
 
     /// List embedding models (`GET /embeddings/models`).
     pub async fn list_embedding_models(&self) -> Result<Vec<models::Model>, OpenRouterError> {
-        self.client.list_embedding_models().await
+        embeddings::list_embedding_models_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+        )
+        .await
     }
 }
 
@@ -3877,9 +1428,7 @@ impl<'a> ManagementClient<'a> {
         request: &api_keys::CreateApiKeyRequest,
     ) -> Result<api_keys::ApiKey, OpenRouterError> {
         api_keys::create_api_key_with_options_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.management_key()?,
+            &self.client.request_context(self.management_key()?),
             request,
         )
         .await
@@ -3894,20 +1443,14 @@ impl<'a> ManagementClient<'a> {
         &self,
         request: &auth::OAuthTokenExchangeRequest,
     ) -> Result<auth::OAuthTokenResponse, OpenRouterError> {
-        auth::exchange_oauth_token_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            request,
-        )
-        .await
+        // Token exchange authenticates with the workload JWT, not a credential header.
+        auth::exchange_oauth_token_with_client(&self.client.request_context(""), request).await
     }
 
     /// GET `/scim/sync-jobs/{}`.
     pub async fn get_scim_sync_job(&self, id: &str) -> Result<scim::ScimSyncJob, OpenRouterError> {
         scim::get_scim_sync_job_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.management_key()?,
+            &self.client.request_context(self.management_key()?),
             id,
         )
         .await
@@ -3915,12 +1458,8 @@ impl<'a> ManagementClient<'a> {
 
     /// POST `/scim/sync-jobs`.
     pub async fn create_scim_sync_job(&self) -> Result<scim::ScimSyncJob, OpenRouterError> {
-        scim::create_scim_sync_job_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.management_key()?,
-        )
-        .await
+        scim::create_scim_sync_job_with_client(&self.client.request_context(self.management_key()?))
+            .await
     }
 
     /// GET `/end-users`.
@@ -3929,14 +1468,7 @@ impl<'a> ManagementClient<'a> {
         params: &end_users::ListEndUsersParams,
     ) -> Result<end_users::ListEndUsersResponse, OpenRouterError> {
         end_users::list_end_users_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.management_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.management_key()?),
             params,
         )
         .await
@@ -3948,14 +1480,7 @@ impl<'a> ManagementClient<'a> {
         request: &end_users::CreateEndUserRequest,
     ) -> Result<end_users::EndUser, OpenRouterError> {
         end_users::create_end_user_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.management_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.management_key()?),
             request,
         )
         .await
@@ -3964,14 +1489,7 @@ impl<'a> ManagementClient<'a> {
     /// GET `/end-users/{user}`.
     pub async fn get_end_user(&self, user: &str) -> Result<end_users::EndUser, OpenRouterError> {
         end_users::get_end_user_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.management_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.management_key()?),
             user,
         )
         .await
@@ -3984,14 +1502,7 @@ impl<'a> ManagementClient<'a> {
         request: &end_users::UpdateEndUserRequest,
     ) -> Result<end_users::EndUser, OpenRouterError> {
         end_users::update_end_user_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.management_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.management_key()?),
             user,
             request,
         )
@@ -4001,14 +1512,7 @@ impl<'a> ManagementClient<'a> {
     /// DELETE `/end-users/{user}`. Soft-deactivates registration; does not block inference.
     pub async fn delete_end_user(&self, user: &str) -> Result<(), OpenRouterError> {
         end_users::delete_end_user_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.management_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.management_key()?),
             user,
         )
         .await
@@ -4019,14 +1523,7 @@ impl<'a> ManagementClient<'a> {
         &self,
     ) -> Result<organization::OrganizationSettings, OpenRouterError> {
         organization::get_organization_settings_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.management_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.management_key()?),
         )
         .await
     }
@@ -4037,14 +1534,7 @@ impl<'a> ManagementClient<'a> {
         request: &organization::UpdateOrganizationSettingsRequest,
     ) -> Result<organization::OrganizationSettings, OpenRouterError> {
         organization::update_organization_settings_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.management_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.management_key()?),
             request,
         )
         .await
@@ -4063,14 +1553,7 @@ impl<'a> ManagementClient<'a> {
         pagination: Option<PaginationOptions>,
     ) -> Result<scim::ListScimGroupsResponse, OpenRouterError> {
         scim::list_scim_groups_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.management_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.management_key()?),
             pagination,
         )
         .await
@@ -4081,14 +1564,7 @@ impl<'a> ManagementClient<'a> {
         params: &scim::ListScimGroupsParams,
     ) -> Result<scim::ListScimGroupsResponse, OpenRouterError> {
         scim::list_scim_groups_with_params_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.management_key()?,
-            (
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
-            ),
+            &self.client.request_context(self.management_key()?),
             params,
         )
         .await
@@ -4100,9 +1576,7 @@ impl<'a> ManagementClient<'a> {
         pagination: Option<PaginationOptions>,
     ) -> Result<scim::ListScimGroupMappingsResponse, OpenRouterError> {
         scim::list_scim_group_mappings_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.management_key()?,
+            &self.client.request_context(self.management_key()?),
             pagination,
         )
         .await
@@ -4114,9 +1588,7 @@ impl<'a> ManagementClient<'a> {
         request: &scim::CreateScimGroupMappingRequest,
     ) -> Result<scim::ScimGroupMapping, OpenRouterError> {
         scim::create_scim_group_mapping_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.management_key()?,
+            &self.client.request_context(self.management_key()?),
             request,
         )
         .await
@@ -4128,9 +1600,7 @@ impl<'a> ManagementClient<'a> {
         id: &str,
     ) -> Result<scim::ScimGroupMapping, OpenRouterError> {
         scim::get_scim_group_mapping_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.management_key()?,
+            &self.client.request_context(self.management_key()?),
             id,
         )
         .await
@@ -4143,9 +1613,7 @@ impl<'a> ManagementClient<'a> {
         request: &scim::UpdateScimGroupMappingRequest,
     ) -> Result<scim::ScimGroupMapping, OpenRouterError> {
         scim::update_scim_group_mapping_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.management_key()?,
+            &self.client.request_context(self.management_key()?),
             id,
             request,
         )
@@ -4159,9 +1627,7 @@ impl<'a> ManagementClient<'a> {
         keep_members: bool,
     ) -> Result<bool, OpenRouterError> {
         scim::delete_scim_group_mapping_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.management_key()?,
+            &self.client.request_context(self.management_key()?),
             id,
             keep_members,
         )
@@ -4174,7 +1640,12 @@ impl<'a> ManagementClient<'a> {
         name: &str,
         limit: Option<f64>,
     ) -> Result<api_keys::ApiKey, OpenRouterError> {
-        self.client.create_api_key(name, limit).await
+        api_keys::create_api_key_with_client(
+            &self.client.request_context(self.management_key()?),
+            name,
+            limit,
+        )
+        .await
     }
 
     /// Create a managed API key in a workspace (`POST /keys`).
@@ -4184,16 +1655,23 @@ impl<'a> ManagementClient<'a> {
         limit: Option<f64>,
         workspace_id: Option<&str>,
     ) -> Result<api_keys::ApiKey, OpenRouterError> {
-        self.client
-            .create_api_key_in_workspace(name, limit, workspace_id)
-            .await
+        api_keys::create_api_key_in_workspace_with_client(
+            &self.client.request_context(self.management_key()?),
+            name,
+            limit,
+            workspace_id,
+        )
+        .await
     }
 
     /// Get current key session info (`GET /key`).
     pub async fn get_current_api_key_info(
         &self,
     ) -> Result<api_keys::ApiKeyDetails, OpenRouterError> {
-        self.client.get_current_api_key_info().await
+        api_keys::get_current_api_key_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+        )
+        .await
     }
 
     /// Create or update a preset from a chat-completions request body.
@@ -4202,9 +1680,12 @@ impl<'a> ManagementClient<'a> {
         slug: &str,
         request: &chat::ChatCompletionRequest,
     ) -> Result<presets::PresetWithDesignatedVersion, OpenRouterError> {
-        self.client
-            .create_chat_completion_preset(slug, request)
-            .await
+        presets::create_chat_completion_preset_with_client(
+            &self.client.request_context(self.management_key()?),
+            slug,
+            request,
+        )
+        .await
     }
 
     /// Create or update a preset from a Responses API request body.
@@ -4213,7 +1694,12 @@ impl<'a> ManagementClient<'a> {
         slug: &str,
         request: &responses::ResponsesRequest,
     ) -> Result<presets::PresetWithDesignatedVersion, OpenRouterError> {
-        self.client.create_response_preset(slug, request).await
+        presets::create_response_preset_with_client(
+            &self.client.request_context(self.management_key()?),
+            slug,
+            request,
+        )
+        .await
     }
 
     /// Create or update a preset from an Anthropic-compatible Messages request body.
@@ -4222,7 +1708,12 @@ impl<'a> ManagementClient<'a> {
         slug: &str,
         request: &messages::AnthropicMessagesRequest,
     ) -> Result<presets::PresetWithDesignatedVersion, OpenRouterError> {
-        self.client.create_message_preset(slug, request).await
+        presets::create_message_preset_with_client(
+            &self.client.request_context(self.management_key()?),
+            slug,
+            request,
+        )
+        .await
     }
 
     /// List presets (`GET /presets`).
@@ -4230,7 +1721,11 @@ impl<'a> ManagementClient<'a> {
         &self,
         pagination: Option<PaginationOptions>,
     ) -> Result<presets::ListPresetsResponse, OpenRouterError> {
-        self.client.list_presets(pagination).await
+        presets::list_presets_with_client(
+            &self.client.request_context(self.management_key()?),
+            pagination,
+        )
+        .await
     }
 
     /// Get one preset (`GET /presets/{slug}`).
@@ -4238,7 +1733,8 @@ impl<'a> ManagementClient<'a> {
         &self,
         slug: &str,
     ) -> Result<presets::PresetWithDesignatedVersion, OpenRouterError> {
-        self.client.get_preset(slug).await
+        presets::get_preset_with_client(&self.client.request_context(self.management_key()?), slug)
+            .await
     }
 
     /// List preset versions (`GET /presets/{slug}/versions`).
@@ -4247,7 +1743,12 @@ impl<'a> ManagementClient<'a> {
         slug: &str,
         pagination: Option<PaginationOptions>,
     ) -> Result<presets::ListPresetVersionsResponse, OpenRouterError> {
-        self.client.list_preset_versions(slug, pagination).await
+        presets::list_preset_versions_with_client(
+            &self.client.request_context(self.management_key()?),
+            slug,
+            pagination,
+        )
+        .await
     }
 
     /// Get a preset version (`GET /presets/{slug}/versions/{version}`).
@@ -4256,12 +1757,21 @@ impl<'a> ManagementClient<'a> {
         slug: &str,
         version: &str,
     ) -> Result<presets::PresetDesignatedVersion, OpenRouterError> {
-        self.client.get_preset_version(slug, version).await
+        presets::get_preset_version_with_client(
+            &self.client.request_context(self.management_key()?),
+            slug,
+            version,
+        )
+        .await
     }
 
     /// Delete an API key (`DELETE /keys/{hash}`).
     pub async fn delete_api_key(&self, hash: &str) -> Result<bool, OpenRouterError> {
-        self.client.delete_api_key(hash).await
+        api_keys::delete_api_key_with_client(
+            &self.client.request_context(self.management_key()?),
+            hash,
+        )
+        .await
     }
 
     /// Update an API key (`PATCH /keys/{hash}`).
@@ -4272,9 +1782,14 @@ impl<'a> ManagementClient<'a> {
         disabled: Option<bool>,
         limit: Option<f64>,
     ) -> Result<api_keys::ApiKey, OpenRouterError> {
-        self.client
-            .update_api_key(hash, name, disabled, limit)
-            .await
+        api_keys::update_api_key_with_client(
+            &self.client.request_context(self.management_key()?),
+            hash,
+            name,
+            disabled,
+            limit,
+        )
+        .await
     }
 
     /// List API keys with expired-key and workspace filters.
@@ -4283,12 +1798,7 @@ impl<'a> ManagementClient<'a> {
         params: &api_keys::ListApiKeysParams,
     ) -> Result<Vec<api_keys::ApiKey>, OpenRouterError> {
         api_keys::list_api_keys_with_params_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client
-                .management_key
-                .as_deref()
-                .ok_or(OpenRouterError::KeyNotConfigured)?,
+            &self.client.request_context(self.management_key()?),
             params,
         )
         .await
@@ -4301,12 +1811,7 @@ impl<'a> ManagementClient<'a> {
         request: &api_keys::UpdateApiKeyRequest,
     ) -> Result<api_keys::ApiKey, OpenRouterError> {
         api_keys::update_api_key_body_with_client(
-            self.client.http_client(),
-            &self.client.base_url,
-            self.client
-                .management_key
-                .as_deref()
-                .ok_or(OpenRouterError::KeyNotConfigured)?,
+            &self.client.request_context(self.management_key()?),
             hash,
             request,
         )
@@ -4319,9 +1824,12 @@ impl<'a> ManagementClient<'a> {
         pagination: Option<PaginationOptions>,
         include_disabled: Option<bool>,
     ) -> Result<Vec<api_keys::ApiKey>, OpenRouterError> {
-        self.client
-            .list_api_keys_paginated(pagination, include_disabled)
-            .await
+        api_keys::list_api_keys_with_client(
+            &self.client.request_context(self.management_key()?),
+            pagination,
+            include_disabled,
+        )
+        .await
     }
 
     /// List API keys scoped to a workspace (`GET /keys?workspace_id=...`).
@@ -4331,14 +1839,22 @@ impl<'a> ManagementClient<'a> {
         include_disabled: Option<bool>,
         workspace_id: Option<&str>,
     ) -> Result<Vec<api_keys::ApiKey>, OpenRouterError> {
-        self.client
-            .list_api_keys_in_workspace_paginated(pagination, include_disabled, workspace_id)
-            .await
+        api_keys::list_api_keys_in_workspace_with_client(
+            &self.client.request_context(self.management_key()?),
+            pagination,
+            include_disabled,
+            workspace_id,
+        )
+        .await
     }
 
     /// Get an API key (`GET /keys/{hash}`).
     pub async fn get_api_key(&self, hash: &str) -> Result<api_keys::ApiKey, OpenRouterError> {
-        self.client.get_api_key(hash).await
+        api_keys::get_api_key_with_client(
+            &self.client.request_context(self.management_key()?),
+            hash,
+        )
+        .await
     }
 
     /// Create OAuth auth code (`POST /auth/keys/code`).
@@ -4346,7 +1862,11 @@ impl<'a> ManagementClient<'a> {
         &self,
         request: &auth::CreateAuthCodeRequest,
     ) -> Result<auth::AuthCodeData, OpenRouterError> {
-        self.client.create_auth_code(request).await
+        auth::create_auth_code_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            request,
+        )
+        .await
     }
 
     /// Create an API key from auth code (`POST /auth/keys`).
@@ -4356,9 +1876,12 @@ impl<'a> ManagementClient<'a> {
         code_verifier: Option<&str>,
         code_challenge_method: Option<auth::CodeChallengeMethod>,
     ) -> Result<auth::AuthResponse, OpenRouterError> {
-        self.client
-            .exchange_code_for_api_key(code, code_verifier, code_challenge_method)
-            .await
+        auth::exchange_code_for_api_key_with_client(
+            &self.client.request_context(code),
+            code_verifier,
+            code_challenge_method,
+        )
+        .await
     }
 
     /// Create a Coinbase charge (`POST /credits/coinbase`).
@@ -4368,12 +1891,19 @@ impl<'a> ManagementClient<'a> {
         &self,
         request: &credits::CoinbaseChargeRequest,
     ) -> Result<credits::CoinbaseChargeData, OpenRouterError> {
-        self.client.create_coinbase_charge(request).await
+        credits::create_coinbase_charge_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            request,
+        )
+        .await
     }
 
     /// Get credits (`GET /credits`).
     pub async fn get_credits(&self) -> Result<credits::CreditsData, OpenRouterError> {
-        self.client.get_credits().await
+        credits::get_credits_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+        )
+        .await
     }
 
     /// Get generation metadata (`GET /generation?id=...`).
@@ -4381,7 +1911,11 @@ impl<'a> ManagementClient<'a> {
         &self,
         id: impl Into<String>,
     ) -> Result<generation::GenerationData, OpenRouterError> {
-        self.client.get_generation(id).await
+        generation::get_generation_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            id,
+        )
+        .await
     }
 
     /// Get stored generation content (`GET /generation/content?id=...`).
@@ -4389,7 +1923,11 @@ impl<'a> ManagementClient<'a> {
         &self,
         id: impl Into<String>,
     ) -> Result<generation::GenerationContentData, OpenRouterError> {
-        self.client.get_generation_content(id).await
+        generation::get_generation_content_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            id,
+        )
+        .await
     }
 
     /// Submit structured generation feedback (`POST /generation/feedback`).
@@ -4397,7 +1935,11 @@ impl<'a> ManagementClient<'a> {
         &self,
         request: &generation::GenerationFeedbackRequest,
     ) -> Result<generation::GenerationFeedbackData, OpenRouterError> {
-        self.client.submit_generation_feedback(request).await
+        generation::submit_generation_feedback_with_client(
+            &self.client.request_context(self.management_key()?),
+            request,
+        )
+        .await
     }
 
     /// Get endpoint usage activity (`GET /activity`).
@@ -4405,7 +1947,11 @@ impl<'a> ManagementClient<'a> {
         &self,
         date: Option<&str>,
     ) -> Result<Vec<discovery::ActivityItem>, OpenRouterError> {
-        self.client.get_activity(date).await
+        discovery::get_activity_with_client(
+            &self.client.request_context(self.management_key()?),
+            date,
+        )
+        .await
     }
 
     /// Get endpoint usage activity using the full filter surface (`GET /activity`).
@@ -4413,12 +1959,19 @@ impl<'a> ManagementClient<'a> {
         &self,
         params: Option<&discovery::ActivityParams>,
     ) -> Result<Vec<discovery::ActivityItem>, OpenRouterError> {
-        self.client.get_activity_with_params(params).await
+        discovery::get_activity_with_params_and_client(
+            &self.client.request_context(self.management_key()?),
+            params,
+        )
+        .await
     }
 
     /// Get analytics metadata (`GET /analytics/meta`).
     pub async fn get_analytics_meta(&self) -> Result<analytics::AnalyticsMeta, OpenRouterError> {
-        self.client.get_analytics_meta().await
+        analytics::get_analytics_meta_with_client(
+            &self.client.request_context(self.management_key()?),
+        )
+        .await
     }
 
     /// Query analytics (`POST /analytics/query`).
@@ -4426,7 +1979,11 @@ impl<'a> ManagementClient<'a> {
         &self,
         request: &analytics::AnalyticsQueryRequest,
     ) -> Result<analytics::AnalyticsQueryResponse, OpenRouterError> {
-        self.client.query_analytics(request).await
+        analytics::query_analytics_with_client(
+            &self.client.request_context(self.management_key()?),
+            request,
+        )
+        .await
     }
 
     /// List BYOK provider credentials (`GET /byok`).
@@ -4436,9 +1993,13 @@ impl<'a> ManagementClient<'a> {
         workspace_id: Option<&str>,
         provider: Option<&str>,
     ) -> Result<byok::ByokKeyListResponse, OpenRouterError> {
-        self.client
-            .list_byok_keys(pagination, workspace_id, provider)
-            .await
+        byok::list_byok_keys_with_client(
+            &self.client.request_context(self.management_key()?),
+            pagination,
+            workspace_id,
+            provider,
+        )
+        .await
     }
 
     /// Create a BYOK provider credential (`POST /byok`).
@@ -4446,12 +2007,17 @@ impl<'a> ManagementClient<'a> {
         &self,
         request: &byok::CreateByokKeyRequest,
     ) -> Result<byok::ByokKey, OpenRouterError> {
-        self.client.create_byok_key(request).await
+        byok::create_byok_key_with_client(
+            &self.client.request_context(self.management_key()?),
+            request,
+        )
+        .await
     }
 
     /// Get a BYOK provider credential (`GET /byok/{id}`).
     pub async fn get_byok_key(&self, id: &str) -> Result<byok::ByokKey, OpenRouterError> {
-        self.client.get_byok_key(id).await
+        byok::get_byok_key_with_client(&self.client.request_context(self.management_key()?), id)
+            .await
     }
 
     /// Update a BYOK provider credential (`PATCH /byok/{id}`).
@@ -4460,12 +2026,18 @@ impl<'a> ManagementClient<'a> {
         id: &str,
         request: &byok::UpdateByokKeyRequest,
     ) -> Result<byok::ByokKey, OpenRouterError> {
-        self.client.update_byok_key(id, request).await
+        byok::update_byok_key_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            request,
+        )
+        .await
     }
 
     /// Delete a BYOK provider credential (`DELETE /byok/{id}`).
     pub async fn delete_byok_key(&self, id: &str) -> Result<bool, OpenRouterError> {
-        self.client.delete_byok_key(id).await
+        byok::delete_byok_key_with_client(&self.client.request_context(self.management_key()?), id)
+            .await
     }
 
     /// List observability destinations (`GET /observability/destinations`).
@@ -4474,9 +2046,12 @@ impl<'a> ManagementClient<'a> {
         pagination: Option<PaginationOptions>,
         workspace_id: Option<&str>,
     ) -> Result<observability::ObservabilityDestinationListResponse, OpenRouterError> {
-        self.client
-            .list_observability_destinations(pagination, workspace_id)
-            .await
+        observability::list_observability_destinations_with_client(
+            &self.client.request_context(self.management_key()?),
+            pagination,
+            workspace_id,
+        )
+        .await
     }
 
     /// Create an observability destination (`POST /observability/destinations`).
@@ -4484,7 +2059,11 @@ impl<'a> ManagementClient<'a> {
         &self,
         request: &observability::CreateObservabilityDestinationRequest,
     ) -> Result<observability::ObservabilityDestination, OpenRouterError> {
-        self.client.create_observability_destination(request).await
+        observability::create_observability_destination_with_client(
+            &self.client.request_context(self.management_key()?),
+            request,
+        )
+        .await
     }
 
     /// Get an observability destination (`GET /observability/destinations/{id}`).
@@ -4492,7 +2071,11 @@ impl<'a> ManagementClient<'a> {
         &self,
         id: &str,
     ) -> Result<observability::ObservabilityDestination, OpenRouterError> {
-        self.client.get_observability_destination(id).await
+        observability::get_observability_destination_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+        )
+        .await
     }
 
     /// Update an observability destination (`PATCH /observability/destinations/{id}`).
@@ -4501,9 +2084,12 @@ impl<'a> ManagementClient<'a> {
         id: &str,
         request: &observability::UpdateObservabilityDestinationRequest,
     ) -> Result<observability::ObservabilityDestination, OpenRouterError> {
-        self.client
-            .update_observability_destination(id, request)
-            .await
+        observability::update_observability_destination_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            request,
+        )
+        .await
     }
 
     /// Delete an observability destination (`DELETE /observability/destinations/{id}`).
@@ -4511,7 +2097,11 @@ impl<'a> ManagementClient<'a> {
         &self,
         id: &str,
     ) -> Result<bool, OpenRouterError> {
-        self.client.delete_observability_destination(id).await
+        observability::delete_observability_destination_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+        )
+        .await
     }
 
     /// List guardrails (`GET /guardrails`).
@@ -4519,7 +2109,11 @@ impl<'a> ManagementClient<'a> {
         &self,
         pagination: Option<PaginationOptions>,
     ) -> Result<guardrails::GuardrailListResponse, OpenRouterError> {
-        self.client.list_guardrails(pagination).await
+        guardrails::list_guardrails_with_client(
+            &self.client.request_context(self.management_key()?),
+            pagination,
+        )
+        .await
     }
 
     /// List guardrails scoped to a workspace (`GET /guardrails?workspace_id=...`).
@@ -4528,9 +2122,12 @@ impl<'a> ManagementClient<'a> {
         pagination: Option<PaginationOptions>,
         workspace_id: Option<&str>,
     ) -> Result<guardrails::GuardrailListResponse, OpenRouterError> {
-        self.client
-            .list_guardrails_in_workspace(pagination, workspace_id)
-            .await
+        guardrails::list_guardrails_in_workspace_with_client(
+            &self.client.request_context(self.management_key()?),
+            pagination,
+            workspace_id,
+        )
+        .await
     }
 
     /// Create a guardrail (`POST /guardrails`).
@@ -4538,12 +2135,20 @@ impl<'a> ManagementClient<'a> {
         &self,
         request: &guardrails::CreateGuardrailRequest,
     ) -> Result<guardrails::Guardrail, OpenRouterError> {
-        self.client.create_guardrail(request).await
+        guardrails::create_guardrail_with_client(
+            &self.client.request_context(self.management_key()?),
+            request,
+        )
+        .await
     }
 
     /// Get a guardrail (`GET /guardrails/{id}`).
     pub async fn get_guardrail(&self, id: &str) -> Result<guardrails::Guardrail, OpenRouterError> {
-        self.client.get_guardrail(id).await
+        guardrails::get_guardrail_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+        )
+        .await
     }
 
     /// Update a guardrail (`PATCH /guardrails/{id}`).
@@ -4552,12 +2157,21 @@ impl<'a> ManagementClient<'a> {
         id: &str,
         request: &guardrails::UpdateGuardrailRequest,
     ) -> Result<guardrails::Guardrail, OpenRouterError> {
-        self.client.update_guardrail(id, request).await
+        guardrails::update_guardrail_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            request,
+        )
+        .await
     }
 
     /// Delete a guardrail (`DELETE /guardrails/{id}`).
     pub async fn delete_guardrail(&self, id: &str) -> Result<bool, OpenRouterError> {
-        self.client.delete_guardrail(id).await
+        guardrails::delete_guardrail_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+        )
+        .await
     }
 
     /// List key assignments for a guardrail.
@@ -4566,9 +2180,12 @@ impl<'a> ManagementClient<'a> {
         id: &str,
         pagination: Option<PaginationOptions>,
     ) -> Result<guardrails::GuardrailKeyAssignmentsResponse, OpenRouterError> {
-        self.client
-            .list_guardrail_key_assignments(id, pagination)
-            .await
+        guardrails::list_guardrail_key_assignments_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            pagination,
+        )
+        .await
     }
 
     /// Create key assignments for a guardrail.
@@ -4577,7 +2194,12 @@ impl<'a> ManagementClient<'a> {
         id: &str,
         request: &guardrails::BulkKeyAssignmentRequest,
     ) -> Result<guardrails::AssignedCountResponse, OpenRouterError> {
-        self.client.bulk_assign_keys_to_guardrail(id, request).await
+        guardrails::bulk_assign_keys_to_guardrail_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            request,
+        )
+        .await
     }
 
     /// Delete key assignments from a guardrail.
@@ -4586,9 +2208,12 @@ impl<'a> ManagementClient<'a> {
         id: &str,
         request: &guardrails::BulkKeyAssignmentRequest,
     ) -> Result<guardrails::UnassignedCountResponse, OpenRouterError> {
-        self.client
-            .bulk_unassign_keys_from_guardrail(id, request)
-            .await
+        guardrails::bulk_unassign_keys_from_guardrail_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            request,
+        )
+        .await
     }
 
     /// List member assignments for a guardrail.
@@ -4597,9 +2222,12 @@ impl<'a> ManagementClient<'a> {
         id: &str,
         pagination: Option<PaginationOptions>,
     ) -> Result<guardrails::GuardrailMemberAssignmentsResponse, OpenRouterError> {
-        self.client
-            .list_guardrail_member_assignments(id, pagination)
-            .await
+        guardrails::list_guardrail_member_assignments_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            pagination,
+        )
+        .await
     }
 
     /// Create member assignments for a guardrail.
@@ -4608,9 +2236,12 @@ impl<'a> ManagementClient<'a> {
         id: &str,
         request: &guardrails::BulkMemberAssignmentRequest,
     ) -> Result<guardrails::AssignedCountResponse, OpenRouterError> {
-        self.client
-            .bulk_assign_members_to_guardrail(id, request)
-            .await
+        guardrails::bulk_assign_members_to_guardrail_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            request,
+        )
+        .await
     }
 
     /// Delete member assignments from a guardrail.
@@ -4619,9 +2250,12 @@ impl<'a> ManagementClient<'a> {
         id: &str,
         request: &guardrails::BulkMemberAssignmentRequest,
     ) -> Result<guardrails::UnassignedCountResponse, OpenRouterError> {
-        self.client
-            .bulk_unassign_members_from_guardrail(id, request)
-            .await
+        guardrails::bulk_unassign_members_from_guardrail_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            request,
+        )
+        .await
     }
 
     /// List global key assignments.
@@ -4629,7 +2263,11 @@ impl<'a> ManagementClient<'a> {
         &self,
         pagination: Option<PaginationOptions>,
     ) -> Result<guardrails::GuardrailKeyAssignmentsResponse, OpenRouterError> {
-        self.client.list_key_assignments(pagination).await
+        guardrails::list_key_assignments_with_client(
+            &self.client.request_context(self.management_key()?),
+            pagination,
+        )
+        .await
     }
 
     /// List global member assignments.
@@ -4637,7 +2275,11 @@ impl<'a> ManagementClient<'a> {
         &self,
         pagination: Option<PaginationOptions>,
     ) -> Result<guardrails::GuardrailMemberAssignmentsResponse, OpenRouterError> {
-        self.client.list_member_assignments(pagination).await
+        guardrails::list_member_assignments_with_client(
+            &self.client.request_context(self.management_key()?),
+            pagination,
+        )
+        .await
     }
 
     /// List organization members (`GET /organization/members`).
@@ -4645,7 +2287,11 @@ impl<'a> ManagementClient<'a> {
         &self,
         pagination: Option<PaginationOptions>,
     ) -> Result<organization::OrganizationMembersResponse, OpenRouterError> {
-        self.client.list_organization_members(pagination).await
+        organization::list_organization_members_with_client(
+            &self.client.request_context(self.management_key()?),
+            pagination,
+        )
+        .await
     }
 
     /// List workspaces (`GET /workspaces`).
@@ -4653,7 +2299,11 @@ impl<'a> ManagementClient<'a> {
         &self,
         pagination: Option<PaginationOptions>,
     ) -> Result<workspaces::WorkspaceListResponse, OpenRouterError> {
-        self.client.list_workspaces(pagination).await
+        workspaces::list_workspaces_with_client(
+            &self.client.request_context(self.management_key()?),
+            pagination,
+        )
+        .await
     }
 
     /// Create a workspace (`POST /workspaces`).
@@ -4661,12 +2311,20 @@ impl<'a> ManagementClient<'a> {
         &self,
         request: &workspaces::CreateWorkspaceRequest,
     ) -> Result<workspaces::Workspace, OpenRouterError> {
-        self.client.create_workspace(request).await
+        workspaces::create_workspace_with_client(
+            &self.client.request_context(self.management_key()?),
+            request,
+        )
+        .await
     }
 
     /// Get a workspace (`GET /workspaces/{id}`).
     pub async fn get_workspace(&self, id: &str) -> Result<workspaces::Workspace, OpenRouterError> {
-        self.client.get_workspace(id).await
+        workspaces::get_workspace_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+        )
+        .await
     }
 
     /// Update a workspace (`PATCH /workspaces/{id}`).
@@ -4675,7 +2333,12 @@ impl<'a> ManagementClient<'a> {
         id: &str,
         request: &workspaces::UpdateWorkspaceRequest,
     ) -> Result<workspaces::Workspace, OpenRouterError> {
-        self.client.update_workspace(id, request).await
+        workspaces::update_workspace_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            request,
+        )
+        .await
     }
 
     /// Update a workspace and clear I/O logging API key filters (`PATCH /workspaces/{id}`).
@@ -4684,9 +2347,12 @@ impl<'a> ManagementClient<'a> {
         id: &str,
         request: &workspaces::UpdateWorkspaceRequest,
     ) -> Result<workspaces::Workspace, OpenRouterError> {
-        self.client
-            .update_workspace_with_cleared_io_logging_api_key_ids(id, request)
-            .await
+        workspaces::update_workspace_with_cleared_io_logging_api_key_ids_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            request,
+        )
+        .await
     }
 
     /// Delete a workspace (`DELETE /workspaces/{id}`).
@@ -4698,9 +2364,12 @@ impl<'a> ManagementClient<'a> {
         id: &str,
         confirm_default_workspace_deletion: Option<bool>,
     ) -> Result<bool, OpenRouterError> {
-        self.client
-            .delete_workspace(id, confirm_default_workspace_deletion)
-            .await
+        workspaces::delete_workspace_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            confirm_default_workspace_deletion,
+        )
+        .await
     }
 
     /// List budgets for a workspace (`GET /workspaces/{id}/budgets`).
@@ -4708,7 +2377,11 @@ impl<'a> ManagementClient<'a> {
         &self,
         id: &str,
     ) -> Result<workspaces::ListWorkspaceBudgetsResponse, OpenRouterError> {
-        self.client.list_workspace_budgets(id).await
+        workspaces::list_workspace_budgets_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+        )
+        .await
     }
 
     /// Retrieve the budget for one interval (`GET /workspaces/{id}/budgets/{interval}`).
@@ -4717,7 +2390,12 @@ impl<'a> ManagementClient<'a> {
         id: &str,
         interval: &str,
     ) -> Result<workspaces::GetWorkspaceBudgetResponse, OpenRouterError> {
-        self.client.get_workspace_budget(id, interval).await
+        workspaces::get_workspace_budget_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            interval,
+        )
+        .await
     }
 
     /// Create or update a workspace budget (`PUT /workspaces/{id}/budgets/{interval}`).
@@ -4727,9 +2405,13 @@ impl<'a> ManagementClient<'a> {
         interval: &str,
         request: &workspaces::UpsertWorkspaceBudgetRequest,
     ) -> Result<workspaces::UpsertWorkspaceBudgetResponse, OpenRouterError> {
-        self.client
-            .upsert_workspace_budget(id, interval, request)
-            .await
+        workspaces::upsert_workspace_budget_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            interval,
+            request,
+        )
+        .await
     }
 
     /// Delete a workspace budget (`DELETE /workspaces/{id}/budgets/{interval}`).
@@ -4738,7 +2420,12 @@ impl<'a> ManagementClient<'a> {
         id: &str,
         interval: &str,
     ) -> Result<bool, OpenRouterError> {
-        self.client.delete_workspace_budget(id, interval).await
+        workspaces::delete_workspace_budget_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            interval,
+        )
+        .await
     }
 
     /// List workspace members (`GET /workspaces/{id}/members`).
@@ -4747,7 +2434,12 @@ impl<'a> ManagementClient<'a> {
         id: &str,
         pagination: Option<PaginationOptions>,
     ) -> Result<workspaces::ListWorkspaceMembersResponse, OpenRouterError> {
-        self.client.list_workspace_members(id, pagination).await
+        workspaces::list_workspace_members_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            pagination,
+        )
+        .await
     }
 
     /// Add workspace members (`POST /workspaces/{id}/members/add`).
@@ -4756,7 +2448,12 @@ impl<'a> ManagementClient<'a> {
         id: &str,
         request: &workspaces::WorkspaceMembersRequest,
     ) -> Result<workspaces::WorkspaceMembersAddResponse, OpenRouterError> {
-        self.client.add_workspace_members(id, request).await
+        workspaces::add_workspace_members_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            request,
+        )
+        .await
     }
 
     /// Remove workspace members (`POST /workspaces/{id}/members/remove`).
@@ -4765,7 +2462,12 @@ impl<'a> ManagementClient<'a> {
         id: &str,
         request: &workspaces::WorkspaceMembersRequest,
     ) -> Result<workspaces::WorkspaceMembersRemoveResponse, OpenRouterError> {
-        self.client.remove_workspace_members(id, request).await
+        workspaces::remove_workspace_members_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            request,
+        )
+        .await
     }
 }
 
@@ -4802,12 +2504,7 @@ impl<'a> LegacyCompletionsClient<'a> {
     ) -> Result<CompletionsResponse, OpenRouterError> {
         if let Some(api_key) = &self.client.api_key {
             completion::send_completion_request_with_client(
-                self.client.http_client(),
-                &self.client.base_url,
-                api_key,
-                &self.client.x_title,
-                &self.client.http_referer,
-                &self.client.app_categories,
+                &self.client.request_context(api_key),
                 request,
             )
             .await

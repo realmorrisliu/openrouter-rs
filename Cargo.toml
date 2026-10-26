@@ -13,6 +13,9 @@ readme = "README.md"
 keywords = ["openrouter", "ai", "sdk"]
 categories = ["api-bindings", "web-programming::http-client"]
 
+[package.metadata.docs.rs]
+all-features = true
+
 [workspace]
 members = [".", "crates/openrouter-cli"]
 resolver = "2"
@@ -27,7 +30,6 @@ reqwest = ["dep:reqwest", "dep:rustls", "dep:rustls-webpki", "dep:webpki-root-ce
 wasip3 = ["dep:wasip3", "dep:http-body-util", "dep:send_wrapper"]
 
 [dependencies]
-dotenvy_macro = "0.15.7"
 bytes = "1"
 futures-util = "0.3.31"
 http = "1"
