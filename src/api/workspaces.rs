@@ -409,12 +409,6 @@ pub(crate) async fn update_workspace_with_client(
     id: &str,
     request: &UpdateWorkspaceRequest,
 ) -> Result<Workspace, OpenRouterError> {
-    let RequestContext {
-        http_client: _,
-        base_url: _,
-        credential: _management_key,
-        ..
-    } = *ctx;
     update_workspace_payload_with_client(ctx, id, request).await
 }
 
@@ -423,12 +417,6 @@ pub(crate) async fn update_workspace_with_cleared_io_logging_api_key_ids_with_cl
     id: &str,
     request: &UpdateWorkspaceRequest,
 ) -> Result<Workspace, OpenRouterError> {
-    let RequestContext {
-        http_client: _,
-        base_url: _,
-        credential: _management_key,
-        ..
-    } = *ctx;
     let request = request.with_cleared_io_logging_api_key_ids();
     update_workspace_payload_with_client(ctx, id, &request).await
 }

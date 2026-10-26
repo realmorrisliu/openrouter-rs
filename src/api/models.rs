@@ -393,12 +393,6 @@ pub(crate) async fn list_models_with_client(
     category: Option<ModelCategory>,
     supported_parameters: Option<SupportedParameters>,
 ) -> Result<Vec<Model>, OpenRouterError> {
-    let RequestContext {
-        http_client: _,
-        base_url: _,
-        credential: _api_key,
-        ..
-    } = *ctx;
     let params = ListModelsParams {
         category,
         supported_parameters,

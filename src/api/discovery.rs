@@ -823,12 +823,6 @@ pub(crate) async fn list_providers_with_client(
 pub(crate) async fn list_models_for_user_with_client(
     ctx: &RequestContext<'_>,
 ) -> Result<Vec<UserModel>, OpenRouterError> {
-    let RequestContext {
-        http_client: _,
-        base_url: _,
-        credential: _api_key,
-        ..
-    } = *ctx;
     list_models_for_user_with_params_with_client(ctx, &ListUserModelsParams::default()).await
 }
 
@@ -896,12 +890,6 @@ pub(crate) async fn get_rankings_daily_with_client(
     start_date: Option<&str>,
     end_date: Option<&str>,
 ) -> Result<RankingsDailyResponse, OpenRouterError> {
-    let RequestContext {
-        http_client: _,
-        base_url: _,
-        credential: _api_key,
-        ..
-    } = *ctx;
     let params = RankingsDailyParams {
         start_date: start_date.map(str::to_owned),
         end_date: end_date.map(str::to_owned),
@@ -1094,12 +1082,6 @@ pub(crate) async fn get_activity_with_client(
     ctx: &RequestContext<'_>,
     date: Option<&str>,
 ) -> Result<Vec<ActivityItem>, OpenRouterError> {
-    let RequestContext {
-        http_client: _,
-        base_url: _,
-        credential: _management_key,
-        ..
-    } = *ctx;
     let params = ActivityParams {
         date: date.map(str::to_owned),
         ..Default::default()

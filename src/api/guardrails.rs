@@ -656,12 +656,6 @@ pub(crate) async fn list_guardrails_with_client(
     ctx: &RequestContext<'_>,
     pagination: Option<PaginationOptions>,
 ) -> Result<GuardrailListResponse, OpenRouterError> {
-    let RequestContext {
-        http_client: _,
-        base_url: _,
-        credential: _management_key,
-        ..
-    } = *ctx;
     list_guardrails_in_workspace_with_client(ctx, pagination, None).await
 }
 

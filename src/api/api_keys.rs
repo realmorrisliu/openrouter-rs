@@ -296,12 +296,6 @@ pub(crate) async fn list_api_keys_with_client(
     pagination: Option<PaginationOptions>,
     include_disabled: Option<bool>,
 ) -> Result<Vec<ApiKey>, OpenRouterError> {
-    let RequestContext {
-        http_client: _,
-        base_url: _,
-        credential: _management_key,
-        ..
-    } = *ctx;
     list_api_keys_in_workspace_with_client(ctx, pagination, include_disabled, None).await
 }
 
@@ -311,12 +305,6 @@ pub(crate) async fn list_api_keys_in_workspace_with_client(
     include_disabled: Option<bool>,
     workspace_id: Option<&str>,
 ) -> Result<Vec<ApiKey>, OpenRouterError> {
-    let RequestContext {
-        http_client: _,
-        base_url: _,
-        credential: _management_key,
-        ..
-    } = *ctx;
     list_api_keys_with_params_with_client(
         ctx,
         &ListApiKeysParams {
@@ -362,12 +350,6 @@ pub(crate) async fn create_api_key_with_client(
     name: &str,
     limit: Option<f64>,
 ) -> Result<ApiKey, OpenRouterError> {
-    let RequestContext {
-        http_client: _,
-        base_url: _,
-        credential: _management_key,
-        ..
-    } = *ctx;
     create_api_key_in_workspace_with_client(ctx, name, limit, None).await
 }
 
@@ -377,12 +359,6 @@ pub(crate) async fn create_api_key_in_workspace_with_client(
     limit: Option<f64>,
     workspace_id: Option<&str>,
 ) -> Result<ApiKey, OpenRouterError> {
-    let RequestContext {
-        http_client: _,
-        base_url: _,
-        credential: _management_key,
-        ..
-    } = *ctx;
     let request = CreateApiKeyRequest {
         name: name.to_string(),
         limit,
@@ -464,12 +440,6 @@ pub(crate) async fn update_api_key_with_client(
     disabled: Option<bool>,
     limit: Option<f64>,
 ) -> Result<ApiKey, OpenRouterError> {
-    let RequestContext {
-        http_client: _,
-        base_url: _,
-        credential: _management_key,
-        ..
-    } = *ctx;
     // Preserve the existing helper's wire shape, including explicit nulls.
     let request = serde_json::json!({"name": name, "disabled": disabled, "limit": limit});
     update_api_key_body_with_client(ctx, hash, &request).await

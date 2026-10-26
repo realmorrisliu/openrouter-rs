@@ -131,15 +131,6 @@ pub(crate) async fn list_scim_groups_with_client(
     ctx: &RequestContext<'_>,
     pagination: Option<PaginationOptions>,
 ) -> Result<ListScimGroupsResponse, OpenRouterError> {
-    let RequestContext {
-        http_client: _,
-        base_url: _,
-        credential: _management_key,
-        x_title: _,
-        http_referer: _,
-        app_categories: _,
-        ..
-    } = *ctx;
     let params = ListScimGroupsParams {
         offset: pagination.and_then(|value| value.offset),
         limit: pagination.and_then(|value| value.limit),

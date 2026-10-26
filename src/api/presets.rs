@@ -239,12 +239,6 @@ pub(crate) async fn create_chat_completion_preset_with_client(
     slug: &str,
     request: &ChatCompletionRequest,
 ) -> Result<PresetWithDesignatedVersion, OpenRouterError> {
-    let RequestContext {
-        http_client: _,
-        base_url: _,
-        credential: _management_key,
-        ..
-    } = *ctx;
     create_preset_with_client(
         ctx,
         slug,
@@ -260,12 +254,6 @@ pub(crate) async fn create_response_preset_with_client(
     slug: &str,
     request: &ResponsesRequest,
 ) -> Result<PresetWithDesignatedVersion, OpenRouterError> {
-    let RequestContext {
-        http_client: _,
-        base_url: _,
-        credential: _management_key,
-        ..
-    } = *ctx;
     create_preset_with_client(ctx, slug, "responses", request, "response preset").await
 }
 
@@ -274,11 +262,5 @@ pub(crate) async fn create_message_preset_with_client(
     slug: &str,
     request: &AnthropicMessagesRequest,
 ) -> Result<PresetWithDesignatedVersion, OpenRouterError> {
-    let RequestContext {
-        http_client: _,
-        base_url: _,
-        credential: _management_key,
-        ..
-    } = *ctx;
     create_preset_with_client(ctx, slug, "messages", request, "message preset").await
 }
