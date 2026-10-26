@@ -147,6 +147,28 @@ pub enum UnifiedStreamEvent {
     Error(OpenRouterError),
 }
 
+/// Projects a source's token counts onto the shared usage model.
+///
+/// Chat uses `prompt_tokens`/`completion_tokens`, while the Responses and
+/// Messages APIs use `input_tokens`/`output_tokens`; neither non-chat shape
+/// deserializes into [`ResponseUsage`] directly.
+fn usage_from_token_counts(
+    input_tokens: Option<u64>,
+    output_tokens: Option<u64>,
+    total_tokens: Option<u64>,
+) -> Option<ResponseUsage> {
+    let prompt_tokens = u32::try_from(input_tokens?).ok()?;
+    let completion_tokens = u32::try_from(output_tokens?).ok()?;
+    let total_tokens = total_tokens
+        .and_then(|total| u32::try_from(total).ok())
+        .unwrap_or_else(|| prompt_tokens.saturating_add(completion_tokens));
+    Some(ResponseUsage::new(
+        prompt_tokens,
+        completion_tokens,
+        total_tokens,
+    ))
+}
+
 /// A unified stream type across all streaming APIs.
 pub type UnifiedStream = BoxStream<'static, UnifiedStreamEvent>;
 
@@ -328,7 +350,11 @@ pub fn adapt_responses_stream(
                             state.meta.finish_reason = Some(status.to_string());
                         }
                         if let Some(usage) = response.get("usage") {
-                            state.meta.usage = serde_json::from_value(usage.clone()).ok();
+                            state.meta.usage = usage_from_token_counts(
+                                usage.get("input_tokens").and_then(Value::as_u64),
+                                usage.get("output_tokens").and_then(Value::as_u64),
+                                usage.get("total_tokens").and_then(Value::as_u64),
+                            );
                         }
                     }
 
@@ -440,15 +466,25 @@ pub fn adapt_messages_stream(
                             state.meta.id = message.id.clone();
                             state.meta.model = message.model.clone();
                             if let Some(usage) = message.usage {
-                                // Anthropic's usage fields have no faithful mapping onto
-                                // `ResponseUsage`, so an unmappable shape reports `None`.
-                                state.meta.usage = serde_json::to_value(usage)
-                                    .ok()
-                                    .and_then(|value| serde_json::from_value(value).ok());
+                                state.meta.usage = usage_from_token_counts(
+                                    usage.input_tokens,
+                                    usage.output_tokens,
+                                    None,
+                                );
                             }
                         }
                         AnthropicMessagesStreamEvent::MessageDelta { delta, usage } => {
-                            state.meta.usage = serde_json::from_value(usage).ok();
+                            state.meta.usage = serde_json::from_value::<
+                                crate::api::messages::AnthropicMessagesUsage,
+                            >(usage)
+                            .ok()
+                            .and_then(|usage| {
+                                usage_from_token_counts(
+                                    usage.input_tokens,
+                                    usage.output_tokens,
+                                    None,
+                                )
+                            });
                             if let Some(reason) = delta.get("stop_reason").and_then(Value::as_str) {
                                 state.meta.finish_reason = Some(reason.to_string());
                             }

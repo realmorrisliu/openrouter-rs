@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed the 109 flat `OpenRouterClient` methods; their domain-client equivalents are unchanged.
 - `HttpRequestError` now carries a failure `kind` (`Timeout`, `Connect`, `Request`, `Body`, `Decode`, `Other`), the request `url`, and `is_timeout()`/`is_connect()`. The type stays `Clone + PartialEq + Eq` and backend-neutral; each backend fills in what it can distinguish.
 - `ApiErrorContext` exposes `retry_after`, parsed from the `Retry-After` delta-seconds form.
+- The unified terminal event maps each source's own token field names, so Responses and Messages streams report usage instead of dropping it.
 - Removed `ToolAwareStream`, `StreamEvent`, and `ChatClient::stream_tool_aware`. `stream_unified` is the single event model; `UnifiedStreamEvent::Done` now carries assembled `tool_calls` and typed `usage`.
 - An API error delivered inside a chat stream is now `OpenRouterError::Api` instead of a serialization error.
 - `ChatCompletionRequest` stores one `tools: Option<Vec<ChatTool>>` list instead of separate function and server tool lists. `tools()` returns an iterator over `ChatTool`; `function_tools()` and `server_tools()` filter it. `ChatCompletionRequestBuilder::server_tools` now preserves function tools instead of replacing the list.

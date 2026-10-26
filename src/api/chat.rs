@@ -868,16 +868,25 @@ impl ChatCompletionRequestBuilder {
     strip_option_map_setter!(image_config, String, Value);
     strip_option_vec_setter!(plugins, Plugin);
     strip_option_vec_setter!(modalities, Modality);
-    /// Replace the request's tools with caller-defined function tools.
+    /// Replace the request's function tools, keeping any server tools.
+    ///
+    /// Function and server tools were independent lists before they were merged
+    /// into one field, so replacing one kind must not drop the other.
     pub fn tools<T, S>(&mut self, tools: T) -> &mut Self
     where
         T: IntoIterator<Item = S>,
         S: Into<crate::types::Tool>,
     {
+        let servers = self.tools.take().flatten().unwrap_or_default();
         self.tools = Some(Some(
-            tools
+            servers
                 .into_iter()
-                .map(|tool| ChatTool::Function(tool.into()))
+                .filter(|tool| tool.as_server().is_some())
+                .chain(
+                    tools
+                        .into_iter()
+                        .map(|tool| ChatTool::Function(tool.into())),
+                )
                 .collect(),
         ));
         self
@@ -889,17 +898,15 @@ impl ChatCompletionRequestBuilder {
         T: IntoIterator<Item = S>,
         S: Into<crate::types::ServerTool>,
     {
-        let functions: Vec<ChatTool> = self
+        let functions = self
             .tools
             .take()
             .flatten()
             .unwrap_or_default()
             .into_iter()
-            .filter(|tool| tool.as_function().is_some())
-            .collect();
+            .filter(|tool| tool.as_function().is_some());
         self.tools = Some(Some(
             functions
-                .into_iter()
                 .chain(tools.into_iter().map(|tool| ChatTool::Server(tool.into())))
                 .collect(),
         ));

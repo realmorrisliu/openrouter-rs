@@ -496,3 +496,37 @@ fn unknown_object_type_and_anthropic_role_are_preserved() {
     assert_eq!(role, AnthropicRole::Other("critic".to_string()));
     assert_eq!(serde_json::to_value(&role).unwrap(), json!("critic"));
 }
+
+#[test]
+fn tool_setters_preserve_the_other_kind_regardless_of_order() {
+    let function_tool = || {
+        Tool::builder()
+            .name("get_weather")
+            .description("Get weather by city")
+            .parameters(json!({"type": "object"}))
+            .build()
+            .expect("function tool should build")
+    };
+
+    // Server tools first, then the function list.
+    let request = ChatCompletionRequest::builder()
+        .model("openai/gpt-5")
+        .messages(vec![Message::new(Role::User, "hi")])
+        .server_tool(ServerTool::datetime_with_timezone("UTC"))
+        .tools([function_tool()])
+        .build()
+        .expect("request should build");
+    assert_eq!(request.function_tools().count(), 1);
+    assert_eq!(request.server_tools().count(), 1);
+
+    // Function tools first, then the server list.
+    let request = ChatCompletionRequest::builder()
+        .model("openai/gpt-5")
+        .messages(vec![Message::new(Role::User, "hi")])
+        .tool(function_tool())
+        .server_tools([ServerTool::datetime_with_timezone("UTC")])
+        .build()
+        .expect("request should build");
+    assert_eq!(request.function_tools().count(), 1);
+    assert_eq!(request.server_tools().count(), 1);
+}
