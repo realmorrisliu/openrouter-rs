@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use crate::transport::HttpClient;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use urlencoding::encode;
 
+use crate::transport::RequestContext;
 use crate::{
     api::chat::TraceOptions,
     error::OpenRouterError,
@@ -237,135 +237,75 @@ pub struct VideoModel {
     pub allowed_passthrough_parameters: Vec<String>,
 }
 
-/// Submit a video generation request.
-pub async fn create_video_generation(
-    base_url: &str,
-    api_key: &str,
-    x_title: &Option<String>,
-    http_referer: &Option<String>,
-    app_categories: &Option<Vec<String>>,
+pub(crate) async fn create_video_generation_with_client(
+    ctx: &RequestContext<'_>,
     request: &VideoGenerationRequest,
 ) -> Result<VideoGenerationResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    create_video_generation_with_client(
-        &http_client,
+    let RequestContext {
+        http_client,
         base_url,
-        api_key,
+        credential: api_key,
         x_title,
         http_referer,
         app_categories,
-        request,
-    )
-    .await
-}
-
-pub(crate) async fn create_video_generation_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
-    x_title: &Option<String>,
-    http_referer: &Option<String>,
-    app_categories: &Option<Vec<String>>,
-    request: &VideoGenerationRequest,
-) -> Result<VideoGenerationResponse, OpenRouterError> {
+        ..
+    } = *ctx;
     let url = format!("{base_url}/videos");
-    let response = transport_request::with_client_request_headers(
+    let req = transport_request::with_client_request_headers(
         transport_request::post(http_client, &url),
         api_key,
         x_title,
         http_referer,
         app_categories,
     )?
-    .json(request)
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "video generation").await
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// List all video generation models.
-pub async fn list_video_models(
-    base_url: &str,
-    api_key: &str,
-) -> Result<Vec<VideoModel>, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    list_video_models_with_client(&http_client, base_url, api_key).await
+    .json(request);
+    transport_response::send_json(req, "video generation").await
 }
 
 pub(crate) async fn list_video_models_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
 ) -> Result<Vec<VideoModel>, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/videos/models");
-    let response =
-        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
-            .send()
-            .await?;
-
-    if response.status().is_success() {
-        let payload: crate::types::ApiResponse<Vec<VideoModel>> =
-            transport_response::parse_json_response(response, "video models").await?;
-        Ok(payload.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Poll one video generation job by job id.
-pub async fn get_video_generation(
-    base_url: &str,
-    api_key: &str,
-    job_id: &str,
-) -> Result<VideoGenerationResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    get_video_generation_with_client(&http_client, base_url, api_key, job_id).await
+    let req =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
+    let payload: crate::types::ApiResponse<Vec<VideoModel>> =
+        transport_response::send_json(req, "video models").await?;
+    Ok(payload.data)
 }
 
 pub(crate) async fn get_video_generation_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
     job_id: &str,
 ) -> Result<VideoGenerationResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/videos/{}", encode(job_id));
-    let response =
-        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
-            .send()
-            .await?;
-
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "video generation status").await
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Download binary content for a completed video generation job.
-pub async fn get_video_content(
-    base_url: &str,
-    api_key: &str,
-    job_id: &str,
-    index: Option<u32>,
-) -> Result<Vec<u8>, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    get_video_content_with_client(&http_client, base_url, api_key, job_id, index).await
+    let req =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
+    transport_response::send_json(req, "video generation status").await
 }
 
 pub(crate) async fn get_video_content_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
     job_id: &str,
     index: Option<u32>,
 ) -> Result<Vec<u8>, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let mut url = format!("{base_url}/videos/{}/content", encode(job_id));
     if let Some(index) = index {
         url = format!("{url}?index={index}");
@@ -379,7 +319,6 @@ pub(crate) async fn get_video_content_with_client(
     if response.status().is_success() {
         Ok(response.bytes().await?.to_vec())
     } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
+        Err(transport_response::error_from_response(response).await)
     }
 }

@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
-use crate::transport::HttpClient;
 use derive_builder::Builder;
 use futures_util::{StreamExt, stream::BoxStream};
 use serde::{Deserialize, Deserializer, Serialize, de};
 use serde_json::{Value, json};
 
+use crate::transport::RequestContext;
 use crate::{
     api::chat::{CacheControl, Plugin, TraceOptions},
     error::OpenRouterError,
@@ -25,6 +25,9 @@ pub enum AnthropicRole {
     User,
     Assistant,
     System,
+    /// A role this SDK does not model yet, preserved as received.
+    #[serde(untagged)]
+    Other(String),
 }
 
 /// Text block for `system` prompts.
@@ -973,37 +976,19 @@ pub struct AnthropicMessagesSseEvent {
     pub data: AnthropicMessagesStreamEvent,
 }
 
-/// Send a non-streaming request to the Anthropic-compatible Messages API.
-pub async fn create_message(
-    base_url: &str,
-    api_key: &str,
-    x_title: &Option<String>,
-    http_referer: &Option<String>,
-    app_categories: &Option<Vec<String>>,
+pub(crate) async fn create_message_with_client(
+    ctx: &RequestContext<'_>,
     request: &AnthropicMessagesRequest,
 ) -> Result<AnthropicMessagesResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    create_message_with_client(
-        &http_client,
+    let RequestContext {
+        http_client,
         base_url,
-        api_key,
+        credential: api_key,
         x_title,
         http_referer,
         app_categories,
-        request,
-    )
-    .await
-}
-
-pub(crate) async fn create_message_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
-    x_title: &Option<String>,
-    http_referer: &Option<String>,
-    app_categories: &Option<Vec<String>>,
-    request: &AnthropicMessagesRequest,
-) -> Result<AnthropicMessagesResponse, OpenRouterError> {
+        ..
+    } = *ctx;
     let url = format!("{base_url}/messages");
     let request = request.stream(false);
 
@@ -1022,51 +1007,26 @@ pub(crate) async fn create_message_with_client(
         request.requires_openrouter_files_tool_header(),
     );
 
-    let response = request_builder.json(&request).send().await?;
-
-    if response.status().is_success() {
-        let response_data: AnthropicMessagesResponse =
-            transport_response::parse_json_response(response, "messages API").await?;
-        Ok(response_data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Send a streaming request to the Anthropic-compatible Messages API.
-pub async fn stream_messages(
-    base_url: &str,
-    api_key: &str,
-    x_title: &Option<String>,
-    http_referer: &Option<String>,
-    app_categories: &Option<Vec<String>>,
-    request: &AnthropicMessagesRequest,
-) -> Result<BoxStream<'static, Result<AnthropicMessagesSseEvent, OpenRouterError>>, OpenRouterError>
-{
-    let http_client = crate::transport::new_client()?;
-    stream_messages_with_client(
-        &http_client,
-        base_url,
-        api_key,
-        x_title,
-        http_referer,
-        app_categories,
-        request,
-    )
-    .await
+    let req = request_builder.json(&request);
+    let response_data: AnthropicMessagesResponse =
+        transport_response::send_json(req, "messages API").await?;
+    Ok(response_data)
 }
 
 pub(crate) async fn stream_messages_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
-    x_title: &Option<String>,
-    http_referer: &Option<String>,
-    app_categories: &Option<Vec<String>>,
+    ctx: &RequestContext<'_>,
     request: &AnthropicMessagesRequest,
 ) -> Result<BoxStream<'static, Result<AnthropicMessagesSseEvent, OpenRouterError>>, OpenRouterError>
 {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        x_title,
+        http_referer,
+        app_categories,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/messages");
     let request = request.stream(true);
 
@@ -1107,8 +1067,7 @@ pub(crate) async fn stream_messages_with_client(
 
         Ok(stream)
     } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
+        Err(transport_response::error_from_response(response).await)
     }
 }
 

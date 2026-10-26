@@ -1,3 +1,4 @@
+use crate::test_client;
 use std::{
     io::{Read, Write},
     net::TcpListener,
@@ -7,7 +8,7 @@ use std::{
 };
 
 use openrouter_rs::api::analytics::{
-    self, AnalyticsClassifierDimensions, AnalyticsClassifierFilters, AnalyticsFilter,
+    AnalyticsClassifierDimensions, AnalyticsClassifierFilters, AnalyticsFilter,
     AnalyticsFilterValue, AnalyticsMeta, AnalyticsOrderBy, AnalyticsQueryRequest,
     AnalyticsQueryResponse, AnalyticsTimeRange,
 };
@@ -165,7 +166,9 @@ async fn test_get_analytics_meta_path_and_auth_header() {
         r#"{"data":{"metrics":[],"dimensions":[],"operators":[],"granularities":[]}}"#,
     );
 
-    let meta = analytics::get_analytics_meta(&base_url, "management-key")
+    let meta = test_client(&base_url, "management-key")
+        .management()
+        .get_analytics_meta()
         .await
         .expect("analytics meta request should succeed");
     assert!(meta.metrics.is_empty());
@@ -233,7 +236,9 @@ async fn test_query_analytics_path_body_and_auth_header() {
         .build()
         .expect("analytics query request should build");
 
-    let response = analytics::query_analytics(&base_url, "management-key", &request)
+    let response = test_client(&base_url, "management-key")
+        .management()
+        .query_analytics(&request)
         .await
         .expect("analytics query request should succeed");
     assert_eq!(response.metadata.row_count, 0);

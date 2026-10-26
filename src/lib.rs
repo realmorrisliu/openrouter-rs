@@ -188,7 +188,6 @@ compile_error!(
 pub mod api;
 pub mod client;
 pub mod error;
-mod generated;
 mod transport;
 pub mod types;
 pub mod utils;

@@ -115,6 +115,7 @@ async fn test_unified_chat_stream_mixed_sequence() {
             model,
             finish_reason,
             usage,
+            ..
         } => {
             assert_eq!(*source, UnifiedStreamSource::Chat);
             assert_eq!(id.as_deref(), Some("gen_1"));
@@ -172,7 +173,7 @@ async fn test_unified_responses_stream_mixed_sequence() {
                     "id": "resp_1",
                     "model": "openai/gpt-5",
                     "status": "completed",
-                    "usage": { "total_tokens": 10 }
+                    "usage": { "prompt_tokens": 6, "completion_tokens": 4, "total_tokens": 10 }
                 }
             }),
         )),
@@ -192,18 +193,13 @@ async fn test_unified_responses_stream_mixed_sequence() {
             model,
             finish_reason,
             usage,
+            ..
         } => {
             assert_eq!(*source, UnifiedStreamSource::Responses);
             assert_eq!(id.as_deref(), Some("resp_1"));
             assert_eq!(model.as_deref(), Some("openai/gpt-5"));
             assert_eq!(finish_reason.as_deref(), Some("completed"));
-            assert_eq!(
-                usage
-                    .as_ref()
-                    .and_then(|u| u.get("total_tokens"))
-                    .and_then(|v| v.as_u64()),
-                Some(10)
-            );
+            assert_eq!(usage.as_ref().map(|u| u.total_tokens), Some(10));
         }
         other => panic!("expected Done event, got {other:?}"),
     }

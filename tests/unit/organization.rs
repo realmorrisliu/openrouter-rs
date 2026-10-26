@@ -1,3 +1,4 @@
+use crate::test_client;
 use std::{
     io::{Read, Write},
     net::TcpListener,
@@ -6,10 +7,7 @@ use std::{
     time::Duration,
 };
 
-use openrouter_rs::{
-    api::organization::{self, OrganizationMembersResponse},
-    types::PaginationOptions,
-};
+use openrouter_rs::{api::organization::OrganizationMembersResponse, types::PaginationOptions};
 
 #[test]
 fn test_organization_members_response_deserialization() {
@@ -74,13 +72,11 @@ async fn test_list_organization_members_path_pagination_and_auth_header() {
     });
 
     let base_url = format!("http://{addr}/api/v1");
-    let response = organization::list_organization_members(
-        &base_url,
-        "mgmt-key",
-        Some(PaginationOptions::with_offset_and_limit(3, 25)),
-    )
-    .await
-    .expect("list organization members should succeed");
+    let response = test_client(&base_url, "mgmt-key")
+        .management()
+        .list_organization_members(Some(PaginationOptions::with_offset_and_limit(3, 25)))
+        .await
+        .expect("list organization members should succeed");
     assert_eq!(response.total_count, 0);
 
     let request_text = rx

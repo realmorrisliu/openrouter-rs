@@ -1,3 +1,4 @@
+use crate::test_client;
 use std::{
     io::{Read, Write},
     net::TcpListener,
@@ -345,13 +346,11 @@ fn test_workspace_budget_response_deserialization() {
 async fn test_list_workspaces_path_pagination_and_auth_header() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
 
-    let result = workspaces::list_workspaces(
-        &base_url,
-        "mgmt-key",
-        Some(PaginationOptions::with_offset_and_limit(3, 25)),
-    )
-    .await
-    .expect("list workspaces should succeed");
+    let result = test_client(&base_url, "mgmt-key")
+        .management()
+        .list_workspaces(Some(PaginationOptions::with_offset_and_limit(3, 25)))
+        .await
+        .expect("list workspaces should succeed");
     assert_eq!(result.total_count, 0.0);
 
     let captured = rx
@@ -383,7 +382,9 @@ async fn test_create_workspace_posts_body_and_auth_header() {
         .build()
         .expect("request should build");
 
-    let response = workspaces::create_workspace(&base_url, "mgmt-key", &request)
+    let response = test_client(&base_url, "mgmt-key")
+        .management()
+        .create_workspace(&request)
         .await
         .expect("create workspace should succeed");
     assert_eq!(response.id, "ws_123");
@@ -406,7 +407,9 @@ async fn test_get_workspace_encodes_id_path() {
         r#"{"data":{"id":"ws_123","name":"Production","slug":"production","description":null,"default_text_model":null,"default_image_model":null,"default_provider_sort":null,"io_logging_api_key_ids":null,"io_logging_sampling_rate":1.0,"is_observability_io_logging_enabled":false,"is_observability_broadcast_enabled":false,"is_data_discount_logging_enabled":true,"created_at":"2025-01-01T00:00:00.000Z","updated_at":null,"created_by":"user_123"}}"#,
     );
 
-    let response = workspaces::get_workspace(&base_url, "mgmt-key", "team/prod 1")
+    let response = test_client(&base_url, "mgmt-key")
+        .management()
+        .get_workspace("team/prod 1")
         .await
         .expect("get workspace should succeed");
     assert_eq!(response.id, "ws_123");
@@ -432,7 +435,9 @@ async fn test_update_workspace_encodes_id_and_sends_body() {
         .build()
         .expect("request should build");
 
-    let response = workspaces::update_workspace(&base_url, "mgmt-key", "team/prod 1", &request)
+    let response = test_client(&base_url, "mgmt-key")
+        .management()
+        .update_workspace("team/prod 1", &request)
         .await
         .expect("update workspace should succeed");
     assert_eq!(response.name, "Updated");
@@ -462,14 +467,11 @@ async fn test_update_workspace_can_clear_io_logging_api_key_filters() {
         .build()
         .expect("request should build");
 
-    let response = workspaces::update_workspace_with_cleared_io_logging_api_key_ids(
-        &base_url,
-        "mgmt-key",
-        "team/prod 1",
-        &request,
-    )
-    .await
-    .expect("update workspace should succeed");
+    let response = test_client(&base_url, "mgmt-key")
+        .management()
+        .update_workspace_with_cleared_io_logging_api_key_ids("team/prod 1", &request)
+        .await
+        .expect("update workspace should succeed");
     assert_eq!(response.name, "Updated");
 
     let captured = rx
@@ -494,7 +496,9 @@ async fn test_update_workspace_can_clear_io_logging_api_key_filters() {
 async fn test_delete_workspace_encodes_id_path() {
     let (base_url, rx, server) = spawn_json_server(r#"{"deleted":true}"#);
 
-    let deleted = workspaces::delete_workspace(&base_url, "mgmt-key", "team/prod 1", None)
+    let deleted = test_client(&base_url, "mgmt-key")
+        .management()
+        .delete_workspace("team/prod 1", None)
         .await
         .expect("delete workspace should succeed");
     assert!(deleted);
@@ -514,7 +518,9 @@ async fn test_delete_workspace_encodes_id_path() {
 async fn test_list_workspace_budgets_encodes_id_path() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":[]}"#);
 
-    let budgets = workspaces::list_workspace_budgets(&base_url, "mgmt-key", "team/prod 1")
+    let budgets = test_client(&base_url, "mgmt-key")
+        .management()
+        .list_workspace_budgets("team/prod 1")
         .await
         .expect("list workspace budgets should succeed");
     assert!(budgets.data.is_empty());
@@ -536,14 +542,14 @@ async fn test_list_workspace_members_encodes_id_pagination_and_auth_header() {
         r#"{"data":[{"id":"wm_1","workspace_id":"ws_123","user_id":"user_123","role":"member","created_at":"2025-01-01T00:00:00.000Z"}],"total_count":1}"#,
     );
 
-    let members = workspaces::list_workspace_members(
-        &base_url,
-        "mgmt-key",
-        "team/prod 1",
-        Some(PaginationOptions::with_offset_and_limit(2, 10)),
-    )
-    .await
-    .expect("list workspace members should succeed");
+    let members = test_client(&base_url, "mgmt-key")
+        .management()
+        .list_workspace_members(
+            "team/prod 1",
+            Some(PaginationOptions::with_offset_and_limit(2, 10)),
+        )
+        .await
+        .expect("list workspace members should succeed");
     assert_eq!(members.total_count, 1.0);
     assert_eq!(members.data[0].user_id, "user_123");
 
@@ -576,15 +582,11 @@ async fn test_upsert_workspace_budget_encodes_path_and_body() {
         .build()
         .expect("budget request should build");
 
-    let response = workspaces::upsert_workspace_budget(
-        &base_url,
-        "mgmt-key",
-        "team/prod 1",
-        "monthly",
-        &request,
-    )
-    .await
-    .expect("upsert workspace budget should succeed");
+    let response = test_client(&base_url, "mgmt-key")
+        .management()
+        .upsert_workspace_budget("team/prod 1", "monthly", &request)
+        .await
+        .expect("upsert workspace budget should succeed");
     assert_eq!(response.data.limit_usd, 100.0);
     assert!(!response.include_byok_in_budgets);
 
@@ -607,10 +609,11 @@ async fn test_upsert_workspace_budget_encodes_path_and_body() {
 async fn test_delete_workspace_budget_encodes_path() {
     let (base_url, rx, server) = spawn_json_server(r#"{"deleted":true}"#);
 
-    let deleted =
-        workspaces::delete_workspace_budget(&base_url, "mgmt-key", "team/prod 1", "lifetime")
-            .await
-            .expect("delete workspace budget should succeed");
+    let deleted = test_client(&base_url, "mgmt-key")
+        .management()
+        .delete_workspace_budget("team/prod 1", "lifetime")
+        .await
+        .expect("delete workspace budget should succeed");
     assert!(deleted);
 
     let captured = rx
@@ -634,10 +637,11 @@ async fn test_add_workspace_members_encodes_id_and_sends_body() {
         .build()
         .expect("request should build");
 
-    let response =
-        workspaces::add_workspace_members(&base_url, "mgmt-key", "team/prod 1", &request)
-            .await
-            .expect("add members should succeed");
+    let response = test_client(&base_url, "mgmt-key")
+        .management()
+        .add_workspace_members("team/prod 1", &request)
+        .await
+        .expect("add members should succeed");
     assert_eq!(response.added_count, 1.0);
 
     let captured = rx
@@ -667,10 +671,11 @@ async fn test_remove_workspace_members_encodes_id_and_sends_body() {
         .build()
         .expect("request should build");
 
-    let response =
-        workspaces::remove_workspace_members(&base_url, "mgmt-key", "team/prod 1", &request)
-            .await
-            .expect("remove members should succeed");
+    let response = test_client(&base_url, "mgmt-key")
+        .management()
+        .remove_workspace_members("team/prod 1", &request)
+        .await
+        .expect("remove members should succeed");
     assert_eq!(response.removed_count, 1.0);
 
     let captured = rx
@@ -698,7 +703,9 @@ async fn test_get_workspace_budget_request_path_and_response() {
         r#"{"data":{"id":"770e8400-e29b-41d4-a716-446655440000","workspace_id":"ws_123","limit_usd":100.0,"reset_interval":"monthly","created_at":"2025-08-24T10:30:00Z","updated_at":"2025-08-24T15:45:00Z"},"include_byok_in_budgets":true}"#,
     );
 
-    let response = workspaces::get_workspace_budget(&base_url, "mgmt-key", "ws_123", "monthly")
+    let response = test_client(&base_url, "mgmt-key")
+        .management()
+        .get_workspace_budget("ws_123", "monthly")
         .await
         .expect("get workspace budget should succeed");
     assert_eq!(response.data.limit_usd, 100.0);
@@ -720,7 +727,9 @@ async fn test_get_workspace_budget_request_path_and_response() {
 async fn test_delete_workspace_with_confirm_query() {
     let (base_url, rx, server) = spawn_json_server(r#"{"deleted":true}"#);
 
-    let deleted = workspaces::delete_workspace(&base_url, "mgmt-key", "ws_123", Some(true))
+    let deleted = test_client(&base_url, "mgmt-key")
+        .management()
+        .delete_workspace("ws_123", Some(true))
         .await
         .expect("delete workspace should succeed");
     assert!(deleted);

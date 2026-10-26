@@ -1,3 +1,4 @@
+use crate::test_client;
 use std::{
     collections::HashMap,
     io::{Read, Write},
@@ -9,7 +10,7 @@ use std::{
 
 use futures_util::StreamExt;
 use openrouter_rs::api::images::{
-    self, ImageGenerationRequest, ImageGenerationResponse, ImageInputReference, ImageModel,
+    ImageGenerationRequest, ImageGenerationResponse, ImageInputReference, ImageModel,
     ImageModelEndpointsResponse, ImageProviderOptions, ImageStreamEvent, ImageStreamingResponse,
 };
 
@@ -311,16 +312,11 @@ async fn test_create_image_generation_path_body_and_headers() {
         .build()
         .expect("image request should build");
 
-    let response = images::create_image_generation(
-        &base_url,
-        "api-key",
-        &Some("openrouter-rs".to_string()),
-        &Some("https://example.com".to_string()),
-        &Some(vec!["cli-agent".to_string()]),
-        &request,
-    )
-    .await
-    .expect("image generation should succeed");
+    let response = test_client(&base_url, "api-key")
+        .images()
+        .create(&request)
+        .await
+        .expect("image generation should succeed");
     assert_eq!(response.data[0].b64_json, "aW1hZ2U=");
 
     let captured = rx
@@ -362,10 +358,11 @@ async fn test_stream_image_generation_path_body_and_sse() {
         .build()
         .expect("image request should build");
 
-    let mut stream =
-        images::stream_image_generation(&base_url, "api-key", &None, &None, &None, &request)
-            .await
-            .expect("stream should open");
+    let mut stream = test_client(&base_url, "api-key")
+        .images()
+        .stream(&request)
+        .await
+        .expect("stream should open");
     let event = stream
         .next()
         .await
@@ -410,10 +407,11 @@ async fn test_stream_image_generation_handles_buffered_json_fallback() {
         .build()
         .expect("image request should build");
 
-    let mut stream =
-        images::stream_image_generation(&base_url, "api-key", &None, &None, &None, &request)
-            .await
-            .expect("stream should open");
+    let mut stream = test_client(&base_url, "api-key")
+        .images()
+        .stream(&request)
+        .await
+        .expect("stream should open");
     let event = stream
         .next()
         .await
@@ -463,7 +461,9 @@ async fn test_stream_image_generation_handles_buffered_json_fallback() {
 #[tokio::test]
 async fn test_list_image_models_path_and_auth_header() {
     let (base_url, rx, server) = spawn_server(r#"{"data":[]}"#, "application/json");
-    let models = images::list_image_models(&base_url, "api-key")
+    let models = test_client(&base_url, "api-key")
+        .images()
+        .list_models()
         .await
         .expect("list image models should succeed");
     assert!(models.is_empty());
@@ -487,7 +487,9 @@ async fn test_list_image_models_path_and_auth_header() {
 async fn test_list_image_model_endpoints_path_and_auth_header() {
     let response = r#"{"id":"author/model","endpoints":[]}"#;
     let (base_url, rx, server) = spawn_server(response, "application/json");
-    let endpoints = images::list_image_model_endpoints(&base_url, "api-key", "author", "model")
+    let endpoints = test_client(&base_url, "api-key")
+        .images()
+        .list_model_endpoints("author", "model")
         .await
         .expect("list image endpoints should succeed");
     assert_eq!(endpoints.id, "author/model");

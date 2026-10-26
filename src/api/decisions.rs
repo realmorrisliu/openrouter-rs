@@ -3,10 +3,10 @@ use std::collections::HashMap;
 use derive_builder::Builder;
 use url::Url;
 
-use crate::transport::HttpClient;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::transport::RequestContext;
 use crate::{
     api::chat::TraceOptions,
     error::OpenRouterError,
@@ -82,33 +82,19 @@ pub struct DecisionsResponse {
     pub usage: DecisionsUsage,
 }
 
-pub async fn create(
-    base_url: &str,
-    api_key: &str,
-    request: &DecisionsRequest,
-) -> Result<DecisionsResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    create_with_client(
-        &http_client,
-        base_url,
-        api_key,
-        &None,
-        &None,
-        &None,
-        request,
-    )
-    .await
-}
-
 pub(crate) async fn create_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
-    x_title: &Option<String>,
-    http_referer: &Option<String>,
-    app_categories: &Option<Vec<String>>,
+    ctx: &RequestContext<'_>,
     request: &DecisionsRequest,
 ) -> Result<DecisionsResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        x_title,
+        http_referer,
+        app_categories,
+        ..
+    } = *ctx;
     let mut url = Url::parse(base_url)
         .map_err(|error| OpenRouterError::ConfigError(format!("invalid base URL: {error}")))?;
     url.set_path("/api/alpha/decisions");
@@ -122,36 +108,22 @@ pub(crate) async fn create_with_client(
         app_categories,
     )?;
     let response = request_builder.json(request).send().await?;
-    parse_result(response, "decisions").await
-}
-
-pub async fn create_system_one(
-    base_url: &str,
-    api_key: &str,
-    request: &DecisionsRequest,
-) -> Result<DecisionsResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    create_system_one_with_client(
-        &http_client,
-        base_url,
-        api_key,
-        &None,
-        &None,
-        &None,
-        request,
-    )
-    .await
+    transport_response::parse_or_error(response, "decisions").await
 }
 
 pub(crate) async fn create_system_one_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
-    x_title: &Option<String>,
-    http_referer: &Option<String>,
-    app_categories: &Option<Vec<String>>,
+    ctx: &RequestContext<'_>,
     request: &DecisionsRequest,
 ) -> Result<DecisionsResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        x_title,
+        http_referer,
+        app_categories,
+        ..
+    } = *ctx;
     let request_builder = transport_request::with_client_request_headers(
         transport_request::post(http_client, &format!("{base_url}/systemone")),
         api_key,
@@ -160,17 +132,5 @@ pub(crate) async fn create_system_one_with_client(
         app_categories,
     )?;
     let response = request_builder.json(request).send().await?;
-    parse_result(response, "system one").await
-}
-
-async fn parse_result<T: for<'de> Deserialize<'de>>(
-    response: crate::transport::Response,
-    context: &str,
-) -> Result<T, OpenRouterError> {
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, context).await
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
+    transport_response::parse_or_error(response, "system one").await
 }

@@ -1,3 +1,4 @@
+use crate::test_client;
 use std::{
     io::{Read, Write},
     net::TcpListener,
@@ -206,10 +207,11 @@ async fn test_create_chat_completion_preset_path_body_and_auth_header() {
         .build()
         .expect("chat request should build");
 
-    let preset =
-        presets::create_chat_completion_preset(&base_url, "management-key", "my preset", &request)
-            .await
-            .expect("create chat preset should succeed");
+    let preset = test_client(&base_url, "management-key")
+        .management()
+        .create_chat_completion_preset("my preset", &request)
+        .await
+        .expect("create chat preset should succeed");
     assert_eq!(preset.slug, "my-preset");
 
     let captured = rx
@@ -249,10 +251,11 @@ async fn test_create_response_preset_path_body_and_auth_header() {
         .build()
         .expect("responses request should build");
 
-    let preset =
-        presets::create_response_preset(&base_url, "management-key", "my-preset", &request)
-            .await
-            .expect("create response preset should succeed");
+    let preset = test_client(&base_url, "management-key")
+        .management()
+        .create_response_preset("my-preset", &request)
+        .await
+        .expect("create response preset should succeed");
     assert_eq!(preset.id, "preset_1");
 
     let captured = rx
@@ -292,7 +295,9 @@ async fn test_create_message_preset_path_body_and_auth_header() {
         .build()
         .expect("messages request should build");
 
-    let preset = presets::create_message_preset(&base_url, "management-key", "my-preset", &request)
+    let preset = test_client(&base_url, "management-key")
+        .management()
+        .create_message_preset("my-preset", &request)
         .await
         .expect("create message preset should succeed");
     assert_eq!(preset.id, "preset_1");
@@ -327,13 +332,13 @@ async fn test_create_message_preset_path_body_and_auth_header() {
 #[tokio::test]
 async fn test_list_and_get_presets_paths_and_auth_header() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
-    let presets = presets::list_presets(
-        &base_url,
-        "management-key",
-        Some(openrouter_rs::types::PaginationOptions::with_offset_and_limit(5, 10)),
-    )
-    .await
-    .expect("list presets should succeed");
+    let presets = test_client(&base_url, "management-key")
+        .management()
+        .list_presets(Some(
+            openrouter_rs::types::PaginationOptions::with_offset_and_limit(5, 10),
+        ))
+        .await
+        .expect("list presets should succeed");
     assert_eq!(presets.total_count, 0);
     let captured = rx
         .recv_timeout(Duration::from_secs(2))
@@ -357,7 +362,9 @@ async fn test_list_and_get_presets_paths_and_auth_header() {
     server.join().expect("list server thread should finish");
 
     let (base_url, rx, server) = spawn_json_server(preset_response_body());
-    let preset = presets::get_preset(&base_url, "management-key", "my preset")
+    let preset = test_client(&base_url, "management-key")
+        .management()
+        .get_preset("my preset")
         .await
         .expect("get preset should succeed");
     assert_eq!(preset.id, "preset_1");
@@ -374,14 +381,14 @@ async fn test_list_and_get_presets_paths_and_auth_header() {
 #[tokio::test]
 async fn test_list_and_get_preset_versions_paths() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
-    let versions = presets::list_preset_versions(
-        &base_url,
-        "management-key",
-        "my preset",
-        Some(openrouter_rs::types::PaginationOptions::with_limit(25)),
-    )
-    .await
-    .expect("list preset versions should succeed");
+    let versions = test_client(&base_url, "management-key")
+        .management()
+        .list_preset_versions(
+            "my preset",
+            Some(openrouter_rs::types::PaginationOptions::with_limit(25)),
+        )
+        .await
+        .expect("list preset versions should succeed");
     assert_eq!(versions.total_count, 0);
     let captured = rx
         .recv_timeout(Duration::from_secs(2))
@@ -395,7 +402,9 @@ async fn test_list_and_get_preset_versions_paths() {
     let (base_url, rx, server) = spawn_json_server(
         r#"{"data":{"id":"version_1","preset_id":"preset_1","creator_id":"user_1","version":1,"system_prompt":null,"config":{"model":"openai/gpt-5"},"created_at":"2026-04-20T10:00:00Z","updated_at":"2026-04-20T10:00:00Z"}}"#,
     );
-    let version = presets::get_preset_version(&base_url, "management-key", "my preset", "1")
+    let version = test_client(&base_url, "management-key")
+        .management()
+        .get_preset_version("my preset", "1")
         .await
         .expect("get preset version should succeed");
     assert_eq!(version.version, 1);

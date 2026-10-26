@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use crate::transport::HttpClient;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
+use crate::transport::RequestContext;
 use crate::{
     api::models::{ModelReasoning, PricingOverride},
     error::OpenRouterError,
@@ -803,57 +803,33 @@ pub struct UnifiedBenchmarksResponse {
     pub meta: UnifiedBenchmarksMeta,
 }
 
-/// List all providers (`GET /providers`).
-pub async fn list_providers(
-    base_url: &str,
-    api_key: &str,
-) -> Result<Vec<Provider>, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    list_providers_with_client(&http_client, base_url, api_key).await
-}
-
 pub(crate) async fn list_providers_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
 ) -> Result<Vec<Provider>, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/providers");
-    let response =
-        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
-            .send()
-            .await?;
-
-    if response.status().is_success() {
-        let parsed: ApiResponse<Vec<Provider>> =
-            transport_response::parse_json_response(response, "provider list").await?;
-        Ok(parsed.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// List models filtered by user settings (`GET /models/user`).
-pub async fn list_models_for_user(
-    base_url: &str,
-    api_key: &str,
-) -> Result<Vec<UserModel>, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    list_models_for_user_with_client(&http_client, base_url, api_key).await
+    let req =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
+    let parsed: ApiResponse<Vec<Provider>> =
+        transport_response::send_json(req, "provider list").await?;
+    Ok(parsed.data)
 }
 
 pub(crate) async fn list_models_for_user_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
 ) -> Result<Vec<UserModel>, OpenRouterError> {
-    list_models_for_user_with_params_with_client(
-        http_client,
-        base_url,
-        api_key,
-        &ListUserModelsParams::default(),
-    )
-    .await
+    let RequestContext {
+        http_client: _,
+        base_url: _,
+        credential: _api_key,
+        ..
+    } = *ctx;
+    list_models_for_user_with_params_with_client(ctx, &ListUserModelsParams::default()).await
 }
 
 /// Filter and paginate models available to the authenticated user.
@@ -879,257 +855,156 @@ impl ListUserModelsParams {
         ListUserModelsParamsBuilder::default()
     }
 }
-pub async fn list_models_for_user_with_params(
-    base_url: &str,
-    api_key: &str,
-    params: &ListUserModelsParams,
-) -> Result<Vec<UserModel>, OpenRouterError> {
-    list_models_for_user_with_params_with_client(
-        &crate::transport::new_client()?,
-        base_url,
-        api_key,
-        params,
-    )
-    .await
-}
 pub(crate) async fn list_models_for_user_with_params_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
     params: &ListUserModelsParams,
 ) -> Result<Vec<UserModel>, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/models/user");
-    let response =
+    let req =
         transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
-            .query(params)
-            .send()
-            .await?;
-
-    if response.status().is_success() {
-        let parsed: ApiResponse<Vec<UserModel>> =
-            transport_response::parse_json_response(response, "user model list").await?;
-        Ok(parsed.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Count available models (`GET /models/count`).
-pub async fn count_models(
-    base_url: &str,
-    api_key: &str,
-) -> Result<ModelsCountData, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    count_models_with_client(&http_client, base_url, api_key).await
+            .query(params);
+    let parsed: ApiResponse<Vec<UserModel>> =
+        transport_response::send_json(req, "user model list").await?;
+    Ok(parsed.data)
 }
 
 pub(crate) async fn count_models_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
 ) -> Result<ModelsCountData, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/models/count");
-    let response =
-        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
-            .send()
-            .await?;
-
-    if response.status().is_success() {
-        let parsed: ApiResponse<ModelsCountData> =
-            transport_response::parse_json_response(response, "model count").await?;
-        Ok(parsed.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Return daily token totals for top public models (`GET /datasets/rankings-daily`).
-pub async fn get_rankings_daily(
-    base_url: &str,
-    api_key: &str,
-    start_date: Option<&str>,
-    end_date: Option<&str>,
-) -> Result<RankingsDailyResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    get_rankings_daily_with_client(&http_client, base_url, api_key, start_date, end_date).await
+    let req =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
+    let parsed: ApiResponse<ModelsCountData> =
+        transport_response::send_json(req, "model count").await?;
+    Ok(parsed.data)
 }
 
 pub(crate) async fn get_rankings_daily_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
     start_date: Option<&str>,
     end_date: Option<&str>,
 ) -> Result<RankingsDailyResponse, OpenRouterError> {
+    let RequestContext {
+        http_client: _,
+        base_url: _,
+        credential: _api_key,
+        ..
+    } = *ctx;
     let params = RankingsDailyParams {
         start_date: start_date.map(str::to_owned),
         end_date: end_date.map(str::to_owned),
         ..Default::default()
     };
-    get_rankings_daily_with_params_and_client(http_client, base_url, api_key, Some(&params)).await
-}
-
-pub async fn get_rankings_daily_with_params(
-    base_url: &str,
-    api_key: &str,
-    params: Option<&RankingsDailyParams>,
-) -> Result<RankingsDailyResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    get_rankings_daily_with_params_and_client(&http_client, base_url, api_key, params).await
+    get_rankings_daily_with_params_and_client(ctx, Some(&params)).await
 }
 
 pub(crate) async fn get_rankings_daily_with_params_and_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
     params: Option<&RankingsDailyParams>,
 ) -> Result<RankingsDailyResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/datasets/rankings-daily");
     let req =
         transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
-    let response = match params {
-        Some(params) => req.query(params).send().await?,
-        None => req.send().await?,
+    let req = match params {
+        Some(params) => req.query(params),
+        None => req,
     };
-
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "rankings daily").await
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Return aggregated cost-per-session cells (`GET /datasets/session-cost`).
-///
-/// Weekly refreshed, privacy-preserving medians of per-session USD spend for the
-/// published harnesses. Licensed under CC BY 4.0 by OpenRouter.
-pub async fn get_session_cost(
-    base_url: &str,
-    api_key: &str,
-    params: Option<&SessionCostParams>,
-) -> Result<SessionCostResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    get_session_cost_with_client(&http_client, base_url, api_key, params).await
+    transport_response::send_json(req, "rankings daily").await
 }
 
 pub(crate) async fn get_session_cost_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
     params: Option<&SessionCostParams>,
 ) -> Result<SessionCostResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/datasets/session-cost");
     let req =
         transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
-    let response = match params {
-        Some(params) if !params.is_empty() => req.query(params).send().await?,
-        _ => req.send().await?,
+    let req = match params {
+        Some(params) if !params.is_empty() => req.query(params),
+        _ => req,
     };
-
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "session cost").await
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Return app rankings over a date window (`GET /datasets/app-rankings`).
-pub async fn get_app_rankings(
-    base_url: &str,
-    api_key: &str,
-    params: Option<&AppRankingsParams>,
-) -> Result<AppRankingsResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    get_app_rankings_with_client(&http_client, base_url, api_key, params).await
+    transport_response::send_json(req, "session cost").await
 }
 
 pub(crate) async fn get_app_rankings_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
     params: Option<&AppRankingsParams>,
 ) -> Result<AppRankingsResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/datasets/app-rankings");
     let req =
         transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
-    let response = match params {
-        Some(params) if !params.is_empty() => req.query(params).send().await?,
-        _ => req.send().await?,
+    let req = match params {
+        Some(params) if !params.is_empty() => req.query(params),
+        _ => req,
     };
-
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "app rankings").await
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Return task classification market-share data (`GET /classifications/task`).
-pub async fn get_task_classifications(
-    base_url: &str,
-    api_key: &str,
-    window: Option<&str>,
-) -> Result<TaskClassificationsResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    get_task_classifications_with_client(&http_client, base_url, api_key, window).await
+    transport_response::send_json(req, "app rankings").await
 }
 
 pub(crate) async fn get_task_classifications_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
     window: Option<&str>,
 ) -> Result<TaskClassificationsResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/classifications/task");
     let req =
         transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
-    let response = match window {
-        Some(window) => req.query(&[("window", window)]).send().await?,
-        None => req.send().await?,
+    let req = match window {
+        Some(window) => req.query(&[("window", window)]),
+        None => req,
     };
-
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "task classifications").await
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Return benchmark rows from a selected benchmark source (`GET /benchmarks`).
-pub async fn get_benchmarks(
-    base_url: &str,
-    api_key: &str,
-    params: &UnifiedBenchmarksParams,
-) -> Result<UnifiedBenchmarksResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    get_benchmarks_with_client(&http_client, base_url, api_key, params).await
+    transport_response::send_json(req, "task classifications").await
 }
 
 pub(crate) async fn get_benchmarks_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
     params: &UnifiedBenchmarksParams,
 ) -> Result<UnifiedBenchmarksResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/benchmarks");
-    let response =
+    let req =
         transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
-            .query(params)
-            .send()
-            .await?;
-
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "benchmarks").await
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
+            .query(params);
+    transport_response::send_json(req, "benchmarks").await
 }
 
 #[derive(Serialize)]
@@ -1138,40 +1013,26 @@ struct BenchmarkMaxResultsQuery {
     max_results: Option<u32>,
 }
 
-/// Return Artificial Analysis benchmark rows.
-#[deprecated(note = "use get_benchmarks with source `artificial-analysis`")]
-pub async fn get_benchmarks_artificial_analysis(
-    base_url: &str,
-    api_key: &str,
-    max_results: Option<u32>,
-) -> Result<BenchmarksAAResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    get_benchmarks_artificial_analysis_with_client(&http_client, base_url, api_key, max_results)
-        .await
-}
-
 pub(crate) async fn get_benchmarks_artificial_analysis_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
     max_results: Option<u32>,
 ) -> Result<BenchmarksAAResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/datasets/benchmarks/artificial-analysis");
     let query = BenchmarkMaxResultsQuery { max_results };
     let req =
         transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
-    let response = if query.max_results.is_none() {
-        req.send().await?
+    let req = if query.max_results.is_none() {
+        req
     } else {
-        req.query(&query).send().await?
+        req.query(&query)
     };
-
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "Artificial Analysis benchmarks").await
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
+    transport_response::send_json(req, "Artificial Analysis benchmarks").await
 }
 
 #[derive(Serialize)]
@@ -1184,35 +1045,18 @@ struct DesignArenaQuery<'a> {
     max_results: Option<u32>,
 }
 
-/// Return Design Arena benchmark rows.
-#[deprecated(note = "use get_benchmarks with source `design-arena`")]
-pub async fn get_benchmarks_design_arena(
-    base_url: &str,
-    api_key: &str,
-    arena: Option<&str>,
-    category: Option<&str>,
-    max_results: Option<u32>,
-) -> Result<BenchmarksDAResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    get_benchmarks_design_arena_with_client(
-        &http_client,
-        base_url,
-        api_key,
-        arena,
-        category,
-        max_results,
-    )
-    .await
-}
-
 pub(crate) async fn get_benchmarks_design_arena_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
     arena: Option<&str>,
     category: Option<&str>,
     max_results: Option<u32>,
 ) -> Result<BenchmarksDAResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/datasets/benchmarks/design-arena");
     let query = DesignArenaQuery {
         arena,
@@ -1221,108 +1065,68 @@ pub(crate) async fn get_benchmarks_design_arena_with_client(
     };
     let req =
         transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
-    let response =
-        if query.arena.is_none() && query.category.is_none() && query.max_results.is_none() {
-            req.send().await?
-        } else {
-            req.query(&query).send().await?
-        };
-
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "Design Arena benchmarks").await
+    let req = if query.arena.is_none() && query.category.is_none() && query.max_results.is_none() {
+        req
     } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// List ZDR-compatible endpoints (`GET /endpoints/zdr`).
-pub async fn list_zdr_endpoints(
-    base_url: &str,
-    api_key: &str,
-) -> Result<Vec<PublicEndpoint>, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    list_zdr_endpoints_with_client(&http_client, base_url, api_key).await
+        req.query(&query)
+    };
+    transport_response::send_json(req, "Design Arena benchmarks").await
 }
 
 pub(crate) async fn list_zdr_endpoints_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
 ) -> Result<Vec<PublicEndpoint>, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/endpoints/zdr");
-    let response =
-        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
-            .send()
-            .await?;
-
-    if response.status().is_success() {
-        let parsed: ApiResponse<Vec<PublicEndpoint>> =
-            transport_response::parse_json_response(response, "ZDR endpoint list").await?;
-        Ok(parsed.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Get endpoint-grouped activity (`GET /activity`).
-///
-/// `date` is optional and should be in `YYYY-MM-DD` format.
-pub async fn get_activity(
-    base_url: &str,
-    management_key: &str,
-    date: Option<&str>,
-) -> Result<Vec<ActivityItem>, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    get_activity_with_client(&http_client, base_url, management_key, date).await
+    let req =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
+    let parsed: ApiResponse<Vec<PublicEndpoint>> =
+        transport_response::send_json(req, "ZDR endpoint list").await?;
+    Ok(parsed.data)
 }
 
 pub(crate) async fn get_activity_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     date: Option<&str>,
 ) -> Result<Vec<ActivityItem>, OpenRouterError> {
+    let RequestContext {
+        http_client: _,
+        base_url: _,
+        credential: _management_key,
+        ..
+    } = *ctx;
     let params = ActivityParams {
         date: date.map(str::to_owned),
         ..Default::default()
     };
-    get_activity_with_params_and_client(http_client, base_url, management_key, Some(&params)).await
-}
-
-/// Get endpoint-grouped activity with the full filter surface (`GET /activity`).
-pub async fn get_activity_with_params(
-    base_url: &str,
-    management_key: &str,
-    params: Option<&ActivityParams>,
-) -> Result<Vec<ActivityItem>, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    get_activity_with_params_and_client(&http_client, base_url, management_key, params).await
+    get_activity_with_params_and_client(ctx, Some(&params)).await
 }
 
 pub(crate) async fn get_activity_with_params_and_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     params: Option<&ActivityParams>,
 ) -> Result<Vec<ActivityItem>, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/activity");
     let req = transport_request::with_bearer_auth(
         transport_request::get(http_client, &url),
         management_key,
     );
-    let response = match params {
-        Some(params) if !params.is_empty() => req.query(params).send().await?,
-        _ => req.send().await?,
+    let req = match params {
+        Some(params) if !params.is_empty() => req.query(params),
+        _ => req,
     };
-
-    if response.status().is_success() {
-        let parsed: ApiResponse<Vec<ActivityItem>> =
-            transport_response::parse_json_response(response, "activity list").await?;
-        Ok(parsed.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
+    let parsed: ApiResponse<Vec<ActivityItem>> =
+        transport_response::send_json(req, "activity list").await?;
+    Ok(parsed.data)
 }

@@ -1,3 +1,5 @@
+use crate::test_client;
+use crate::test_client_with_attribution;
 use std::{
     io::{Read, Write},
     net::TcpListener,
@@ -8,9 +10,8 @@ use std::{
 
 use futures_util::StreamExt;
 use openrouter_rs::{
-    api::chat::{
-        ChatCompletionRequestBuilder, Message, send_chat_completion, stream_chat_completion,
-    },
+    api::chat::{ChatCompletionRequest, ChatCompletionRequestBuilder, Message},
+    error::OpenRouterError,
     types::{OpenRouterExperimentalMetadata, Role, ServerTool, completion::CompletionsResponse},
 };
 
@@ -120,14 +121,15 @@ async fn test_send_chat_completion_sets_stream_false_and_headers() {
     let http_referer = Some("https://github.com/realmorrisliu/openrouter-rs".to_string());
     let app_categories = Some(vec!["cli-agent".to_string()]);
 
-    let response = send_chat_completion(
+    let response = test_client_with_attribution(
         &base_url,
         "api-key",
         &x_title,
         &http_referer,
         &app_categories,
-        &request,
     )
+    .chat()
+    .create(&request)
     .await
     .expect("send_chat_completion should succeed");
     assert_eq!(response.id, "gen-123");
@@ -203,7 +205,9 @@ async fn test_send_chat_completion_sets_files_tool_header() {
         .build()
         .expect("chat request should build");
 
-    send_chat_completion(&base_url, "api-key", &None, &None, &None, &request)
+    test_client(&base_url, "api-key")
+        .chat()
+        .create(&request)
         .await
         .expect("send_chat_completion should succeed");
 
@@ -282,14 +286,15 @@ async fn test_stream_chat_completion_sets_stream_true_and_parses_sse() {
     let http_referer = Some("https://github.com/realmorrisliu/openrouter-rs".to_string());
     let app_categories = Some(vec!["cli-agent".to_string()]);
 
-    let mut stream = stream_chat_completion(
+    let mut stream = test_client_with_attribution(
         &base_url,
         "api-key",
         &x_title,
         &http_referer,
         &app_categories,
-        &request,
     )
+    .chat()
+    .stream(&request)
     .await
     .expect("stream_chat_completion should succeed");
     let mut chunks = Vec::new();
@@ -368,7 +373,9 @@ async fn test_stream_chat_completion_parses_multiline_sse_data_frames() {
         .build()
         .expect("chat request should build");
 
-    let mut stream = stream_chat_completion(&base_url, "api-key", &None, &None, &None, &request)
+    let mut stream = test_client(&base_url, "api-key")
+        .chat()
+        .stream(&request)
         .await
         .expect("stream_chat_completion should succeed");
     let mut chunks = Vec::new();
@@ -393,7 +400,9 @@ async fn test_send_chat_completion_returns_contextual_parse_error_on_invalid_jso
         .build()
         .expect("chat request should build");
 
-    let error = send_chat_completion(&base_url, "api-key", &None, &None, &None, &request)
+    let error = test_client(&base_url, "api-key")
+        .chat()
+        .create(&request)
         .await
         .expect_err("invalid JSON should fail");
 
@@ -423,7 +432,9 @@ async fn test_send_chat_completion_keeps_api_error_with_string_code() {
         .build()
         .expect("chat request should build");
 
-    let error = send_chat_completion(&base_url, "api-key", &None, &None, &None, &request)
+    let error = test_client(&base_url, "api-key")
+        .chat()
+        .create(&request)
         .await
         .expect_err("error payload should fail");
 
@@ -451,7 +462,9 @@ async fn test_send_chat_completion_treats_error_payload_with_200_status_as_api_e
         .build()
         .expect("chat request should build");
 
-    let error = send_chat_completion(&base_url, "api-key", &None, &None, &None, &request)
+    let error = test_client(&base_url, "api-key")
+        .chat()
+        .create(&request)
         .await
         .expect_err("error payload should fail");
 
@@ -464,6 +477,48 @@ async fn test_send_chat_completion_treats_error_payload_with_200_status_as_api_e
         }
         other => panic!("expected API error, got {other:?}"),
     }
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
+async fn test_stream_mid_stream_api_error_is_an_api_error() {
+    let (base_url, _rx, server) = spawn_server(
+        concat!(
+            "data: {\"id\":\"gen-stream-002\",\"choices\":[{\"delta\":{\"role\":\"assistant\",\"content\":\"partial\"},\"index\":0}],\"created\":1700000000,\"model\":\"test-model\",\"object\":\"chat.completion.chunk\"}\r\n",
+            "\r\n",
+            "data: {\"error\":{\"code\":502,\"message\":\"provider failed\"}}\r\n",
+            "\r\n",
+            "data: [DONE]\r\n",
+            "\r\n"
+        ),
+        "text/event-stream",
+    );
+
+    let request = ChatCompletionRequest::builder()
+        .model("openai/gpt-4o-mini")
+        .messages(vec![Message::new(Role::User, "hello")])
+        .build()
+        .expect("chat request should build");
+
+    let mut stream = test_client(&base_url, "api-key")
+        .chat()
+        .stream(&request)
+        .await
+        .expect("stream should start");
+
+    let mut saw_api_error = false;
+    while let Some(item) = stream.next().await {
+        if let Err(OpenRouterError::Api(context)) = item {
+            assert_eq!(context.status.as_u16(), 502);
+            assert_eq!(context.message, "provider failed");
+            saw_api_error = true;
+        }
+    }
+    assert!(
+        saw_api_error,
+        "a mid-stream API error should surface as an API error"
+    );
 
     server.join().expect("server thread should finish");
 }

@@ -800,13 +800,16 @@ pub struct Delta {
     pub refusal: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum ObjectType {
     #[serde(rename = "chat.completion")]
     ChatCompletion,
     #[serde(rename = "chat.completion.chunk")]
     ChatCompletionChunk,
+    /// An object type this SDK does not model yet, preserved as received.
+    #[serde(untagged)]
+    Other(String),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -6,6 +6,7 @@ use http::StatusCode;
 use crate::transport::HttpClient;
 use serde::{Deserialize, Serialize};
 
+use crate::transport::RequestContext;
 use crate::{
     api::chat::TraceOptions,
     error::OpenRouterError,
@@ -431,37 +432,19 @@ pub struct TranscriptionUsage {
     pub total_tokens: Option<u64>,
 }
 
-/// Submit a speech request and return raw audio bytes.
-pub async fn create_speech(
-    base_url: &str,
-    api_key: &str,
-    x_title: &Option<String>,
-    http_referer: &Option<String>,
-    app_categories: &Option<Vec<String>>,
+pub(crate) async fn create_speech_with_client(
+    ctx: &RequestContext<'_>,
     request: &SpeechRequest,
 ) -> Result<Vec<u8>, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    create_speech_with_client(
-        &http_client,
+    let RequestContext {
+        http_client,
         base_url,
-        api_key,
+        credential: api_key,
         x_title,
         http_referer,
         app_categories,
-        request,
-    )
-    .await
-}
-
-pub(crate) async fn create_speech_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
-    x_title: &Option<String>,
-    http_referer: &Option<String>,
-    app_categories: &Option<Vec<String>>,
-    request: &SpeechRequest,
-) -> Result<Vec<u8>, OpenRouterError> {
+        ..
+    } = *ctx;
     let request_metadata = (x_title, http_referer, app_categories);
     let official_response = send_speech_request(
         http_client,
@@ -496,61 +479,35 @@ pub(crate) async fn create_speech_with_client(
             return Ok(legacy_response.bytes().await?.to_vec());
         }
 
-        transport_response::handle_error(legacy_response).await?;
+        return Err(transport_response::error_from_response(legacy_response).await);
     }
 
     Err(official_error)
 }
 
-/// Submit an audio transcription request.
-pub async fn create_transcription(
-    base_url: &str,
-    api_key: &str,
-    x_title: &Option<String>,
-    http_referer: &Option<String>,
-    app_categories: &Option<Vec<String>>,
+pub(crate) async fn create_transcription_with_client(
+    ctx: &RequestContext<'_>,
     request: &TranscriptionRequest,
 ) -> Result<TranscriptionResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    create_transcription_with_client(
-        &http_client,
+    let RequestContext {
+        http_client,
         base_url,
-        api_key,
+        credential: api_key,
         x_title,
         http_referer,
         app_categories,
-        request,
-    )
-    .await
-}
-
-pub(crate) async fn create_transcription_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
-    x_title: &Option<String>,
-    http_referer: &Option<String>,
-    app_categories: &Option<Vec<String>>,
-    request: &TranscriptionRequest,
-) -> Result<TranscriptionResponse, OpenRouterError> {
+        ..
+    } = *ctx;
     let url = format!("{base_url}{TRANSCRIPTIONS_PATH}");
-    let response = transport_request::with_client_request_headers(
+    let req = transport_request::with_client_request_headers(
         transport_request::post(http_client, &url),
         api_key,
         x_title,
         http_referer,
         app_categories,
     )?
-    .json(request)
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "audio transcription").await
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
+    .json(request);
+    transport_response::send_json(req, "audio transcription").await
 }
 
 async fn send_speech_request(

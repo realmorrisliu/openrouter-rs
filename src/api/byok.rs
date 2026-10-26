@@ -1,8 +1,8 @@
-use crate::transport::HttpClient;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize, Serializer, ser::SerializeMap};
 use urlencoding::encode;
 
+use crate::transport::RequestContext;
 use crate::{
     error::OpenRouterError,
     strip_option_vec_setter,
@@ -330,34 +330,18 @@ struct DeleteByokKeyResponse {
     deleted: bool,
 }
 
-/// List BYOK provider credentials (`GET /byok`). Requires a management key.
-pub async fn list_byok_keys(
-    base_url: &str,
-    management_key: &str,
-    pagination: Option<PaginationOptions>,
-    workspace_id: Option<&str>,
-    provider: Option<&str>,
-) -> Result<ByokKeyListResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    list_byok_keys_with_client(
-        &http_client,
-        base_url,
-        management_key,
-        pagination,
-        workspace_id,
-        provider,
-    )
-    .await
-}
-
 pub(crate) async fn list_byok_keys_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     pagination: Option<PaginationOptions>,
     workspace_id: Option<&str>,
     provider: Option<&str>,
 ) -> Result<ByokKeyListResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/byok");
     let query = ListByokKeysQuery {
         offset: pagination.and_then(|p| p.offset),
@@ -369,160 +353,97 @@ pub(crate) async fn list_byok_keys_with_client(
         transport_request::get(http_client, &url),
         management_key,
     );
-    let response = if query.offset.is_none()
+    let req = if query.offset.is_none()
         && query.limit.is_none()
         && query.workspace_id.is_none()
         && query.provider.is_none()
     {
-        req.send().await?
+        req
     } else {
-        req.query(&query).send().await?
+        req.query(&query)
     };
-
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "BYOK key list").await
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Create a BYOK provider credential (`POST /byok`). Requires a management key.
-pub async fn create_byok_key(
-    base_url: &str,
-    management_key: &str,
-    request: &CreateByokKeyRequest,
-) -> Result<ByokKey, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    create_byok_key_with_client(&http_client, base_url, management_key, request).await
+    transport_response::send_json(req, "BYOK key list").await
 }
 
 pub(crate) async fn create_byok_key_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     request: &CreateByokKeyRequest,
 ) -> Result<ByokKey, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/byok");
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::post(http_client, &url),
         management_key,
     )
-    .json(request)
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        let payload: ApiResponse<ByokKey> =
-            transport_response::parse_json_response(response, "BYOK key creation").await?;
-        Ok(payload.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Get a BYOK provider credential (`GET /byok/{id}`). Requires a management key.
-pub async fn get_byok_key(
-    base_url: &str,
-    management_key: &str,
-    id: &str,
-) -> Result<ByokKey, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    get_byok_key_with_client(&http_client, base_url, management_key, id).await
+    .json(request);
+    let payload: ApiResponse<ByokKey> =
+        transport_response::send_json(req, "BYOK key creation").await?;
+    Ok(payload.data)
 }
 
 pub(crate) async fn get_byok_key_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     id: &str,
 ) -> Result<ByokKey, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/byok/{}", encode(id));
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::get(http_client, &url),
         management_key,
-    )
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        let payload: ApiResponse<ByokKey> =
-            transport_response::parse_json_response(response, "BYOK key lookup").await?;
-        Ok(payload.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Update a BYOK provider credential (`PATCH /byok/{id}`). Requires a management key.
-pub async fn update_byok_key(
-    base_url: &str,
-    management_key: &str,
-    id: &str,
-    request: &UpdateByokKeyRequest,
-) -> Result<ByokKey, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    update_byok_key_with_client(&http_client, base_url, management_key, id, request).await
+    );
+    let payload: ApiResponse<ByokKey> =
+        transport_response::send_json(req, "BYOK key lookup").await?;
+    Ok(payload.data)
 }
 
 pub(crate) async fn update_byok_key_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     id: &str,
     request: &UpdateByokKeyRequest,
 ) -> Result<ByokKey, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/byok/{}", encode(id));
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::patch(http_client, &url),
         management_key,
     )
-    .json(request)
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        let payload: ApiResponse<ByokKey> =
-            transport_response::parse_json_response(response, "BYOK key update").await?;
-        Ok(payload.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Delete a BYOK provider credential (`DELETE /byok/{id}`). Requires a management key.
-pub async fn delete_byok_key(
-    base_url: &str,
-    management_key: &str,
-    id: &str,
-) -> Result<bool, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    delete_byok_key_with_client(&http_client, base_url, management_key, id).await
+    .json(request);
+    let payload: ApiResponse<ByokKey> =
+        transport_response::send_json(req, "BYOK key update").await?;
+    Ok(payload.data)
 }
 
 pub(crate) async fn delete_byok_key_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
+    ctx: &RequestContext<'_>,
     id: &str,
 ) -> Result<bool, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/byok/{}", encode(id));
-    let response = transport_request::with_bearer_auth(
+    let req = transport_request::with_bearer_auth(
         transport_request::delete(http_client, &url),
         management_key,
-    )
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        let payload: DeleteByokKeyResponse =
-            transport_response::parse_json_response(response, "BYOK key deletion").await?;
-        Ok(payload.deleted)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
+    );
+    let payload: DeleteByokKeyResponse =
+        transport_response::send_json(req, "BYOK key deletion").await?;
+    Ok(payload.deleted)
 }

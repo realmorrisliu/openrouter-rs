@@ -502,10 +502,17 @@ fn response_message_replays_modeled_metadata_in_chat_request() {
         let choice: Choice = serde_json::from_value(payload).unwrap();
         assert!(choice.message().is_none());
     }
-    for role in [json!(null), json!("unknown")] {
-        let choice: Choice = serde_json::from_value(json!({"message": {"role": role}})).unwrap();
-        assert!(Message::try_from(choice.message().unwrap()).is_err());
-    }
+    let choice: Choice = serde_json::from_value(json!({"message": {"role": null}})).unwrap();
+    assert!(Message::try_from(choice.message().unwrap()).is_err());
+
+    // An unrecognized role is preserved rather than failing the whole message.
+    let choice: Choice = serde_json::from_value(json!({"message": {"role": "unknown"}})).unwrap();
+    let message = Message::try_from(choice.message().unwrap())
+        .expect("unknown roles should be preserved, not rejected");
+    assert_eq!(
+        message.role,
+        openrouter_rs::types::Role::Other("unknown".to_string())
+    );
 }
 
 #[test]
@@ -567,7 +574,7 @@ async fn official_reasoning_blocks_survive_replay_and_stream_adapters() {
     use futures_util::{StreamExt, stream};
     use openrouter_rs::{
         api::chat::{ChatCompletionRequest, Message},
-        types::stream::{StreamEvent, ToolAwareStream, UnifiedStreamEvent, adapt_chat_stream},
+        types::stream::{UnifiedStreamEvent, adapt_chat_stream},
     };
     use serde_json::json;
 
@@ -598,13 +605,6 @@ async fn official_reasoning_blocks_survive_replay_and_stream_adapters() {
         "choices": [{"delta": {"reasoning_details": blocks}}]
     }))
     .unwrap();
-    let mut tool_stream = ToolAwareStream::new(stream::iter(vec![Ok(chunk.clone())]).boxed());
-    let Some(StreamEvent::ReasoningDetailsDelta(details)) = tool_stream.next().await else {
-        panic!("expected reasoning details from tool-aware stream");
-    };
-    assert_eq!(details[0].content(), Some("Need weather data"));
-    assert_eq!(serde_json::to_value(details).unwrap(), blocks);
-
     let mut unified_stream = adapt_chat_stream(stream::iter(vec![Ok(chunk)]).boxed());
     let Some(UnifiedStreamEvent::ReasoningDetailsDelta(details)) = unified_stream.next().await
     else {

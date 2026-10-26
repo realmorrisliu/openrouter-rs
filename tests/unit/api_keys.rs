@@ -1,3 +1,4 @@
+use crate::test_client;
 use std::{
     io::{Read, Write},
     net::TcpListener,
@@ -159,7 +160,9 @@ async fn test_get_current_api_key_path_and_auth_header() {
         r#"{"data":{"label":"default","usage":1.5,"is_free_tier":false,"is_management_key":true,"rate_limit":{"requests":1000,"interval":"1m"},"limit":100.0,"limit_remaining":98.5}}"#,
     );
 
-    let details = api_keys::get_current_api_key(&base_url, "api-key")
+    let details = test_client(&base_url, "api-key")
+        .management()
+        .get_current_api_key_info()
         .await
         .expect("get current key should succeed");
     assert_eq!(details.label, "default");
@@ -222,7 +225,9 @@ async fn test_delete_api_key_uses_single_api_v1_prefix() {
     });
 
     let base_url = format!("http://{addr}/api/v1");
-    let deleted = api_keys::delete_api_key(&base_url, "test-key", "key-hash")
+    let deleted = test_client(&base_url, "test-key")
+        .management()
+        .delete_api_key("key-hash")
         .await
         .expect("delete request should succeed");
 
@@ -277,14 +282,11 @@ async fn test_list_api_keys_serializes_pagination_query() {
     });
 
     let base_url = format!("http://{addr}/api/v1");
-    let keys = api_keys::list_api_keys(
-        &base_url,
-        "mgmt-key",
-        Some(PaginationOptions::with_offset(5)),
-        Some(true),
-    )
-    .await
-    .expect("list API keys should succeed");
+    let keys = test_client(&base_url, "mgmt-key")
+        .management()
+        .list_api_keys(Some(PaginationOptions::with_offset(5)), Some(true))
+        .await
+        .expect("list API keys should succeed");
     assert!(keys.is_empty(), "response payload should parse");
 
     let request_line = rx
@@ -352,15 +354,15 @@ async fn test_list_api_keys_serializes_workspace_filter_query() {
     });
 
     let base_url = format!("http://{addr}/api/v1");
-    let response = api_keys::list_api_keys_in_workspace(
-        &base_url,
-        "mgmt-key",
-        Some(PaginationOptions::with_offset(7)),
-        Some(true),
-        Some("ws_123"),
-    )
-    .await
-    .expect("list_api_keys_in_workspace should succeed");
+    let response = test_client(&base_url, "mgmt-key")
+        .management()
+        .list_api_keys_in_workspace(
+            Some(PaginationOptions::with_offset(7)),
+            Some(true),
+            Some("ws_123"),
+        )
+        .await
+        .expect("list_api_keys_in_workspace should succeed");
     assert!(response.is_empty());
 
     let request_line = rx
@@ -415,10 +417,11 @@ async fn test_list_api_keys_serializes_workspace_filter_without_other_query_para
     });
 
     let base_url = format!("http://{addr}/api/v1");
-    let response =
-        api_keys::list_api_keys_in_workspace(&base_url, "mgmt-key", None, None, Some("ws_456"))
-            .await
-            .expect("list_api_keys_in_workspace should succeed");
+    let response = test_client(&base_url, "mgmt-key")
+        .management()
+        .list_api_keys_in_workspace(None, None, Some("ws_456"))
+        .await
+        .expect("list_api_keys_in_workspace should succeed");
     assert!(response.is_empty());
 
     let request_line = rx
@@ -437,15 +440,11 @@ async fn test_create_api_key_serializes_workspace_id() {
     let (base_url, rx, server) =
         spawn_json_server(r#"{"data":{"name":"ops","hash":"key_hash_1","workspace_id":"ws_123"}}"#);
 
-    let response = api_keys::create_api_key_in_workspace(
-        &base_url,
-        "mgmt-key",
-        "ops",
-        Some(25.0),
-        Some("ws_123"),
-    )
-    .await
-    .expect("create_api_key_in_workspace should succeed");
+    let response = test_client(&base_url, "mgmt-key")
+        .management()
+        .create_api_key_in_workspace("ops", Some(25.0), Some("ws_123"))
+        .await
+        .expect("create_api_key_in_workspace should succeed");
     assert_eq!(response.workspace_id.as_deref(), Some("ws_123"));
 
     let captured = rx
@@ -466,7 +465,9 @@ async fn test_create_api_key_sends_path_body_and_auth_header() {
     let (base_url, rx, server) =
         spawn_json_server(r#"{"data":{"hash":"hash_123","name":"new-key","disabled":false}}"#);
 
-    let created = api_keys::create_api_key(&base_url, "mgmt-key", "new-key", Some(25.0))
+    let created = test_client(&base_url, "mgmt-key")
+        .management()
+        .create_api_key("new-key", Some(25.0))
         .await
         .expect("create API key should succeed");
     assert_eq!(created.hash.as_deref(), Some("hash_123"));
@@ -497,7 +498,9 @@ async fn test_get_api_key_sends_path_and_auth_header() {
     let (base_url, rx, server) =
         spawn_json_server(r#"{"data":{"hash":"hash_123","name":"new-key","disabled":false}}"#);
 
-    let fetched = api_keys::get_api_key(&base_url, "mgmt-key", "hash_123")
+    let fetched = test_client(&base_url, "mgmt-key")
+        .management()
+        .get_api_key("hash_123")
         .await
         .expect("get API key should succeed");
     assert_eq!(fetched.hash.as_deref(), Some("hash_123"));
@@ -522,16 +525,16 @@ async fn test_update_api_key_sends_path_body_and_auth_header() {
     let (base_url, rx, server) =
         spawn_json_server(r#"{"data":{"hash":"hash_123","name":"renamed-key","disabled":true}}"#);
 
-    let updated = api_keys::update_api_key(
-        &base_url,
-        "mgmt-key",
-        "hash_123",
-        Some("renamed-key".to_string()),
-        Some(true),
-        Some(99.0),
-    )
-    .await
-    .expect("update API key should succeed");
+    let updated = test_client(&base_url, "mgmt-key")
+        .management()
+        .update_api_key(
+            "hash_123",
+            Some("renamed-key".to_string()),
+            Some(true),
+            Some(99.0),
+        )
+        .await
+        .expect("update API key should succeed");
     assert_eq!(updated.name.as_deref(), Some("renamed-key"));
 
     let captured = rx

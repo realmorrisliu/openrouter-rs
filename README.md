@@ -143,11 +143,11 @@ See [`tests/fixtures/wasip3-smoke/src/lib.rs`](tests/fixtures/wasip3-smoke/src/l
 
 ## API Surface
 
-The canonical public surface is domain-oriented:
+The canonical public surface is domain-oriented, and each endpoint family has exactly one entry path. The `api::<module>::<function>(base_url, api_key, …)` helpers and the flat `OpenRouterClient` methods were removed in 0.23.0 because they could not honor the configured client; see the [0.23 migration notes](MIGRATION.md#022x---0230-one-entry-path-per-endpoint-family).
 
 | Domain | Canonical methods | Primary endpoints | Auth note |
 | --- | --- | --- | --- |
-| `chat()` | `create`, `stream`, `stream_tool_aware`, `stream_unified` | `/chat/completions` | API key |
+| `chat()` | `create`, `stream`, `stream_unified` | `/chat/completions` | API key |
 | `responses()` | `create`, `stream`, `stream_unified` | `/responses` | API key |
 | `messages()` | `create`, `stream`, `stream_unified` | `/messages` | API key |
 | `rerank()` | `create` | `/rerank` | API key |

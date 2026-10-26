@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
-use crate::transport::HttpClient;
 use derive_builder::Builder;
 use futures_util::{StreamExt, stream::BoxStream};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
+use crate::transport::RequestContext;
 use crate::{
     api::chat::{CacheControl, DebugOptions, Plugin, TraceOptions},
     error::OpenRouterError,
@@ -300,37 +300,19 @@ pub struct ResponsesStreamEvent {
     pub data: HashMap<String, Value>,
 }
 
-/// Send a non-streaming request to the Responses API.
-pub async fn create_response(
-    base_url: &str,
-    api_key: &str,
-    x_title: &Option<String>,
-    http_referer: &Option<String>,
-    app_categories: &Option<Vec<String>>,
+pub(crate) async fn create_response_with_client(
+    ctx: &RequestContext<'_>,
     request: &ResponsesRequest,
 ) -> Result<ResponsesResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    create_response_with_client(
-        &http_client,
+    let RequestContext {
+        http_client,
         base_url,
-        api_key,
+        credential: api_key,
         x_title,
         http_referer,
         app_categories,
-        request,
-    )
-    .await
-}
-
-pub(crate) async fn create_response_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
-    x_title: &Option<String>,
-    http_referer: &Option<String>,
-    app_categories: &Option<Vec<String>>,
-    request: &ResponsesRequest,
-) -> Result<ResponsesResponse, OpenRouterError> {
+        ..
+    } = *ctx;
     let url = format!("{base_url}/responses");
     let request = request.stream(false);
 
@@ -349,49 +331,25 @@ pub(crate) async fn create_response_with_client(
         request.requires_openrouter_files_tool_header(),
     );
 
-    let response = request_builder.json(&request).send().await?;
-
-    if response.status().is_success() {
-        let response_data: ResponsesResponse =
-            transport_response::parse_json_response(response, "responses API").await?;
-        Ok(response_data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Send a streaming request to the Responses API.
-pub async fn stream_response(
-    base_url: &str,
-    api_key: &str,
-    x_title: &Option<String>,
-    http_referer: &Option<String>,
-    app_categories: &Option<Vec<String>>,
-    request: &ResponsesRequest,
-) -> Result<BoxStream<'static, Result<ResponsesStreamEvent, OpenRouterError>>, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    stream_response_with_client(
-        &http_client,
-        base_url,
-        api_key,
-        x_title,
-        http_referer,
-        app_categories,
-        request,
-    )
-    .await
+    let req = request_builder.json(&request);
+    let response_data: ResponsesResponse =
+        transport_response::send_json(req, "responses API").await?;
+    Ok(response_data)
 }
 
 pub(crate) async fn stream_response_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
-    x_title: &Option<String>,
-    http_referer: &Option<String>,
-    app_categories: &Option<Vec<String>>,
+    ctx: &RequestContext<'_>,
     request: &ResponsesRequest,
 ) -> Result<BoxStream<'static, Result<ResponsesStreamEvent, OpenRouterError>>, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        x_title,
+        http_referer,
+        app_categories,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/responses");
     let request = request.stream(true);
 
@@ -426,7 +384,6 @@ pub(crate) async fn stream_response_with_client(
 
         Ok(lines)
     } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
+        Err(transport_response::error_from_response(response).await)
     }
 }

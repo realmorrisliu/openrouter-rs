@@ -109,7 +109,7 @@ async fn test_read_only_contract_metadata_surface() -> Result<(), OpenRouterErro
     let client = create_test_client()?;
 
     rate_limit_delay().await;
-    let key_info = client.get_current_api_key_info().await?;
+    let key_info = client.management().get_current_api_key_info().await?;
     assert!(
         !key_info.label.trim().is_empty(),
         "API key label should be present"

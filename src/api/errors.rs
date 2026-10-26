@@ -118,6 +118,7 @@ fn build_api_error(
         request_id,
         metadata: normalized_metadata,
         kind,
+        retry_after: None,
     }))
 }
 
@@ -163,6 +164,7 @@ pub fn parse_api_error(
             request_id,
             metadata: None,
             kind: ApiErrorKind::Generic,
+            retry_after: None,
         }))
     })
 }
@@ -191,5 +193,6 @@ pub fn unreadable_error_response(
             "body_read_error": error,
         })),
         kind: ApiErrorKind::Generic,
+        retry_after: None,
     }))
 }

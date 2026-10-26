@@ -2,6 +2,117 @@
 
 This document keeps historical migration guides intact because the repo still smoke-tests older domain/naming transitions.
 
+## 0.22.x -> 0.23.0: One Entry Path Per Endpoint Family
+
+`0.23.0` collapses the SDK onto one public entry path per endpoint family, makes transport
+failures diagnosable across both HTTP backends, and reduces streaming to one event model.
+Everything under "Breaking" is source-breaking.
+
+### One entry path: domain clients
+
+The 162 `api::<module>::<function>(base_url, api_key, …)` free functions and the 109 flat
+`OpenRouterClient` methods are gone. Each either built its own client or bypassed the
+configured one, so a call silently lost timeouts, proxies, TLS configuration, and
+attribution headers. Reach every endpoint through a domain client:
+
+```rust
+// before
+let credits = openrouter_rs::api::credits::get_credits(base_url, api_key).await?;
+let models = client.list_models().await?;
+let reply = client.send_chat_completion(&request).await?;
+
+// after
+let credits = client.management().get_credits().await?;
+let models = client.models().list().await?;
+let reply = client.chat().create(&request).await?;
+```
+
+Which domain to use:
+
+| Endpoint family | Domain client |
+| --- | --- |
+| chat, responses, messages | `chat()`, `responses()`, `messages()` |
+| models, discovery, embeddings | `models()` |
+| audio speech/transcription | `audio().speech()`, `audio().transcriptions()` |
+| images, videos, rerank, files | `images()`, `videos()`, `rerank()`, `files()` |
+| API keys, auth codes, credits, generation, presets, analytics, BYOK, observability destinations, guardrails, organization, end users, SCIM, workspaces, activity | `management()` |
+| batches, interns, vault, decisions | `batches()`, `interns()`, `vault()`, `decisions()` |
+
+Attribution headers are client configuration, not per-call arguments:
+
+```rust
+let client = OpenRouterClient::builder()
+    .api_key(key)
+    .x_title("my-app")
+    .http_referer("https://example.com")
+    .app_categories(["cli-agent"])
+    .build()?;
+```
+
+### Transport failures carry a classification
+
+`OpenRouterError::HttpRequest(HttpRequestError)` no longer stores only a message. It exposes
+`kind()`, `url()`, `is_timeout()`, and `is_connect()`:
+
+| `HttpRequestErrorKind` | Meaning |
+| --- | --- |
+| `Timeout` | The request exceeded the client's configured timeout |
+| `Connect` | The request was sent but no connection or response was established |
+| `Request` | The request could not be built or sent |
+| `Body` | Reading the response body failed |
+| `Decode` | Decoding the response body failed |
+| `Other` | A failure the backend did not classify |
+
+The type stays `Clone`, `PartialEq`, and `Eq`, so comparisons keep working. Granularity
+depends on the backend: `reqwest` reports all kinds, while the `wasip3` host API reports the
+classes it distinguishes.
+
+`ApiErrorContext` gained `retry_after: Option<Duration>`, parsed from the `Retry-After`
+delta-seconds form. The HTTP-date form reports `None` rather than a guess. Because the struct
+is exhaustively constructible, any code that builds one with a struct literal needs the new
+field.
+
+### Streaming has one event model
+
+`ToolAwareStream`, `StreamEvent`, and `ChatClient::stream_tool_aware` are removed. Use
+`stream_unified` for every source; the terminal event carries assembled tool calls:
+
+```rust
+let mut stream = client.chat().stream_unified(&request).await?;
+while let Some(event) = stream.next().await {
+    match event {
+        UnifiedStreamEvent::ContentDelta(text) => print!("{text}"),
+        UnifiedStreamEvent::Done { tool_calls, usage, .. } => { /* assembled calls */ }
+        UnifiedStreamEvent::Error(error) => eprintln!("{error}"),
+        _ => {}
+    }
+}
+```
+
+`UnifiedStreamEvent::Done` now has a `tool_calls: Vec<ToolCall>` field and types `usage` as
+`Option<ResponseUsage>` instead of an untyped `Value`; a pattern that destructures it needs
+`..` or the new field. A provider failure delivered inside a chat stream is now
+`OpenRouterError::Api`, not a deserialization error.
+
+### Chat request tools are one list
+
+`ChatCompletionRequest` stores one `tools: Option<Vec<ChatTool>>` field instead of separate
+`tools` and `server_tools`, and serialization is derived rather than hand-written. Builder
+calls are unchanged (`.tool(…)`, `.server_tool(…)`); `tools()` now returns an iterator over
+`ChatTool`, and `function_tools()` / `server_tools()` filter it. `ChatTool` is
+`#[non_exhaustive]` with `Function` and `Server` variants.
+
+`ChatCompletionRequestBuilder::server_tools(…)` now keeps existing function tools instead of
+replacing the whole list.
+
+### Other source breaks
+
+- `OpenRouterError` is `#[non_exhaustive]`; add a wildcard arm where you match it.
+- `Role`, `ObjectType`, and `AnthropicRole` gained an `Other(String)` variant, so an
+  unrecognized upstream value no longer fails the containing response.
+- Endpoint modules no longer export the removed functions, so `use openrouter_rs::api::*`
+  imports of those names must go.
+
 ## 0.21.x -> 0.22.0: Lenient Chat Completion Decoding
 
 Two chat completion response fields changed type so that payloads OpenRouter and its upstream providers actually send no longer fail to decode.

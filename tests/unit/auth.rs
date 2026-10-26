@@ -1,3 +1,4 @@
+use crate::test_client;
 use std::{
     io::{Read, Write},
     net::TcpListener,
@@ -140,7 +141,9 @@ async fn test_create_auth_code_uses_auth_keys_code_path() {
         .expect("request should build");
 
     let base_url = format!("http://{addr}/api/v1");
-    let response = auth::create_auth_code(&base_url, "test-key", &request)
+    let response = test_client(&base_url, "test-key")
+        .management()
+        .create_auth_code(&request)
         .await
         .expect("create_auth_code should succeed");
     assert_eq!(response.id, "auth_code_xyz789");
@@ -230,14 +233,15 @@ async fn test_exchange_code_for_api_key_uses_auth_keys_path_and_payload() {
     });
 
     let base_url = format!("http://{addr}/api/v1");
-    let response = auth::exchange_code_for_api_key(
-        &base_url,
-        "auth-code-123",
-        Some("verifier-xyz"),
-        Some(CodeChallengeMethod::S256),
-    )
-    .await
-    .expect("exchange code request should succeed");
+    let response = test_client(&base_url, "auth-code-123")
+        .management()
+        .create_api_key_from_auth_code(
+            "auth-code-123",
+            Some("verifier-xyz"),
+            Some(CodeChallengeMethod::S256),
+        )
+        .await
+        .expect("exchange code request should succeed");
     assert_eq!(response.key, "sk-or-v1-abc");
     assert_eq!(response.user_id.as_deref(), Some("user_123"));
 

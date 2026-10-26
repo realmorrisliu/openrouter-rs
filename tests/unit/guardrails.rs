@@ -1,3 +1,4 @@
+use crate::test_client;
 use std::{
     io::{Read, Write},
     net::TcpListener,
@@ -8,7 +9,7 @@ use std::{
 
 use openrouter_rs::{
     api::guardrails::{
-        self, AssignedCountResponse, BulkKeyAssignmentRequest, BulkMemberAssignmentRequest,
+        AssignedCountResponse, BulkKeyAssignmentRequest, BulkMemberAssignmentRequest,
         ContentFilterAction, ContentFilterBuiltinAction, ContentFilterBuiltinEntry,
         ContentFilterBuiltinSlug, ContentFilterEntry, CreateGuardrailRequest, Guardrail,
         GuardrailKeyAssignmentsResponse, GuardrailListResponse, GuardrailMemberAssignmentsResponse,
@@ -461,13 +462,11 @@ fn test_assignment_counter_response_deserialization() {
 async fn test_list_guardrails_with_pagination_and_auth_header() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
 
-    let result = guardrails::list_guardrails(
-        &base_url,
-        "mgmt-key",
-        Some(PaginationOptions::with_offset_and_limit(10, 25)),
-    )
-    .await
-    .expect("list guardrails should succeed");
+    let result = test_client(&base_url, "mgmt-key")
+        .management()
+        .list_guardrails(Some(PaginationOptions::with_offset_and_limit(10, 25)))
+        .await
+        .expect("list guardrails should succeed");
     assert_eq!(result.total_count, 0.0);
 
     let captured = rx
@@ -492,10 +491,11 @@ async fn test_list_guardrails_with_pagination_and_auth_header() {
 async fn test_list_guardrails_with_workspace_filter_and_auth_header() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
 
-    let result =
-        guardrails::list_guardrails_in_workspace(&base_url, "mgmt-key", None, Some("ws_123"))
-            .await
-            .expect("list guardrails should succeed");
+    let result = test_client(&base_url, "mgmt-key")
+        .management()
+        .list_guardrails_in_workspace(None, Some("ws_123"))
+        .await
+        .expect("list guardrails should succeed");
     assert_eq!(result.total_count, 0.0);
 
     let captured = rx
@@ -513,7 +513,9 @@ async fn test_list_guardrails_with_workspace_filter_and_auth_header() {
 async fn test_list_guardrails_without_pagination_uses_base_path() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
 
-    let result = guardrails::list_guardrails(&base_url, "mgmt-key", None)
+    let result = test_client(&base_url, "mgmt-key")
+        .management()
+        .list_guardrails(None)
         .await
         .expect("list guardrails should succeed");
     assert_eq!(result.total_count, 0.0);
@@ -549,7 +551,9 @@ async fn test_create_guardrail_posts_body_and_unwraps_data() {
         .build()
         .expect("create guardrail request should build");
 
-    let response = guardrails::create_guardrail(&base_url, "mgmt-key", &request)
+    let response = test_client(&base_url, "mgmt-key")
+        .management()
+        .create_guardrail(&request)
         .await
         .expect("create guardrail should succeed");
     assert_eq!(response.id, "gr_123");
@@ -585,7 +589,9 @@ async fn test_get_guardrail_encodes_id_path_and_unwraps_data() {
     }"#;
     let (base_url, rx, server) = spawn_json_server(response_body);
 
-    let response = guardrails::get_guardrail(&base_url, "mgmt-key", "team/prod 1")
+    let response = test_client(&base_url, "mgmt-key")
+        .management()
+        .get_guardrail("team/prod 1")
         .await
         .expect("get guardrail should succeed");
     assert_eq!(response.id, "gr_123");
@@ -624,7 +630,9 @@ async fn test_update_guardrail_encodes_id_path_and_sends_body() {
         .build()
         .expect("update guardrail request should build");
 
-    let response = guardrails::update_guardrail(&base_url, "mgmt-key", "team/prod 1", &request)
+    let response = test_client(&base_url, "mgmt-key")
+        .management()
+        .update_guardrail("team/prod 1", &request)
         .await
         .expect("update guardrail should succeed");
     assert_eq!(response.name, "Updated Guardrail");
@@ -649,10 +657,11 @@ async fn test_update_guardrail_encodes_id_path_and_sends_body() {
 async fn test_list_guardrail_key_assignments_encodes_id_path() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
 
-    let result =
-        guardrails::list_guardrail_key_assignments(&base_url, "mgmt-key", "team/prod 1", None)
-            .await
-            .expect("list guardrail key assignments should succeed");
+    let result = test_client(&base_url, "mgmt-key")
+        .management()
+        .list_guardrail_key_assignments("team/prod 1", None)
+        .await
+        .expect("list guardrail key assignments should succeed");
     assert_eq!(result.total_count, 0.0);
 
     let captured = rx
@@ -670,10 +679,11 @@ async fn test_list_guardrail_key_assignments_encodes_id_path() {
 async fn test_list_guardrail_member_assignments_encodes_id_path() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
 
-    let result =
-        guardrails::list_guardrail_member_assignments(&base_url, "mgmt-key", "team/prod 1", None)
-            .await
-            .expect("list guardrail member assignments should succeed");
+    let result = test_client(&base_url, "mgmt-key")
+        .management()
+        .list_guardrail_member_assignments("team/prod 1", None)
+        .await
+        .expect("list guardrail member assignments should succeed");
     assert_eq!(result.total_count, 0.0);
 
     let captured = rx
@@ -695,10 +705,11 @@ async fn test_bulk_assign_keys_encodes_id_and_sends_body() {
         .build()
         .expect("bulk assignment request should build");
 
-    let response =
-        guardrails::bulk_assign_keys_to_guardrail(&base_url, "mgmt-key", "team/prod 1", &request)
-            .await
-            .expect("bulk assign should succeed");
+    let response = test_client(&base_url, "mgmt-key")
+        .management()
+        .create_guardrail_key_assignments("team/prod 1", &request)
+        .await
+        .expect("bulk assign should succeed");
     assert_eq!(response.assigned_count, 2.0);
 
     let captured = rx
@@ -720,13 +731,11 @@ async fn test_bulk_assign_keys_encodes_id_and_sends_body() {
 async fn test_list_member_assignments_global_path() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
 
-    let result = guardrails::list_member_assignments(
-        &base_url,
-        "mgmt-key",
-        Some(PaginationOptions::with_offset_and_limit(1, 2)),
-    )
-    .await
-    .expect("list member assignments should succeed");
+    let result = test_client(&base_url, "mgmt-key")
+        .management()
+        .list_member_assignments(Some(PaginationOptions::with_offset_and_limit(1, 2)))
+        .await
+        .expect("list member assignments should succeed");
     assert_eq!(result.total_count, 0.0);
 
     let captured = rx
@@ -744,7 +753,9 @@ async fn test_list_member_assignments_global_path() {
 async fn test_delete_guardrail_uses_id_path() {
     let (base_url, rx, server) = spawn_json_server(r#"{"deleted":true}"#);
 
-    let deleted = guardrails::delete_guardrail(&base_url, "mgmt-key", "gr/test 1")
+    let deleted = test_client(&base_url, "mgmt-key")
+        .management()
+        .delete_guardrail("gr/test 1")
         .await
         .expect("delete guardrail should succeed");
     assert!(deleted);
@@ -768,14 +779,11 @@ async fn test_bulk_unassign_keys_encodes_id_and_sends_body() {
         .build()
         .expect("bulk unassignment request should build");
 
-    let response = guardrails::bulk_unassign_keys_from_guardrail(
-        &base_url,
-        "mgmt-key",
-        "team/prod 1",
-        &request,
-    )
-    .await
-    .expect("bulk unassign should succeed");
+    let response = test_client(&base_url, "mgmt-key")
+        .management()
+        .delete_guardrail_key_assignments("team/prod 1", &request)
+        .await
+        .expect("bulk unassign should succeed");
     assert_eq!(response.unassigned_count, 2.0);
 
     let captured = rx
@@ -809,14 +817,11 @@ async fn test_bulk_assign_members_encodes_id_and_sends_body() {
         .build()
         .expect("bulk member assignment request should build");
 
-    let response = guardrails::bulk_assign_members_to_guardrail(
-        &base_url,
-        "mgmt-key",
-        "team/prod 1",
-        &request,
-    )
-    .await
-    .expect("bulk assign members should succeed");
+    let response = test_client(&base_url, "mgmt-key")
+        .management()
+        .create_guardrail_member_assignments("team/prod 1", &request)
+        .await
+        .expect("bulk assign members should succeed");
     assert_eq!(response.assigned_count, 1.0);
 
     let captured = rx
@@ -849,14 +854,11 @@ async fn test_bulk_unassign_members_encodes_id_and_sends_body() {
         .build()
         .expect("bulk member unassignment request should build");
 
-    let response = guardrails::bulk_unassign_members_from_guardrail(
-        &base_url,
-        "mgmt-key",
-        "team/prod 1",
-        &request,
-    )
-    .await
-    .expect("bulk unassign members should succeed");
+    let response = test_client(&base_url, "mgmt-key")
+        .management()
+        .delete_guardrail_member_assignments("team/prod 1", &request)
+        .await
+        .expect("bulk unassign members should succeed");
     assert_eq!(response.unassigned_count, 1.0);
 
     let captured = rx
@@ -885,13 +887,11 @@ async fn test_bulk_unassign_members_encodes_id_and_sends_body() {
 async fn test_list_key_assignments_global_path() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
 
-    let result = guardrails::list_key_assignments(
-        &base_url,
-        "mgmt-key",
-        Some(PaginationOptions::with_offset_and_limit(1, 2)),
-    )
-    .await
-    .expect("list key assignments should succeed");
+    let result = test_client(&base_url, "mgmt-key")
+        .management()
+        .list_key_assignments(Some(PaginationOptions::with_offset_and_limit(1, 2)))
+        .await
+        .expect("list key assignments should succeed");
     assert_eq!(result.total_count, 0.0);
 
     let captured = rx

@@ -1,3 +1,4 @@
+use crate::test_client;
 use std::{
     io::{Read, Write},
     net::TcpListener,
@@ -349,10 +350,11 @@ async fn test_list_model_endpoints_encodes_author_slug_and_auth_header() {
     });
 
     let base_url = format!("http://{addr}/api/v1");
-    let endpoint_data =
-        models::list_model_endpoints(&base_url, "api-key", "team/prod", "model alpha")
-            .await
-            .expect("list model endpoints should succeed");
+    let endpoint_data = test_client(&base_url, "api-key")
+        .models()
+        .list_endpoints("team/prod", "model alpha")
+        .await
+        .expect("list model endpoints should succeed");
     assert_eq!(endpoint_data.id, "author/slug");
 
     let request_text = rx
@@ -412,7 +414,9 @@ async fn test_get_model_encodes_author_slug_and_auth_header() {
     }"#;
     let (base_url, rx, server) = spawn_json_server(response);
 
-    let model = models::get_model(&base_url, "api-key", "team/prod", "model alpha")
+    let model = test_client(&base_url, "api-key")
+        .models()
+        .get("team/prod", "model alpha")
         .await
         .expect("get model should succeed");
     assert_eq!(model.id, "team/model-alpha");
@@ -439,7 +443,9 @@ async fn test_get_model_encodes_author_slug_and_auth_header() {
 async fn test_list_models_default_path_and_auth_header() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":[]}"#);
 
-    let models = models::list_models(&base_url, "api-key", None, None)
+    let models = test_client(&base_url, "api-key")
+        .models()
+        .list()
         .await
         .expect("list models should succeed");
     assert!(models.is_empty(), "response payload should parse");
@@ -463,7 +469,9 @@ async fn test_list_models_default_path_and_auth_header() {
 async fn test_list_models_with_category_query() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":[]}"#);
 
-    let models = models::list_models(&base_url, "api-key", Some(ModelCategory::Programming), None)
+    let models = test_client(&base_url, "api-key")
+        .models()
+        .list_by_category(ModelCategory::Programming)
         .await
         .expect("list models by category should succeed");
     assert!(models.is_empty(), "response payload should parse");
@@ -483,7 +491,9 @@ async fn test_list_models_with_category_query() {
 async fn test_list_models_with_supported_parameters_query() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":[]}"#);
 
-    let models = models::list_models(&base_url, "api-key", None, Some(SupportedParameters::TopP))
+    let models = test_client(&base_url, "api-key")
+        .models()
+        .list_by_parameters(SupportedParameters::TopP)
         .await
         .expect("list models by supported parameter should succeed");
     assert!(models.is_empty(), "response payload should parse");
@@ -503,14 +513,16 @@ async fn test_list_models_with_supported_parameters_query() {
 async fn test_list_models_with_both_filters_query() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":[]}"#);
 
-    let models = models::list_models(
-        &base_url,
-        "api-key",
-        Some(ModelCategory::Programming),
-        Some(SupportedParameters::TopP),
-    )
-    .await
-    .expect("list models should succeed");
+    let params = openrouter_rs::api::models::ListModelsParams::builder()
+        .category(ModelCategory::Programming)
+        .supported_parameters(SupportedParameters::TopP)
+        .build()
+        .expect("params should build");
+    let models = test_client(&base_url, "api-key")
+        .models()
+        .list_filtered(Some(&params))
+        .await
+        .expect("list models should succeed");
     assert!(models.is_empty(), "response payload should parse");
 
     let captured = rx
@@ -546,7 +558,9 @@ async fn test_list_models_with_extended_filter_params() {
         .build()
         .expect("list model params should build");
 
-    let models = models::list_models_with_params(&base_url, "api-key", Some(&params))
+    let models = test_client(&base_url, "api-key")
+        .models()
+        .list_filtered(Some(&params))
         .await
         .expect("filtered model list should succeed");
     assert!(models.is_empty());

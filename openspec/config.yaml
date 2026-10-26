@@ -1,0 +1,53 @@
+schema: spec-driven
+
+context: |
+  openrouter-rs is a community-maintained Rust SDK for the OpenRouter API with a
+  companion CLI in crates/openrouter-cli. AGENTS.md holds the build, test, and
+  release commands; read it before planning build or validation steps.
+
+  The SDK supports two HTTP backends selected by cargo feature: `reqwest` (default,
+  native) and `wasip3` (wasm32-wasip2). Everything outside src/transport/ must be
+  backend-neutral. Validation therefore includes the native suites and
+  `just check-wasip3` / `just test-wasip3`.
+
+  Public API rules:
+  - The canonical surface is the domain clients on OpenRouterClient
+    (client.chat(), client.management(), ...). New public capability extends a
+    domain client; it never adds a standalone function that builds its own
+    HTTP client.
+  - Public types that mirror upstream OpenRouter shapes are #[non_exhaustive]
+    and constructed through a builder.
+  - An enum modeling an upstream string taxonomy tolerates unknown values rather
+    than failing the containing message.
+  - Wire compatibility is part of the contract. A request or response shape
+    change needs a unit test that asserts the serialized or deserialized JSON.
+
+  Endpoint coverage rules:
+  - docs/operations/official-endpoint-test-matrix.md distinguishes implemented
+    from live-validated endpoints and is updated whenever coverage moves.
+  - specs/openrouter/openapi-baseline.json records accepted upstream behavior.
+    Drift work ends with `just openapi-drift-check` reporting
+    added=0, removed=0, changed=0.
+
+  Release rules:
+  - Breaking changes take a 0.x minor bump and must be documented in
+    MIGRATION.md with the replacement for every removed entry point.
+  - README.md and CHANGELOG.md are updated in the same change as the public API.
+  - A change touching public request/response types, domain client surfaces,
+    CLI behavior, migration docs, or CI-aligned test surfaces requires
+    `just quality-ci` before the PR.
+
+rules:
+  proposal:
+    - State whether the change is breaking and which release it targets.
+    - State what is out of scope, not only what is in scope.
+  design:
+    - For each decision a future reader would find surprising, record the
+      rejected alternative and why it lost.
+    - Name the test or command that proves each risky decision.
+  tasks:
+    - Every task names the command or test that verifies it.
+    - Do not mark a task complete while its behavior is deferred or partial.
+  specs:
+    - When modifying an existing capability, reuse its exact path under
+      openspec/specs/ rather than creating a new one.

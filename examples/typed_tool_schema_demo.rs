@@ -110,7 +110,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("🤖 Chat Request with Typed Tools:");
     println!("--------------------------------");
-    println!("Tools count: {}", request.tools().map_or(0, |t| t.len()));
+    println!("Tools count: {}", request.function_tools().count());
     println!("Tool choice: {:?}", request.tool_choice());
 
     // 3. Demonstrate type-safe parameter creation
@@ -140,9 +140,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 5. Show request serialization
     println!("\n📤 Request Tools Section:");
     println!("------------------------");
-    if let Some(tools) = request.tools() {
-        println!("{}", serde_json::to_string_pretty(tools)?);
-    }
+    let tools: Vec<_> = request.function_tools().collect();
+    println!("{}", serde_json::to_string_pretty(&tools)?);
 
     println!("\n✨ Demo completed! Typed tools are working correctly.");
     Ok(())

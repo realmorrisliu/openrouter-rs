@@ -215,7 +215,7 @@ async fn test_chat_domain_requires_api_key() {
         Err(OpenRouterError::KeyNotConfigured)
     ));
 
-    let tool_aware_result = client.chat().stream_tool_aware(&request).await;
+    let tool_aware_result = client.chat().stream_unified(&request).await;
     assert!(matches!(
         tool_aware_result,
         Err(OpenRouterError::KeyNotConfigured)

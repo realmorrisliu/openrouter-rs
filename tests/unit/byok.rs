@@ -1,3 +1,4 @@
+use crate::test_client;
 use std::{
     io::{Read, Write},
     net::TcpListener,
@@ -7,7 +8,7 @@ use std::{
 };
 
 use openrouter_rs::{
-    api::byok::{self, ByokKey, CreateByokKeyRequest, UpdateByokKeyRequest},
+    api::byok::{ByokKey, CreateByokKeyRequest, UpdateByokKeyRequest},
     types::{ApiResponse, PaginationOptions},
 };
 
@@ -235,15 +236,15 @@ fn test_byok_key_response_deserialization() {
 async fn test_list_byok_keys_path_query_and_auth_header() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
 
-    let result = byok::list_byok_keys(
-        &base_url,
-        "mgmt-key",
-        Some(PaginationOptions::with_offset_and_limit(2, 10)),
-        Some("ws_123"),
-        Some("openai"),
-    )
-    .await
-    .expect("list BYOK keys should succeed");
+    let result = test_client(&base_url, "mgmt-key")
+        .management()
+        .list_byok_keys(
+            Some(PaginationOptions::with_offset_and_limit(2, 10)),
+            Some("ws_123"),
+            Some("openai"),
+        )
+        .await
+        .expect("list BYOK keys should succeed");
     assert!(result.data.is_empty());
 
     let captured = rx
@@ -284,7 +285,9 @@ async fn test_create_byok_key_path_body_and_auth_header() {
         .build()
         .expect("create BYOK request should build");
 
-    let created = byok::create_byok_key(&base_url, "mgmt-key", &request)
+    let created = test_client(&base_url, "mgmt-key")
+        .management()
+        .create_byok_key(&request)
         .await
         .expect("create BYOK key should succeed");
     assert_eq!(created.provider, "openai");
@@ -322,7 +325,9 @@ async fn test_get_update_delete_byok_key_paths() {
     }"#;
 
     let (base_url, rx, server) = spawn_json_server(key_body);
-    let _ = byok::get_byok_key(&base_url, "mgmt-key", "byok/team 1")
+    let _ = test_client(&base_url, "mgmt-key")
+        .management()
+        .get_byok_key("byok/team 1")
         .await
         .expect("get BYOK key should succeed");
     let captured = rx
@@ -341,7 +346,9 @@ async fn test_get_update_delete_byok_key_paths() {
         .disabled(true)
         .build()
         .expect("update BYOK request should build");
-    let _ = byok::update_byok_key(&base_url, "mgmt-key", "byok/team 1", &request)
+    let _ = test_client(&base_url, "mgmt-key")
+        .management()
+        .update_byok_key("byok/team 1", &request)
         .await
         .expect("update BYOK key should succeed");
     let captured = rx
@@ -359,7 +366,9 @@ async fn test_get_update_delete_byok_key_paths() {
     server.join().expect("server thread should finish");
 
     let (base_url, rx, server) = spawn_json_server(r#"{"deleted":true}"#);
-    let deleted = byok::delete_byok_key(&base_url, "mgmt-key", "byok/team 1")
+    let deleted = test_client(&base_url, "mgmt-key")
+        .management()
+        .delete_byok_key("byok/team 1")
         .await
         .expect("delete BYOK key should succeed");
     assert!(deleted);

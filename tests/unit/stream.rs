@@ -3,7 +3,7 @@ use openrouter_rs::error::OpenRouterError;
 use openrouter_rs::types::completion::{
     CompletionsResponse, PartialFunctionCall, PartialToolCall, ResponseUsage,
 };
-use openrouter_rs::types::stream::{StreamEvent, ToolAwareStream};
+use openrouter_rs::types::stream::{UnifiedStreamEvent, adapt_chat_stream};
 use serde_json::json;
 
 // =============================================
@@ -245,7 +245,7 @@ fn tool_call_chunk(
 }
 
 #[tokio::test]
-async fn test_tool_aware_stream_preserves_missing_tool_call_index() {
+async fn test_unified_stream_preserves_missing_tool_call_index() {
     let raw_stream = stream::iter(vec![Ok(tool_call_chunk(
         "gen-1",
         "gpt-4",
@@ -256,10 +256,15 @@ async fn test_tool_aware_stream_preserves_missing_tool_call_index() {
         Some("{}"),
     ))])
     .boxed();
-    let events: Vec<_> = ToolAwareStream::new(raw_stream).collect().await;
+    let events: Vec<_> = adapt_chat_stream(raw_stream)
+        .filter(|event| {
+            futures_util::future::ready(!matches!(event, UnifiedStreamEvent::ToolDelta(_)))
+        })
+        .collect()
+        .await;
 
     match &events[0] {
-        StreamEvent::Done { tool_calls, .. } => {
+        UnifiedStreamEvent::Done { tool_calls, .. } => {
             assert_eq!(tool_calls.len(), 1);
             assert_eq!(tool_calls[0].index, None);
         }
@@ -311,7 +316,7 @@ fn done_chunk(
 }
 
 #[tokio::test]
-async fn test_tool_aware_stream_content_only() {
+async fn test_unified_stream_content_only() {
     // Stream with only text content, no tool calls
     let chunks: Vec<Result<CompletionsResponse, OpenRouterError>> = vec![
         Ok(content_chunk("gen-1", "test-model", "Hello")),
@@ -320,46 +325,45 @@ async fn test_tool_aware_stream_content_only() {
     ];
 
     let raw_stream = stream::iter(chunks).boxed();
-    let mut stream = ToolAwareStream::new(raw_stream);
+    let mut stream = adapt_chat_stream(raw_stream);
 
-    let mut events: Vec<StreamEvent> = Vec::new();
+    let mut events: Vec<UnifiedStreamEvent> = Vec::new();
     while let Some(event) = stream.next().await {
-        events.push(event);
+        if !matches!(event, UnifiedStreamEvent::ToolDelta(_)) {
+            events.push(event);
+        }
     }
 
     // Should have: ContentDelta("Hello"), ContentDelta(" world"), Done
     assert_eq!(events.len(), 3);
 
     match &events[0] {
-        StreamEvent::ContentDelta(text) => assert_eq!(text, "Hello"),
+        UnifiedStreamEvent::ContentDelta(text) => assert_eq!(text, "Hello"),
         other => panic!("Expected ContentDelta, got {:?}", other),
     }
 
     match &events[1] {
-        StreamEvent::ContentDelta(text) => assert_eq!(text, " world"),
+        UnifiedStreamEvent::ContentDelta(text) => assert_eq!(text, " world"),
         other => panic!("Expected ContentDelta, got {:?}", other),
     }
 
     match &events[2] {
-        StreamEvent::Done {
+        UnifiedStreamEvent::Done {
             tool_calls,
             finish_reason,
             model,
             ..
         } => {
             assert!(tool_calls.is_empty());
-            assert!(matches!(
-                finish_reason,
-                Some(openrouter_rs::types::completion::FinishReason::Stop)
-            ));
-            assert_eq!(model, "test-model");
+            assert_eq!(finish_reason.as_deref(), Some("stop"));
+            assert_eq!(model.as_deref(), Some("test-model"));
         }
         other => panic!("Expected Done, got {:?}", other),
     }
 }
 
 #[tokio::test]
-async fn test_tool_aware_stream_single_tool_call() {
+async fn test_unified_stream_single_tool_call() {
     // Simulate streaming a single tool call
     let chunks: Vec<Result<CompletionsResponse, OpenRouterError>> = vec![
         // First chunk: tool call header
@@ -401,44 +405,44 @@ async fn test_tool_aware_stream_single_tool_call() {
     ];
 
     let raw_stream = stream::iter(chunks).boxed();
-    let mut stream = ToolAwareStream::new(raw_stream);
+    let mut stream = adapt_chat_stream(raw_stream);
 
-    let mut events: Vec<StreamEvent> = Vec::new();
+    let mut events: Vec<UnifiedStreamEvent> = Vec::new();
     while let Some(event) = stream.next().await {
-        events.push(event);
+        if !matches!(event, UnifiedStreamEvent::ToolDelta(_)) {
+            events.push(event);
+        }
     }
 
     // Should have exactly 1 event: Done (no content deltas)
     assert_eq!(events.len(), 1);
 
     match &events[0] {
-        StreamEvent::Done {
+        UnifiedStreamEvent::Done {
             tool_calls,
             finish_reason,
             usage,
             id,
             model,
+            ..
         } => {
             assert_eq!(tool_calls.len(), 1);
             assert_eq!(tool_calls[0].id, "call_abc");
             assert_eq!(tool_calls[0].type_, "function");
             assert_eq!(tool_calls[0].function.name, "get_weather");
             assert_eq!(tool_calls[0].function.arguments, "{\"location\": \"NYC\"}");
-            assert!(matches!(
-                finish_reason,
-                Some(openrouter_rs::types::completion::FinishReason::ToolCalls)
-            ));
+            assert_eq!(finish_reason.as_deref(), Some("tool_calls"));
             assert!(usage.is_some());
             assert_eq!(usage.as_ref().unwrap().total_tokens, 120);
-            assert_eq!(id, "gen-1");
-            assert_eq!(model, "gpt-4");
+            assert_eq!(id.as_deref(), Some("gen-1"));
+            assert_eq!(model.as_deref(), Some("gpt-4"));
         }
         other => panic!("Expected Done, got {:?}", other),
     }
 }
 
 #[tokio::test]
-async fn test_tool_aware_stream_parallel_tool_calls() {
+async fn test_unified_stream_parallel_tool_calls() {
     // Simulate two tool calls arriving in parallel (interleaved by index)
     let chunks: Vec<Result<CompletionsResponse, OpenRouterError>> = vec![
         // Tool call 0 header
@@ -486,17 +490,19 @@ async fn test_tool_aware_stream_parallel_tool_calls() {
     ];
 
     let raw_stream = stream::iter(chunks).boxed();
-    let mut stream = ToolAwareStream::new(raw_stream);
+    let mut stream = adapt_chat_stream(raw_stream);
 
-    let mut events: Vec<StreamEvent> = Vec::new();
+    let mut events: Vec<UnifiedStreamEvent> = Vec::new();
     while let Some(event) = stream.next().await {
-        events.push(event);
+        if !matches!(event, UnifiedStreamEvent::ToolDelta(_)) {
+            events.push(event);
+        }
     }
 
     assert_eq!(events.len(), 1);
 
     match &events[0] {
-        StreamEvent::Done { tool_calls, .. } => {
+        UnifiedStreamEvent::Done { tool_calls, .. } => {
             assert_eq!(tool_calls.len(), 2);
 
             // BTreeMap preserves order by key (index), so index 0 comes first
@@ -517,7 +523,7 @@ async fn test_tool_aware_stream_parallel_tool_calls() {
 }
 
 #[tokio::test]
-async fn test_tool_aware_stream_content_then_tool_calls() {
+async fn test_unified_stream_content_then_tool_calls() {
     // Model generates some content text AND then makes tool calls
     let chunks: Vec<Result<CompletionsResponse, OpenRouterError>> = vec![
         Ok(content_chunk("gen-1", "gpt-4", "Let me check ")),
@@ -535,28 +541,30 @@ async fn test_tool_aware_stream_content_then_tool_calls() {
     ];
 
     let raw_stream = stream::iter(chunks).boxed();
-    let mut stream = ToolAwareStream::new(raw_stream);
+    let mut stream = adapt_chat_stream(raw_stream);
 
-    let mut events: Vec<StreamEvent> = Vec::new();
+    let mut events: Vec<UnifiedStreamEvent> = Vec::new();
     while let Some(event) = stream.next().await {
-        events.push(event);
+        if !matches!(event, UnifiedStreamEvent::ToolDelta(_)) {
+            events.push(event);
+        }
     }
 
     // 2 content deltas + 1 Done
     assert_eq!(events.len(), 3);
 
     match &events[0] {
-        StreamEvent::ContentDelta(text) => assert_eq!(text, "Let me check "),
+        UnifiedStreamEvent::ContentDelta(text) => assert_eq!(text, "Let me check "),
         other => panic!("Expected ContentDelta, got {:?}", other),
     }
 
     match &events[1] {
-        StreamEvent::ContentDelta(text) => assert_eq!(text, "the weather."),
+        UnifiedStreamEvent::ContentDelta(text) => assert_eq!(text, "the weather."),
         other => panic!("Expected ContentDelta, got {:?}", other),
     }
 
     match &events[2] {
-        StreamEvent::Done { tool_calls, .. } => {
+        UnifiedStreamEvent::Done { tool_calls, .. } => {
             assert_eq!(tool_calls.len(), 1);
             assert_eq!(tool_calls[0].function.name, "get_weather");
             assert_eq!(tool_calls[0].function.arguments, "{\"city\": \"NYC\"}");
@@ -566,35 +574,37 @@ async fn test_tool_aware_stream_content_then_tool_calls() {
 }
 
 #[tokio::test]
-async fn test_tool_aware_stream_error_handling() {
+async fn test_unified_stream_error_handling() {
     let chunks: Vec<Result<CompletionsResponse, OpenRouterError>> = vec![
         Ok(content_chunk("gen-1", "test", "Hello")),
         Err(OpenRouterError::Unknown("stream failed".to_string())),
     ];
 
     let raw_stream = stream::iter(chunks).boxed();
-    let mut stream = ToolAwareStream::new(raw_stream);
+    let mut stream = adapt_chat_stream(raw_stream);
 
-    let mut events: Vec<StreamEvent> = Vec::new();
+    let mut events: Vec<UnifiedStreamEvent> = Vec::new();
     while let Some(event) = stream.next().await {
-        events.push(event);
+        if !matches!(event, UnifiedStreamEvent::ToolDelta(_)) {
+            events.push(event);
+        }
     }
 
     // ContentDelta, Error, Done (finalize on stream end)
     assert_eq!(events.len(), 3);
 
     match &events[0] {
-        StreamEvent::ContentDelta(text) => assert_eq!(text, "Hello"),
+        UnifiedStreamEvent::ContentDelta(text) => assert_eq!(text, "Hello"),
         other => panic!("Expected ContentDelta, got {:?}", other),
     }
 
     match &events[1] {
-        StreamEvent::Error(_) => {} // Expected
+        UnifiedStreamEvent::Error(_) => {} // Expected
         other => panic!("Expected Error, got {:?}", other),
     }
 
     match &events[2] {
-        StreamEvent::Done { tool_calls, .. } => {
+        UnifiedStreamEvent::Done { tool_calls, .. } => {
             assert!(tool_calls.is_empty());
         }
         other => panic!("Expected Done, got {:?}", other),
@@ -602,22 +612,24 @@ async fn test_tool_aware_stream_error_handling() {
 }
 
 #[tokio::test]
-async fn test_tool_aware_stream_empty_stream() {
+async fn test_unified_stream_empty_stream() {
     let chunks: Vec<Result<CompletionsResponse, OpenRouterError>> = vec![];
 
     let raw_stream = stream::iter(chunks).boxed();
-    let mut stream = ToolAwareStream::new(raw_stream);
+    let mut stream = adapt_chat_stream(raw_stream);
 
-    let mut events: Vec<StreamEvent> = Vec::new();
+    let mut events: Vec<UnifiedStreamEvent> = Vec::new();
     while let Some(event) = stream.next().await {
-        events.push(event);
+        if !matches!(event, UnifiedStreamEvent::ToolDelta(_)) {
+            events.push(event);
+        }
     }
 
     // Even an empty stream should emit Done
     assert_eq!(events.len(), 1);
 
     match &events[0] {
-        StreamEvent::Done {
+        UnifiedStreamEvent::Done {
             tool_calls,
             finish_reason,
             usage,
@@ -632,7 +644,7 @@ async fn test_tool_aware_stream_empty_stream() {
 }
 
 #[tokio::test]
-async fn test_tool_aware_stream_reasoning_deltas() {
+async fn test_unified_stream_reasoning_deltas() {
     let reasoning_chunk: CompletionsResponse = serde_json::from_value(json!({
         "id": "gen-1",
         "choices": [{
@@ -667,27 +679,29 @@ async fn test_tool_aware_stream_reasoning_deltas() {
     ];
 
     let raw_stream = stream::iter(chunks).boxed();
-    let mut stream = ToolAwareStream::new(raw_stream);
+    let mut stream = adapt_chat_stream(raw_stream);
 
-    let mut events: Vec<StreamEvent> = Vec::new();
+    let mut events: Vec<UnifiedStreamEvent> = Vec::new();
     while let Some(event) = stream.next().await {
-        events.push(event);
+        if !matches!(event, UnifiedStreamEvent::ToolDelta(_)) {
+            events.push(event);
+        }
     }
 
     assert_eq!(events.len(), 3);
 
     match &events[0] {
-        StreamEvent::ReasoningDelta(text) => assert_eq!(text, "Let me think..."),
+        UnifiedStreamEvent::ReasoningDelta(text) => assert_eq!(text, "Let me think..."),
         other => panic!("Expected ReasoningDelta, got {:?}", other),
     }
 
     match &events[1] {
-        StreamEvent::ContentDelta(text) => assert_eq!(text, "The answer is 42."),
+        UnifiedStreamEvent::ContentDelta(text) => assert_eq!(text, "The answer is 42."),
         other => panic!("Expected ContentDelta, got {:?}", other),
     }
 
     match &events[2] {
-        StreamEvent::Done { .. } => {}
+        UnifiedStreamEvent::Done { .. } => {}
         other => panic!("Expected Done, got {:?}", other),
     }
 }

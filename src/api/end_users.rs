@@ -1,8 +1,8 @@
-use crate::transport::HttpClient;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use urlencoding::encode;
 
+use crate::transport::RequestContext;
 use crate::{
     error::OpenRouterError,
     transport::{request as transport_request, response as transport_response},
@@ -77,224 +77,131 @@ impl ListEndUsersParams {
     }
 }
 
-/// GET `/end-users`.
-pub async fn list_end_users(
-    base_url: &str,
-    management_key: &str,
-    params: &ListEndUsersParams,
-) -> Result<ListEndUsersResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    list_end_users_with_client(
-        &http_client,
-        base_url,
-        management_key,
-        (&None, &None, &None),
-        params,
-    )
-    .await
-}
-
 pub(crate) async fn list_end_users_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
-    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
+    ctx: &RequestContext<'_>,
     params: &ListEndUsersParams,
 ) -> Result<ListEndUsersResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        x_title,
+        http_referer,
+        app_categories,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/end-users");
-    let response = transport_request::with_client_request_headers(
+    let req = transport_request::with_client_request_headers(
         transport_request::get(http_client, &url),
         management_key,
-        metadata.0,
-        metadata.1,
-        metadata.2,
+        x_title,
+        http_referer,
+        app_categories,
     )?
-    .query(params)
-    .send()
-    .await?;
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "list_end_users").await
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// POST `/end-users`.
-pub async fn create_end_user(
-    base_url: &str,
-    management_key: &str,
-    request: &CreateEndUserRequest,
-) -> Result<EndUser, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    create_end_user_with_client(
-        &http_client,
-        base_url,
-        management_key,
-        (&None, &None, &None),
-        request,
-    )
-    .await
+    .query(params);
+    transport_response::send_json(req, "list_end_users").await
 }
 
 pub(crate) async fn create_end_user_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
-    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
+    ctx: &RequestContext<'_>,
     request: &CreateEndUserRequest,
 ) -> Result<EndUser, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        x_title,
+        http_referer,
+        app_categories,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/end-users");
-    let response = transport_request::with_client_request_headers(
+    let req = transport_request::with_client_request_headers(
         transport_request::post(http_client, &url),
         management_key,
-        metadata.0,
-        metadata.1,
-        metadata.2,
+        x_title,
+        http_referer,
+        app_categories,
     )?
-    .json(request)
-    .send()
-    .await?;
-    if response.status().is_success() {
-        let payload: ApiResponse<EndUser> =
-            transport_response::parse_json_response(response, "create_end_user").await?;
-        Ok(payload.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// GET `/end-users/{user}`.
-pub async fn get_end_user(
-    base_url: &str,
-    management_key: &str,
-    user: &str,
-) -> Result<EndUser, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    get_end_user_with_client(
-        &http_client,
-        base_url,
-        management_key,
-        (&None, &None, &None),
-        user,
-    )
-    .await
+    .json(request);
+    let payload: ApiResponse<EndUser> =
+        transport_response::send_json(req, "create_end_user").await?;
+    Ok(payload.data)
 }
 
 pub(crate) async fn get_end_user_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
-    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
+    ctx: &RequestContext<'_>,
     user: &str,
 ) -> Result<EndUser, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        x_title,
+        http_referer,
+        app_categories,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/end-users/{}", encode(user));
-    let response = transport_request::with_client_request_headers(
+    let req = transport_request::with_client_request_headers(
         transport_request::get(http_client, &url),
         management_key,
-        metadata.0,
-        metadata.1,
-        metadata.2,
-    )?
-    .send()
-    .await?;
-    if response.status().is_success() {
-        let payload: ApiResponse<EndUser> =
-            transport_response::parse_json_response(response, "get_end_user").await?;
-        Ok(payload.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// PATCH `/end-users/{user}`.
-pub async fn update_end_user(
-    base_url: &str,
-    management_key: &str,
-    user: &str,
-    request: &UpdateEndUserRequest,
-) -> Result<EndUser, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    update_end_user_with_client(
-        &http_client,
-        base_url,
-        management_key,
-        (&None, &None, &None),
-        user,
-        request,
-    )
-    .await
+        x_title,
+        http_referer,
+        app_categories,
+    )?;
+    let payload: ApiResponse<EndUser> = transport_response::send_json(req, "get_end_user").await?;
+    Ok(payload.data)
 }
 
 pub(crate) async fn update_end_user_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
-    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
+    ctx: &RequestContext<'_>,
     user: &str,
     request: &UpdateEndUserRequest,
 ) -> Result<EndUser, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        x_title,
+        http_referer,
+        app_categories,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/end-users/{}", encode(user));
-    let response = transport_request::with_client_request_headers(
+    let req = transport_request::with_client_request_headers(
         transport_request::patch(http_client, &url),
         management_key,
-        metadata.0,
-        metadata.1,
-        metadata.2,
+        x_title,
+        http_referer,
+        app_categories,
     )?
-    .json(request)
-    .send()
-    .await?;
-    if response.status().is_success() {
-        let payload: ApiResponse<EndUser> =
-            transport_response::parse_json_response(response, "update_end_user").await?;
-        Ok(payload.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// DELETE `/end-users/{user}`. Soft-deactivates registration; does not block inference.
-pub async fn delete_end_user(
-    base_url: &str,
-    management_key: &str,
-    user: &str,
-) -> Result<(), OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    delete_end_user_with_client(
-        &http_client,
-        base_url,
-        management_key,
-        (&None, &None, &None),
-        user,
-    )
-    .await
+    .json(request);
+    let payload: ApiResponse<EndUser> =
+        transport_response::send_json(req, "update_end_user").await?;
+    Ok(payload.data)
 }
 
 pub(crate) async fn delete_end_user_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    management_key: &str,
-    metadata: (&Option<String>, &Option<String>, &Option<Vec<String>>),
+    ctx: &RequestContext<'_>,
     user: &str,
 ) -> Result<(), OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: management_key,
+        x_title,
+        http_referer,
+        app_categories,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/end-users/{}", encode(user));
-    let response = transport_request::with_client_request_headers(
+    transport_response::send_unit(transport_request::with_client_request_headers(
         transport_request::delete(http_client, &url),
         management_key,
-        metadata.0,
-        metadata.1,
-        metadata.2,
-    )?
-    .send()
-    .await?;
-    if response.status().is_success() {
-        Ok(())
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
+        x_title,
+        http_referer,
+        app_categories,
+    )?)
+    .await
 }

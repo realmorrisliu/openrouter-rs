@@ -23,13 +23,13 @@ async fn test_flat_05_style_inference_surface_requires_api_key() {
         .build()
         .expect("responses request should build");
 
-    let result = client.send_chat_completion(&chat_request).await;
+    let result = client.chat().create(&chat_request).await;
     assert!(matches!(result, Err(OpenRouterError::KeyNotConfigured)));
 
-    let stream = client.stream_response(&responses_request).await;
+    let stream = client.responses().stream(&responses_request).await;
     assert!(matches!(stream, Err(OpenRouterError::KeyNotConfigured)));
 
-    let models = client.list_models().await;
+    let models = client.models().list().await;
     assert!(matches!(models, Err(OpenRouterError::KeyNotConfigured)));
 }
 
@@ -87,13 +87,16 @@ async fn test_flat_05_style_management_surface_requires_management_key() {
         .build()
         .expect("client should build");
 
-    let created = client.create_api_key("migration-smoke", Some(10.0)).await;
+    let created = client
+        .management()
+        .create_api_key("migration-smoke", Some(10.0))
+        .await;
     assert!(matches!(created, Err(OpenRouterError::KeyNotConfigured)));
 
-    let deleted = client.delete_api_key("key_hash").await;
+    let deleted = client.management().delete_api_key("key_hash").await;
     assert!(matches!(deleted, Err(OpenRouterError::KeyNotConfigured)));
 
-    let activity = client.get_activity(None).await;
+    let activity = client.management().get_activity(None).await;
     assert!(matches!(activity, Err(OpenRouterError::KeyNotConfigured)));
 }
 

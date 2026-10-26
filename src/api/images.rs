@@ -7,11 +7,11 @@ use futures_util::{
 };
 use http::header::CONTENT_TYPE;
 
-use crate::transport::HttpClient;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use urlencoding::encode;
 
+use crate::transport::RequestContext;
 use crate::{
     api::chat::TraceOptions,
     error::OpenRouterError,
@@ -416,89 +416,45 @@ pub struct ImageStreamingResponse {
     pub extra: HashMap<String, Value>,
 }
 
-/// Submit an image generation request.
-pub async fn create_image_generation(
-    base_url: &str,
-    api_key: &str,
-    x_title: &Option<String>,
-    http_referer: &Option<String>,
-    app_categories: &Option<Vec<String>>,
+pub(crate) async fn create_image_generation_with_client(
+    ctx: &RequestContext<'_>,
     request: &ImageGenerationRequest,
 ) -> Result<ImageGenerationResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    create_image_generation_with_client(
-        &http_client,
+    let RequestContext {
+        http_client,
         base_url,
-        api_key,
+        credential: api_key,
         x_title,
         http_referer,
         app_categories,
-        request,
-    )
-    .await
-}
-
-pub(crate) async fn create_image_generation_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
-    x_title: &Option<String>,
-    http_referer: &Option<String>,
-    app_categories: &Option<Vec<String>>,
-    request: &ImageGenerationRequest,
-) -> Result<ImageGenerationResponse, OpenRouterError> {
+        ..
+    } = *ctx;
     let url = format!("{base_url}/images");
     let request = request.stream(false);
-    let response = transport_request::with_client_request_headers(
+    let req = transport_request::with_client_request_headers(
         transport_request::post(http_client, &url),
         api_key,
         x_title,
         http_referer,
         app_categories,
     )?
-    .json(&request)
-    .send()
-    .await?;
-
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "image generation").await
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// Stream image generation events.
-pub async fn stream_image_generation(
-    base_url: &str,
-    api_key: &str,
-    x_title: &Option<String>,
-    http_referer: &Option<String>,
-    app_categories: &Option<Vec<String>>,
-    request: &ImageGenerationRequest,
-) -> Result<BoxStream<'static, Result<ImageStreamingResponse, OpenRouterError>>, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    stream_image_generation_with_client(
-        &http_client,
-        base_url,
-        api_key,
-        x_title,
-        http_referer,
-        app_categories,
-        request,
-    )
-    .await
+    .json(&request);
+    transport_response::send_json(req, "image generation").await
 }
 
 pub(crate) async fn stream_image_generation_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
-    x_title: &Option<String>,
-    http_referer: &Option<String>,
-    app_categories: &Option<Vec<String>>,
+    ctx: &RequestContext<'_>,
     request: &ImageGenerationRequest,
 ) -> Result<BoxStream<'static, Result<ImageStreamingResponse, OpenRouterError>>, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        x_title,
+        http_referer,
+        app_categories,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/images");
     let request = request.stream(true);
     let response = transport_request::with_client_request_headers(
@@ -532,8 +488,7 @@ pub(crate) async fn stream_image_generation_with_client(
             Ok(buffered_image_response_stream(response))
         }
     } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
+        Err(transport_response::error_from_response(response).await)
     }
 }
 
@@ -577,66 +532,38 @@ fn buffered_image_response_stream(
     .boxed()
 }
 
-/// List all image generation models.
-pub async fn list_image_models(
-    base_url: &str,
-    api_key: &str,
-) -> Result<Vec<ImageModel>, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    list_image_models_with_client(&http_client, base_url, api_key).await
-}
-
 pub(crate) async fn list_image_models_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
 ) -> Result<Vec<ImageModel>, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let url = format!("{base_url}/images/models");
-    let response =
-        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
-            .send()
-            .await?;
-
-    if response.status().is_success() {
-        let payload: crate::types::ApiResponse<Vec<ImageModel>> =
-            transport_response::parse_json_response(response, "image models").await?;
-        Ok(payload.data)
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
-}
-
-/// List provider endpoints for one image generation model.
-pub async fn list_image_model_endpoints(
-    base_url: &str,
-    api_key: &str,
-    author: &str,
-    slug: &str,
-) -> Result<ImageModelEndpointsResponse, OpenRouterError> {
-    let http_client = crate::transport::new_client()?;
-    list_image_model_endpoints_with_client(&http_client, base_url, api_key, author, slug).await
+    let req =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
+    let payload: crate::types::ApiResponse<Vec<ImageModel>> =
+        transport_response::send_json(req, "image models").await?;
+    Ok(payload.data)
 }
 
 pub(crate) async fn list_image_model_endpoints_with_client(
-    http_client: &HttpClient,
-    base_url: &str,
-    api_key: &str,
+    ctx: &RequestContext<'_>,
     author: &str,
     slug: &str,
 ) -> Result<ImageModelEndpointsResponse, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
     let encoded_author = encode(author);
     let encoded_slug = encode(slug);
     let url = format!("{base_url}/images/models/{encoded_author}/{encoded_slug}/endpoints");
-    let response =
-        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key)
-            .send()
-            .await?;
-
-    if response.status().is_success() {
-        transport_response::parse_json_response(response, "image model endpoints").await
-    } else {
-        transport_response::handle_error(response).await?;
-        unreachable!()
-    }
+    let req =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
+    transport_response::send_json(req, "image model endpoints").await
 }

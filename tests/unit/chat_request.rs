@@ -296,8 +296,8 @@ fn test_chat_request_merges_function_and_server_tools() {
         value["tool_choice"],
         json!({"type": "openrouter:web_search"})
     );
-    assert_eq!(request.tools().map(|tools| tools.len()), Some(1));
-    assert_eq!(request.server_tools().map(|tools| tools.len()), Some(1));
+    assert_eq!(request.function_tools().count(), 1);
+    assert_eq!(request.server_tools().count(), 1);
 }
 
 #[test]
@@ -352,14 +352,12 @@ fn test_chat_request_deserializes_server_tools_from_merged_tools_array() {
     }))
     .expect("chat request should deserialize");
 
-    let function_tools = request.tools().expect("function tools should be preserved");
+    let function_tools: Vec<_> = request.function_tools().collect();
     assert_eq!(function_tools.len(), 1);
     assert_eq!(function_tools[0].function.name, "get_weather");
     assert_eq!(function_tools[0].function.strict, Some(true));
 
-    let server_tools = request
-        .server_tools()
-        .expect("server tools should be preserved");
+    let server_tools: Vec<_> = request.server_tools().collect();
     assert_eq!(server_tools.len(), 3);
     assert_eq!(server_tools[0].tool_type, "openrouter:web_search");
     assert_eq!(
@@ -468,4 +466,33 @@ fn legacy_include_reasoning_round_trips_without_enabling_reasoning() {
         let restored: ChatCompletionRequest = serde_json::from_value(body.clone()).unwrap();
         assert_eq!(serde_json::to_value(restored).unwrap(), body);
     }
+}
+
+#[test]
+fn unknown_role_round_trips_through_the_wire() {
+    let role: Role = serde_json::from_value(json!("provider-custom-role"))
+        .expect("unknown roles should deserialize");
+    assert_eq!(role, Role::Other("provider-custom-role".to_string()));
+    assert_eq!(
+        serde_json::to_value(&role).expect("role should serialize"),
+        json!("provider-custom-role")
+    );
+    assert_eq!(role.to_string(), "provider-custom-role");
+}
+
+#[test]
+fn unknown_object_type_and_anthropic_role_are_preserved() {
+    use openrouter_rs::api::messages::AnthropicRole;
+    use openrouter_rs::types::completion::ObjectType;
+
+    let object: ObjectType = serde_json::from_value(json!("chat.completion.v2")).unwrap();
+    assert_eq!(object, ObjectType::Other("chat.completion.v2".to_string()));
+    assert_eq!(
+        serde_json::to_value(&object).unwrap(),
+        json!("chat.completion.v2")
+    );
+
+    let role: AnthropicRole = serde_json::from_value(json!("critic")).unwrap();
+    assert_eq!(role, AnthropicRole::Other("critic".to_string()));
+    assert_eq!(serde_json::to_value(&role).unwrap(), json!("critic"));
 }

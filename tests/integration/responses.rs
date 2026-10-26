@@ -290,6 +290,7 @@ fn api_error(status: StatusCode) -> OpenRouterError {
         request_id: None,
         metadata: None,
         kind: ApiErrorKind::Generic,
+        retry_after: None,
     }))
 }
 

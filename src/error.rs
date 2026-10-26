@@ -68,17 +68,34 @@
 //!     .messages(vec![Message::new(Role::User, "Hello!")])
 //!     .build()?;
 //!
-//! match client.chat().create(&request).await {
-//!     Err(OpenRouterError::Api(api_error)) if api_error.is_retryable() => {
-//!         println!("Rate limited, retrying after delay...");
-//!         tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
-//!         // Retry logic here
+//! let mut backoff = std::time::Duration::from_secs(1);
+//! for _ in 0..3 {
+//!     match client.chat().create(&request).await {
+//!         Err(OpenRouterError::Api(api_error)) if api_error.is_retryable() => {
+//!             // `Retry-After` is absent for the HTTP-date form, so fall back to backoff.
+//!             backoff = api_error.retry_after.unwrap_or(backoff * 2);
+//!             tokio::time::sleep(backoff).await;
+//!         }
+//!         Ok(response) => break,
+//!         Err(e) => return Err(e.into()),
 //!     }
-//!     Ok(response) => println!("Success!"),
-//!     Err(e) => return Err(e.into()),
 //! }
 //! # Ok(())
 //! # }
+//! ```
+//!
+//! ### Transport Failure Classification
+//!
+//! [`HttpRequestError::kind`] separates a timeout from a connection failure so a
+//! caller can decide whether a retry is worthwhile without parsing the message.
+//! The classification is populated by whichever backend is compiled in.
+//!
+//! ```rust
+//! use openrouter_rs::error::{HttpRequestError, HttpRequestErrorKind};
+//!
+//! let error = HttpRequestError::classified(HttpRequestErrorKind::Timeout, "timed out");
+//! assert!(error.is_timeout());
+//! assert!(!error.is_connect());
 //! ```
 //!
 //! ### Validation Error Handling
@@ -109,22 +126,87 @@ use http::StatusCode;
 use serde_json::Value;
 use thiserror::Error;
 
+/// Failure class of an HTTP request error.
+///
+/// The granularity a caller sees depends on the active backend: the `reqwest`
+/// backend reports all variants, while `wasip3` reports the classes its host
+/// API distinguishes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum HttpRequestErrorKind {
+    /// The request exceeded the client's configured timeout.
+    Timeout,
+    /// The request was sent but no connection or response was established.
+    Connect,
+    /// The request could not be built or sent.
+    Request,
+    /// Reading the response body failed.
+    Body,
+    /// Decoding the response body failed.
+    Decode,
+    /// A failure the backend did not classify.
+    Other,
+}
+
 /// Stable, backend-neutral request error wrapper used by [`OpenRouterError::HttpRequest`].
+///
+/// Holds a classification rather than a backend error, so it stays `Clone`,
+/// `PartialEq`, and `Eq` whichever backend is compiled in.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 #[error("{message}")]
 pub struct HttpRequestError {
+    kind: HttpRequestErrorKind,
+    url: Option<String>,
     message: String,
 }
 
 impl HttpRequestError {
+    /// Builds an unclassified request error, retaining the message.
     pub fn new(message: impl Into<String>) -> Self {
         Self {
+            kind: HttpRequestErrorKind::Other,
+            url: None,
             message: message.into(),
         }
     }
 
+    /// Builds a classified request error.
+    pub fn classified(kind: HttpRequestErrorKind, message: impl Into<String>) -> Self {
+        Self {
+            kind,
+            url: None,
+            message: message.into(),
+        }
+    }
+
+    /// Records the request URL, when the backend captured one.
+    pub fn with_url(mut self, url: impl Into<String>) -> Self {
+        self.url = Some(url.into());
+        self
+    }
+
+    /// Failure class, so callers can decide whether retrying is worthwhile.
+    pub fn kind(&self) -> HttpRequestErrorKind {
+        self.kind
+    }
+
+    /// Request URL, when the transport captured one.
+    pub fn url(&self) -> Option<&str> {
+        self.url.as_deref()
+    }
+
     pub fn message(&self) -> &str {
         &self.message
+    }
+
+    /// True when the request exceeded the configured timeout.
+    pub fn is_timeout(&self) -> bool {
+        self.kind == HttpRequestErrorKind::Timeout
+    }
+
+    /// True when no response could be obtained from the server.
+    pub fn is_connect(&self) -> bool {
+        self.kind == HttpRequestErrorKind::Connect
     }
 }
 
@@ -153,6 +235,10 @@ pub struct ApiErrorContext {
     pub request_id: Option<String>,
     pub metadata: Option<Value>,
     pub kind: ApiErrorKind,
+    /// Server-provided retry delay from the `Retry-After` header.
+    ///
+    /// The HTTP-date form is reported as `None` rather than guessed.
+    pub retry_after: Option<std::time::Duration>,
 }
 
 impl ApiErrorContext {
@@ -230,6 +316,7 @@ impl std::fmt::Display for ApiErrorContext {
 /// }
 /// ```
 #[derive(Error, Debug)]
+#[non_exhaustive]
 pub enum OpenRouterError {
     // HTTP request errors
     #[error("HTTP request failed: {0}")]

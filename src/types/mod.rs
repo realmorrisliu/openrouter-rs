@@ -195,9 +195,8 @@ impl OpenRouterExperimentalMetadata {
 /// let user_msg = Message::new(Role::User, "Hello, world!");
 /// let assistant_msg = Message::new(Role::Assistant, "Hello! How can I help?");
 /// ```
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
-#[serde(rename_all = "lowercase")]
 pub enum Role {
     /// System instructions that guide the AI's behavior
     System,
@@ -209,17 +208,52 @@ pub enum Role {
     Assistant,
     /// Results from tool/function calls
     Tool,
+    /// A role this SDK does not model yet, preserved as received.
+    Other(String),
+}
+
+impl Role {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Role::System => "system",
+            Role::Developer => "developer",
+            Role::User => "user",
+            Role::Assistant => "assistant",
+            Role::Tool => "tool",
+            Role::Other(value) => value.as_str(),
+        }
+    }
+}
+
+impl Serialize for Role {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for Role {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = String::deserialize(deserializer)?;
+        Ok(match value.as_str() {
+            "system" => Role::System,
+            "developer" => Role::Developer,
+            "user" => Role::User,
+            "assistant" => Role::Assistant,
+            "tool" => Role::Tool,
+            _ => Role::Other(value),
+        })
+    }
 }
 
 impl Display for Role {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Role::System => write!(f, "system"),
-            Role::Developer => write!(f, "developer"),
-            Role::User => write!(f, "user"),
-            Role::Assistant => write!(f, "assistant"),
-            Role::Tool => write!(f, "tool"),
-        }
+        f.write_str(self.as_str())
     }
 }
 

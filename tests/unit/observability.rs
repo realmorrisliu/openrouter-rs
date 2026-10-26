@@ -1,3 +1,4 @@
+use crate::test_client;
 use std::{
     io::{Read, Write},
     net::TcpListener,
@@ -8,8 +9,8 @@ use std::{
 
 use openrouter_rs::{
     api::observability::{
-        self, CreateObservabilityDestinationRequest, ObservabilityDestination,
-        ObservabilityFilterGroup, ObservabilityFilterRule, ObservabilityFilterRulesConfig,
+        CreateObservabilityDestinationRequest, ObservabilityDestination, ObservabilityFilterGroup,
+        ObservabilityFilterRule, ObservabilityFilterRulesConfig,
         UpdateObservabilityDestinationRequest,
     },
     types::{ApiResponse, PaginationOptions},
@@ -281,14 +282,14 @@ fn test_observability_destination_response_deserialization() {
 async fn test_list_observability_destinations_path_query_and_auth_header() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
 
-    let result = observability::list_observability_destinations(
-        &base_url,
-        "mgmt-key",
-        Some(PaginationOptions::with_offset_and_limit(3, 25)),
-        Some("ws_123"),
-    )
-    .await
-    .expect("list observability destinations should succeed");
+    let result = test_client(&base_url, "mgmt-key")
+        .management()
+        .list_observability_destinations(
+            Some(PaginationOptions::with_offset_and_limit(3, 25)),
+            Some("ws_123"),
+        )
+        .await
+        .expect("list observability destinations should succeed");
     assert!(result.data.is_empty());
 
     let captured = rx
@@ -317,7 +318,9 @@ async fn test_create_observability_destination_path_body_and_auth_header() {
         .build()
         .expect("create observability request should build");
 
-    let created = observability::create_observability_destination(&base_url, "mgmt-key", &request)
+    let created = test_client(&base_url, "mgmt-key")
+        .management()
+        .create_observability_destination(&request)
         .await
         .expect("create observability destination should succeed");
     assert_eq!(created.destination_type, "langfuse");
@@ -341,7 +344,9 @@ async fn test_create_observability_destination_path_body_and_auth_header() {
 #[tokio::test]
 async fn test_get_update_delete_observability_destination_paths() {
     let (base_url, rx, server) = spawn_json_server(destination_body());
-    let _ = observability::get_observability_destination(&base_url, "mgmt-key", "dest/team 1")
+    let _ = test_client(&base_url, "mgmt-key")
+        .management()
+        .get_observability_destination("dest/team 1")
         .await
         .expect("get observability destination should succeed");
     let captured = rx
@@ -360,14 +365,11 @@ async fn test_get_update_delete_observability_destination_paths() {
         .enabled(false)
         .build()
         .expect("update observability request should build");
-    let _ = observability::update_observability_destination(
-        &base_url,
-        "mgmt-key",
-        "dest/team 1",
-        &request,
-    )
-    .await
-    .expect("update observability destination should succeed");
+    let _ = test_client(&base_url, "mgmt-key")
+        .management()
+        .update_observability_destination("dest/team 1", &request)
+        .await
+        .expect("update observability destination should succeed");
     let captured = rx
         .recv_timeout(Duration::from_secs(2))
         .expect("should capture request");
@@ -383,10 +385,11 @@ async fn test_get_update_delete_observability_destination_paths() {
     server.join().expect("server thread should finish");
 
     let (base_url, rx, server) = spawn_json_server(r#"{"deleted":true}"#);
-    let deleted =
-        observability::delete_observability_destination(&base_url, "mgmt-key", "dest/team 1")
-            .await
-            .expect("delete observability destination should succeed");
+    let deleted = test_client(&base_url, "mgmt-key")
+        .management()
+        .delete_observability_destination("dest/team 1")
+        .await
+        .expect("delete observability destination should succeed");
     assert!(deleted);
     let captured = rx
         .recv_timeout(Duration::from_secs(2))

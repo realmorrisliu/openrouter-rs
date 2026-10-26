@@ -1,3 +1,5 @@
+use crate::test_client;
+use crate::test_client_with_attribution;
 use std::{
     collections::HashMap,
     io::{Read, Write},
@@ -210,14 +212,19 @@ async fn test_create_transcription_path_body_headers_and_response() {
         .build()
         .expect("transcription request should build");
 
-    let response = audio::create_transcription(
+    let x_title = Some("openrouter-rs".to_string());
+    let http_referer = Some("https://example.com".to_string());
+    let app_categories = Some(vec!["cli-agent".to_string()]);
+    let response = test_client_with_attribution(
         &base_url,
         "api-key",
-        &Some("openrouter-rs".to_string()),
-        &Some("https://example.com".to_string()),
-        &Some(vec!["cli-agent".to_string()]),
-        &request,
+        &x_title,
+        &http_referer,
+        &app_categories,
     )
+    .audio()
+    .transcriptions()
+    .create(&request)
     .await
     .expect("transcription request should succeed");
     assert_eq!(response.text, "Hello from audio");
@@ -349,14 +356,19 @@ async fn test_create_speech_path_body_headers_and_binary_response() {
         .build()
         .expect("speech request should build");
 
-    let response = audio::create_speech(
+    let x_title = Some("openrouter-rs".to_string());
+    let http_referer = Some("https://example.com".to_string());
+    let app_categories = Some(vec!["cli-agent".to_string()]);
+    let response = test_client_with_attribution(
         &base_url,
         "api-key",
-        &Some("openrouter-rs".to_string()),
-        &Some("https://example.com".to_string()),
-        &Some(vec!["cli-agent".to_string()]),
-        &request,
+        &x_title,
+        &http_referer,
+        &app_categories,
     )
+    .audio()
+    .speech()
+    .create(&request)
     .await
     .expect("speech request should succeed");
     assert_eq!(response, b"ID3fake-audio-data");
@@ -495,7 +507,10 @@ async fn test_create_speech_falls_back_to_legacy_path_when_official_path_is_miss
         .build()
         .expect("speech request should build");
 
-    let response = audio::create_speech(&base_url, "api-key", &None, &None, &None, &request)
+    let response = test_client(&base_url, "api-key")
+        .audio()
+        .speech()
+        .create(&request)
         .await
         .expect("speech request should fall back and succeed");
     assert_eq!(response, b"ID3legacy-fallback");
@@ -561,7 +576,10 @@ async fn test_create_speech_does_not_fall_back_for_request_level_404() {
         .build()
         .expect("speech request should build");
 
-    let error = audio::create_speech(&base_url, "api-key", &None, &None, &None, &request)
+    let error = test_client(&base_url, "api-key")
+        .audio()
+        .speech()
+        .create(&request)
         .await
         .expect_err("speech request should surface the official error");
 
@@ -634,7 +652,10 @@ async fn test_create_speech_does_not_fall_back_for_plain_text_request_level_404(
         .build()
         .expect("speech request should build");
 
-    let error = audio::create_speech(&base_url, "api-key", &None, &None, &None, &request)
+    let error = test_client(&base_url, "api-key")
+        .audio()
+        .speech()
+        .create(&request)
         .await
         .expect_err("speech request should surface the official error");
 
@@ -750,7 +771,10 @@ async fn test_create_speech_falls_back_for_plain_text_404_page_not_found() {
         .build()
         .expect("speech request should build");
 
-    let response = audio::create_speech(&base_url, "api-key", &None, &None, &None, &request)
+    let response = test_client(&base_url, "api-key")
+        .audio()
+        .speech()
+        .create(&request)
         .await
         .expect("speech request should fall back and succeed");
     assert_eq!(response, b"ID3plain-text-fallback");
