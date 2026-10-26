@@ -147,28 +147,6 @@ pub enum UnifiedStreamEvent {
     Error(OpenRouterError),
 }
 
-/// Projects a source's token counts onto the shared usage model.
-///
-/// Chat uses `prompt_tokens`/`completion_tokens`, while the Responses and
-/// Messages APIs use `input_tokens`/`output_tokens`; neither non-chat shape
-/// deserializes into [`ResponseUsage`] directly.
-fn usage_from_token_counts(
-    input_tokens: Option<u64>,
-    output_tokens: Option<u64>,
-    total_tokens: Option<u64>,
-) -> Option<ResponseUsage> {
-    let prompt_tokens = u32::try_from(input_tokens?).ok()?;
-    let completion_tokens = u32::try_from(output_tokens?).ok()?;
-    let total_tokens = total_tokens
-        .and_then(|total| u32::try_from(total).ok())
-        .unwrap_or_else(|| prompt_tokens.saturating_add(completion_tokens));
-    Some(ResponseUsage::new(
-        prompt_tokens,
-        completion_tokens,
-        total_tokens,
-    ))
-}
-
 /// A unified stream type across all streaming APIs.
 pub type UnifiedStream = BoxStream<'static, UnifiedStreamEvent>;
 
@@ -182,6 +160,36 @@ struct StreamMeta {
 }
 
 impl StreamMeta {
+    /// Records the counts this event carries, keeping any it omits.
+    ///
+    /// Sources name the quantities differently — chat uses
+    /// `prompt_tokens`/`completion_tokens`, while the Responses and Messages APIs
+    /// use `input_tokens`/`output_tokens` — and a stream may spread them across
+    /// events: a Messages stream reports the input count at `message_start` and
+    /// only a cumulative output count in `message_delta`. Merging here keeps the
+    /// projection in one place instead of in every adapter.
+    fn update_usage(&mut self, input: Option<u64>, output: Option<u64>, total: Option<u64>) {
+        let previous = self.usage.as_ref();
+        let input = input.or_else(|| previous.map(|usage| u64::from(usage.prompt_tokens)));
+        let output = output.or_else(|| previous.map(|usage| u64::from(usage.completion_tokens)));
+        let (Some(input), Some(output)) = (input, output) else {
+            return;
+        };
+        let total = total.unwrap_or_else(|| input.saturating_add(output));
+        let (Ok(prompt_tokens), Ok(completion_tokens), Ok(total_tokens)) = (
+            u32::try_from(input),
+            u32::try_from(output),
+            u32::try_from(total),
+        ) else {
+            return;
+        };
+        self.usage = Some(ResponseUsage::new(
+            prompt_tokens,
+            completion_tokens,
+            total_tokens,
+        ));
+    }
+
     /// Assembles accumulated tool-call fragments into complete calls.
     fn take_tool_calls(&mut self) -> Vec<ToolCall> {
         std::mem::take(&mut self.tool_accumulators)
@@ -350,7 +358,7 @@ pub fn adapt_responses_stream(
                             state.meta.finish_reason = Some(status.to_string());
                         }
                         if let Some(usage) = response.get("usage") {
-                            state.meta.usage = usage_from_token_counts(
+                            state.meta.update_usage(
                                 usage.get("input_tokens").and_then(Value::as_u64),
                                 usage.get("output_tokens").and_then(Value::as_u64),
                                 usage.get("total_tokens").and_then(Value::as_u64),
@@ -466,7 +474,7 @@ pub fn adapt_messages_stream(
                             state.meta.id = message.id.clone();
                             state.meta.model = message.model.clone();
                             if let Some(usage) = message.usage {
-                                state.meta.usage = usage_from_token_counts(
+                                state.meta.update_usage(
                                     usage.input_tokens,
                                     usage.output_tokens,
                                     None,
@@ -474,17 +482,16 @@ pub fn adapt_messages_stream(
                             }
                         }
                         AnthropicMessagesStreamEvent::MessageDelta { delta, usage } => {
-                            state.meta.usage = serde_json::from_value::<
+                            if let Ok(usage) = serde_json::from_value::<
                                 crate::api::messages::AnthropicMessagesUsage,
                             >(usage)
-                            .ok()
-                            .and_then(|usage| {
-                                usage_from_token_counts(
+                            {
+                                state.meta.update_usage(
                                     usage.input_tokens,
                                     usage.output_tokens,
                                     None,
-                                )
-                            });
+                                );
+                            }
                             if let Some(reason) = delta.get("stop_reason").and_then(Value::as_str) {
                                 state.meta.finish_reason = Some(reason.to_string());
                             }

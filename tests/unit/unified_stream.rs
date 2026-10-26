@@ -529,7 +529,7 @@ async fn messages_stream_maps_its_usage_field_names() {
             json!({
                 "type": "message_delta",
                 "delta": { "stop_reason": "end_turn" },
-                "usage": { "input_tokens": 7, "output_tokens": 11 }
+                "usage": { "output_tokens": 11 }
             }),
         )),
         Ok(messages_event(
@@ -551,6 +551,61 @@ async fn messages_stream_maps_its_usage_field_names() {
                 usage.total_tokens, 18,
                 "the adapter synthesizes the total the Messages API omits"
             );
+        }
+        other => panic!("expected Done, got {other:?}"),
+    }
+}
+
+/// A Messages stream reports the input count only at `message_start` and only a
+/// cumulative output count afterwards, so the terminal usage must merge both.
+#[tokio::test]
+async fn messages_stream_keeps_the_input_count_from_message_start() {
+    let events = vec![
+        Ok(messages_event(
+            "message_start",
+            json!({
+                "type": "message_start",
+                "message": {
+                    "id": "msg_2",
+                    "type": "message",
+                    "role": "assistant",
+                    "content": [],
+                    "model": "anthropic/claude-sonnet-4",
+                    "stop_reason": null,
+                    "stop_sequence": null,
+                    "usage": { "input_tokens": 42, "output_tokens": 1 }
+                }
+            }),
+        )),
+        Ok(messages_event(
+            "message_delta",
+            json!({
+                "type": "message_delta",
+                "delta": { "stop_reason": "end_turn" },
+                "usage": { "output_tokens": 13 }
+            }),
+        )),
+        Ok(messages_event(
+            "message_stop",
+            json!({ "type": "message_stop" }),
+        )),
+    ];
+
+    let unified: Vec<_> = adapt_messages_stream(stream::iter(events).boxed())
+        .collect()
+        .await;
+
+    match unified.last().expect("terminal event") {
+        UnifiedStreamEvent::Done { usage, .. } => {
+            let usage = usage
+                .as_ref()
+                .expect("usage should survive a partial delta");
+            assert_eq!(usage.prompt_tokens, 42, "input count from message_start");
+            assert_eq!(
+                usage.completion_tokens, 13,
+                "cumulative output count from message_delta"
+            );
+            assert_eq!(usage.total_tokens, 55);
         }
         other => panic!("expected Done, got {other:?}"),
     }
