@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `ChatCompletionRequestBuilder`'s reasoning setters now compose instead of replacing the reasoning object, so `reasoning_effort(...)` followed by `reasoning_max_tokens(...)` keeps both. Previously the later call silently dropped the earlier field, including in the crate's own documentation example.
+
 ### Breaking
 - Removed the 162 `api::<module>::<function>(base_url, api_key, …)` endpoint functions. Each built its own client, so a call silently ignored timeouts, proxies, TLS configuration, and attribution headers; every endpoint is now reachable only through a domain client. `MIGRATION.md` maps each removed function to its replacement.
 - Removed the 109 flat `OpenRouterClient` methods; their domain-client equivalents are unchanged.

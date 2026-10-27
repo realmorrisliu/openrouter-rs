@@ -347,7 +347,7 @@ impl Display for Effort {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 #[non_exhaustive]
 pub struct ReasoningConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -361,7 +361,7 @@ pub struct ReasoningConfig {
 }
 
 impl ReasoningConfig {
-    /// Create a new ReasoningConfig with default enabled settings (medium effort)
+    /// Create a new ReasoningConfig that enables reasoning with provider defaults.
     pub fn enabled() -> Self {
         Self {
             effort: None,

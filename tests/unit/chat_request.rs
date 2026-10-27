@@ -530,3 +530,45 @@ fn tool_setters_preserve_the_other_kind_regardless_of_order() {
     assert_eq!(request.function_tools().count(), 1);
     assert_eq!(request.server_tools().count(), 1);
 }
+
+/// Each reasoning setter contributes its own field. They used to replace the
+/// whole `reasoning` object, so `reasoning_effort(..)` followed by
+/// `reasoning_max_tokens(..)` silently dropped the effort.
+#[test]
+fn reasoning_setters_compose_regardless_of_order() {
+    let build = |configure: fn(&mut openrouter_rs::api::chat::ChatCompletionRequestBuilder)| {
+        let mut builder = ChatCompletionRequest::builder();
+        builder
+            .model("deepseek/deepseek-r1")
+            .messages(vec![Message::new(Role::User, "hi")]);
+        configure(&mut builder);
+        serde_json::to_value(builder.build().expect("request should build"))
+            .expect("request should serialize")
+    };
+
+    fn effort_then_budget(b: &mut openrouter_rs::api::chat::ChatCompletionRequestBuilder) {
+        b.reasoning_effort(Effort::High).reasoning_max_tokens(1000);
+    }
+    fn budget_then_effort(b: &mut openrouter_rs::api::chat::ChatCompletionRequestBuilder) {
+        b.reasoning_max_tokens(1000).reasoning_effort(Effort::High);
+    }
+    for build_with in [effort_then_budget, budget_then_effort] {
+        let value = build(build_with);
+        assert_eq!(value["reasoning"]["effort"], "high");
+        assert_eq!(value["reasoning"]["max_tokens"], 1000);
+    }
+
+    fn enable_then_budget(b: &mut openrouter_rs::api::chat::ChatCompletionRequestBuilder) {
+        b.enable_reasoning().reasoning_max_tokens(500);
+    }
+    let value = build(enable_then_budget);
+    assert_eq!(value["reasoning"]["enabled"], true);
+    assert_eq!(value["reasoning"]["max_tokens"], 500);
+
+    fn effort_then_exclude(b: &mut openrouter_rs::api::chat::ChatCompletionRequestBuilder) {
+        b.reasoning_effort(Effort::Max).exclude_reasoning();
+    }
+    let value = build(effort_then_exclude);
+    assert_eq!(value["reasoning"]["effort"], "max");
+    assert_eq!(value["reasoning"]["exclude"], true);
+}
