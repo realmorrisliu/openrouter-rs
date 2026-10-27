@@ -187,6 +187,54 @@ async fn test_reasoning_effort_levels() -> Result<(), OpenRouterError> {
 
 #[tokio::test]
 #[allow(clippy::result_large_err)]
+async fn test_reasoning_effort_and_max_tokens_together() -> Result<(), OpenRouterError> {
+    let client = create_test_client()?;
+    rate_limit_delay().await;
+
+    // The API rejects `effort` together with `max_tokens`, so the later setter
+    // wins and the request stays valid.
+    let request = ChatCompletionRequestBuilder::default()
+        .model(test_reasoning_model())
+        .messages(vec![Message::new(
+            Role::User,
+            "Which is bigger: 9.11 or 9.9? Answer in one word.",
+        )])
+        .max_tokens(2000)
+        .reasoning_effort(Effort::Low)
+        .reasoning_max_tokens(1000)
+        .build()?;
+
+    let payload = serde_json::to_value(&request).expect("request should serialize");
+    assert_eq!(payload["reasoning"]["max_tokens"], 1000);
+    assert!(payload["reasoning"].get("effort").is_none());
+
+    let response = client.chat().create(&request).await?;
+    validate_chat_response(&response)?;
+
+    // `enabled` is a modifier and is accepted next to a budget selector.
+    rate_limit_delay().await;
+    let request = ChatCompletionRequestBuilder::default()
+        .model(test_reasoning_model())
+        .messages(vec![Message::new(
+            Role::User,
+            "Which is bigger: 9.11 or 9.9? Answer in one word.",
+        )])
+        .max_tokens(2000)
+        .enable_reasoning()
+        .reasoning_effort(Effort::Low)
+        .build()?;
+
+    let payload = serde_json::to_value(&request).expect("request should serialize");
+    assert_eq!(payload["reasoning"]["enabled"], true);
+    assert_eq!(payload["reasoning"]["effort"], "low");
+
+    let response = client.chat().create(&request).await?;
+    validate_chat_response(&response)?;
+    Ok(())
+}
+
+#[tokio::test]
+#[allow(clippy::result_large_err)]
 async fn test_reasoning_max_tokens() -> Result<(), OpenRouterError> {
     let client = create_test_client()?;
     rate_limit_delay().await;
