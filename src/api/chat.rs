@@ -913,32 +913,38 @@ impl ChatCompletionRequestBuilder {
         self
     }
 
-    /// Enable reasoning with default settings (medium effort)
+    /// Enable reasoning with the provider's default settings.
     pub fn enable_reasoning(&mut self) -> &mut Self {
-        use crate::types::ReasoningConfig;
-        self.reasoning = Some(Some(ReasoningConfig::enabled()));
+        self.reasoning_config().enabled = Some(true);
         self
     }
 
-    /// Set reasoning effort level
+    /// Set the reasoning effort level.
     pub fn reasoning_effort(&mut self, effort: crate::types::Effort) -> &mut Self {
-        use crate::types::ReasoningConfig;
-        self.reasoning = Some(Some(ReasoningConfig::with_effort(effort)));
+        self.reasoning_config().effort = Some(effort);
         self
     }
 
-    /// Set reasoning max tokens
+    /// Limit the reasoning token budget.
     pub fn reasoning_max_tokens(&mut self, max_tokens: u32) -> &mut Self {
-        use crate::types::ReasoningConfig;
-        self.reasoning = Some(Some(ReasoningConfig::with_max_tokens(max_tokens)));
+        self.reasoning_config().max_tokens = Some(max_tokens);
         self
     }
 
-    /// Exclude reasoning from response (use reasoning internally but don't return it)
+    /// Exclude reasoning from the response (reason internally, return only the answer).
     pub fn exclude_reasoning(&mut self) -> &mut Self {
-        use crate::types::ReasoningConfig;
-        self.reasoning = Some(Some(ReasoningConfig::excluded()));
+        self.reasoning_config().exclude = Some(true);
         self
+    }
+
+    /// The reasoning configuration, created on first use.
+    ///
+    /// Each setter mutates this value rather than replacing it, so combining
+    /// them works whatever order they are called in.
+    fn reasoning_config(&mut self) -> &mut crate::types::ReasoningConfig {
+        self.reasoning
+            .get_or_insert_with(|| Some(crate::types::ReasoningConfig::default()))
+            .get_or_insert_with(crate::types::ReasoningConfig::default)
     }
 
     /// Add a single tool to the request
