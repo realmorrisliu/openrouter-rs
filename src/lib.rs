@@ -105,8 +105,7 @@
 //! let request = ChatCompletionRequest::builder()
 //!     .model("deepseek/deepseek-r1")
 //!     .messages(vec![Message::new(Role::User, "What's bigger: 9.9 or 9.11?")])
-//!     .reasoning_effort(Effort::High)  // Enable high-effort reasoning
-//!     .reasoning_max_tokens(1000)      // Limit reasoning tokens
+//!     .reasoning_effort(Effort::High)  // Or reasoning_max_tokens(1000)
 //!     .build()?;
 //!
 //! let response = client.chat().create(&request).await?;

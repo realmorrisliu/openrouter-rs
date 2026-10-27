@@ -531,44 +531,83 @@ fn tool_setters_preserve_the_other_kind_regardless_of_order() {
     assert_eq!(request.server_tools().count(), 1);
 }
 
-/// Each reasoning setter contributes its own field. They used to replace the
-/// whole `reasoning` object, so `reasoning_effort(..)` followed by
-/// `reasoning_max_tokens(..)` silently dropped the effort.
+/// The API rejects `effort` and `max_tokens` together ("Only one of
+/// \"reasoning.effort\" and \"reasoning.max_tokens\" can be specified"), so the
+/// two budget selectors are mutually exclusive and the later call wins.
 #[test]
-fn reasoning_setters_compose_regardless_of_order() {
-    let build = |configure: fn(&mut openrouter_rs::api::chat::ChatCompletionRequestBuilder)| {
-        let mut builder = ChatCompletionRequest::builder();
-        builder
-            .model("deepseek/deepseek-r1")
-            .messages(vec![Message::new(Role::User, "hi")]);
-        configure(&mut builder);
-        serde_json::to_value(builder.build().expect("request should build"))
-            .expect("request should serialize")
-    };
+fn reasoning_budget_selectors_are_mutually_exclusive() {
+    let request_with =
+        |configure: fn(&mut openrouter_rs::api::chat::ChatCompletionRequestBuilder)| {
+            let mut builder = ChatCompletionRequest::builder();
+            builder
+                .model("deepseek/deepseek-r1")
+                .messages(vec![Message::new(Role::User, "hi")]);
+            configure(&mut builder);
+            serde_json::to_value(builder.build().expect("request should build"))
+                .expect("request should serialize")
+        };
 
     fn effort_then_budget(b: &mut openrouter_rs::api::chat::ChatCompletionRequestBuilder) {
         b.reasoning_effort(Effort::High).reasoning_max_tokens(1000);
     }
+    let value = request_with(effort_then_budget);
+    assert_eq!(value["reasoning"]["max_tokens"], 1000);
+    assert!(
+        value["reasoning"].get("effort").is_none(),
+        "max_tokens must replace effort, got {}",
+        value["reasoning"]
+    );
+
     fn budget_then_effort(b: &mut openrouter_rs::api::chat::ChatCompletionRequestBuilder) {
         b.reasoning_max_tokens(1000).reasoning_effort(Effort::High);
     }
-    for build_with in [effort_then_budget, budget_then_effort] {
-        let value = build(build_with);
-        assert_eq!(value["reasoning"]["effort"], "high");
-        assert_eq!(value["reasoning"]["max_tokens"], 1000);
-    }
+    let value = request_with(budget_then_effort);
+    assert_eq!(value["reasoning"]["effort"], "high");
+    assert!(
+        value["reasoning"].get("max_tokens").is_none(),
+        "effort must replace max_tokens, got {}",
+        value["reasoning"]
+    );
+}
 
-    fn enable_then_budget(b: &mut openrouter_rs::api::chat::ChatCompletionRequestBuilder) {
-        b.enable_reasoning().reasoning_max_tokens(500);
+/// `enabled` and `exclude` are modifiers, not budget selectors: the API accepts
+/// them alongside either one, so they compose instead of replacing.
+#[test]
+fn reasoning_modifiers_compose_with_a_budget_selector() {
+    let request_with =
+        |configure: fn(&mut openrouter_rs::api::chat::ChatCompletionRequestBuilder)| {
+            let mut builder = ChatCompletionRequest::builder();
+            builder
+                .model("deepseek/deepseek-r1")
+                .messages(vec![Message::new(Role::User, "hi")]);
+            configure(&mut builder);
+            serde_json::to_value(builder.build().expect("request should build"))
+                .expect("request should serialize")
+        };
+
+    fn enable_then_effort(b: &mut openrouter_rs::api::chat::ChatCompletionRequestBuilder) {
+        b.enable_reasoning().reasoning_effort(Effort::High);
     }
-    let value = build(enable_then_budget);
+    let value = request_with(enable_then_effort);
     assert_eq!(value["reasoning"]["enabled"], true);
-    assert_eq!(value["reasoning"]["max_tokens"], 500);
+    assert_eq!(value["reasoning"]["effort"], "high");
 
-    fn effort_then_exclude(b: &mut openrouter_rs::api::chat::ChatCompletionRequestBuilder) {
-        b.reasoning_effort(Effort::Max).exclude_reasoning();
+    fn budget_then_exclude(b: &mut openrouter_rs::api::chat::ChatCompletionRequestBuilder) {
+        b.reasoning_max_tokens(500).exclude_reasoning();
     }
-    let value = build(effort_then_exclude);
+    let value = request_with(budget_then_exclude);
+    assert_eq!(value["reasoning"]["max_tokens"], 500);
+    assert_eq!(value["reasoning"]["exclude"], true);
+
+    fn effort_then_enable_then_exclude(
+        b: &mut openrouter_rs::api::chat::ChatCompletionRequestBuilder,
+    ) {
+        b.reasoning_effort(Effort::Max)
+            .enable_reasoning()
+            .exclude_reasoning();
+    }
+    let value = request_with(effort_then_enable_then_exclude);
     assert_eq!(value["reasoning"]["effort"], "max");
+    assert_eq!(value["reasoning"]["enabled"], true);
     assert_eq!(value["reasoning"]["exclude"], true);
 }
