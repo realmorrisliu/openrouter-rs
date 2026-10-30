@@ -16,6 +16,19 @@ fn load_integration_env_file() {
     });
 }
 
+/// Whether the live suite can reach the API.
+///
+/// Tests gated on this run in the live workflow (which sets the key) and skip in
+/// the keyless deterministic subsets, unlike `#[ignore]`, which the live
+/// workflow also skips.
+pub fn live_api_key_available() -> bool {
+    load_integration_env_file();
+
+    env::var("OPENROUTER_API_KEY")
+        .ok()
+        .is_some_and(|key| !key.trim().is_empty())
+}
+
 pub fn get_test_api_key() -> String {
     load_integration_env_file();
 

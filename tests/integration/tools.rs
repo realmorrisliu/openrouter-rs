@@ -336,6 +336,11 @@ async fn test_typed_tool_params_validation() {
 /// it assembles from deltas are the ones callers act on.
 #[tokio::test]
 async fn test_unified_stream_assembles_tool_calls() {
+    if !crate::test_utils::live_api_key_available() {
+        eprintln!("skipping unified stream tool-call check: no API key configured");
+        return;
+    }
+
     use futures_util::StreamExt;
     use openrouter_rs::types::stream::{UnifiedStreamEvent, UnifiedStreamSource};
     use std::time::Duration;
