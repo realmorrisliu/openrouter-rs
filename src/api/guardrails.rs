@@ -138,6 +138,9 @@ pub struct Guardrail {
     pub enforce_zdr_other: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub enforce_zdr_xai: Option<bool>,
+    /// Whether the guardrail applies to first-party harness model traffic.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enforce_first_party_harness_models: Option<bool>,
     /// Whether ZDR-only `google/*` requests may use endpoints that retain prompts for safety.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub allow_safety_retention_google: Option<bool>,
@@ -222,6 +225,9 @@ pub struct CreateGuardrailRequest {
     enforce_zdr_xai: Option<bool>,
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
+    enforce_first_party_harness_models: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     allow_safety_retention_google: Option<bool>,
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -298,6 +304,8 @@ pub struct UpdateGuardrailRequest {
     enforce_zdr_other: Option<bool>,
     #[builder(setter(strip_option), default)]
     enforce_zdr_xai: Option<bool>,
+    #[builder(setter(strip_option), default)]
+    enforce_first_party_harness_models: Option<bool>,
     #[builder(setter(custom), default)]
     allow_safety_retention_google: Option<bool>,
     #[builder(setter(custom), default)]
@@ -325,6 +333,7 @@ crate::utils::deserialize_nullable_patch!(
         enforce_zdr_google: bool,
         enforce_zdr_other: bool,
         enforce_zdr_xai: bool,
+        enforce_first_party_harness_models: bool,
     },
     {
         allowed_providers: Vec<String> => clear_allowed_providers,
@@ -412,6 +421,9 @@ impl Serialize for UpdateGuardrailRequest {
         }
         if let Some(value) = &self.enforce_zdr_xai {
             map.serialize_entry("enforce_zdr_xai", value)?;
+        }
+        if let Some(value) = &self.enforce_first_party_harness_models {
+            map.serialize_entry("enforce_first_party_harness_models", value)?;
         }
         if self.clear_allow_safety_retention_google {
             map.serialize_entry("allow_safety_retention_google", &Option::<bool>::None)?;

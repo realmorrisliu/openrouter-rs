@@ -843,6 +843,10 @@ pub struct ListUserModelsParams {
     #[builder(default, setter(into, strip_option))]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sort: Option<String>,
+    /// Restrict to the models one client can use (`claude_code`, `claude_desktop`, `codex`).
+    #[builder(default, setter(into, strip_option))]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub client: Option<String>,
 }
 impl ListUserModelsParams {
     pub fn builder() -> ListUserModelsParamsBuilder {

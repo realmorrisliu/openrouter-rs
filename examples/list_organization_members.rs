@@ -1,5 +1,5 @@
 use openrouter_rs::{
-    OpenRouterClient, api::end_users::ListEndUsersParams, types::PaginationOptions,
+    OpenRouterClient, api::external_users::ListExternalUsersParams, types::PaginationOptions,
 };
 
 #[tokio::main]
@@ -31,16 +31,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "filtered catalog enabled: {}",
         settings.is_filtered_model_catalog_enabled
     );
-    let end_users = client
+    let external_users = client
         .management()
-        .list_end_users(
-            &ListEndUsersParams::builder()
+        .list_external_users(
+            &ListExternalUsersParams::builder()
                 .limit(25)
                 .include_inactive(true)
                 .build()?,
         )
         .await?;
-    println!("registered end users: {}", end_users.total_count);
+    println!("registered external users: {}", external_users.total_count);
 
     Ok(())
 }

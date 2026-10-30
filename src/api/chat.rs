@@ -175,12 +175,24 @@ pub enum PromptCacheMode {
 #[non_exhaustive]
 pub struct PromptCacheBreakpoint {
     pub mode: PromptCacheMode,
+    /// Cache lifetime for this breakpoint, e.g. `"1h"`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ttl: Option<String>,
 }
 
 impl PromptCacheBreakpoint {
     pub fn explicit() -> Self {
         Self {
             mode: PromptCacheMode::Explicit,
+            ttl: None,
+        }
+    }
+
+    /// Mark the boundary with an explicit cache lifetime (e.g. `"1h"`).
+    pub fn explicit_with_ttl(ttl: impl Into<String>) -> Self {
+        Self {
+            mode: PromptCacheMode::Explicit,
+            ttl: Some(ttl.into()),
         }
     }
 }

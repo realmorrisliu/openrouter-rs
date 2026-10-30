@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-10-20T01:48:28+00:00",
+  "captured_at": "2026-10-30T03:21:11+00:00",
   "info": {
     "contact": {
       "email": "support@openrouter.ai",
@@ -14,7 +14,7 @@
     "title": "OpenRouter API",
     "version": "1.0.0"
   },
-  "operation_count": 153,
+  "operation_count": 145,
   "operations": [
     {
       "deprecated": false,
@@ -29,7 +29,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f3676c54bb167771",
+      "fingerprint": "a6b2ffbe01be2955",
       "id": "DELETE /byok/{path_param_0}",
       "method": "DELETE",
       "operation_id": "deleteBYOKKey",
@@ -40,12 +40,13 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f5414071f74c77a1",
-      "id": "DELETE /end-users/{path_param_0}",
+      "fingerprint": "fee3e6897ec96547",
+      "id": "DELETE /external-users/{path_param_0}",
       "method": "DELETE",
-      "operation_id": "deleteEndUser",
-      "path": "/end-users/{path_param_0}",
+      "operation_id": "deleteExternalUser",
+      "path": "/external-users/{path_param_0}",
       "tags": [
+        "External Users",
         "End Users"
       ]
     },
@@ -62,24 +63,13 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "7f842d2620c5198b",
+      "fingerprint": "761563c3e1a320ba",
       "id": "DELETE /guardrails/{path_param_0}",
       "method": "DELETE",
       "operation_id": "deleteGuardrail",
       "path": "/guardrails/{path_param_0}",
       "tags": [
         "Guardrails"
-      ]
-    },
-    {
-      "deprecated": false,
-      "fingerprint": "bced72d3eb95a3ed",
-      "id": "DELETE /interns/{path_param_0}",
-      "method": "DELETE",
-      "operation_id": "deleteIntern",
-      "path": "/interns/{path_param_0}",
-      "tags": [
-        "Interns"
       ]
     },
     {
@@ -95,7 +85,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f5b480979d8cd397",
+      "fingerprint": "e07d819fa6e3c398",
       "id": "DELETE /observability/destinations/{path_param_0}",
       "method": "DELETE",
       "operation_id": "deleteObservabilityDestination",
@@ -117,7 +107,18 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "fdff06cb47e8ccfd",
+      "fingerprint": "426bb9672199b512",
+      "id": "DELETE /private-providers/{path_param_0}",
+      "method": "DELETE",
+      "operation_id": "deletePrivateProvider",
+      "path": "/private-providers/{path_param_0}",
+      "tags": [
+        "Private Providers"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "59dec557fddd3500",
       "id": "DELETE /scim/group-mappings/{path_param_0}",
       "method": "DELETE",
       "operation_id": "deleteScimGroupMapping",
@@ -128,7 +129,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "4e2c9e0e66e84db5",
+      "fingerprint": "e58df4a13a9cb1d5",
       "id": "DELETE /vault/interns/{path_param_0}/secrets/{path_param_1}",
       "method": "DELETE",
       "operation_id": "deleteInternVaultSecret",
@@ -139,7 +140,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "30489a01e963b660",
+      "fingerprint": "08fbe75b1963e2a4",
       "id": "DELETE /vault/secrets/{path_param_0}",
       "method": "DELETE",
       "operation_id": "deleteVaultSecret",
@@ -161,7 +162,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "ba4bcc4653afd216",
+      "fingerprint": "39f681b31c8904b7",
       "id": "DELETE /workspaces/{path_param_0}/budgets/{path_param_1}",
       "method": "DELETE",
       "operation_id": "deleteWorkspaceBudget",
@@ -205,7 +206,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "4358339c9e595a95",
+      "fingerprint": "26443aac6d8457b2",
       "id": "GET /batches/{path_param_0}",
       "method": "GET",
       "operation_id": "getBatches",
@@ -227,7 +228,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "bb30e6389f97aee3",
+      "fingerprint": "eb804f9e9a77838f",
       "id": "GET /byok",
       "method": "GET",
       "operation_id": "listBYOKKeys",
@@ -238,7 +239,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "d6f2a92f712b7a3e",
+      "fingerprint": "b9048c69ae8e3b8e",
       "id": "GET /byok/{path_param_0}",
       "method": "GET",
       "operation_id": "getBYOKKey",
@@ -348,35 +349,37 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "069e3b0ff80b9093",
-      "id": "GET /end-users",
-      "method": "GET",
-      "operation_id": "listEndUsers",
-      "path": "/end-users",
-      "tags": [
-        "End Users"
-      ]
-    },
-    {
-      "deprecated": false,
-      "fingerprint": "48c10c933502d876",
-      "id": "GET /end-users/{path_param_0}",
-      "method": "GET",
-      "operation_id": "getEndUser",
-      "path": "/end-users/{path_param_0}",
-      "tags": [
-        "End Users"
-      ]
-    },
-    {
-      "deprecated": false,
-      "fingerprint": "fadcf0ae9783bd5f",
+      "fingerprint": "079f719ff6e08017",
       "id": "GET /endpoints/zdr",
       "method": "GET",
       "operation_id": "listEndpointsZdr",
       "path": "/endpoints/zdr",
       "tags": [
         "Endpoints"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "345fdc311b5f5deb",
+      "id": "GET /external-users",
+      "method": "GET",
+      "operation_id": "listExternalUsers",
+      "path": "/external-users",
+      "tags": [
+        "External Users",
+        "End Users"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "9522f12adb80c0eb",
+      "id": "GET /external-users/{path_param_0}",
+      "method": "GET",
+      "operation_id": "getExternalUser",
+      "path": "/external-users/{path_param_0}",
+      "tags": [
+        "External Users",
+        "End Users"
       ]
     },
     {
@@ -414,7 +417,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "67f761917541ea2c",
+      "fingerprint": "85c3a88a3a1030f4",
       "id": "GET /generation",
       "method": "GET",
       "operation_id": "getGeneration",
@@ -436,7 +439,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "258afa221513de92",
+      "fingerprint": "6ad66002e477d0ed",
       "id": "GET /guardrails",
       "method": "GET",
       "operation_id": "listGuardrails",
@@ -447,7 +450,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "e3ad7c15098c3721",
+      "fingerprint": "30e32a0dbf86d05e",
       "id": "GET /guardrails/assignments/keys",
       "method": "GET",
       "operation_id": "listKeyAssignments",
@@ -458,7 +461,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b43aec0aa4d3f269",
+      "fingerprint": "22a0ef7bc39deb46",
       "id": "GET /guardrails/assignments/members",
       "method": "GET",
       "operation_id": "listMemberAssignments",
@@ -469,7 +472,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "0b9b8f8ce4310fb1",
+      "fingerprint": "d60de57b34de29c1",
       "id": "GET /guardrails/{path_param_0}",
       "method": "GET",
       "operation_id": "getGuardrail",
@@ -480,7 +483,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "e565ded932a01c1b",
+      "fingerprint": "969c1be59d0a8f5f",
       "id": "GET /guardrails/{path_param_0}/assignments/keys",
       "method": "GET",
       "operation_id": "listGuardrailKeyAssignments",
@@ -491,7 +494,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "7b3d59800c2ddd5d",
+      "fingerprint": "2a646053bcdc1e10",
       "id": "GET /guardrails/{path_param_0}/assignments/members",
       "method": "GET",
       "operation_id": "listGuardrailMemberAssignments",
@@ -520,61 +523,6 @@
       "path": "/images/models/{path_param_0}/{path_param_1}/endpoints",
       "tags": [
         "Images"
-      ]
-    },
-    {
-      "deprecated": false,
-      "fingerprint": "2be05e58c7d104a0",
-      "id": "GET /interns",
-      "method": "GET",
-      "operation_id": "listInterns",
-      "path": "/interns",
-      "tags": [
-        "Interns"
-      ]
-    },
-    {
-      "deprecated": false,
-      "fingerprint": "0fd53345e50ec85f",
-      "id": "GET /interns/{path_param_0}",
-      "method": "GET",
-      "operation_id": "getIntern",
-      "path": "/interns/{path_param_0}",
-      "tags": [
-        "Interns"
-      ]
-    },
-    {
-      "deprecated": false,
-      "fingerprint": "f70bfbd24247d890",
-      "id": "GET /interns/{path_param_0}/daemon",
-      "method": "GET",
-      "operation_id": "getInternDaemon",
-      "path": "/interns/{path_param_0}/daemon",
-      "tags": [
-        "Interns"
-      ]
-    },
-    {
-      "deprecated": true,
-      "fingerprint": "ee38fb23ab4608e1",
-      "id": "GET /interns/{path_param_0}/daemon-access",
-      "method": "GET",
-      "operation_id": "getInternDaemonAccess",
-      "path": "/interns/{path_param_0}/daemon-access",
-      "tags": [
-        "Interns"
-      ]
-    },
-    {
-      "deprecated": false,
-      "fingerprint": "20825a51ab909051",
-      "id": "GET /interns/{path_param_0}/icon",
-      "method": "GET",
-      "operation_id": "getInternIcon",
-      "path": "/interns/{path_param_0}/icon",
-      "tags": [
-        "Interns"
       ]
     },
     {
@@ -623,7 +571,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "05266d0340ecf6ae",
+      "fingerprint": "3a303048f0c37b70",
       "id": "GET /models",
       "method": "GET",
       "operation_id": "getModels",
@@ -645,7 +593,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "df70c1359c2c7d15",
+      "fingerprint": "086b1d04e67e5dd5",
       "id": "GET /models/user",
       "method": "GET",
       "operation_id": "listModelsUser",
@@ -656,7 +604,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "5f57c9c7bda82f74",
+      "fingerprint": "209bd146fc05ee0f",
       "id": "GET /models/{path_param_0}/{path_param_1}/endpoints",
       "method": "GET",
       "operation_id": "listEndpoints",
@@ -678,7 +626,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "fe96d9ed229701c3",
+      "fingerprint": "eece03b34febc1f9",
       "id": "GET /observability/destinations",
       "method": "GET",
       "operation_id": "listObservabilityDestinations",
@@ -689,7 +637,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "93a063f4c806dcdb",
+      "fingerprint": "cdd3a146978b5e75",
       "id": "GET /observability/destinations/{path_param_0}",
       "method": "GET",
       "operation_id": "getObservabilityDestination",
@@ -700,7 +648,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "c9e915655a97bda0",
+      "fingerprint": "5a4d41466a870ede",
       "id": "GET /organization/members",
       "method": "GET",
       "operation_id": "listOrganizationMembers",
@@ -711,7 +659,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "efe518697f032e7e",
+      "fingerprint": "91a1ff38e0f9c990",
       "id": "GET /organization/settings",
       "method": "GET",
       "operation_id": "getOrganizationSettings",
@@ -722,7 +670,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "360b8f90689a5e1a",
+      "fingerprint": "f0e8f4fe09278bc1",
       "id": "GET /presets",
       "method": "GET",
       "operation_id": "listPresets",
@@ -733,7 +681,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f4b9327f783c79fe",
+      "fingerprint": "9e2c7e20f1b7e7e5",
       "id": "GET /presets/{path_param_0}",
       "method": "GET",
       "operation_id": "getPreset",
@@ -744,7 +692,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "62d0e0eccecd75ea",
+      "fingerprint": "69a714ac77289ef3",
       "id": "GET /presets/{path_param_0}/versions",
       "method": "GET",
       "operation_id": "listPresetVersions",
@@ -755,7 +703,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "2c7f776be725cc86",
+      "fingerprint": "23b6f954ea6bc181",
       "id": "GET /presets/{path_param_0}/versions/{path_param_1}",
       "method": "GET",
       "operation_id": "getPresetVersion",
@@ -777,13 +725,35 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "7b25fac07758e754",
+      "fingerprint": "551a76fa2482636f",
       "id": "GET /private-endpoints/{path_param_0}",
       "method": "GET",
       "operation_id": "getPrivateEndpoint",
       "path": "/private-endpoints/{path_param_0}",
       "tags": [
         "Private Endpoints"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "c6814b1a7cffb4eb",
+      "id": "GET /private-providers",
+      "method": "GET",
+      "operation_id": "listPrivateProviders",
+      "path": "/private-providers",
+      "tags": [
+        "Private Providers"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "7d6a9ca9076829a6",
+      "id": "GET /private-providers/{path_param_0}",
+      "method": "GET",
+      "operation_id": "getPrivateProvider",
+      "path": "/private-providers/{path_param_0}",
+      "tags": [
+        "Private Providers"
       ]
     },
     {
@@ -799,7 +769,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "8ffa88ecb20e9013",
+      "fingerprint": "932e8b9807ccb4d9",
       "id": "GET /scim/group-mappings",
       "method": "GET",
       "operation_id": "listScimGroupMappings",
@@ -810,7 +780,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "8fb36082f3e8b168",
+      "fingerprint": "59cc6c1b330ba4f7",
       "id": "GET /scim/group-mappings/{path_param_0}",
       "method": "GET",
       "operation_id": "getScimGroupMapping",
@@ -821,7 +791,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "a315d84e78848e3c",
+      "fingerprint": "bd36b584b0823890",
       "id": "GET /scim/groups",
       "method": "GET",
       "operation_id": "listScimGroups",
@@ -832,7 +802,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "403a28b05d47b2cc",
+      "fingerprint": "c4e689a04e6843a5",
       "id": "GET /scim/sync-jobs/{path_param_0}",
       "method": "GET",
       "operation_id": "getScimSyncJob",
@@ -865,7 +835,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "2c4c917888404a00",
+      "fingerprint": "c0f90a76038ec4af",
       "id": "GET /vault/interns/{path_param_0}/connections",
       "method": "GET",
       "operation_id": "listInternConnections",
@@ -909,7 +879,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f89837a47caee244",
+      "fingerprint": "2d55b30902cc7c39",
       "id": "GET /videos/models",
       "method": "GET",
       "operation_id": "listVideosModels",
@@ -942,7 +912,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "9539057e804739b2",
+      "fingerprint": "ba034d8238d8a573",
       "id": "GET /workspaces",
       "method": "GET",
       "operation_id": "listWorkspaces",
@@ -953,7 +923,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "8e92b5804edd139c",
+      "fingerprint": "8b91a6ecb7d1771e",
       "id": "GET /workspaces/{path_param_0}",
       "method": "GET",
       "operation_id": "getWorkspace",
@@ -964,7 +934,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "c6b1940e0e3eb9c0",
+      "fingerprint": "5c4536608ff4d953",
       "id": "GET /workspaces/{path_param_0}/budgets",
       "method": "GET",
       "operation_id": "listWorkspaceBudgets",
@@ -975,7 +945,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "0e7a5781d2f992b1",
+      "fingerprint": "5a54829d7097a2eb",
       "id": "GET /workspaces/{path_param_0}/budgets/{path_param_1}",
       "method": "GET",
       "operation_id": "getWorkspaceBudget",
@@ -997,7 +967,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "9ed7231a6548ea2c",
+      "fingerprint": "60c4ce2a961babfe",
       "id": "PATCH /byok/{path_param_0}",
       "method": "PATCH",
       "operation_id": "updateBYOKKey",
@@ -1008,18 +978,19 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "77f625b053d44e40",
-      "id": "PATCH /end-users/{path_param_0}",
+      "fingerprint": "7c86398bca4c56f5",
+      "id": "PATCH /external-users/{path_param_0}",
       "method": "PATCH",
-      "operation_id": "updateEndUser",
-      "path": "/end-users/{path_param_0}",
+      "operation_id": "updateExternalUser",
+      "path": "/external-users/{path_param_0}",
       "tags": [
+        "External Users",
         "End Users"
       ]
     },
     {
       "deprecated": false,
-      "fingerprint": "530781d496e8e853",
+      "fingerprint": "f48759201abe2e71",
       "id": "PATCH /guardrails/{path_param_0}",
       "method": "PATCH",
       "operation_id": "updateGuardrail",
@@ -1030,18 +1001,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "e3ca7792505b8e15",
-      "id": "PATCH /interns/{path_param_0}",
-      "method": "PATCH",
-      "operation_id": "updateIntern",
-      "path": "/interns/{path_param_0}",
-      "tags": [
-        "Interns"
-      ]
-    },
-    {
-      "deprecated": false,
-      "fingerprint": "608e1ed0f12d70c2",
+      "fingerprint": "08e7b520c6f8e543",
       "id": "PATCH /keys/{path_param_0}",
       "method": "PATCH",
       "operation_id": "updateKeys",
@@ -1052,7 +1012,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "c4bac4814f039494",
+      "fingerprint": "f2aad025fc7c62b8",
       "id": "PATCH /observability/destinations/{path_param_0}",
       "method": "PATCH",
       "operation_id": "updateObservabilityDestination",
@@ -1063,7 +1023,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "a03dbdb439ad9c1c",
+      "fingerprint": "8379d6165cd4680e",
       "id": "PATCH /organization/settings",
       "method": "PATCH",
       "operation_id": "updateOrganizationSettings",
@@ -1074,7 +1034,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b189d6abce2dd977",
+      "fingerprint": "ea068fbe9d999d8a",
       "id": "PATCH /private-endpoints/{path_param_0}",
       "method": "PATCH",
       "operation_id": "updatePrivateEndpoint",
@@ -1085,7 +1045,18 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "6f1485d2f4dfc7c8",
+      "fingerprint": "070846c80b2e8025",
+      "id": "PATCH /private-providers/{path_param_0}",
+      "method": "PATCH",
+      "operation_id": "updatePrivateProvider",
+      "path": "/private-providers/{path_param_0}",
+      "tags": [
+        "Private Providers"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "45ef228b6f2178ea",
       "id": "PATCH /scim/group-mappings/{path_param_0}",
       "method": "PATCH",
       "operation_id": "updateScimGroupMapping",
@@ -1107,7 +1078,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "6f05b0c4de1a1b2c",
+      "fingerprint": "ca3d0db88b135abd",
       "id": "POST /analytics/query",
       "method": "POST",
       "operation_id": "queryAnalytics",
@@ -1118,7 +1089,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "60fe9166b01e8f5b",
+      "fingerprint": "0e27035b8519ee79",
       "id": "POST /api/alpha/decisions",
       "method": "POST",
       "operation_id": "createApiAlphaDecisions",
@@ -1129,7 +1100,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "733de666417942b5",
+      "fingerprint": "f985db0d646eecee",
       "id": "POST /audio/speech",
       "method": "POST",
       "operation_id": "createAudioSpeech",
@@ -1140,7 +1111,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "13efa6fad366209b",
+      "fingerprint": "622e7eb921f27e08",
       "id": "POST /audio/transcriptions",
       "method": "POST",
       "operation_id": "createAudioTranscriptions",
@@ -1173,7 +1144,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "20ea8c4cf2551a89",
+      "fingerprint": "a1e2f7c14dfa5ef3",
       "id": "POST /batches",
       "method": "POST",
       "operation_id": "createBatches",
@@ -1184,7 +1155,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "7186a0f1b2fbfd48",
+      "fingerprint": "08d3ccc8beb6a5c2",
       "id": "POST /byok",
       "method": "POST",
       "operation_id": "createBYOKKey",
@@ -1195,7 +1166,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "6efd358f636550d7",
+      "fingerprint": "33a78cff101529e7",
       "id": "POST /chat/completions",
       "method": "POST",
       "operation_id": "sendChatCompletionRequest",
@@ -1228,7 +1199,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "fa2fd7f2f737bf4b",
+      "fingerprint": "d32cf044a7741720",
       "id": "POST /embeddings",
       "method": "POST",
       "operation_id": "createEmbeddings",
@@ -1239,12 +1210,13 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "2cc8598c528ee7e6",
-      "id": "POST /end-users",
+      "fingerprint": "5aae29b8e4af8db5",
+      "id": "POST /external-users",
       "method": "POST",
-      "operation_id": "createEndUser",
-      "path": "/end-users",
+      "operation_id": "createExternalUser",
+      "path": "/external-users",
       "tags": [
+        "External Users",
         "End Users"
       ]
     },
@@ -1261,7 +1233,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "6e3e007048fd1e12",
+      "fingerprint": "7aaf66301d8aad49",
       "id": "POST /generation/feedback",
       "method": "POST",
       "operation_id": "submitGenerationFeedback",
@@ -1272,7 +1244,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "4de25622208c8219",
+      "fingerprint": "f35f35831bc7a65a",
       "id": "POST /guardrails",
       "method": "POST",
       "operation_id": "createGuardrail",
@@ -1294,7 +1266,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "3633fe61deb0d02a",
+      "fingerprint": "d183123264559422",
       "id": "POST /guardrails/{path_param_0}/assignments/keys/remove",
       "method": "POST",
       "operation_id": "bulkUnassignKeysFromGuardrail",
@@ -1305,7 +1277,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "bcada7ab5395d418",
+      "fingerprint": "52c5f0d0d353e113",
       "id": "POST /guardrails/{path_param_0}/assignments/members",
       "method": "POST",
       "operation_id": "bulkAssignMembersToGuardrail",
@@ -1316,7 +1288,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "3dc447918313aee3",
+      "fingerprint": "4147f682a06cf5cb",
       "id": "POST /guardrails/{path_param_0}/assignments/members/remove",
       "method": "POST",
       "operation_id": "bulkUnassignMembersFromGuardrail",
@@ -1327,7 +1299,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "cd8fb3c10b6180c2",
+      "fingerprint": "985363e4d6d6ea8f",
       "id": "POST /images",
       "method": "POST",
       "operation_id": "createImages",
@@ -1338,84 +1310,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "8d49e15df2390fce",
-      "id": "POST /interns",
-      "method": "POST",
-      "operation_id": "createIntern",
-      "path": "/interns",
-      "tags": [
-        "Interns"
-      ]
-    },
-    {
-      "deprecated": false,
-      "fingerprint": "eb2c79b107404c0e",
-      "id": "POST /interns/{path_param_0}/chat/completions",
-      "method": "POST",
-      "operation_id": "createInternChatCompletion",
-      "path": "/interns/{path_param_0}/chat/completions",
-      "tags": [
-        "Interns"
-      ]
-    },
-    {
-      "deprecated": true,
-      "fingerprint": "02830846cff63122",
-      "id": "POST /interns/{path_param_0}/daemon-access/sign",
-      "method": "POST",
-      "operation_id": "signInternDaemonAccessRequest",
-      "path": "/interns/{path_param_0}/daemon-access/sign",
-      "tags": [
-        "Interns"
-      ]
-    },
-    {
-      "deprecated": false,
-      "fingerprint": "6a262ed6713a28ed",
-      "id": "POST /interns/{path_param_0}/daemon/sign",
-      "method": "POST",
-      "operation_id": "signInternDaemonRequest",
-      "path": "/interns/{path_param_0}/daemon/sign",
-      "tags": [
-        "Interns"
-      ]
-    },
-    {
-      "deprecated": false,
-      "fingerprint": "21ee2da247cc3ce1",
-      "id": "POST /interns/{path_param_0}/invoke",
-      "method": "POST",
-      "operation_id": "invokeIntern",
-      "path": "/interns/{path_param_0}/invoke",
-      "tags": [
-        "Interns"
-      ]
-    },
-    {
-      "deprecated": false,
-      "fingerprint": "ce2583ee6682eddb",
-      "id": "POST /interns/{path_param_0}/provision",
-      "method": "POST",
-      "operation_id": "provisionIntern",
-      "path": "/interns/{path_param_0}/provision",
-      "tags": [
-        "Interns"
-      ]
-    },
-    {
-      "deprecated": false,
-      "fingerprint": "a75aa4de655ccdc7",
-      "id": "POST /interns/{path_param_0}/suspend",
-      "method": "POST",
-      "operation_id": "suspendIntern",
-      "path": "/interns/{path_param_0}/suspend",
-      "tags": [
-        "Interns"
-      ]
-    },
-    {
-      "deprecated": false,
-      "fingerprint": "7a06e7e1702b46e7",
+      "fingerprint": "813d9db51d951a48",
       "id": "POST /keys",
       "method": "POST",
       "operation_id": "createKeys",
@@ -1426,7 +1321,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "260882ae94e7401d",
+      "fingerprint": "daa62eb170c7dc99",
       "id": "POST /messages",
       "method": "POST",
       "operation_id": "createMessages",
@@ -1448,7 +1343,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "780be1f3ae58d4ca",
+      "fingerprint": "7033a0a144f58ae2",
       "id": "POST /observability/destinations",
       "method": "POST",
       "operation_id": "createObservabilityDestination",
@@ -1459,7 +1354,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "3db196a0049e57fe",
+      "fingerprint": "8450af1851e1ae83",
       "id": "POST /presets/{path_param_0}/chat/completions",
       "method": "POST",
       "operation_id": "createPresetsChatCompletions",
@@ -1470,7 +1365,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "2451f00c1dd2140e",
+      "fingerprint": "9585b97ec24dfbba",
       "id": "POST /presets/{path_param_0}/messages",
       "method": "POST",
       "operation_id": "createPresetsMessages",
@@ -1481,7 +1376,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "c7286582b5595377",
+      "fingerprint": "83edeaea8ec931e9",
       "id": "POST /presets/{path_param_0}/responses",
       "method": "POST",
       "operation_id": "createPresetsResponses",
@@ -1492,7 +1387,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "3c2104e544f82df4",
+      "fingerprint": "ae3cdff915951bd8",
       "id": "POST /private-endpoints",
       "method": "POST",
       "operation_id": "createPrivateEndpoint",
@@ -1503,7 +1398,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "9a76ad37f77b02f5",
+      "fingerprint": "63ffd0c15029fb17",
       "id": "POST /private-endpoints/{path_param_0}/activate",
       "method": "POST",
       "operation_id": "activatePrivateEndpoint",
@@ -1514,7 +1409,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f158c449b67bf6f5",
+      "fingerprint": "014905e00b4fc605",
       "id": "POST /private-endpoints/{path_param_0}/disable",
       "method": "POST",
       "operation_id": "disablePrivateEndpoint",
@@ -1525,7 +1420,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "7cde147993c873da",
+      "fingerprint": "cd6ba660b1e7fe49",
       "id": "POST /private-endpoints/{path_param_0}/enable",
       "method": "POST",
       "operation_id": "enablePrivateEndpoint",
@@ -1536,7 +1431,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "4357cb5fe705c5f9",
+      "fingerprint": "b1002209676b37b9",
       "id": "POST /private-endpoints/{path_param_0}/validate",
       "method": "POST",
       "operation_id": "validatePrivateEndpoint",
@@ -1547,7 +1442,18 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "2c59617edfbd38ee",
+      "fingerprint": "11920d980873bc0f",
+      "id": "POST /private-providers",
+      "method": "POST",
+      "operation_id": "createPrivateProvider",
+      "path": "/private-providers",
+      "tags": [
+        "Private Providers"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "b65192f76bedd603",
       "id": "POST /rerank",
       "method": "POST",
       "operation_id": "createRerank",
@@ -1558,7 +1464,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f156d4bf417e9096",
+      "fingerprint": "84c4fba52307dd5f",
       "id": "POST /responses",
       "method": "POST",
       "operation_id": "createResponses",
@@ -1570,7 +1476,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "14977f046c1f312f",
+      "fingerprint": "e4f8cb9cadf5f77b",
       "id": "POST /scim/group-mappings",
       "method": "POST",
       "operation_id": "createScimGroupMapping",
@@ -1581,7 +1487,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f82db984c31b8134",
+      "fingerprint": "debd159981b3187f",
       "id": "POST /scim/sync-jobs",
       "method": "POST",
       "operation_id": "createScimSyncJob",
@@ -1592,7 +1498,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "c440b32524f63dbb",
+      "fingerprint": "f8f5fcf287b90717",
       "id": "POST /systemone",
       "method": "POST",
       "operation_id": "createSystemone",
@@ -1614,7 +1520,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "08f16e5bde5875c6",
+      "fingerprint": "b39f91196791ea15",
       "id": "POST /videos",
       "method": "POST",
       "operation_id": "createVideos",
@@ -1657,8 +1563,19 @@
       ]
     },
     {
-      "deprecated": false,
-      "fingerprint": "6578d165ae00af3b",
+      "deprecated": true,
+      "fingerprint": "ea88206d7ccfa19e",
+      "id": "PUT /private-endpoints/{path_param_0}/parameters",
+      "method": "PUT",
+      "operation_id": "updatePrivateEndpointParameters",
+      "path": "/private-endpoints/{path_param_0}/parameters",
+      "tags": [
+        "Private Endpoints"
+      ]
+    },
+    {
+      "deprecated": true,
+      "fingerprint": "06a9ee0b4ca93664",
       "id": "PUT /private-endpoints/{path_param_0}/pricing",
       "method": "PUT",
       "operation_id": "updatePrivateEndpointPricing",
@@ -1669,7 +1586,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "bc7f0087b2cea50d",
+      "fingerprint": "4f0830ba53cd00a4",
       "id": "PUT /vault/interns/{path_param_0}/secrets/{path_param_1}",
       "method": "PUT",
       "operation_id": "storeInternVaultSecret",
@@ -1680,7 +1597,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f0596be23fb0acdf",
+      "fingerprint": "64fa41bea30659ea",
       "id": "PUT /vault/secrets/{path_param_0}",
       "method": "PUT",
       "operation_id": "storeVaultSecret",
@@ -1691,7 +1608,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "bc88401cbfdf4c12",
+      "fingerprint": "2373eaffb440a471",
       "id": "PUT /workspaces/{path_param_0}/budgets/{path_param_1}",
       "method": "PUT",
       "operation_id": "upsertWorkspaceBudget",

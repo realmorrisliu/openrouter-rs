@@ -45,6 +45,37 @@ async fn test_list_user_models_live() -> Result<(), OpenRouterError> {
     Ok(())
 }
 
+/// The `client` filter is part of the accepted upstream drift; the API rejects an
+/// unknown value, so this proves the parameter name and value both land.
+#[tokio::test]
+#[allow(clippy::result_large_err)]
+async fn test_list_user_models_filtered_by_client_live() -> Result<(), OpenRouterError> {
+    use openrouter_rs::api::discovery::ListUserModelsParams;
+
+    let client = create_test_client()?;
+    rate_limit_delay().await;
+
+    let models = client
+        .models()
+        .list_for_user_with_params(
+            &ListUserModelsParams::builder()
+                .client("codex")
+                .limit(10)
+                .build()?,
+        )
+        .await?;
+    assert!(
+        models.iter().all(|model| !model.id.trim().is_empty()),
+        "every returned model should carry an id"
+    );
+
+    println!(
+        "Discovery user-models client filter passed: {} models",
+        models.len()
+    );
+    Ok(())
+}
+
 #[tokio::test]
 #[allow(clippy::result_large_err)]
 async fn test_count_models_live() -> Result<(), OpenRouterError> {
