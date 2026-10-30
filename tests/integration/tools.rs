@@ -331,3 +331,77 @@ async fn test_typed_tool_params_validation() {
     let converted_back = TestToolParams::from_json_value(json_value).unwrap();
     assert_eq!(converted_back, params);
 }
+
+/// The unified stream is the SDK's only streaming entry point, so the tool calls
+/// it assembles from deltas are the ones callers act on.
+#[tokio::test]
+async fn test_unified_stream_assembles_tool_calls() {
+    use futures_util::StreamExt;
+    use openrouter_rs::types::stream::{UnifiedStreamEvent, UnifiedStreamSource};
+    use std::time::Duration;
+
+    let client = create_test_client().unwrap();
+
+    let tool = Tool::builder()
+        .name("echo")
+        .description("Echo back the input")
+        .parameters(json!({
+            "type": "object",
+            "properties": {
+                "message": { "type": "string", "description": "Message to echo back" }
+            },
+            "required": ["message"]
+        }))
+        .build()
+        .unwrap();
+
+    let request = ChatCompletionRequest::builder()
+        .model("openai/gpt-4o-mini")
+        .messages(vec![
+            Message::new(
+                Role::System,
+                "You are a helpful assistant. Use the echo tool when asked to echo something.",
+            ),
+            Message::new(Role::User, "Please echo 'Hello, World!'"),
+        ])
+        .tool(tool)
+        .tool_choice_auto()
+        .max_tokens(200)
+        .build()
+        .unwrap();
+
+    let mut stream = client.chat().stream_unified(&request).await.unwrap();
+
+    let done = tokio::time::timeout(Duration::from_secs(90), async move {
+        let mut saw_tool_delta = false;
+        while let Some(event) = stream.next().await {
+            match event {
+                UnifiedStreamEvent::Error(err) => panic!("stream error: {err}"),
+                UnifiedStreamEvent::ToolDelta(_) => saw_tool_delta = true,
+                UnifiedStreamEvent::Done {
+                    source, tool_calls, ..
+                } => {
+                    assert_eq!(source, UnifiedStreamSource::Chat);
+                    return (saw_tool_delta, tool_calls);
+                }
+                _ => {}
+            }
+        }
+        panic!("stream ended without a done event");
+    })
+    .await
+    .expect("timed out waiting for the stream");
+
+    let (saw_tool_delta, tool_calls) = done;
+    assert!(saw_tool_delta, "the stream should carry tool deltas");
+    assert!(
+        !tool_calls.is_empty(),
+        "the terminal event should carry the assembled tool calls"
+    );
+
+    let call = &tool_calls[0];
+    assert_eq!(call.function.name, "echo");
+    let arguments: serde_json::Value = serde_json::from_str(&call.function.arguments)
+        .expect("tool call arguments should be complete JSON");
+    assert_eq!(arguments["message"], "Hello, World!");
+}
