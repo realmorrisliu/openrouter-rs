@@ -25,7 +25,7 @@ Type-safe, async Rust SDK for the OpenRouter API.
 
 ```toml
 [dependencies]
-openrouter-rs = "0.22.0"
+openrouter-rs = "0.23.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -118,7 +118,7 @@ Legacy text completions are opt-in:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.22.0", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.23.0", features = ["legacy-completions"] }
 ```
 
 ### HTTP backends and WASI
@@ -134,7 +134,7 @@ For a WASI component, disable the default reqwest backend and enable `wasip3`:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.22.0", default-features = false, features = ["wasip3"] }
+openrouter-rs = { version = "0.23.0", default-features = false, features = ["wasip3"] }
 ```
 
 The client API is the same on both backends, including streaming. When both features are on a WASI target, the default client uses `wasi:http`. The embedding host controls TLS, networking, redirects and timeouts; configure those policies in the host rather than assuming reqwest settings apply.
@@ -449,7 +449,15 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 ### Unreleased
 
-### Version 0.22.0 *(Latest)*
+### Version 0.23.0 *(Latest)*
+
+- **Breaking:** One entry path per endpoint family: the 162 `api::*` endpoint functions and 109 flat `OpenRouterClient` methods are gone, so every call honours the configured client. See the [0.23 migration notes](MIGRATION.md#022x---0230-one-entry-path-per-endpoint-family).
+- **Breaking:** Transport failures carry `HttpRequestErrorKind`, the request URL, and `retry_after`; streaming has one event model (`UnifiedStreamEvent`) whose terminal event carries assembled `tool_calls` and typed `usage`.
+- **Breaking:** Upstream drift accepted in the same release: `client.interns()` is removed, `/end-users*` became `/external-users*`, and `management()` gained `/private-providers*`.
+- Reasoning setters keep the request valid: `reasoning_effort` and `reasoning_max_tokens` are mutually exclusive, as the API requires.
+- Accepted drift fills gaps that were silently dropped: guardrail harness flag, prompt-cache breakpoint `ttl`, `GET /models/user` `client` filter, and vault routing metadata.
+
+### Version 0.22.0
 
 - Preserve `reasoning_content`/`reasoning_text` across chat responses, raw deltas and request replay; expose completion-token details.
 - Decode choices by shape with useful errors, accept omitted tool-call types, and preserve structured API errors with string codes.

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-10-30
+
 ### Fixed
 - `Guardrail`, `CreateGuardrailRequest`, and `UpdateGuardrailRequest` now carry `enforce_first_party_harness_models`; the field was silently dropped on the response and could not be set.
 - `PromptCacheBreakpoint` now carries `ttl`, so a per-breakpoint cache lifetime can be expressed (use `explicit_with_ttl(...)`).
