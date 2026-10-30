@@ -920,14 +920,24 @@ impl ChatCompletionRequestBuilder {
     }
 
     /// Set the reasoning effort level.
+    ///
+    /// Clears any budget set by [`Self::reasoning_max_tokens`]; the API accepts
+    /// only one of `effort` and `max_tokens` per request.
     pub fn reasoning_effort(&mut self, effort: crate::types::Effort) -> &mut Self {
-        self.reasoning_config().effort = Some(effort);
+        let config = self.reasoning_config();
+        config.effort = Some(effort);
+        config.max_tokens = None;
         self
     }
 
     /// Limit the reasoning token budget.
+    ///
+    /// Clears any level set by [`Self::reasoning_effort`]; the API accepts only
+    /// one of `effort` and `max_tokens` per request.
     pub fn reasoning_max_tokens(&mut self, max_tokens: u32) -> &mut Self {
-        self.reasoning_config().max_tokens = Some(max_tokens);
+        let config = self.reasoning_config();
+        config.max_tokens = Some(max_tokens);
+        config.effort = None;
         self
     }
 
@@ -939,8 +949,8 @@ impl ChatCompletionRequestBuilder {
 
     /// The reasoning configuration, created on first use.
     ///
-    /// Each setter mutates this value rather than replacing it, so combining
-    /// them works whatever order they are called in.
+    /// The setters mutate this value rather than replacing it, so `enabled` and
+    /// `exclude` compose with either budget selector.
     fn reasoning_config(&mut self) -> &mut crate::types::ReasoningConfig {
         self.reasoning
             .get_or_insert_with(|| Some(crate::types::ReasoningConfig::default()))
