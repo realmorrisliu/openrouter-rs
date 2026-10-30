@@ -108,8 +108,8 @@ replacing the whole list.
 ### Other source breaks
 
 - `OpenRouterError` is `#[non_exhaustive]`; add a wildcard arm where you match it.
-- `Role`, `ObjectType`, and `AnthropicRole` gained an `Other(String)` variant, so an
-  unrecognized upstream value no longer fails the containing response.
+- `Role`, `ObjectType`, and `api::messages::AnthropicRole` gained an `Other(String)` variant,
+  so an unrecognized upstream value no longer fails the containing response.
 - Endpoint modules no longer export the removed functions, so `use openrouter_rs::api::*`
   imports of those names must go.
 
