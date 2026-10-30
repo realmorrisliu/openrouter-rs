@@ -16,6 +16,19 @@ fn load_integration_env_file() {
     });
 }
 
+/// Whether the caller exported an API key for live calls.
+///
+/// Gated tests then run in the live workflow and in `just test-integration`,
+/// both of which require an exported `OPENROUTER_API_KEY`, and skip in the
+/// keyless deterministic subsets. `#[ignore]` would not work here: the live
+/// workflow skips ignored tests too. Unlike [`get_test_api_key`] this does not
+/// read `.env`, so a stale local key cannot turn a deterministic run red.
+pub fn live_api_key_available() -> bool {
+    env::var("OPENROUTER_API_KEY")
+        .ok()
+        .is_some_and(|key| !key.trim().is_empty())
+}
+
 pub fn get_test_api_key() -> String {
     load_integration_env_file();
 

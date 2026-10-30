@@ -10,7 +10,7 @@ Weekly drift workflow: `.github/workflows/openapi-drift.yml`
 Every endpoint in this matrix is reached through a domain client
 (`client.chat()`, `client.responses()`, `client.messages()`, `client.audio()`,
 `client.images()`, `client.videos()`, `client.files()`, `client.models()`,
-`client.rerank()`, `client.batches()`, `client.interns()`, `client.vault()`,
+`client.rerank()`, `client.batches()`, `client.vault()`,
 `client.decisions()`, `client.management()`). Since 0.23.0 the `api::*` endpoint
 free functions and the flat `OpenRouterClient` methods no longer exist, so the
 implementation column counts domain-client coverage only. Endpoint paths did not
@@ -33,6 +33,7 @@ Chat response regression coverage:
 
 Drift review note:
 
+- Issue #285 (2026-10-30): accepted the drift that renames `/end-users*` to `/external-users*`, removes the `/interns*` family, and adds `/private-providers*`. `management()` now exposes `list_external_users`/`create_external_user`/`get_external_user`/`update_external_user`/`delete_external_user` and `list_private_providers`/`create_private_provider`/`get_private_provider`/`update_private_provider`/`delete_private_provider`; `client.interns()` and its types are gone. Also accepted: guardrail `enforce_first_party_harness_models`, prompt-cache breakpoint `ttl`, user-model `client` filter, and vault connection `routing`/`routing_text`. Deferred as out of scope: the never-covered `/private-endpoints*` family, including the newly added but deprecated `PUT /private-endpoints/{id}/parameters`, plus provider-UI metadata inside flexible objects (`authMode`, `visibleWhen`) and provider option maps that already round-trip through `Value`.
 - Issue #273 (2026-10-20): accepted the two added operations `GET /interns/{internId}/icon` and `GET /vault/interns/{internId}/connections` through `client.interns().get_icon(...)` and `client.vault().list_connections_for_intern(...)`. Added Batch `callback_url`/`expires_at`/`provider`, endpoint `service_tier`/`supports_diarization`, guardrail `allow_safety_retention_*`, observability `broadcast_generation_cost_allocation`, video signed `urls`, intern `created_by_you`/`icon_sha256`, route-bound daemon signing (`route`, nonce and v2 signature), user-model `sort`, and Responses `stop`. Chat `alignment`/`safeguard_results` and Responses `openrouter:armor_blocked` items stay flexible (`Value`); Armor/alignment plugin configuration stays on `Plugin` maps. New 408/409/499 statuses use the shared error parser. No CLI flags change.
 - Issue #264 (2026-10-13): accepted canonical `POST /interns/{internId}/daemon/sign` and the deprecated `daemon-access/sign` alias. Local HTTP tests cover encoded paths, digest request casing/validation, both routes, OAuth session bearer forwarding, attribution headers, 403 responses for ordinary API keys and insufficient grants, malformed credential errors and absent auth. Signature values have no Debug implementation. These routes require an `ori login --oidc` session with `vault:read`, including the deprecated alias; ordinary API keys and `interns`-only grants are rejected with 403. The existing client `api_key` slot forwards the session token. Mock tests verify forwarding and error handling; session/scope validation remains server-owned and has no live qualification.
 - Added BYOK declared regions with omit/set/clear/reset semantics, key budgets/effective budget and last-used timestamps, expired-key filtering, key workspace moves, video expiration, speech turn input/instructions, portable deferred-tool controls, chat function deferral flags, and Messages tool-search result blocks (including streaming). Older responses and text-input builder calls remain compatible; direct speech input field access needs the documented enum migration.
@@ -89,7 +90,7 @@ Drift review note:
 Legend:
 
 - `SDK`: endpoint implemented in `openrouter-rs`.
-- Canonical surface note: docs and examples prefer domain clients (`chat()`, `responses()`, `messages()`, `rerank()`, `audio().speech()`, `audio().transcriptions()`, `images()`, `videos()`, `files()`, `models()`, `management()`, `interns()`, `vault()`, `decisions()`). Some rows still mention retained flat `OpenRouterClient::*` wrappers when they exist.
+- Canonical surface note: docs and examples prefer domain clients (`chat()`, `responses()`, `messages()`, `rerank()`, `audio().speech()`, `audio().transcriptions()`, `images()`, `videos()`, `files()`, `models()`, `management()`, `vault()`, `decisions()`). Some rows still mention retained flat `OpenRouterClient::*` wrappers when they exist.
 - `Unit`: unit coverage depth.
   - `Path` = test asserts HTTP method/path (often with header/body checks).
   - `Contract` = serde/request-shape/parser coverage only.

@@ -99,6 +99,15 @@ pub struct VaultInternConnection {
 #[non_exhaustive]
 pub struct VaultInternConnectionListResponse {
     pub data: Vec<VaultInternConnection>,
+    /// Routing table for the intern's own key; absent for any other caller.
+    ///
+    /// The table nests GitHub App installation and coverage detail, so it stays
+    /// untyped until a caller needs those fields.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub routing: Option<serde_json::Value>,
+    /// The routing table as the plain lines an intern reads, when applicable.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub routing_text: Option<String>,
 }
 
 #[derive(Serialize)]

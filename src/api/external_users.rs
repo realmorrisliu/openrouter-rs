@@ -9,10 +9,10 @@ use crate::{
     types::ApiResponse,
 };
 
-/// An end-user registration. Active state does not authorize or block inference.
+/// An external-user registration. Active state does not authorize or block inference.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
-pub struct EndUser {
+pub struct ExternalUser {
     pub user: String,
     pub is_active: bool,
     pub created_at: String,
@@ -21,42 +21,42 @@ pub struct EndUser {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
-pub struct ListEndUsersResponse {
-    pub data: Vec<EndUser>,
+pub struct ListExternalUsersResponse {
+    pub data: Vec<ExternalUser>,
     pub total_count: u64,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
-pub struct CreateEndUserRequest {
+pub struct CreateExternalUserRequest {
     #[builder(setter(into))]
     pub user: String,
 }
 
-impl CreateEndUserRequest {
-    pub fn builder() -> CreateEndUserRequestBuilder {
-        CreateEndUserRequestBuilder::default()
+impl CreateExternalUserRequest {
+    pub fn builder() -> CreateExternalUserRequestBuilder {
+        CreateExternalUserRequestBuilder::default()
     }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
-pub struct UpdateEndUserRequest {
+pub struct UpdateExternalUserRequest {
     pub is_active: bool,
 }
 
-impl UpdateEndUserRequest {
-    pub fn builder() -> UpdateEndUserRequestBuilder {
-        UpdateEndUserRequestBuilder::default()
+impl UpdateExternalUserRequest {
+    pub fn builder() -> UpdateExternalUserRequestBuilder {
+        UpdateExternalUserRequestBuilder::default()
     }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
-pub struct ListEndUsersParams {
+pub struct ListExternalUsersParams {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub offset: Option<u32>,
@@ -71,16 +71,16 @@ pub struct ListEndUsersParams {
     pub include_inactive: Option<bool>,
 }
 
-impl ListEndUsersParams {
-    pub fn builder() -> ListEndUsersParamsBuilder {
-        ListEndUsersParamsBuilder::default()
+impl ListExternalUsersParams {
+    pub fn builder() -> ListExternalUsersParamsBuilder {
+        ListExternalUsersParamsBuilder::default()
     }
 }
 
-pub(crate) async fn list_end_users_with_client(
+pub(crate) async fn list_external_users_with_client(
     ctx: &RequestContext<'_>,
-    params: &ListEndUsersParams,
-) -> Result<ListEndUsersResponse, OpenRouterError> {
+    params: &ListExternalUsersParams,
+) -> Result<ListExternalUsersResponse, OpenRouterError> {
     let RequestContext {
         http_client,
         base_url,
@@ -90,7 +90,7 @@ pub(crate) async fn list_end_users_with_client(
         app_categories,
         ..
     } = *ctx;
-    let url = format!("{base_url}/end-users");
+    let url = format!("{base_url}/external-users");
     let req = transport_request::with_client_request_headers(
         transport_request::get(http_client, &url),
         management_key,
@@ -99,13 +99,13 @@ pub(crate) async fn list_end_users_with_client(
         app_categories,
     )?
     .query(params);
-    transport_response::send_json(req, "list_end_users").await
+    transport_response::send_json(req, "list_external_users").await
 }
 
-pub(crate) async fn create_end_user_with_client(
+pub(crate) async fn create_external_user_with_client(
     ctx: &RequestContext<'_>,
-    request: &CreateEndUserRequest,
-) -> Result<EndUser, OpenRouterError> {
+    request: &CreateExternalUserRequest,
+) -> Result<ExternalUser, OpenRouterError> {
     let RequestContext {
         http_client,
         base_url,
@@ -115,7 +115,7 @@ pub(crate) async fn create_end_user_with_client(
         app_categories,
         ..
     } = *ctx;
-    let url = format!("{base_url}/end-users");
+    let url = format!("{base_url}/external-users");
     let req = transport_request::with_client_request_headers(
         transport_request::post(http_client, &url),
         management_key,
@@ -124,15 +124,15 @@ pub(crate) async fn create_end_user_with_client(
         app_categories,
     )?
     .json(request);
-    let payload: ApiResponse<EndUser> =
-        transport_response::send_json(req, "create_end_user").await?;
+    let payload: ApiResponse<ExternalUser> =
+        transport_response::send_json(req, "create_external_user").await?;
     Ok(payload.data)
 }
 
-pub(crate) async fn get_end_user_with_client(
+pub(crate) async fn get_external_user_with_client(
     ctx: &RequestContext<'_>,
     user: &str,
-) -> Result<EndUser, OpenRouterError> {
+) -> Result<ExternalUser, OpenRouterError> {
     let RequestContext {
         http_client,
         base_url,
@@ -142,7 +142,7 @@ pub(crate) async fn get_end_user_with_client(
         app_categories,
         ..
     } = *ctx;
-    let url = format!("{base_url}/end-users/{}", encode(user));
+    let url = format!("{base_url}/external-users/{}", encode(user));
     let req = transport_request::with_client_request_headers(
         transport_request::get(http_client, &url),
         management_key,
@@ -150,15 +150,16 @@ pub(crate) async fn get_end_user_with_client(
         http_referer,
         app_categories,
     )?;
-    let payload: ApiResponse<EndUser> = transport_response::send_json(req, "get_end_user").await?;
+    let payload: ApiResponse<ExternalUser> =
+        transport_response::send_json(req, "get_external_user").await?;
     Ok(payload.data)
 }
 
-pub(crate) async fn update_end_user_with_client(
+pub(crate) async fn update_external_user_with_client(
     ctx: &RequestContext<'_>,
     user: &str,
-    request: &UpdateEndUserRequest,
-) -> Result<EndUser, OpenRouterError> {
+    request: &UpdateExternalUserRequest,
+) -> Result<ExternalUser, OpenRouterError> {
     let RequestContext {
         http_client,
         base_url,
@@ -168,7 +169,7 @@ pub(crate) async fn update_end_user_with_client(
         app_categories,
         ..
     } = *ctx;
-    let url = format!("{base_url}/end-users/{}", encode(user));
+    let url = format!("{base_url}/external-users/{}", encode(user));
     let req = transport_request::with_client_request_headers(
         transport_request::patch(http_client, &url),
         management_key,
@@ -177,12 +178,12 @@ pub(crate) async fn update_end_user_with_client(
         app_categories,
     )?
     .json(request);
-    let payload: ApiResponse<EndUser> =
-        transport_response::send_json(req, "update_end_user").await?;
+    let payload: ApiResponse<ExternalUser> =
+        transport_response::send_json(req, "update_external_user").await?;
     Ok(payload.data)
 }
 
-pub(crate) async fn delete_end_user_with_client(
+pub(crate) async fn delete_external_user_with_client(
     ctx: &RequestContext<'_>,
     user: &str,
 ) -> Result<(), OpenRouterError> {
@@ -195,7 +196,7 @@ pub(crate) async fn delete_end_user_with_client(
         app_categories,
         ..
     } = *ctx;
-    let url = format!("{base_url}/end-users/{}", encode(user));
+    let url = format!("{base_url}/external-users/{}", encode(user));
     transport_response::send_unit(transport_request::with_client_request_headers(
         transport_request::delete(http_client, &url),
         management_key,

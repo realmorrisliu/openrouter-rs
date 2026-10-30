@@ -13,9 +13,8 @@
 //! - `client.images()` -> [`images`]
 //! - `client.videos()` -> [`videos`]
 //! - `client.models()` -> [`models`], [`embeddings`], [`discovery`]
-//! - `client.management()` -> [`api_keys`], [`auth`], [`byok`], [`credits`], [`generation`], [`guardrails`], [`observability`], [`organization`], [`end_users`], [`presets`], [`scim`], [`workspaces`]
+//! - `client.management()` -> [`api_keys`], [`auth`], [`byok`], [`credits`], [`generation`], [`guardrails`], [`observability`], [`organization`], [`external_users`], [`presets`], [`private_providers`], [`scim`], [`workspaces`]
 //! - `client.batches()` -> [`batches`]
-//! - `client.interns()` -> [`interns`]
 //! - `client.vault()` -> [`vault`]
 //! - `client.decisions()` -> [`decisions`]
 //! - `client.legacy()` -> [`legacy`] (feature `legacy-completions`)
@@ -138,18 +137,18 @@ pub mod credits;
 pub mod decisions;
 pub mod discovery;
 pub mod embeddings;
-pub mod end_users;
 pub mod errors;
+pub mod external_users;
 pub mod files;
 pub mod generation;
 pub mod guardrails;
 pub mod images;
-pub mod interns;
 pub mod messages;
 pub mod models;
 pub mod observability;
 pub mod organization;
 pub mod presets;
+pub mod private_providers;
 pub mod rerank;
 pub mod responses;
 pub mod scim;

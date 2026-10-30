@@ -301,7 +301,7 @@ async fn test_scim_sync_job_live() -> Result<(), OpenRouterError> {
 
 #[tokio::test]
 #[allow(clippy::result_large_err)]
-async fn test_management_end_users_and_settings_read_smoke() -> Result<(), OpenRouterError> {
+async fn test_management_external_users_and_settings_read_smoke() -> Result<(), OpenRouterError> {
     if !should_run_management_tests() {
         return Ok(());
     }
@@ -316,14 +316,14 @@ async fn test_management_end_users_and_settings_read_smoke() -> Result<(), OpenR
         "organization settings must identify the organization",
     )?;
     rate_limit_delay().await;
-    let params = openrouter_rs::api::end_users::ListEndUsersParams::builder()
+    let params = openrouter_rs::api::external_users::ListExternalUsersParams::builder()
         .limit(1)
         .include_inactive(true)
         .build()?;
-    let users = management.list_end_users(&params).await?;
+    let users = management.list_external_users(&params).await?;
     if let Some(user) = users.data.first() {
         rate_limit_delay().await;
-        let found = management.get_end_user(&user.user).await?;
+        let found = management.get_external_user(&user.user).await?;
         smoke_assert(
             found.user == user.user,
             "end-user identity must survive a resource lookup",

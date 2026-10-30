@@ -13,9 +13,6 @@ use openrouter_rs::{
         discovery::{ListUserModelsParams, PublicEndpoint},
         guardrails::{CreateGuardrailRequest, Guardrail, UpdateGuardrailRequest},
         images::ImageProviderOptions,
-        interns::{
-            Intern, SignInternDaemonRequest, SignInternDaemonResponse, SignInternDaemonRoute,
-        },
         models::Endpoint,
         observability::{
             CreateObservabilityDestinationRequest, ObservabilityDestination,
@@ -31,7 +28,6 @@ use serde_json::{Value, json};
 struct CapturedRequest {
     line: String,
     headers: String,
-    body: String,
 }
 
 fn spawn_server(
@@ -78,16 +74,8 @@ fn spawn_server(
             }
             bytes.extend_from_slice(&chunk[..count]);
         }
-        let body = String::from_utf8_lossy(
-            &bytes[header_end..(header_end + content_length).min(bytes.len())],
-        )
-        .to_string();
-        tx.send(CapturedRequest {
-            line,
-            headers,
-            body,
-        })
-        .expect("send capture");
+        tx.send(CapturedRequest { line, headers })
+            .expect("send capture");
         let mut response = format!(
             "HTTP/1.1 200 OK\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
             response_body.len()
@@ -356,51 +344,6 @@ fn issue_273_image_provider_privacy_and_responses_stop() {
 }
 
 #[test]
-fn issue_273_intern_metadata_and_daemon_route() {
-    let intern: Intern = serde_json::from_value(json!({
-        "id": "intern-1",
-        "name": "research",
-        "description": null,
-        "instructions": null,
-        "model": null,
-        "status": "running",
-        "last_failure_message": null,
-        "progress": null,
-        "hostname": null,
-        "workspace_id": "workspace-1",
-        "vault_id": null,
-        "attached_vault_id": null,
-        "created_at": "2026-10-19T00:00:00Z",
-        "updated_at": "2026-10-19T00:00:00Z",
-        "created_by_you": true,
-        "icon_sha256": "abc123"
-    }))
-    .expect("intern deserializes");
-    assert_eq!(intern.created_by_you, Some(true));
-    assert_eq!(intern.icon_sha256.as_deref(), Some("abc123"));
-
-    let request = SignInternDaemonRequest::builder()
-        .body_sha256("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
-        .route(SignInternDaemonRoute::post("/api/invoke"))
-        .build()
-        .expect("sign request builds");
-    let value = serde_json::to_value(&request).expect("serialize sign request");
-    assert_eq!(value["route"]["method"], "POST");
-    assert_eq!(value["route"]["path"], "/api/invoke");
-
-    let response: SignInternDaemonResponse = serde_json::from_value(json!({
-        "x-ori-invoke-signature": "sig",
-        "x-ori-invoke-timestamp": "1789000000",
-        "x-ori-invoke-user": "user_1",
-        "x-ori-invoke-nonce": "nonce-1",
-        "x-ori-invoke-signature-v2": "sig-v2"
-    }))
-    .expect("sign response deserializes");
-    assert_eq!(response.nonce.as_deref(), Some("nonce-1"));
-    assert_eq!(response.signature_v2.as_deref(), Some("sig-v2"));
-}
-
-#[test]
 fn issue_273_oauth_management_scope_is_accepted() {
     let request = OAuthTokenExchangeRequest::builder()
         .federation_policy_id("policy-1")
@@ -410,33 +353,6 @@ fn issue_273_oauth_management_scope_is_accepted() {
         .expect("token exchange builds");
     let value = serde_json::to_value(&request).expect("serialize token exchange");
     assert_eq!(value["scope"], "management");
-}
-
-#[tokio::test]
-async fn issue_273_intern_icon_returns_bytes_and_content_type() {
-    let (base_url, rx, server) = spawn_server(vec![0x89, b'P', b'N', b'G'], "image/png");
-
-    let icon = client(base_url)
-        .interns()
-        .get_icon("intern/1", Some("abc123"))
-        .await
-        .expect("icon fetch succeeds");
-
-    assert_eq!(icon.bytes, vec![0x89, b'P', b'N', b'G']);
-    assert_eq!(icon.content_type.as_deref(), Some("image/png"));
-
-    let captured = rx.recv().expect("captured request");
-    assert_eq!(
-        captured.line,
-        "GET /api/v1/interns/intern%2F1/icon?v=abc123 HTTP/1.1"
-    );
-    assert!(
-        captured
-            .headers
-            .to_ascii_lowercase()
-            .contains("authorization: bearer test-key")
-    );
-    server.join().expect("server joins");
 }
 
 #[tokio::test]
@@ -494,42 +410,6 @@ async fn issue_273_user_model_sort_query() {
         captured.line,
         "GET /api/v1/models/user?sort=coding-high-to-low HTTP/1.1"
     );
-    server.join().expect("server joins");
-}
-
-#[tokio::test]
-async fn issue_273_sign_daemon_route_is_forwarded() {
-    let body = json!({
-        "x-ori-invoke-signature": "sig",
-        "x-ori-invoke-timestamp": "1789000000",
-        "x-ori-invoke-user": "user_1",
-        "x-ori-invoke-nonce": "nonce-1",
-        "x-ori-invoke-signature-v2": "sig-v2"
-    })
-    .to_string()
-    .into_bytes();
-    let (base_url, rx, server) = spawn_server(body, "application/json");
-
-    let request = SignInternDaemonRequest::builder()
-        .body_sha256("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
-        .route(SignInternDaemonRoute::post("/api/invoke"))
-        .build()
-        .expect("sign request builds");
-    let signed = client(base_url)
-        .interns()
-        .sign_daemon("intern/1", &request)
-        .await
-        .expect("daemon signing succeeds");
-    assert_eq!(signed.signature_v2.as_deref(), Some("sig-v2"));
-
-    let captured = rx.recv().expect("captured request");
-    assert_eq!(
-        captured.line,
-        "POST /api/v1/interns/intern%2F1/daemon/sign HTTP/1.1"
-    );
-    let sent: Value = serde_json::from_str(&captured.body).expect("request body is JSON");
-    assert_eq!(sent["route"]["method"], "POST");
-    assert_eq!(sent["route"]["path"], "/api/invoke");
     server.join().expect("server joins");
 }
 

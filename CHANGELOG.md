@@ -8,8 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- `Guardrail`, `CreateGuardrailRequest`, and `UpdateGuardrailRequest` now carry `enforce_first_party_harness_models`; the field was silently dropped on the response and could not be set.
+- `PromptCacheBreakpoint` now carries `ttl`, so a per-breakpoint cache lifetime can be expressed (use `explicit_with_ttl(...)`).
+- `VaultInternConnectionListResponse` now keeps the `routing` and `routing_text` fields the API returns for an intern's own key.
 - `ChatCompletionRequestBuilder`'s reasoning setters now keep the configuration valid. `reasoning_effort(...)` and `reasoning_max_tokens(...)` were replacing the whole reasoning object, so the later call silently dropped the earlier field; the API rejects the two together ("Only one of \"reasoning.effort\" and \"reasoning.max_tokens\" can be specified"), so they are now mutually exclusive and the later call wins. `enable_reasoning()` and `exclude_reasoning()` compose with either selector, as the API accepts those modifiers alongside a budget.
+
 ### Breaking
+- Upstream drift review (#285): `/end-users*` became `/external-users*` and the `/interns*` family is gone. `client.interns()` and every intern type are removed; the end-user surface is renamed to `*_external_user*`. `management()` gained the `/private-providers*` CRUD methods. `MIGRATION.md` maps each rename.
 - Removed the 162 `api::<module>::<function>(base_url, api_key, …)` endpoint functions. Each built its own client, so a call silently ignored timeouts, proxies, TLS configuration, and attribution headers; every endpoint is now reachable only through a domain client. `MIGRATION.md` maps each removed function to its replacement.
 - Removed the 109 flat `OpenRouterClient` methods; their domain-client equivalents are unchanged.
 - `HttpRequestError` now carries a failure `kind` (`Timeout`, `Connect`, `Request`, `Body`, `Decode`, `Other`), the request `url`, and `is_timeout()`/`is_connect()`. The type stays `Clone + PartialEq + Eq` and backend-neutral; each backend fills in what it can distinguish.
@@ -21,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added an `Other(String)` variant to `Role`, `ObjectType`, and `AnthropicRole`, and marked `OpenRouterError` `#[non_exhaustive]`, so an unrecognized upstream value no longer fails the containing response.
 
 ### Changed
+- `ListUserModelsParams` gained a `client` filter (`claude_code`, `claude_desktop`, `codex`) for `GET /models/user`.
 - Every JSON endpoint now decodes through one shared success/error path, removing 116 `unreachable!()` call sites and the per-endpoint branch duplication.
 - Endpoint functions take one `RequestContext` instead of repeating the transport, credential, and attribution arguments.
 - Split `src/client.rs` into `client/{mod,domains,management}.rs`.

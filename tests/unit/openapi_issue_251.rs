@@ -5,7 +5,6 @@ use std::{
     thread,
 };
 
-use futures_util::StreamExt;
 use openrouter_rs::{
     OpenRouterClient,
     api::{
@@ -17,9 +16,6 @@ use openrouter_rs::{
         decisions::DecisionsRequest,
         embeddings::EmbeddingRequest,
         images::ImageGenerationRequest,
-        interns::{
-            CreateInternRequest, DeleteInternRequest, InternChatRequest, UpdateInternRequest,
-        },
         messages::{AnthropicMessage, AnthropicMessagesRequest},
         rerank::RerankRequest,
         vault::{VaultSecretCopyRequest, VaultSecretWriteRequest},
@@ -199,25 +195,6 @@ fn issue_251_request_types_round_trip_upstream_fields() {
         true
     );
 
-    let update = UpdateInternRequest::builder()
-        .clear_model()
-        .description("Researches customer questions")
-        .build()
-        .expect("build intern update");
-    let update = serde_json::to_value(update).expect("serialize intern update");
-    assert_eq!(
-        update,
-        json!({"description": "Researches customer questions", "model": null})
-    );
-    let cleared_description = UpdateInternRequest::builder()
-        .clear_description()
-        .build()
-        .expect("build intern description clear");
-    assert_eq!(
-        serde_json::to_value(cleared_description).unwrap(),
-        json!({"description": null})
-    );
-
     let speech = SpeechRequest::builder()
         .model("openai/tts-1")
         .input("Hello")
@@ -350,20 +327,6 @@ fn issue_251_request_types_round_trip_upstream_fields() {
         json!(["openrouter:web_search"])
     );
 
-    let create_intern = CreateInternRequest::builder()
-        .name("worker")
-        .description("Runs research tasks")
-        .build()
-        .expect("build intern request");
-    assert_eq!(
-        serde_json::to_value(create_intern).unwrap(),
-        json!({"name": "worker", "description": "Runs research tasks"})
-    );
-    let chat = InternChatRequest::builder()
-        .messages([json!({"role":"user","content":"hi"})])
-        .build()
-        .expect("build intern chat request");
-    assert_eq!(serde_json::to_value(chat).unwrap()["stream"], true);
     let secret = VaultSecretWriteRequest::builder()
         .value("secret")
         .hosts(["api.example.com"])
@@ -434,29 +397,8 @@ async fn decisions_and_system_one_use_their_documented_paths() {
 }
 
 #[tokio::test]
-async fn intern_and_vault_domains_send_expected_paths_and_auth() {
+async fn vault_domains_send_expected_paths_and_auth() {
     let response = r#"{"data":[],"has_more":false}"#;
-    let (base_url, rx, server) = spawn_server(response);
-    client(base_url)
-        .interns()
-        .list(
-            &openrouter_rs::api::interns::ListInternsParams::builder()
-                .limit(5)
-                .build()
-                .unwrap(),
-        )
-        .await
-        .expect("list interns");
-    let captured = rx.recv().expect("capture intern list");
-    assert!(captured.line.starts_with("GET /api/v1/interns?limit=5"));
-    assert!(
-        captured
-            .headers
-            .to_ascii_lowercase()
-            .contains("authorization: bearer test-key")
-    );
-    server.join().expect("finish intern server");
-
     let (base_url, rx, server) = spawn_server(response);
     client(base_url)
         .vault()
@@ -473,17 +415,9 @@ async fn intern_and_vault_domains_send_expected_paths_and_auth() {
 }
 
 #[tokio::test]
-async fn intern_and_vault_mutations_cover_all_documented_routes() {
-    let intern = r#"{"id":"intern-1","name":"worker","description":null,"instructions":"instructions","model":null,"status":"active","last_failure_message":null,"progress":null,"hostname":"worker.local","workspace_id":"workspace-1","vault_id":null,"attached_vault_id":null,"created_at":"2026-09-23T00:00:00Z","updated_at":"2026-09-23T00:00:00Z"}"#;
+async fn vault_mutations_cover_all_documented_routes() {
     let secret = r#"{"data":{"name":"token","hosts":["api.example.com"],"fingerprint":"sha256:abc","created_at":"2026-09-23T00:00:00Z"}}"#;
     let (base_url, rx, server) = spawn_server_sequence(vec![
-        (201, intern.to_string()),
-        (200, intern.to_string()),
-        (200, intern.to_string()),
-        (202, r#"{"deleting":true}"#.to_string()),
-        (202, r#"{"deleting":true}"#.to_string()),
-        (202, r#"{"provisioning":true}"#.to_string()),
-        (200, r#"{"suspended":true}"#.to_string()),
         (200, r#"{"data":[],"has_more":false}"#.to_string()),
         (200, secret.to_string()),
         (204, String::new()),
@@ -493,48 +427,6 @@ async fn intern_and_vault_mutations_cover_all_documented_routes() {
     ]);
     let client = client(base_url);
 
-    client
-        .interns()
-        .create(
-            &CreateInternRequest::builder()
-                .name("worker")
-                .description("Runs research tasks")
-                .instructions("instructions")
-                .build()
-                .unwrap(),
-            Some("issue-251-create"),
-        )
-        .await
-        .unwrap();
-    client.interns().get("intern-1").await.unwrap();
-    client
-        .interns()
-        .update(
-            "intern-1",
-            &UpdateInternRequest::builder()
-                .clear_description()
-                .clear_model()
-                .build()
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-    client
-        .interns()
-        .delete(
-            "intern-1",
-            Some(
-                &DeleteInternRequest::builder()
-                    .acknowledge_workspace_loss(true)
-                    .build()
-                    .unwrap(),
-            ),
-        )
-        .await
-        .unwrap();
-    client.interns().delete("intern-1", None).await.unwrap();
-    client.interns().provision("intern-1").await.unwrap();
-    client.interns().suspend("intern-1").await.unwrap();
     client.vault().list(Some(10), Some(2)).await.unwrap();
 
     let write = VaultSecretWriteRequest::builder()
@@ -566,8 +458,8 @@ async fn intern_and_vault_mutations_cover_all_documented_routes() {
         .await
         .unwrap();
 
-    let requests: Vec<_> = (0..13)
-        .map(|_| rx.recv().expect("capture intern or vault request"))
+    let requests: Vec<_> = (0..6)
+        .map(|_| rx.recv().expect("capture vault request"))
         .collect();
     let paths: Vec<_> = requests
         .iter()
@@ -576,13 +468,6 @@ async fn intern_and_vault_mutations_cover_all_documented_routes() {
     assert_eq!(
         paths,
         [
-            "POST /api/v1/interns HTTP/1.1",
-            "GET /api/v1/interns/intern-1 HTTP/1.1",
-            "PATCH /api/v1/interns/intern-1 HTTP/1.1",
-            "DELETE /api/v1/interns/intern-1 HTTP/1.1",
-            "DELETE /api/v1/interns/intern-1 HTTP/1.1",
-            "POST /api/v1/interns/intern-1/provision HTTP/1.1",
-            "POST /api/v1/interns/intern-1/suspend HTTP/1.1",
             "GET /api/v1/vault/secrets?limit=10&offset=2 HTTP/1.1",
             "PUT /api/v1/vault/secrets/token HTTP/1.1",
             "DELETE /api/v1/vault/secrets/token HTTP/1.1",
@@ -597,93 +482,15 @@ async fn intern_and_vault_mutations_cover_all_documented_routes() {
             .to_ascii_lowercase()
             .contains("authorization: bearer test-key")
     }));
-    assert!(
-        requests[0]
-            .headers
-            .to_ascii_lowercase()
-            .contains("idempotency-key: issue-251-create")
-    );
     assert_eq!(
-        serde_json::from_str::<serde_json::Value>(&requests[0].body).unwrap()["description"],
-        "Runs research tasks"
-    );
-    assert_eq!(
-        serde_json::from_str::<serde_json::Value>(&requests[2].body).unwrap(),
-        json!({"description": null, "model": null})
-    );
-    assert_eq!(
-        serde_json::from_str::<serde_json::Value>(&requests[3].body).unwrap(),
-        json!({"acknowledge_workspace_loss": true})
-    );
-    assert_eq!(
-        serde_json::from_str::<serde_json::Value>(&requests[4].body).unwrap(),
-        json!({})
-    );
-    assert_eq!(
-        serde_json::from_str::<serde_json::Value>(&requests[8].body).unwrap()["hosts"],
+        serde_json::from_str::<serde_json::Value>(&requests[1].body).unwrap()["hosts"],
         json!(["api.example.com"])
     );
     assert_eq!(
-        serde_json::from_str::<serde_json::Value>(&requests[12].body).unwrap()["names"],
+        serde_json::from_str::<serde_json::Value>(&requests[5].body).unwrap()["names"],
         json!(["token"])
     );
-    server.join().expect("finish intern and vault server");
-}
-
-#[tokio::test]
-async fn intern_chat_handles_streaming_and_steered_responses() {
-    let request = InternChatRequest::builder()
-        .messages([json!({"role": "user", "content": "hello"})])
-        .session_id("session-1")
-        .build()
-        .expect("build intern chat request");
-    let sse = "data: {\"id\":\"chunk-1\"}\n\ndata: [DONE]\n\n";
-    let (base_url, rx, server) = spawn_server(sse);
-    let result = client(base_url)
-        .interns()
-        .chat_completion("intern-1", &request)
-        .await
-        .expect("stream intern chat");
-    let mut stream = match result {
-        openrouter_rs::api::interns::InternChatResult::Streaming(stream) => stream,
-        openrouter_rs::api::interns::InternChatResult::Steered(_) => panic!("expected stream"),
-    };
-    assert_eq!(stream.next().await.unwrap().unwrap()["id"], "chunk-1");
-    let captured = rx.recv().expect("capture intern chat request");
-    assert_eq!(
-        captured.line,
-        "POST /api/v1/interns/intern-1/chat/completions HTTP/1.1"
-    );
-    assert!(
-        captured
-            .headers
-            .to_ascii_lowercase()
-            .contains("x-openrouter-title: openrouter-rs")
-    );
-    assert_eq!(
-        serde_json::from_str::<serde_json::Value>(&captured.body).unwrap()["stream"],
-        true
-    );
-    server.join().expect("finish chat server");
-
-    let (base_url, rx, server) =
-        spawn_server_with_status(r#"{"session_id":"session-1","status":"steered"}"#, 202);
-    let result = client(base_url)
-        .interns()
-        .chat_completion("intern-1", &request)
-        .await
-        .expect("steer intern chat");
-    assert!(matches!(
-        result,
-        openrouter_rs::api::interns::InternChatResult::Steered(_)
-    ));
-    assert!(
-        rx.recv()
-            .expect("capture steered request")
-            .line
-            .starts_with("POST /api/v1/interns/intern-1/chat/completions")
-    );
-    server.join().expect("finish steered server");
+    server.join().expect("finish vault server");
 }
 
 #[tokio::test]
@@ -794,26 +601,9 @@ async fn issue_254_batches_cover_paths_repeated_status_and_errors() {
 }
 
 #[tokio::test]
-#[allow(deprecated)]
-async fn issue_254_intern_invoke_daemon_and_scim_filters() {
-    use openrouter_rs::api::{interns::InternInvokeRequest, scim::ListScimGroupsParams};
+async fn issue_254_scim_filters() {
+    use openrouter_rs::api::scim::ListScimGroupsParams;
     let (base_url, rx, server) = spawn_server_sequence(vec![
-        (
-            202,
-            json!({"session_id":"session-1","status":"started"}).to_string(),
-        ),
-        (
-            202,
-            json!({"session_id":"session-1","status":"steered"}).to_string(),
-        ),
-        (
-            200,
-            json!({"origin":"https://intern.example.com","token":"secret"}).to_string(),
-        ),
-        (
-            200,
-            json!({"origin":"https://intern.example.com","token":"secret"}).to_string(),
-        ),
         (200, json!({"data":[],"total_count":0}).to_string()),
         (200, json!({"data":[],"total_count":0}).to_string()),
     ]);
@@ -826,46 +616,6 @@ async fn issue_254_intern_invoke_daemon_and_scim_filters() {
         .app_categories(["cli-agent", "cloud-agent"])
         .build()
         .unwrap();
-    let request = InternInvokeRequest::builder()
-        .input("Investigate ticket")
-        .build()
-        .unwrap();
-    assert_eq!(
-        client
-            .interns()
-            .invoke("intern/1", &request)
-            .await
-            .unwrap()
-            .status,
-        "started"
-    );
-    let request = InternInvokeRequest::builder()
-        .input("Continue")
-        .session_id("session-1")
-        .build()
-        .unwrap();
-    assert_eq!(
-        client
-            .interns()
-            .invoke("intern/1", &request)
-            .await
-            .unwrap()
-            .status,
-        "steered"
-    );
-    assert_eq!(
-        client.interns().daemon("intern/1").await.unwrap().token,
-        "secret"
-    );
-    assert_eq!(
-        client
-            .interns()
-            .daemon_access("intern/1")
-            .await
-            .unwrap()
-            .origin,
-        "https://intern.example.com"
-    );
     client
         .management()
         .list_scim_groups_with_params(
@@ -886,57 +636,27 @@ async fn issue_254_intern_invoke_daemon_and_scim_filters() {
         ))
         .await
         .unwrap();
-    let requests: Vec<_> = (0..6).map(|_| rx.recv().unwrap()).collect();
+    let requests: Vec<_> = (0..2).map(|_| rx.recv().unwrap()).collect();
     assert_eq!(
         requests[0].line,
-        "POST /api/v1/interns/intern%2F1/invoke HTTP/1.1"
-    );
-    assert_eq!(
-        serde_json::from_str::<serde_json::Value>(&requests[0].body).unwrap(),
-        json!({"input":"Investigate ticket"})
-    );
-    assert_eq!(
-        serde_json::from_str::<serde_json::Value>(&requests[1].body).unwrap(),
-        json!({"input":"Continue","session_id":"session-1"})
-    );
-    assert_eq!(
-        requests[2].line,
-        "GET /api/v1/interns/intern%2F1/daemon HTTP/1.1"
-    );
-    assert_eq!(
-        requests[3].line,
-        "GET /api/v1/interns/intern%2F1/daemon-access HTTP/1.1"
-    );
-    assert_eq!(
-        requests[4].line,
         "GET /api/v1/scim/groups?offset=2&limit=10&display_name=R%26D&external_id=external%2F1 HTTP/1.1"
     );
     assert_eq!(
-        requests[5].line,
+        requests[1].line,
         "GET /api/v1/scim/groups?offset=3&limit=5 HTTP/1.1"
     );
-    for (index, request) in requests.iter().enumerate() {
+    for request in &requests {
         let headers = request.headers.to_ascii_lowercase();
         for expected in [
             "x-title: review-tests",
             "x-openrouter-title: review-tests",
             "http-referer: https://example.com",
             "x-openrouter-categories: cli-agent,cloud-agent",
+            "authorization: bearer management-key",
         ] {
             assert!(headers.contains(expected), "missing {expected}: {headers}");
         }
-        assert!(request.headers.to_ascii_lowercase().contains(if index < 4 {
-            "authorization: bearer test-key"
-        } else {
-            "authorization: bearer management-key"
-        }));
     }
-    assert!(
-        requests[4]
-            .headers
-            .to_ascii_lowercase()
-            .contains("authorization: bearer management-key")
-    );
     server.join().unwrap();
 }
 
@@ -1098,15 +818,30 @@ async fn issue_254_malformed_credential_responses_do_not_leak_payloads() {
         .build()
         .unwrap();
     let errors = [
-        client.interns().daemon("intern-1").await.err().unwrap(),
         client
-            .interns()
-            .daemon_access("intern-1")
+            .management()
+            .create_api_key("test", None)
             .await
             .err()
             .unwrap(),
-        client.interns().daemon("intern-1").await.err().unwrap(),
-        client.interns().daemon("intern-1").await.err().unwrap(),
+        client
+            .management()
+            .create_api_key("test", None)
+            .await
+            .err()
+            .unwrap(),
+        client
+            .management()
+            .create_api_key("test", None)
+            .await
+            .err()
+            .unwrap(),
+        client
+            .management()
+            .create_api_key("test", None)
+            .await
+            .err()
+            .unwrap(),
         client
             .management()
             .exchange_oauth_token(
@@ -1136,7 +871,12 @@ async fn issue_254_malformed_credential_responses_do_not_leak_payloads() {
             assert!(!message.contains("body preview"), "{message}");
         }
     }
-    let error = client.interns().daemon("intern-1").await.err().unwrap();
+    let error = client
+        .management()
+        .create_api_key("test", None)
+        .await
+        .err()
+        .unwrap();
     assert!(
         matches!(error, openrouter_rs::error::OpenRouterError::Api(ref context) if context.status.as_u16() == 403 && context.message == "Forbidden")
     );
@@ -1166,14 +906,24 @@ async fn issue_254_credential_error_statuses_do_not_echo_raw_bodies() {
         .build()
         .unwrap();
     let errors = [
-        client.interns().daemon("intern-1").await.err().unwrap(),
         client
-            .interns()
-            .daemon_access("intern-1")
+            .management()
+            .create_api_key("test", None)
             .await
             .err()
             .unwrap(),
-        client.interns().daemon("intern-1").await.err().unwrap(),
+        client
+            .management()
+            .create_api_key("test", None)
+            .await
+            .err()
+            .unwrap(),
+        client
+            .management()
+            .create_api_key("test", None)
+            .await
+            .err()
+            .unwrap(),
         client
             .management()
             .exchange_oauth_token(
@@ -1198,7 +948,12 @@ async fn issue_254_credential_error_statuses_do_not_echo_raw_bodies() {
         assert!(!error.to_string().contains("secret"));
         assert!(!format!("{error:?}").contains("secret"));
     }
-    let error = client.interns().daemon("intern-1").await.err().unwrap();
+    let error = client
+        .management()
+        .create_api_key("test", None)
+        .await
+        .err()
+        .unwrap();
     assert!(
         matches!(error, openrouter_rs::error::OpenRouterError::Api(ref context) if context.status.as_u16() == 429 && context.message == "Wait" && context.is_retryable() && context.metadata.as_ref().unwrap()["reason"] == "rate_limited")
     );
@@ -1225,9 +980,15 @@ async fn issue_254_credential_body_read_failure_preserves_error_context() {
             // Close before the advertised body length to reproduce a transport read failure.
             stream.write_all(format!("HTTP/1.1 {status} Error\r\nContent-Type: application/json\r\nContent-Length: 1000\r\nX-Request-Id: truncated-credential\r\nConnection: close\r\n\r\n{{\"token\":\"partial-secret\"}}").as_bytes()).unwrap();
         });
+        // `create_auth_code` is API-key based and shares the credential decoder.
         let error = client(base_url)
-            .interns()
-            .daemon("intern-1")
+            .management()
+            .create_auth_code(
+                &openrouter_rs::api::auth::CreateAuthCodeRequest::builder()
+                    .callback_url("https://example.com/callback")
+                    .build()
+                    .unwrap(),
+            )
             .await
             .err()
             .unwrap();
@@ -1242,7 +1003,7 @@ async fn issue_254_credential_body_read_failure_preserves_error_context() {
 
 #[tokio::test]
 async fn issue_257_management_routes_and_errors() {
-    use openrouter_rs::api::{end_users::*, organization::*};
+    use openrouter_rs::api::{external_users::*, organization::*};
     let user = json!({"user":"team/a +?#", "is_active":true,
         "created_at":"2026-10-06T00:00:00Z", "updated_at":"2026-10-06T00:00:00Z"});
     let single = json!({"data":user}).to_string();
@@ -1275,18 +1036,18 @@ async fn issue_257_management_routes_and_errors() {
         .build()
         .unwrap();
     let management = client.management();
-    let params = ListEndUsersParams::builder()
+    let params = ListExternalUsersParams::builder()
         .offset(2)
         .limit(5)
         .user("team/a +?#")
         .include_inactive(true)
         .build()
         .unwrap();
-    let create = CreateEndUserRequest::builder()
+    let create = CreateExternalUserRequest::builder()
         .user("team/a +?#")
         .build()
         .unwrap();
-    let update = UpdateEndUserRequest::builder()
+    let update = UpdateExternalUserRequest::builder()
         .is_active(false)
         .build()
         .unwrap();
@@ -1296,28 +1057,28 @@ async fn issue_257_management_routes_and_errors() {
         .unwrap();
     assert_eq!(
         management
-            .list_end_users(&params)
+            .list_external_users(&params)
             .await
             .unwrap()
             .total_count,
         1
     );
     assert_eq!(
-        management.create_end_user(&create).await.unwrap().user,
+        management.create_external_user(&create).await.unwrap().user,
         "team/a +?#"
     );
     assert!(
         management
-            .get_end_user("team/a +?#")
+            .get_external_user("team/a +?#")
             .await
             .unwrap()
             .is_active
     );
     management
-        .update_end_user("team/a +?#", &update)
+        .update_external_user("team/a +?#", &update)
         .await
         .unwrap();
-    management.delete_end_user("team/a +?#").await.unwrap();
+    management.delete_external_user("team/a +?#").await.unwrap();
     assert_eq!(
         management.get_organization_settings().await.unwrap().id,
         "org_1"
@@ -1330,14 +1091,14 @@ async fn issue_257_management_routes_and_errors() {
             .is_filtered_model_catalog_enabled
     );
     let errors = [
-        management.list_end_users(&params).await.map(|_| ()),
-        management.create_end_user(&create).await.map(|_| ()),
-        management.get_end_user("team/a +?#").await.map(|_| ()),
+        management.list_external_users(&params).await.map(|_| ()),
+        management.create_external_user(&create).await.map(|_| ()),
+        management.get_external_user("team/a +?#").await.map(|_| ()),
         management
-            .update_end_user("team/a +?#", &update)
+            .update_external_user("team/a +?#", &update)
             .await
             .map(|_| ()),
-        management.delete_end_user("team/a +?#").await,
+        management.delete_external_user("team/a +?#").await,
         management.get_organization_settings().await.map(|_| ()),
         management
             .update_organization_settings(&settings_update)
@@ -1350,11 +1111,11 @@ async fn issue_257_management_routes_and_errors() {
         );
     }
     let expected = [
-        "GET /api/v1/end-users?offset=2&limit=5&user=team%2Fa+%2B%3F%23&include_inactive=true HTTP/1.1",
-        "POST /api/v1/end-users HTTP/1.1",
-        "GET /api/v1/end-users/team%2Fa%20%2B%3F%23 HTTP/1.1",
-        "PATCH /api/v1/end-users/team%2Fa%20%2B%3F%23 HTTP/1.1",
-        "DELETE /api/v1/end-users/team%2Fa%20%2B%3F%23 HTTP/1.1",
+        "GET /api/v1/external-users?offset=2&limit=5&user=team%2Fa+%2B%3F%23&include_inactive=true HTTP/1.1",
+        "POST /api/v1/external-users HTTP/1.1",
+        "GET /api/v1/external-users/team%2Fa%20%2B%3F%23 HTTP/1.1",
+        "PATCH /api/v1/external-users/team%2Fa%20%2B%3F%23 HTTP/1.1",
+        "DELETE /api/v1/external-users/team%2Fa%20%2B%3F%23 HTTP/1.1",
         "GET /api/v1/organization/settings HTTP/1.1",
         "PATCH /api/v1/organization/settings HTTP/1.1",
     ];
@@ -1389,14 +1150,14 @@ async fn issue_257_management_routes_and_errors() {
         .unwrap();
     let management = client.management();
     for result in [
-        management.list_end_users(&params).await.map(|_| ()),
-        management.create_end_user(&create).await.map(|_| ()),
-        management.get_end_user("user").await.map(|_| ()),
+        management.list_external_users(&params).await.map(|_| ()),
+        management.create_external_user(&create).await.map(|_| ()),
+        management.get_external_user("user").await.map(|_| ()),
         management
-            .update_end_user("user", &update)
+            .update_external_user("user", &update)
             .await
             .map(|_| ()),
-        management.delete_end_user("user").await,
+        management.delete_external_user("user").await,
         management.get_organization_settings().await.map(|_| ()),
         management
             .update_organization_settings(&settings_update)
@@ -1761,127 +1522,6 @@ async fn issue_264_key_filters_and_workspace_updates_use_management_auth() {
             .management()
             .update_api_key_with_request("hash", &request)
             .await,
-        Err(openrouter_rs::error::OpenRouterError::KeyNotConfigured)
-    ));
-}
-
-#[tokio::test]
-#[allow(deprecated)]
-async fn issue_264_daemon_signing_paths_auth_headers_and_errors() {
-    use openrouter_rs::api::interns::SignInternDaemonRequest;
-    let signature = json!({"x-ori-invoke-signature":"signed-secret","x-ori-invoke-timestamp":"123","x-ori-invoke-user":"user"});
-    let (base, rx, server) = spawn_server_sequence(vec![
-        (200, signature.to_string()),
-        (200, signature.to_string()),
-        (
-            403,
-            json!({"error":{"code":403,"message":"OAuth session required"}}).to_string(),
-        ),
-        (
-            403,
-            json!({"error":{"code":403,"message":"vault:read grant required"}}).to_string(),
-        ),
-        (500, "signature-secret invalid error".into()),
-        (
-            200,
-            json!({"x-ori-invoke-signature":"success-secret","x-ori-invoke-timestamp":123})
-                .to_string(),
-        ),
-    ]);
-    let client = OpenRouterClient::builder()
-        .base_url(base)
-        .api_key("oidc-session-token")
-        .management_key("management-key")
-        .x_title("test-app")
-        .http_referer("https://example.com")
-        .app_categories(["test"])
-        .build()
-        .unwrap();
-    let request = SignInternDaemonRequest::builder()
-        .body_sha256("a".repeat(64))
-        .build()
-        .unwrap();
-    let signed = client
-        .interns()
-        .sign_daemon("id/encoded", &request)
-        .await
-        .unwrap();
-    assert_eq!(signed.signature, "signed-secret");
-    assert_eq!(signed.timestamp, "123");
-    let alias = client
-        .interns()
-        .sign_daemon_access("id/encoded", &request)
-        .await
-        .unwrap();
-    assert_eq!(alias.user, "user");
-    for suffix in ["daemon/sign", "daemon-access/sign"] {
-        let capture = rx.recv().unwrap();
-        assert_eq!(
-            capture.line,
-            format!("POST /api/v1/interns/id%2Fencoded/{suffix} HTTP/1.1")
-        );
-        let headers = capture.headers.to_ascii_lowercase();
-        assert!(headers.contains("authorization: bearer oidc-session-token"));
-        assert!(headers.contains("x-openrouter-title: test-app"));
-        assert!(headers.contains("http-referer: https://example.com"));
-        assert!(headers.contains("x-openrouter-categories: test"));
-        assert_eq!(
-            serde_json::from_str::<serde_json::Value>(&capture.body).unwrap(),
-            json!({"bodySha256":"a".repeat(64)})
-        );
-    }
-    // The server owns OAuth-session and grant validation; preserve its 403 errors.
-    for (credential, message) in [
-        ("ordinary-api-key", "OAuth session required"),
-        ("interns-only-session", "vault:read grant required"),
-    ] {
-        let mut refused = client.clone();
-        refused.set_api_key(credential);
-        let error = refused
-            .interns()
-            .sign_daemon("id", &request)
-            .await
-            .err()
-            .unwrap();
-        assert!(
-            matches!(error, openrouter_rs::error::OpenRouterError::Api(context)
-            if context.status.as_u16() == 403 && context.message == message)
-        );
-        let capture = rx.recv().unwrap();
-        assert!(
-            capture
-                .headers
-                .to_ascii_lowercase()
-                .contains(&format!("authorization: bearer {credential}"))
-        );
-    }
-    for secret in ["signature-secret", "success-secret"] {
-        let error = client
-            .interns()
-            .sign_daemon("id", &request)
-            .await
-            .err()
-            .unwrap();
-        assert!(!error.to_string().contains(secret));
-        rx.recv().unwrap();
-    }
-    server.join().unwrap();
-    for digest in ["".into(), "A".repeat(64), "g".repeat(64), "a".repeat(63)] {
-        let invalid = SignInternDaemonRequest::builder()
-            .body_sha256(digest)
-            .build()
-            .unwrap();
-        assert!(matches!(
-            client.interns().sign_daemon("id", &invalid).await,
-            Err(openrouter_rs::error::OpenRouterError::ConfigError(_))
-        ));
-    }
-    let missing = OpenRouterClient::builder()
-        .management_key("management-only")
-        .build()
-        .unwrap();
-    assert!(matches!(
-        missing.interns().sign_daemon("id", &request).await,
         Err(openrouter_rs::error::OpenRouterError::KeyNotConfigured)
     ));
 }

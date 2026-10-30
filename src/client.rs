@@ -6,8 +6,9 @@ use crate::api::legacy::completion;
 use crate::{
     api::{
         analytics, api_keys, audio, auth, batches, byok, chat, credits, decisions, discovery,
-        embeddings, end_users, files, generation, guardrails, images, interns, messages, models,
-        observability, organization, presets, rerank, responses, scim, vault, videos, workspaces,
+        embeddings, external_users, files, generation, guardrails, images, messages, models,
+        observability, organization, presets, private_providers, rerank, responses, scim, vault,
+        videos, workspaces,
     },
     error::OpenRouterError,
     strip_option_vec_setter,
@@ -174,11 +175,6 @@ impl OpenRouterClient {
         BatchesClient { client: self }
     }
 
-    /// Domain client for intern lifecycle, invocation, daemon access, and chat.
-    pub fn interns(&self) -> InternsClient<'_> {
-        InternsClient { client: self }
-    }
-
     /// Domain client for workspace and intern vault secrets.
     pub fn vault(&self) -> VaultClient<'_> {
         VaultClient { client: self }
@@ -271,197 +267,6 @@ impl BatchesClient<'_> {
         batches::delete_with_client(
             &self.client.request_context(self.client.require_api_key()?),
             batch_id,
-        )
-        .await
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct InternsClient<'a> {
-    client: &'a OpenRouterClient,
-}
-
-impl InternsClient<'_> {
-    /// Sign the SHA-256 digest of a daemon invocation body.
-    /// Configure the client's `api_key` bearer slot with the OAuth access token from
-    /// `ori login --oidc`, whose grant must include `vault:read`. Ordinary API keys
-    /// and `interns`-only grants are refused with 403 by the server.
-    pub async fn sign_daemon(
-        &self,
-        intern_id: &str,
-        request: &interns::SignInternDaemonRequest,
-    ) -> Result<interns::SignInternDaemonResponse, OpenRouterError> {
-        interns::sign_daemon_with_client(
-            &self.client.request_context(self.client.require_api_key()?),
-            intern_id,
-            "daemon/sign",
-            request,
-        )
-        .await
-    }
-
-    /// Deprecated upstream alias; uses the same OAuth session and `vault:read`
-    /// requirements as [`Self::sign_daemon`].
-    #[deprecated(note = "use sign_daemon")]
-    pub async fn sign_daemon_access(
-        &self,
-        intern_id: &str,
-        request: &interns::SignInternDaemonRequest,
-    ) -> Result<interns::SignInternDaemonResponse, OpenRouterError> {
-        interns::sign_daemon_with_client(
-            &self.client.request_context(self.client.require_api_key()?),
-            intern_id,
-            "daemon-access/sign",
-            request,
-        )
-        .await
-    }
-
-    /// Start or steer a run; the returned session can be used to continue it.
-    pub async fn invoke(
-        &self,
-        intern_id: &str,
-        request: &interns::InternInvokeRequest,
-    ) -> Result<interns::InternInvokeResponse, OpenRouterError> {
-        interns::invoke_with_client(
-            &self.client.request_context(self.client.require_api_key()?),
-            intern_id,
-            request,
-        )
-        .await
-    }
-
-    pub async fn daemon(
-        &self,
-        intern_id: &str,
-    ) -> Result<interns::InternDaemonAccess, OpenRouterError> {
-        interns::daemon_with_client(
-            &self.client.request_context(self.client.require_api_key()?),
-            intern_id,
-            "daemon",
-        )
-        .await
-    }
-
-    /// Deprecated upstream alias; prefer `daemon`.
-    #[deprecated(note = "use daemon")]
-    pub async fn daemon_access(
-        &self,
-        intern_id: &str,
-    ) -> Result<interns::InternDaemonAccess, OpenRouterError> {
-        interns::daemon_with_client(
-            &self.client.request_context(self.client.require_api_key()?),
-            intern_id,
-            "daemon-access",
-        )
-        .await
-    }
-
-    pub async fn list(
-        &self,
-        params: &interns::ListInternsParams,
-    ) -> Result<interns::InternListResponse, OpenRouterError> {
-        interns::list_interns_with_client(
-            &self.client.request_context(self.client.require_api_key()?),
-            params,
-        )
-        .await
-    }
-
-    pub async fn create(
-        &self,
-        request: &interns::CreateInternRequest,
-        idempotency_key: Option<&str>,
-    ) -> Result<interns::Intern, OpenRouterError> {
-        interns::create_intern_with_client(
-            &self.client.request_context(self.client.require_api_key()?),
-            idempotency_key,
-            request,
-        )
-        .await
-    }
-
-    pub async fn get(&self, intern_id: &str) -> Result<interns::Intern, OpenRouterError> {
-        interns::get_intern_with_client(
-            &self.client.request_context(self.client.require_api_key()?),
-            intern_id,
-        )
-        .await
-    }
-
-    /// Fetch an intern's icon bytes; pass `icon_sha256` as `version` for a cacheable response.
-    pub async fn get_icon(
-        &self,
-        intern_id: &str,
-        version: Option<&str>,
-    ) -> Result<interns::InternIcon, OpenRouterError> {
-        interns::get_intern_icon_with_client(
-            &self.client.request_context(self.client.require_api_key()?),
-            intern_id,
-            version,
-        )
-        .await
-    }
-
-    pub async fn update(
-        &self,
-        intern_id: &str,
-        request: &interns::UpdateInternRequest,
-    ) -> Result<interns::Intern, OpenRouterError> {
-        interns::update_intern_with_client(
-            &self.client.request_context(self.client.require_api_key()?),
-            intern_id,
-            request,
-        )
-        .await
-    }
-
-    pub async fn delete(
-        &self,
-        intern_id: &str,
-        request: Option<&interns::DeleteInternRequest>,
-    ) -> Result<interns::DeleteInternResponse, OpenRouterError> {
-        interns::delete_intern_with_client(
-            &self.client.request_context(self.client.require_api_key()?),
-            intern_id,
-            request,
-        )
-        .await
-    }
-
-    pub async fn provision(
-        &self,
-        intern_id: &str,
-    ) -> Result<interns::ProvisionInternResponse, OpenRouterError> {
-        interns::action_with_client(
-            &self.client.request_context(self.client.require_api_key()?),
-            intern_id,
-            "provision",
-        )
-        .await
-    }
-
-    pub async fn suspend(
-        &self,
-        intern_id: &str,
-    ) -> Result<interns::SuspendInternResponse, OpenRouterError> {
-        interns::action_with_client(
-            &self.client.request_context(self.client.require_api_key()?),
-            intern_id,
-            "suspend",
-        )
-        .await
-    }
-
-    pub async fn chat_completion(
-        &self,
-        intern_id: &str,
-        request: &interns::InternChatRequest,
-    ) -> Result<interns::InternChatResult, OpenRouterError> {
-        interns::chat_completion_with_client(
-            &self.client.request_context(self.client.require_api_key()?),
-            intern_id,
-            request,
         )
         .await
     }
@@ -1462,46 +1267,109 @@ impl<'a> ManagementClient<'a> {
             .await
     }
 
-    /// GET `/end-users`.
-    pub async fn list_end_users(
+    /// GET `/private-providers`.
+    pub async fn list_private_providers(
         &self,
-        params: &end_users::ListEndUsersParams,
-    ) -> Result<end_users::ListEndUsersResponse, OpenRouterError> {
-        end_users::list_end_users_with_client(
+    ) -> Result<Vec<private_providers::PrivateProvider>, OpenRouterError> {
+        private_providers::list_private_providers_with_client(
+            &self.client.request_context(self.management_key()?),
+        )
+        .await
+    }
+
+    /// POST `/private-providers`.
+    pub async fn create_private_provider(
+        &self,
+        request: &private_providers::CreatePrivateProviderRequest,
+    ) -> Result<private_providers::PrivateProvider, OpenRouterError> {
+        private_providers::create_private_provider_with_client(
+            &self.client.request_context(self.management_key()?),
+            request,
+        )
+        .await
+    }
+
+    /// GET `/private-providers/{slug}`.
+    pub async fn get_private_provider(
+        &self,
+        slug: &str,
+    ) -> Result<private_providers::PrivateProvider, OpenRouterError> {
+        private_providers::get_private_provider_with_client(
+            &self.client.request_context(self.management_key()?),
+            slug,
+        )
+        .await
+    }
+
+    /// PATCH `/private-providers/{slug}`.
+    pub async fn update_private_provider(
+        &self,
+        slug: &str,
+        request: &private_providers::UpdatePrivateProviderRequest,
+    ) -> Result<private_providers::PrivateProvider, OpenRouterError> {
+        private_providers::update_private_provider_with_client(
+            &self.client.request_context(self.management_key()?),
+            slug,
+            request,
+        )
+        .await
+    }
+
+    /// DELETE `/private-providers/{slug}`.
+    pub async fn delete_private_provider(
+        &self,
+        slug: &str,
+    ) -> Result<private_providers::DeletedPrivateProvider, OpenRouterError> {
+        private_providers::delete_private_provider_with_client(
+            &self.client.request_context(self.management_key()?),
+            slug,
+        )
+        .await
+    }
+
+    /// GET `/external-users`.
+    pub async fn list_external_users(
+        &self,
+        params: &external_users::ListExternalUsersParams,
+    ) -> Result<external_users::ListExternalUsersResponse, OpenRouterError> {
+        external_users::list_external_users_with_client(
             &self.client.request_context(self.management_key()?),
             params,
         )
         .await
     }
 
-    /// POST `/end-users`.
-    pub async fn create_end_user(
+    /// POST `/external-users`.
+    pub async fn create_external_user(
         &self,
-        request: &end_users::CreateEndUserRequest,
-    ) -> Result<end_users::EndUser, OpenRouterError> {
-        end_users::create_end_user_with_client(
+        request: &external_users::CreateExternalUserRequest,
+    ) -> Result<external_users::ExternalUser, OpenRouterError> {
+        external_users::create_external_user_with_client(
             &self.client.request_context(self.management_key()?),
             request,
         )
         .await
     }
 
-    /// GET `/end-users/{user}`.
-    pub async fn get_end_user(&self, user: &str) -> Result<end_users::EndUser, OpenRouterError> {
-        end_users::get_end_user_with_client(
-            &self.client.request_context(self.management_key()?),
-            user,
-        )
-        .await
-    }
-
-    /// PATCH `/end-users/{user}`.
-    pub async fn update_end_user(
+    /// GET `/external-users/{user}`.
+    pub async fn get_external_user(
         &self,
         user: &str,
-        request: &end_users::UpdateEndUserRequest,
-    ) -> Result<end_users::EndUser, OpenRouterError> {
-        end_users::update_end_user_with_client(
+    ) -> Result<external_users::ExternalUser, OpenRouterError> {
+        external_users::get_external_user_with_client(
+            &self.client.request_context(self.management_key()?),
+            user,
+        )
+        .await
+    }
+
+    /// PATCH `/external-users/{user}`.
+    pub async fn update_external_user(
+        &self,
+        user: &str,
+        request: &external_users::UpdateExternalUserRequest,
+    ) -> Result<external_users::ExternalUser, OpenRouterError> {
+        external_users::update_external_user_with_client(
             &self.client.request_context(self.management_key()?),
             user,
             request,
@@ -1509,9 +1377,9 @@ impl<'a> ManagementClient<'a> {
         .await
     }
 
-    /// DELETE `/end-users/{user}`. Soft-deactivates registration; does not block inference.
-    pub async fn delete_end_user(&self, user: &str) -> Result<(), OpenRouterError> {
-        end_users::delete_end_user_with_client(
+    /// DELETE `/external-users/{user}`. Soft-deactivates registration; does not block inference.
+    pub async fn delete_external_user(&self, user: &str) -> Result<(), OpenRouterError> {
+        external_users::delete_external_user_with_client(
             &self.client.request_context(self.management_key()?),
             user,
         )

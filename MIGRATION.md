@@ -105,11 +105,40 @@ calls are unchanged (`.tool(…)`, `.server_tool(…)`); `tools()` now returns a
 `ChatCompletionRequestBuilder::server_tools(…)` now keeps existing function tools instead of
 replacing the whole list.
 
+### Upstream drift accepted in the same release
+
+`/end-users*` is renamed to `/external-users*` upstream and `/interns*` is gone:
+
+```rust
+// before
+client.management().list_end_users(&params).await?;
+client.interns().list(&params).await?;
+
+// after
+client.management().list_external_users(&params).await?;
+// the interns domain is removed; only the vault reads under
+// `/vault/interns/{id}/...` remain, via client.vault()
+```
+
+Renamed with the route: `EndUser` -> `ExternalUser`, `CreateEndUserRequest` ->
+`CreateExternalUserRequest`, `UpdateEndUserRequest` -> `UpdateExternalUserRequest`,
+`ListEndUsersParams` -> `ListExternalUsersParams`, and
+`api::end_users` -> `api::external_users`.
+
+New surface from the same review: `management().list_private_providers(...)` and
+the four write methods beside it, `Guardrail::enforce_first_party_harness_models`,
+`PromptCacheBreakpoint::explicit_with_ttl(...)`, `ListUserModelsParams::client(...)`,
+and `VaultInternConnectionListResponse::{routing, routing_text}`.
+
+Deliberately not covered: `/private-endpoints*` (never exposed by this SDK, and the
+one newly added operation there is deprecated) and provider-UI metadata that
+already round-trips through flexible `Value` fields.
+
 ### Other source breaks
 
 - `OpenRouterError` is `#[non_exhaustive]`; add a wildcard arm where you match it.
-- `Role`, `ObjectType`, and `AnthropicRole` gained an `Other(String)` variant, so an
-  unrecognized upstream value no longer fails the containing response.
+- `Role`, `ObjectType`, and `api::messages::AnthropicRole` gained an `Other(String)` variant,
+  so an unrecognized upstream value no longer fails the containing response.
 - Endpoint modules no longer export the removed functions, so `use openrouter_rs::api::*`
   imports of those names must go.
 
