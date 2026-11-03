@@ -449,6 +449,8 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 ### Unreleased
 
+- Accepted the November 3 OpenAPI snapshot: model `endpoints`, ZDR endpoint `safety_retention`, and Responses `access_programs`. Private providers dropped `data_policy` (**breaking**); `POST /api/alpha/extractions` stays deferred.
+
 ### Version 0.23.0 *(Latest)*
 
 - **Breaking:** One entry path per endpoint family: the 162 `api::*` endpoint functions and 109 flat `OpenRouterClient` methods are gone, so every call honours the configured client. See the [0.23 migration notes](MIGRATION.md#022x---0230-one-entry-path-per-endpoint-family).
