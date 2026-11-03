@@ -205,9 +205,14 @@ async fn test_tool_helper_function() {
     assert!(params["properties"]["operation"].is_object());
 }
 
+/// Non-streaming tool calls are decoded by a different path than the unified
+/// stream, so this keeps live coverage on the assembled request/response shape.
 #[tokio::test]
-#[ignore = "Requires API key and makes real API calls"]
 async fn test_real_tool_call() {
+    if !crate::test_utils::live_api_key_available() {
+        eprintln!("skipping real tool-call check: no API key configured");
+        return;
+    }
     let client = create_test_client().unwrap();
 
     let tool = Tool::builder()

@@ -107,7 +107,7 @@ Management-governed endpoints require `OPENROUTER_MANAGEMENT_KEY`; ordinary chat
 - Typed tools, manual JSON-schema tools, OpenRouter server tools, and multimodal chat content
 - Typed chat usage metadata for token counts, OpenRouter cost, provider cost breakdowns, and BYOK status
 - Opt-in OpenRouter response metadata for chat, Responses API, and Anthropic-compatible Messages requests
-- Discovery, rankings and benchmark datasets, task classifications, rerank, audio speech/transcription, image generation, video generation, provider-backed files, embeddings, API-key management, preset creation/readback/versioning, analytics, BYOK provider credentials, observability destinations, workspace management, SCIM group mappings, organization members/settings, end-user registrations, guardrails, activity, credits, and generation metadata/content coverage
+- Discovery, rankings and benchmark datasets, task classifications, rerank, audio speech/transcription, image generation, video generation, provider-backed files, embeddings, API-key management, preset creation/readback/versioning, analytics, BYOK provider credentials, observability destinations, workspace management, SCIM group mappings, organization members/settings, external-user registrations, guardrails, activity, credits, and generation metadata/content coverage
 - A companion CLI for profile resolution, discovery, management, and billing/usage workflows
 
 Accepted endpoint coverage and live-test status are recorded separately in the [endpoint matrix](docs/operations/official-endpoint-test-matrix.md). See the [changelog](CHANGELOG.md) for release details and [migration guide](MIGRATION.md) when upgrading, including the [0.19 speech input change](MIGRATION.md#018x---0190-compatibility-notes).
@@ -272,7 +272,7 @@ The repo includes runnable examples for the highest-value workflows:
 | [`examples/domain_management_api_keys.rs`](examples/domain_management_api_keys.rs) | API-key management via `management()` |
 | [`examples/list_byok_keys.rs`](examples/list_byok_keys.rs) | `management().list_byok_keys(...)` |
 | [`examples/list_observability_destinations.rs`](examples/list_observability_destinations.rs) | `management().list_observability_destinations(...)` |
-| [`examples/list_organization_members.rs`](examples/list_organization_members.rs) | Organization members/settings and end-user registration listing |
+| [`examples/list_organization_members.rs`](examples/list_organization_members.rs) | Organization members/settings and external-user registration listing |
 | [`examples/list_workspaces.rs`](examples/list_workspaces.rs) | `management().list_workspaces(...)` |
 | [`examples/exchange_code_for_api_key.rs`](examples/exchange_code_for_api_key.rs) | PKCE/auth-code flow |
 | [`examples/send_completion_request.rs`](examples/send_completion_request.rs) | Legacy completions (`legacy-completions` required) |
