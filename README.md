@@ -346,7 +346,7 @@ For copy-paste shell/CI recipes, see [`docs/operations/cli-automation-workflows.
 
 - Community-maintained third-party SDK; not affiliated with OpenRouter
 - Canonical docs and examples prefer the domain clients over older flat helpers
-- Accepted endpoint coverage is tracked against the current OpenAPI snapshot, and the current baseline is reviewed, with `140 / 153` operations implemented at the SDK surface and 13 newer operations deferred
+- Accepted endpoint coverage is tracked against the current OpenAPI snapshot, and the current baseline is reviewed, with `140 / 154` operations implemented at the SDK surface and 14 newer operations deferred
 - Live integration coverage and gaps are published in [`docs/operations/official-endpoint-test-matrix.md`](docs/operations/official-endpoint-test-matrix.md)
 - Migration guidance for the `0.9.x -> 0.10.0` public-model future-proofing release, the `0.8.x -> 0.9.0` audio speech release, the `0.7.x -> 0.8.0` transport/error-surface release, and the archived `0.5.x -> 0.6.x` naming guide lives in [`MIGRATION.md`](MIGRATION.md)
 - Legacy `POST /completions` support remains available behind the `legacy-completions` feature
@@ -448,6 +448,8 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 ## 📈 Release History
 
 ### Unreleased
+
+- Accepted the November 3 OpenAPI snapshot: model `endpoints`, ZDR endpoint `safety_retention`, and Responses `access_programs`. Private providers dropped `data_policy` (**breaking**); `POST /api/alpha/extractions` stays deferred.
 
 ### Version 0.23.0 *(Latest)*
 

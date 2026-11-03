@@ -1,6 +1,6 @@
 # Official Endpoint Test Matrix
 
-Snapshot date: 2026-10-20
+Snapshot date: 2026-11-03
 Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)  
 Tracked baseline: `specs/openrouter/openapi-baseline.json`  
 Weekly drift workflow: `.github/workflows/openapi-drift.yml`
@@ -18,9 +18,9 @@ change.
 
 ## Coverage Summary
 
-- Official OpenAPI endpoints: `153` method+path entries.
-- SDK implementation coverage (`src/api` + domain client): `140 / 153` (`91.5%`).
-- Live integration coverage (`tests/integration`): `25 / 153` endpoints currently exercised.
+- Official OpenAPI endpoints: `154` method+path entries.
+- SDK implementation coverage (`src/api` + domain client): `140 / 154` (`90.9%`).
+- Live integration coverage (`tests/integration`): `25 / 154` endpoints currently exercised.
   - Covered live now: `GET /oauth/jwks`, `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `POST /rerank`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`, `GET /organization/members`
 
 Chat response regression coverage:
@@ -33,6 +33,7 @@ Chat response regression coverage:
 
 Drift review note:
 
+- Issue #291 (2026-11-02): accepted `Model`/`UserModel` `endpoints` (the request API paths that serve the model), `PublicEndpoint` `safety_retention` on `GET /endpoints/zdr`, and Responses `access_programs.cyber`. Upstream also removed private-provider `data_policy` from the create/update requests and every response, so `PrivateProviderDataPolicy` and its fields are gone (breaking). Reviewed as already covered: generation `api_type` `extractions` and provider `provider_sort_order_mode`/`provider_sort_order_rank` stay flexible strings and `extra` maps, and Batch result bodies keep echoing through `Value`. Deferred as out of scope: `POST /api/alpha/extractions`, whose alpha request/response shape (nine typed field specs and nine answer shapes) is documented as unstable upstream.
 - Issue #285 (2026-10-30): accepted the drift that renames `/end-users*` to `/external-users*`, removes the `/interns*` family, and adds `/private-providers*`. `management()` now exposes `list_external_users`/`create_external_user`/`get_external_user`/`update_external_user`/`delete_external_user` and `list_private_providers`/`create_private_provider`/`get_private_provider`/`update_private_provider`/`delete_private_provider`; `client.interns()` and its types are gone. Also accepted: guardrail `enforce_first_party_harness_models`, prompt-cache breakpoint `ttl`, user-model `client` filter, and vault connection `routing`/`routing_text`. Deferred as out of scope: the never-covered `/private-endpoints*` family, including the newly added but deprecated `PUT /private-endpoints/{id}/parameters`, plus provider-UI metadata inside flexible objects (`authMode`, `visibleWhen`) and provider option maps that already round-trip through `Value`.
 - Issue #273 (2026-10-20): accepted the two added operations `GET /interns/{internId}/icon` and `GET /vault/interns/{internId}/connections` through `client.interns().get_icon(...)` and `client.vault().list_connections_for_intern(...)`. Added Batch `callback_url`/`expires_at`/`provider`, endpoint `service_tier`/`supports_diarization`, guardrail `allow_safety_retention_*`, observability `broadcast_generation_cost_allocation`, video signed `urls`, intern `created_by_you`/`icon_sha256`, route-bound daemon signing (`route`, nonce and v2 signature), user-model `sort`, and Responses `stop`. Chat `alignment`/`safeguard_results` and Responses `openrouter:armor_blocked` items stay flexible (`Value`); Armor/alignment plugin configuration stays on `Plugin` maps. New 408/409/499 statuses use the shared error parser. No CLI flags change.
 - Issue #264 (2026-10-13): accepted canonical `POST /interns/{internId}/daemon/sign` and the deprecated `daemon-access/sign` alias. Local HTTP tests cover encoded paths, digest request casing/validation, both routes, OAuth session bearer forwarding, attribution headers, 403 responses for ordinary API keys and insufficient grants, malformed credential errors and absent auth. Signature values have no Debug implementation. These routes require an `ori login --oidc` session with `vault:read`, including the deprecated alias; ordinary API keys and `interns`-only grants are rejected with 403. The existing client `api_key` slot forwards the session token. Mock tests verify forwarding and error handling; session/scope validation remains server-owned and has no live qualification.
@@ -262,6 +263,7 @@ These are in the tracked upstream baseline and are not implemented by the SDK.
 | `GET /tools` | Deferred beyond issue #254 |
 | `GET /tools/{name}` | Deferred beyond issue #254 |
 | `GET /vault/interns/{internId}/effective-secrets` | Deferred beyond issue #254 |
+| `POST /api/alpha/extractions` | Deferred beyond issue #291 (alpha; upstream shape is unstable) |
 
 ## Supplemental (Legacy)
 

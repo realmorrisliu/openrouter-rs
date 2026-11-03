@@ -125,6 +125,9 @@ pub struct UserModel {
     pub per_request_limits: Option<PerRequestLimits>,
     #[serde(default)]
     pub supported_parameters: Vec<String>,
+    /// Request API paths that serve this model, e.g. `/api/v1/chat/completions`.
+    #[serde(default)]
+    pub endpoints: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub supported_voices: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -192,6 +195,10 @@ pub struct PublicEndpoint {
     /// Service tier this endpoint sells, or `None` for a standard endpoint.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub service_tier: Option<String>,
+    /// Whether the endpoint uses Safety Retention: prompts are not retained by
+    /// default, but the provider may retain prompts its safety classifiers flag.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub safety_retention: Option<bool>,
     /// Whether this STT endpoint can label transcript segments by speaker.
     #[serde(default)]
     pub supports_diarization: bool,

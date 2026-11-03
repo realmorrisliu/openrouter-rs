@@ -15110,15 +15110,19 @@
         "type": "object"
       },
       "CreatePrivateProviderRequest": {
+        "description": "A private provider serves only your organization, so its endpoints are recorded as retaining no prompts, training on none and publishing none, and pass every data-policy filter your account or guardrails apply.",
+        "example": {
+          "base_url": "https://inference.example.com/v1",
+          "display_name": "Acme",
+          "name": "Acme",
+          "slug": "acme"
+        },
         "properties": {
           "base_url": {
             "description": "HTTPS base URL of an OpenAI-compatible API, used by private endpoints under this provider that set no URL of their own. Without it, each endpoint must set its own. Private, internal, metadata and OpenRouter hosts are rejected.",
             "example": "https://inference.example.com/v1",
             "minLength": 1,
             "type": "string"
-          },
-          "data_policy": {
-            "$ref": "#/components/schemas/PrivateProviderDataPolicy"
           },
           "display_name": {
             "description": "Defaults to `name`.",
@@ -15796,6 +15800,43 @@
           "type",
           "debug",
           "sequence_number"
+        ],
+        "type": "object"
+      },
+      "Decisions": {
+        "properties": {
+          "latency": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PercentileStats"
+              },
+              {
+                "description": "Latency percentiles in milliseconds for this workload. Image and video generation report full end-to-end generation time, because their raw latency only measures request acknowledgement; every other workload reports time to first token or result."
+              }
+            ]
+          },
+          "request_count": {
+            "description": "Total requests admitted for this workload in the window.",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "throughput": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PercentileStats"
+              },
+              {
+                "description": "Throughput percentiles in tokens per second; pN is the speed that N% of requests reached or exceeded, so p90 is lower than p50. Only meaningful for text generation; null for workloads without token throughput."
+              }
+            ]
+          }
+        },
+        "required": [
+          "latency",
+          "throughput",
+          "request_count"
         ],
         "type": "object"
       },
@@ -16856,6 +16897,43 @@
         ],
         "type": "object"
       },
+      "Embeddings": {
+        "properties": {
+          "latency": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PercentileStats"
+              },
+              {
+                "description": "Latency percentiles in milliseconds for this workload. Image and video generation report full end-to-end generation time, because their raw latency only measures request acknowledgement; every other workload reports time to first token or result."
+              }
+            ]
+          },
+          "request_count": {
+            "description": "Total requests admitted for this workload in the window.",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "throughput": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PercentileStats"
+              },
+              {
+                "description": "Throughput percentiles in tokens per second; pN is the speed that N% of requests reached or exceeded, so p90 is lower than p50. Only meaningful for text generation; null for workloads without token throughput."
+              }
+            ]
+          }
+        },
+        "required": [
+          "latency",
+          "throughput",
+          "request_count"
+        ],
+        "type": "object"
+      },
       "EndpointInfo": {
         "example": {
           "model": "openai/gpt-4o",
@@ -17029,6 +17107,1471 @@
         },
         "required": [
           "data"
+        ],
+        "type": "object"
+      },
+      "ExtractionAsset": {
+        "additionalProperties": false,
+        "description": "An image or PDF sent once and referenced by its key in the `assets` map. `data_base64` is the file in standard base64 with no `data:` prefix. PDF is read by document models only.",
+        "properties": {
+          "data_base64": {
+            "minLength": 1,
+            "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$",
+            "type": "string"
+          },
+          "format": {
+            "enum": [
+              "png",
+              "jpg",
+              "jpeg",
+              "pdf"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "type": {
+            "enum": [
+              "image",
+              "document"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          }
+        },
+        "required": [
+          "format",
+          "data_base64"
+        ],
+        "type": "object"
+      },
+      "ExtractionDateAnswer": {
+        "properties": {
+          "confidence": {
+            "format": "double",
+            "type": "number"
+          },
+          "guess": {
+            "description": "The most likely value even when `value` is null because `p_null` crossed the threshold.",
+            "type": "string"
+          },
+          "p_null": {
+            "description": "Probability that the state contains nothing for this field.",
+            "format": "double",
+            "type": "number"
+          },
+          "source": {
+            "description": "Set to `image` or `document` when the answer was read from an image or a PDF rather than the state text.",
+            "enum": [
+              "state",
+              "image",
+              "document"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "span": {
+            "description": "Unicode code point offsets [start, end) into the state text: index code points (not UTF-16 code units or UTF-8 bytes), so an emoji or accented letter counts once.",
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          },
+          "spell_confidence": {
+            "description": "Confidence in the spelling of text read from an image.",
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "date"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object"
+      },
+      "ExtractionDateField": {
+        "additionalProperties": false,
+        "properties": {
+          "instructions": {
+            "description": "What the field should contain.",
+            "type": "string"
+          },
+          "null_threshold": {
+            "description": "Probability of null above which `value` is null. Default 0.5.",
+            "format": "double",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "date"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "ExtractionDatetimeAnswer": {
+        "properties": {
+          "confidence": {
+            "format": "double",
+            "type": "number"
+          },
+          "guess": {
+            "description": "The most likely value even when `value` is null because `p_null` crossed the threshold.",
+            "type": "string"
+          },
+          "p_null": {
+            "description": "Probability that the state contains nothing for this field.",
+            "format": "double",
+            "type": "number"
+          },
+          "source": {
+            "description": "Set to `image` or `document` when the answer was read from an image or a PDF rather than the state text.",
+            "enum": [
+              "state",
+              "image",
+              "document"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "span": {
+            "description": "Unicode code point offsets [start, end) into the state text: index code points (not UTF-16 code units or UTF-8 bytes), so an emoji or accented letter counts once.",
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          },
+          "spell_confidence": {
+            "description": "Confidence in the spelling of text read from an image.",
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "datetime"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object"
+      },
+      "ExtractionDatetimeField": {
+        "additionalProperties": false,
+        "properties": {
+          "instructions": {
+            "description": "What the field should contain.",
+            "type": "string"
+          },
+          "null_threshold": {
+            "description": "Probability of null above which `value` is null. Default 0.5.",
+            "format": "double",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "datetime"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "ExtractionDurationAnswer": {
+        "properties": {
+          "confidence": {
+            "format": "double",
+            "type": "number"
+          },
+          "guess": {
+            "description": "The most likely value even when `value` is null because `p_null` crossed the threshold.",
+            "format": "double",
+            "type": "number"
+          },
+          "p_null": {
+            "description": "Probability that the state contains nothing for this field.",
+            "format": "double",
+            "type": "number"
+          },
+          "source": {
+            "description": "Set to `image` or `document` when the answer was read from an image or a PDF rather than the state text.",
+            "enum": [
+              "state",
+              "image",
+              "document"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "span": {
+            "description": "Unicode code point offsets [start, end) into the state text: index code points (not UTF-16 code units or UTF-8 bytes), so an emoji or accented letter counts once.",
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          },
+          "spell_confidence": {
+            "description": "Confidence in the spelling of text read from an image.",
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "duration"
+            ],
+            "type": "string"
+          },
+          "unit": {
+            "description": "The unit `value` is expressed in.",
+            "type": "string"
+          },
+          "value": {
+            "format": "double",
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object"
+      },
+      "ExtractionDurationField": {
+        "additionalProperties": false,
+        "properties": {
+          "decimals": {
+            "description": "Decimal places kept in `value`.",
+            "maximum": 6,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "instructions": {
+            "description": "What the field should contain.",
+            "type": "string"
+          },
+          "integer": {
+            "type": "boolean"
+          },
+          "null_threshold": {
+            "description": "Probability of null above which `value` is null. Default 0.5.",
+            "format": "double",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "duration"
+            ],
+            "type": "string"
+          },
+          "unit": {
+            "description": "seconds, minutes, hours, days, weeks, months or years.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "ExtractionEstimateAnswer": {
+        "properties": {
+          "confidence": {
+            "format": "double",
+            "type": "number"
+          },
+          "guess": {
+            "anyOf": [
+              {
+                "format": "double",
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "The most likely value even when `value` is null because `p_null` crossed the threshold."
+          },
+          "mean": {
+            "anyOf": [
+              {
+                "format": "double",
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "median": {
+            "anyOf": [
+              {
+                "format": "double",
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "p10": {
+            "anyOf": [
+              {
+                "format": "double",
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "p90": {
+            "anyOf": [
+              {
+                "format": "double",
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "p_above": {
+            "description": "Probability mass above `max`.",
+            "format": "double",
+            "type": "number"
+          },
+          "p_below": {
+            "description": "Probability mass below `min`.",
+            "format": "double",
+            "type": "number"
+          },
+          "p_null": {
+            "description": "Probability that the state contains nothing for this field.",
+            "format": "double",
+            "type": "number"
+          },
+          "quantiles": {
+            "description": "99 percentiles, present when the provider is asked for quantiles.",
+            "items": {
+              "anyOf": [
+                {
+                  "format": "double",
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          "source": {
+            "description": "Set to `image` or `document` when the answer was read from an image or a PDF rather than the state text.",
+            "enum": [
+              "state",
+              "image",
+              "document"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "spell_confidence": {
+            "description": "Confidence in the spelling of text read from an image.",
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "estimate"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "format": "double",
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object"
+      },
+      "ExtractionEstimateField": {
+        "additionalProperties": false,
+        "properties": {
+          "instructions": {
+            "description": "What the field should contain.",
+            "type": "string"
+          },
+          "max": {
+            "anyOf": [
+              {
+                "format": "double",
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "min": {
+            "anyOf": [
+              {
+                "format": "double",
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "null_threshold": {
+            "description": "Probability of null above which `value` is null. Default 0.5.",
+            "format": "double",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "scale": {
+            "enum": [
+              "linear",
+              "log"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "step": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0,
+                "format": "double",
+                "type": "number"
+              },
+              {
+                "enum": [
+                  "month"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "year"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "type": {
+            "enum": [
+              "estimate"
+            ],
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "min",
+          "max"
+        ],
+        "type": "object"
+      },
+      "ExtractionForecastAnswer": {
+        "properties": {
+          "confidence": {
+            "format": "double",
+            "type": "number"
+          },
+          "guess": {
+            "description": "The most likely value even when `value` is null because `p_null` crossed the threshold.",
+            "items": {
+              "anyOf": [
+                {
+                  "format": "double",
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          "mean": {
+            "items": {
+              "anyOf": [
+                {
+                  "format": "double",
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          "median": {
+            "items": {
+              "anyOf": [
+                {
+                  "format": "double",
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          "p10": {
+            "items": {
+              "anyOf": [
+                {
+                  "format": "double",
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          "p90": {
+            "items": {
+              "anyOf": [
+                {
+                  "format": "double",
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          "p_null": {
+            "description": "Probability that the state contains nothing for this field.",
+            "format": "double",
+            "type": "number"
+          },
+          "source": {
+            "description": "Set to `image` or `document` when the answer was read from an image or a PDF rather than the state text.",
+            "enum": [
+              "state",
+              "image",
+              "document"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "spell_confidence": {
+            "description": "Confidence in the spelling of text read from an image.",
+            "format": "double",
+            "type": "number"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/ExtractionForecastStep"
+            },
+            "type": "array"
+          },
+          "type": {
+            "enum": [
+              "forecast"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "items": {
+              "anyOf": [
+                {
+                  "format": "double",
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object"
+      },
+      "ExtractionForecastField": {
+        "additionalProperties": false,
+        "properties": {
+          "horizon": {
+            "description": "Number of forecast steps.",
+            "maximum": 64,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "instructions": {
+            "description": "What the field should contain.",
+            "type": "string"
+          },
+          "interval": {
+            "enum": [
+              "step",
+              "minute",
+              "hour",
+              "day",
+              "week",
+              "month",
+              "quarter",
+              "year"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "max": {
+            "anyOf": [
+              {
+                "format": "double",
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "min": {
+            "anyOf": [
+              {
+                "format": "double",
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "null_threshold": {
+            "description": "Probability of null above which `value` is null. Default 0.5.",
+            "format": "double",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "scale": {
+            "enum": [
+              "linear",
+              "log"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "step": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0,
+                "format": "double",
+                "type": "number"
+              },
+              {
+                "enum": [
+                  "month"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "year"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "type": {
+            "enum": [
+              "forecast"
+            ],
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "min",
+          "max",
+          "horizon",
+          "interval"
+        ],
+        "type": "object"
+      },
+      "ExtractionForecastStep": {
+        "properties": {
+          "mean": {
+            "anyOf": [
+              {
+                "format": "double",
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "median": {
+            "anyOf": [
+              {
+                "format": "double",
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "p10": {
+            "anyOf": [
+              {
+                "format": "double",
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "p90": {
+            "anyOf": [
+              {
+                "format": "double",
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "p_above": {
+            "description": "Probability mass above `max`.",
+            "format": "double",
+            "type": "number"
+          },
+          "p_below": {
+            "description": "Probability mass below `min`.",
+            "format": "double",
+            "type": "number"
+          },
+          "quantiles": {
+            "description": "99 percentiles, present when the provider is asked for quantiles.",
+            "items": {
+              "anyOf": [
+                {
+                  "format": "double",
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "format": "double",
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "type": "object"
+      },
+      "ExtractionListAnswer": {
+        "properties": {
+          "confidence": {
+            "format": "double",
+            "type": "number"
+          },
+          "confidences": {
+            "description": "One confidence per item of `value`, in the same order.",
+            "items": {
+              "format": "double",
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "guess": {
+            "description": "The most likely value even when `value` is null because `p_null` crossed the threshold.",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "format": "double",
+                  "type": "number"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          "p_null": {
+            "description": "Probability that the state contains nothing for this field.",
+            "format": "double",
+            "type": "number"
+          },
+          "source": {
+            "description": "Set to `image` or `document` when the answer was read from an image or a PDF rather than the state text.",
+            "enum": [
+              "state",
+              "image",
+              "document"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "spans": {
+            "items": {
+              "description": "Unicode code point offsets [start, end) into the state text: index code points (not UTF-16 code units or UTF-8 bytes), so an emoji or accented letter counts once.",
+              "items": {
+                "type": "integer"
+              },
+              "maxItems": 2,
+              "minItems": 2,
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "spell_confidence": {
+            "description": "Confidence in the spelling of text read from an image.",
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "list"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "format": "double",
+                  "type": "number"
+                }
+              ]
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object"
+      },
+      "ExtractionListField": {
+        "additionalProperties": false,
+        "properties": {
+          "decimals": {
+            "description": "Decimal places kept in `value`.",
+            "maximum": 6,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "instructions": {
+            "description": "What the field should contain.",
+            "type": "string"
+          },
+          "items": {
+            "enum": [
+              "text",
+              "number",
+              "date"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "null_threshold": {
+            "description": "Probability of null above which `value` is null. Default 0.5.",
+            "format": "double",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "list"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "items"
+        ],
+        "type": "object"
+      },
+      "ExtractionNumberAnswer": {
+        "properties": {
+          "confidence": {
+            "format": "double",
+            "type": "number"
+          },
+          "guess": {
+            "description": "The most likely value even when `value` is null because `p_null` crossed the threshold.",
+            "format": "double",
+            "type": "number"
+          },
+          "p_null": {
+            "description": "Probability that the state contains nothing for this field.",
+            "format": "double",
+            "type": "number"
+          },
+          "source": {
+            "description": "Set to `image` or `document` when the answer was read from an image or a PDF rather than the state text.",
+            "enum": [
+              "state",
+              "image",
+              "document"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "span": {
+            "description": "Unicode code point offsets [start, end) into the state text: index code points (not UTF-16 code units or UTF-8 bytes), so an emoji or accented letter counts once.",
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          },
+          "spell_confidence": {
+            "description": "Confidence in the spelling of text read from an image.",
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "number"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "format": "double",
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object"
+      },
+      "ExtractionNumberField": {
+        "additionalProperties": false,
+        "properties": {
+          "decimals": {
+            "description": "Decimal places kept in `value`.",
+            "maximum": 6,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "instructions": {
+            "description": "What the field should contain.",
+            "type": "string"
+          },
+          "integer": {
+            "type": "boolean"
+          },
+          "null_threshold": {
+            "description": "Probability of null above which `value` is null. Default 0.5.",
+            "format": "double",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "number"
+            ],
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "ExtractionTextAnswer": {
+        "properties": {
+          "confidence": {
+            "format": "double",
+            "type": "number"
+          },
+          "guess": {
+            "description": "The most likely value even when `value` is null because `p_null` crossed the threshold.",
+            "type": "string"
+          },
+          "p_null": {
+            "description": "Probability that the state contains nothing for this field.",
+            "format": "double",
+            "type": "number"
+          },
+          "source": {
+            "description": "Set to `image` or `document` when the answer was read from an image or a PDF rather than the state text.",
+            "enum": [
+              "state",
+              "image",
+              "document"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "span": {
+            "description": "Unicode code point offsets [start, end) into the state text: index code points (not UTF-16 code units or UTF-8 bytes), so an emoji or accented letter counts once.",
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          },
+          "spell_confidence": {
+            "description": "Confidence in the spelling of text read from an image.",
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "text"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object"
+      },
+      "ExtractionTextField": {
+        "additionalProperties": false,
+        "properties": {
+          "instructions": {
+            "description": "What the field should contain.",
+            "type": "string"
+          },
+          "null_threshold": {
+            "description": "Probability of null above which `value` is null. Default 0.5.",
+            "format": "double",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "text"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "ExtractionTimeAnswer": {
+        "properties": {
+          "confidence": {
+            "format": "double",
+            "type": "number"
+          },
+          "guess": {
+            "description": "The most likely value even when `value` is null because `p_null` crossed the threshold.",
+            "type": "string"
+          },
+          "p_null": {
+            "description": "Probability that the state contains nothing for this field.",
+            "format": "double",
+            "type": "number"
+          },
+          "source": {
+            "description": "Set to `image` or `document` when the answer was read from an image or a PDF rather than the state text.",
+            "enum": [
+              "state",
+              "image",
+              "document"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "span": {
+            "description": "Unicode code point offsets [start, end) into the state text: index code points (not UTF-16 code units or UTF-8 bytes), so an emoji or accented letter counts once.",
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          },
+          "spell_confidence": {
+            "description": "Confidence in the spelling of text read from an image.",
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "time"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object"
+      },
+      "ExtractionTimeField": {
+        "additionalProperties": false,
+        "properties": {
+          "instructions": {
+            "description": "What the field should contain.",
+            "type": "string"
+          },
+          "null_threshold": {
+            "description": "Probability of null above which `value` is null. Default 0.5.",
+            "format": "double",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "time"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "ExtractionsRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "assets": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ExtractionAsset"
+            },
+            "description": "Assets keyed by reference string. Write a reference wherever the asset belongs in `state` or a field `instructions`; every asset must be referenced at least once. A `state` that is exactly the sole asset's key carries no text of its own and is read as file-only. A model that reads either text or a document per request, not both (ScaleDown Extract with a PDF), needs that form: any other text around the key is state text and is rejected with 400.",
+            "type": "object"
+          },
+          "fields": {
+            "additionalProperties": {
+              "description": "A typed field to extract, compute, estimate or forecast from the state. Which types a model answers is model-specific; unsupported types are rejected with 400.",
+              "discriminator": {
+                "mapping": {
+                  "date": "#/components/schemas/ExtractionDateField",
+                  "datetime": "#/components/schemas/ExtractionDatetimeField",
+                  "duration": "#/components/schemas/ExtractionDurationField",
+                  "estimate": "#/components/schemas/ExtractionEstimateField",
+                  "forecast": "#/components/schemas/ExtractionForecastField",
+                  "list": "#/components/schemas/ExtractionListField",
+                  "number": "#/components/schemas/ExtractionNumberField",
+                  "text": "#/components/schemas/ExtractionTextField",
+                  "time": "#/components/schemas/ExtractionTimeField"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ExtractionTextField"
+                },
+                {
+                  "$ref": "#/components/schemas/ExtractionNumberField"
+                },
+                {
+                  "$ref": "#/components/schemas/ExtractionDateField"
+                },
+                {
+                  "$ref": "#/components/schemas/ExtractionTimeField"
+                },
+                {
+                  "$ref": "#/components/schemas/ExtractionDatetimeField"
+                },
+                {
+                  "$ref": "#/components/schemas/ExtractionDurationField"
+                },
+                {
+                  "$ref": "#/components/schemas/ExtractionListField"
+                },
+                {
+                  "$ref": "#/components/schemas/ExtractionEstimateField"
+                },
+                {
+                  "$ref": "#/components/schemas/ExtractionForecastField"
+                }
+              ]
+            },
+            "description": "Map of field name to typed field spec.",
+            "type": "object"
+          },
+          "model": {
+            "type": "string"
+          },
+          "provider": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProviderPreferences"
+              },
+              {
+                "description": "Provider routing preferences for the request."
+              }
+            ]
+          },
+          "reference_date": {
+            "description": "ISO date that anchors dates written without a year.",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "type": "string"
+          },
+          "session_id": {
+            "description": "A unique identifier for grouping related requests (e.g., a conversation or agent workflow). Used for observability grouping in Broadcast and private logging; never sent to the provider. If provided in both the request body and the x-session-id header, the body value takes precedence. Maximum of 256 characters.",
+            "example": "session-1234",
+            "maxLength": 256,
+            "type": "string"
+          },
+          "state": {
+            "description": "The text to read from. May be empty only when the request carries image assets.",
+            "type": "string"
+          },
+          "trace": {
+            "$ref": "#/components/schemas/TraceConfig"
+          },
+          "user": {
+            "maxLength": 256,
+            "type": "string"
+          }
+        },
+        "required": [
+          "model",
+          "state",
+          "fields"
+        ],
+        "type": "object"
+      },
+      "ExtractionsResponse": {
+        "properties": {
+          "answers": {
+            "additionalProperties": {
+              "description": "One answer per requested field. `value` is null when the state does not determine it.",
+              "discriminator": {
+                "mapping": {
+                  "date": "#/components/schemas/ExtractionDateAnswer",
+                  "datetime": "#/components/schemas/ExtractionDatetimeAnswer",
+                  "duration": "#/components/schemas/ExtractionDurationAnswer",
+                  "estimate": "#/components/schemas/ExtractionEstimateAnswer",
+                  "forecast": "#/components/schemas/ExtractionForecastAnswer",
+                  "list": "#/components/schemas/ExtractionListAnswer",
+                  "number": "#/components/schemas/ExtractionNumberAnswer",
+                  "text": "#/components/schemas/ExtractionTextAnswer",
+                  "time": "#/components/schemas/ExtractionTimeAnswer"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ExtractionTextAnswer"
+                },
+                {
+                  "$ref": "#/components/schemas/ExtractionNumberAnswer"
+                },
+                {
+                  "$ref": "#/components/schemas/ExtractionDateAnswer"
+                },
+                {
+                  "$ref": "#/components/schemas/ExtractionTimeAnswer"
+                },
+                {
+                  "$ref": "#/components/schemas/ExtractionDatetimeAnswer"
+                },
+                {
+                  "$ref": "#/components/schemas/ExtractionDurationAnswer"
+                },
+                {
+                  "$ref": "#/components/schemas/ExtractionListAnswer"
+                },
+                {
+                  "$ref": "#/components/schemas/ExtractionEstimateAnswer"
+                },
+                {
+                  "$ref": "#/components/schemas/ExtractionForecastAnswer"
+                }
+              ]
+            },
+            "type": "object"
+          },
+          "id": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "state_text": {
+            "description": "The text that spans index into, when requested through provider options.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "truncated": {
+            "description": "True when the provider read only a prefix of the state.",
+            "type": "boolean"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/ExtractionsUsage"
+          }
+        },
+        "required": [
+          "model",
+          "answers",
+          "usage"
+        ],
+        "type": "object"
+      },
+      "ExtractionsUsage": {
+        "properties": {
+          "cost": {
+            "format": "double",
+            "type": "number"
+          },
+          "image_tokens": {
+            "type": "integer"
+          },
+          "input_tokens": {
+            "type": "integer"
+          },
+          "output_tokens": {
+            "type": "integer"
+          },
+          "passes": {
+            "description": "Number of upstream passes when the fields did not fit in one.",
+            "type": "integer"
+          },
+          "schema_tokens": {
+            "type": "integer"
+          },
+          "state_tokens": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "input_tokens",
+          "output_tokens"
         ],
         "type": "object"
       },
@@ -19097,6 +20640,7 @@
                   "embeddings",
                   "rerank",
                   "decisions",
+                  "extractions",
                   "video",
                   "tts",
                   "stt",
@@ -20571,6 +22115,43 @@
         ],
         "type": "object"
       },
+      "ImageGeneration": {
+        "properties": {
+          "latency": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PercentileStats"
+              },
+              {
+                "description": "Latency percentiles in milliseconds for this workload. Image and video generation report full end-to-end generation time, because their raw latency only measures request acknowledgement; every other workload reports time to first token or result."
+              }
+            ]
+          },
+          "request_count": {
+            "description": "Total requests admitted for this workload in the window.",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "throughput": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PercentileStats"
+              },
+              {
+                "description": "Throughput percentiles in tokens per second; pN is the speed that N% of requests reached or exceeded, so p90 is lower than p50. Only meaningful for text generation; null for workloads without token throughput."
+              }
+            ]
+          }
+        },
+        "required": [
+          "latency",
+          "throughput",
+          "request_count"
+        ],
+        "type": "object"
+      },
       "ImageGenerationProviderPreferences": {
         "description": "Provider routing preferences and provider-specific passthrough configuration.",
         "example": {
@@ -20754,7 +22335,7 @@
             "type": "integer"
           },
           "output_compression": {
-            "description": "Compression level (0-100) for webp/jpeg output. Ignored for png and by providers without a compression knob.",
+            "description": "Compression level (0-100) for jpeg/webp output. Ignored by providers without a compression knob; providers that honor it may reject it with other output formats (e.g. OpenAI requires output_format \"jpeg\" or \"webp\").",
             "example": 100,
             "type": "integer"
           },
@@ -20818,7 +22399,7 @@
             "type": "string"
           },
           "size": {
-            "description": "Optional. A convenience shorthand for output dimensions \u2014 pass a tier (\"2K\", \"4K\") or explicit pixels (\"2048x2048\") and we normalize it to the right dimensions for the chosen provider. A tier size is equivalent to setting `resolution` and combines with `aspect_ratio`. An explicit pixel size is authoritative: a mismatched `resolution` or `aspect_ratio` alongside it is rejected with a 400.",
+            "description": "Optional. A convenience shorthand for output dimensions \u2014 pass a tier (\"2K\", \"4K\") or explicit pixels (\"2048x2048\"). A tier size is equivalent to setting `resolution` and combines with `aspect_ratio`. Explicit pixel sizes are provider-dependent: providers that accept them treat the value as authoritative and reject a mismatched `resolution` or `aspect_ratio` alongside it with a 400. xAI and Sourceful V2/V2.5 reject explicit pixel sizes (use `resolution` and `aspect_ratio` there); Sourceful V2.6 supports them within its dimension limits and does not allow combining them with `resolution` or `aspect_ratio`.",
             "example": "2K",
             "type": "string"
           },
@@ -26809,6 +28390,19 @@
             "example": "GPT-4 is a large multimodal model that can solve difficult problems with greater accuracy.",
             "type": "string"
           },
+          "endpoints": {
+            "description": "Request API paths that serve this model, derived from the same modality and adapter rules the routers use. A model served only through an alpha surface lists only that path.",
+            "example": [
+              "/api/v1/chat/completions",
+              "/api/v1/completions",
+              "/api/v1/messages",
+              "/api/v1/responses"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "expiration_date": {
             "description": "The date after which the model may be removed. ISO 8601 date string (YYYY-MM-DD) or null if no expiration.",
             "example": "2025-06-01",
@@ -26890,7 +28484,8 @@
           "supported_parameters",
           "default_parameters",
           "supported_voices",
-          "links"
+          "links",
+          "endpoints"
         ],
         "type": "object"
       },
@@ -27132,6 +28727,12 @@
             "created": 1692901234,
             "default_parameters": null,
             "description": "GPT-4 is a large multimodal model that can solve difficult problems with greater accuracy.",
+            "endpoints": [
+              "/api/v1/chat/completions",
+              "/api/v1/completions",
+              "/api/v1/messages",
+              "/api/v1/responses"
+            ],
             "expiration_date": null,
             "id": "openai/gpt-4",
             "knowledge_cutoff": null,
@@ -27492,6 +29093,18 @@
           "name",
           "description",
           "tools"
+        ],
+        "type": "object"
+      },
+      "NativeTools": {
+        "properties": {
+          "type": {
+            "description": "The provider tool type the request is translated to when this tool runs natively, e.g. `web_search_20260209` on Anthropic or `google_search` on Gemini.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
         ],
         "type": "object"
       },
@@ -32801,6 +34414,31 @@
           },
           {
             "properties": {
+              "access_programs": {
+                "default": null,
+                "description": "Access program the upstream provider reported for this response (OpenAI `access_programs`). `null` when the provider reported none, including OpenAI's implicit Standard program.",
+                "example": {
+                  "cyber": "standard"
+                },
+                "properties": {
+                  "cyber": {
+                    "enum": [
+                      "standard",
+                      "daybreak_blue",
+                      "daybreak_red"
+                    ],
+                    "type": "string",
+                    "x-speakeasy-unknown-values": "allow"
+                  }
+                },
+                "required": [
+                  "cyber"
+                ],
+                "type": [
+                  "object",
+                  "null"
+                ]
+              },
               "alignment": {
                 "$ref": "#/components/schemas/Alignment"
               },
@@ -36308,6 +37946,40 @@
         },
         "type": "object"
       },
+      "PerfLast30mByWorkload": {
+        "additionalProperties": false,
+        "description": "Endpoint performance over the last 30 minutes, keyed by the kind of request served (e.g. `text_generation`, `image_generation`). Additive to the legacy singular latency and throughput fields; image and video generation report end-to-end latency. Only visible when authenticated with an API key or cookie.",
+        "properties": {
+          "decisions": {
+            "$ref": "#/components/schemas/Decisions"
+          },
+          "embeddings": {
+            "$ref": "#/components/schemas/Embeddings"
+          },
+          "image_generation": {
+            "$ref": "#/components/schemas/ImageGeneration"
+          },
+          "rerank": {
+            "$ref": "#/components/schemas/Rerank"
+          },
+          "stt": {
+            "$ref": "#/components/schemas/STT"
+          },
+          "text_generation": {
+            "$ref": "#/components/schemas/TextGeneration"
+          },
+          "tts": {
+            "$ref": "#/components/schemas/TTS"
+          },
+          "unknown": {
+            "$ref": "#/components/schemas/Unknown"
+          },
+          "video_generation": {
+            "$ref": "#/components/schemas/VideoGeneration"
+          }
+        },
+        "type": "object"
+      },
       "PipelineStage": {
         "example": {
           "data": {
@@ -36798,6 +38470,83 @@
           "object",
           "null"
         ]
+      },
+      "Pricing": {
+        "properties": {
+          "audio": {
+            "description": "Price in USD per audio input token",
+            "type": "string"
+          },
+          "audio_output": {
+            "description": "Price in USD per audio output token",
+            "type": "string"
+          },
+          "completion": {
+            "description": "Price in USD per token for completion (output) generation",
+            "type": "string"
+          },
+          "discount": {
+            "description": "Fractional discount applied to this endpoint's pricing; the price is multiplied by (1 - discount) (0 = no discount, 1 = free)",
+            "format": "double",
+            "type": "number"
+          },
+          "image": {
+            "description": "Price in USD per input image",
+            "type": "string"
+          },
+          "image_output": {
+            "description": "Price in USD per output image",
+            "type": "string"
+          },
+          "image_token": {
+            "description": "Price in USD per image token",
+            "type": "string"
+          },
+          "input_audio_cache": {
+            "description": "Price in USD per cached audio input token",
+            "type": "string"
+          },
+          "input_cache_read": {
+            "description": "Price in USD per cached input token (read)",
+            "type": "string"
+          },
+          "input_cache_write": {
+            "description": "Price per cache-write token, in USD per token. For providers with multiple cache TTLs (e.g. Anthropic), this is the default (5-minute) cache-write rate.",
+            "type": "string"
+          },
+          "input_cache_write_1h": {
+            "description": "Price per 1-hour cache-write token, in USD per token. Only present for providers that price an extended (1-hour) cache TTL separately, such as Anthropic.",
+            "type": "string"
+          },
+          "internal_reasoning": {
+            "description": "Price in USD per internal reasoning token",
+            "type": "string"
+          },
+          "overrides": {
+            "description": "Conditional overrides of the base pricing (e.g. long-context or time-based pricing). An entry applies when all of its condition fields (e.g. min_prompt_tokens, or the utc_start/utc_end time window) match the request; among applicable entries, later entries win per key; price keys absent from an entry inherit the base price. The top-level pricing keys always reflect the price that applies under default conditions.",
+            "items": {
+              "$ref": "#/components/schemas/PricingOverride"
+            },
+            "type": "array"
+          },
+          "prompt": {
+            "description": "Price in USD per token for prompt (input) processing",
+            "type": "string"
+          },
+          "request": {
+            "description": "Price in USD per request",
+            "type": "string"
+          },
+          "web_search": {
+            "description": "Price in USD per web search",
+            "type": "string"
+          }
+        },
+        "required": [
+          "prompt",
+          "completion"
+        ],
+        "type": "object"
       },
       "PricingOverride": {
         "description": "A conditional override of the base pricing. An entry applies only when all of its condition fields (e.g. min_prompt_tokens, or the utc_start/utc_end time window) match the request; among applicable entries, later entries win per price key; price keys absent from an entry inherit the base price.",
@@ -37664,11 +39413,6 @@
         "example": {
           "base_url": "https://inference.example.com/v1",
           "created_at": "2026-10-06T12:00:00.000Z",
-          "data_policy": {
-            "prompt_retention_days": null,
-            "retains_prompts": false,
-            "training": false
-          },
           "display_name": "Acme",
           "name": "Acme",
           "slug": "acme"
@@ -37685,37 +39429,6 @@
           },
           "created_at": {
             "type": "string"
-          },
-          "data_policy": {
-            "description": "Your declared data policy, or `null` when none was declared.",
-            "properties": {
-              "prompt_retention_days": {
-                "description": "Days prompts are retained. Must be `null` unless `retains_prompts` is true.",
-                "maximum": 3650,
-                "minimum": 1,
-                "type": [
-                  "integer",
-                  "null"
-                ]
-              },
-              "retains_prompts": {
-                "description": "Whether the provider retains prompts or completions.",
-                "type": "boolean"
-              },
-              "training": {
-                "description": "Whether the provider trains on prompts.",
-                "type": "boolean"
-              }
-            },
-            "required": [
-              "training",
-              "retains_prompts",
-              "prompt_retention_days"
-            ],
-            "type": [
-              "object",
-              "null"
-            ]
           },
           "display_name": {
             "description": "Human-readable provider name shown in the UI.",
@@ -37738,41 +39451,7 @@
           "slug",
           "display_name",
           "base_url",
-          "data_policy",
           "created_at"
-        ],
-        "type": "object"
-      },
-      "PrivateProviderDataPolicy": {
-        "description": "Defaults to training on and retaining prompts, the most conservative declaration. Your own declaration; it applies to your own traffic and OpenRouter does not verify it.",
-        "example": {
-          "prompt_retention_days": null,
-          "retains_prompts": false,
-          "training": false
-        },
-        "properties": {
-          "prompt_retention_days": {
-            "description": "Days prompts are retained. Must be `null` unless `retains_prompts` is true.",
-            "maximum": 3650,
-            "minimum": 1,
-            "type": [
-              "integer",
-              "null"
-            ]
-          },
-          "retains_prompts": {
-            "description": "Whether the provider retains prompts or completions.",
-            "type": "boolean"
-          },
-          "training": {
-            "description": "Whether the provider trains on prompts.",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "training",
-          "retains_prompts",
-          "prompt_retention_days"
         ],
         "type": "object"
       },
@@ -37969,7 +39648,7 @@
         "x-speakeasy-unknown-values": "allow"
       },
       "ProviderOptions": {
-        "description": "Provider-specific options keyed by provider slug. Only options for the matched provider are forwarded; the rest are ignored. Unrecognized keys are silently dropped.",
+        "description": "Provider-specific options keyed by provider slug. The provider segment is case-insensitive; an endpoint tag after `/` must match the endpoint slug exactly. Only options for the matched provider are forwarded; the rest are ignored. Unrecognized keys are silently dropped.",
         "example": {
           "openai": {
             "max_tokens": 1000
@@ -39014,6 +40693,35 @@
             "type": "string",
             "x-speakeasy-unknown-values": "allow"
           },
+          "provider_sort_order_mode": {
+            "description": "Whether the workspace's saved provider order was applied ('enforce') or only logged ('shadow') for the request this attempt belongs to; only present when the workspace has a saved order",
+            "enum": [
+              "shadow",
+              "enforce"
+            ],
+            "example": "shadow",
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "provider_sort_order_rank": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": true,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "enum": [
+                  "order",
+                  "unlisted"
+                ],
+                "type": "string",
+                "x-speakeasy-unknown-values": "allow"
+              }
+            ],
+            "description": "Position of this attempt's provider in the workspace's saved provider order (1 is first), 'order' when the request's provider.order or a session pin placed it, or 'unlisted' when the saved order does not name it; only present when the workspace has a saved order",
+            "example": 1
+          },
           "routed_service_tier": {
             "description": "The service tier this request was routed to (e.g. flex, priority). The tier actually applied and billed is determined by the provider response and may differ.",
             "enum": [
@@ -39198,16 +40906,7 @@
           },
           "native_tools": {
             "additionalProperties": {
-              "properties": {
-                "type": {
-                  "description": "The provider tool type the request is translated to when this tool runs natively, e.g. `web_search_20260209` on Anthropic or `google_search` on Gemini.",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "type"
-              ],
-              "type": "object"
+              "$ref": "#/components/schemas/NativeTools"
             },
             "description": "The server tools this endpoint accepts as the provider's own built-in tool (`engine: \"native\"`) instead of an OpenRouter engine, keyed by canonical `openrouter:*` name. Each value names the provider tool type the request is translated to. Where that tool runs (provider-side, or returned to the client as with Anthropic bash) is documented per tool. Empty when the provider has none.",
             "example": {
@@ -39218,421 +40917,10 @@
             "type": "object"
           },
           "perf_last_30m_by_workload": {
-            "additionalProperties": false,
-            "description": "Endpoint performance over the last 30 minutes, keyed by the kind of request served (e.g. `text_generation`, `image_generation`). Additive to the legacy singular latency and throughput fields; image and video generation report end-to-end latency. Only visible when authenticated with an API key or cookie.",
-            "properties": {
-              "decisions": {
-                "properties": {
-                  "latency": {
-                    "allOf": [
-                      {
-                        "$ref": "#/components/schemas/PercentileStats"
-                      },
-                      {
-                        "description": "Latency percentiles in milliseconds for this workload. Image and video generation report full end-to-end generation time, because their raw latency only measures request acknowledgement; every other workload reports time to first token or result."
-                      }
-                    ]
-                  },
-                  "request_count": {
-                    "description": "Total requests admitted for this workload in the window.",
-                    "type": [
-                      "integer",
-                      "null"
-                    ]
-                  },
-                  "throughput": {
-                    "allOf": [
-                      {
-                        "$ref": "#/components/schemas/PercentileStats"
-                      },
-                      {
-                        "description": "Throughput percentiles in tokens per second; pN is the speed that N% of requests reached or exceeded, so p90 is lower than p50. Only meaningful for text generation; null for workloads without token throughput."
-                      }
-                    ]
-                  }
-                },
-                "required": [
-                  "latency",
-                  "throughput",
-                  "request_count"
-                ],
-                "type": "object"
-              },
-              "embeddings": {
-                "properties": {
-                  "latency": {
-                    "allOf": [
-                      {
-                        "$ref": "#/components/schemas/PercentileStats"
-                      },
-                      {
-                        "description": "Latency percentiles in milliseconds for this workload. Image and video generation report full end-to-end generation time, because their raw latency only measures request acknowledgement; every other workload reports time to first token or result."
-                      }
-                    ]
-                  },
-                  "request_count": {
-                    "description": "Total requests admitted for this workload in the window.",
-                    "type": [
-                      "integer",
-                      "null"
-                    ]
-                  },
-                  "throughput": {
-                    "allOf": [
-                      {
-                        "$ref": "#/components/schemas/PercentileStats"
-                      },
-                      {
-                        "description": "Throughput percentiles in tokens per second; pN is the speed that N% of requests reached or exceeded, so p90 is lower than p50. Only meaningful for text generation; null for workloads without token throughput."
-                      }
-                    ]
-                  }
-                },
-                "required": [
-                  "latency",
-                  "throughput",
-                  "request_count"
-                ],
-                "type": "object"
-              },
-              "image_generation": {
-                "properties": {
-                  "latency": {
-                    "allOf": [
-                      {
-                        "$ref": "#/components/schemas/PercentileStats"
-                      },
-                      {
-                        "description": "Latency percentiles in milliseconds for this workload. Image and video generation report full end-to-end generation time, because their raw latency only measures request acknowledgement; every other workload reports time to first token or result."
-                      }
-                    ]
-                  },
-                  "request_count": {
-                    "description": "Total requests admitted for this workload in the window.",
-                    "type": [
-                      "integer",
-                      "null"
-                    ]
-                  },
-                  "throughput": {
-                    "allOf": [
-                      {
-                        "$ref": "#/components/schemas/PercentileStats"
-                      },
-                      {
-                        "description": "Throughput percentiles in tokens per second; pN is the speed that N% of requests reached or exceeded, so p90 is lower than p50. Only meaningful for text generation; null for workloads without token throughput."
-                      }
-                    ]
-                  }
-                },
-                "required": [
-                  "latency",
-                  "throughput",
-                  "request_count"
-                ],
-                "type": "object"
-              },
-              "rerank": {
-                "properties": {
-                  "latency": {
-                    "allOf": [
-                      {
-                        "$ref": "#/components/schemas/PercentileStats"
-                      },
-                      {
-                        "description": "Latency percentiles in milliseconds for this workload. Image and video generation report full end-to-end generation time, because their raw latency only measures request acknowledgement; every other workload reports time to first token or result."
-                      }
-                    ]
-                  },
-                  "request_count": {
-                    "description": "Total requests admitted for this workload in the window.",
-                    "type": [
-                      "integer",
-                      "null"
-                    ]
-                  },
-                  "throughput": {
-                    "allOf": [
-                      {
-                        "$ref": "#/components/schemas/PercentileStats"
-                      },
-                      {
-                        "description": "Throughput percentiles in tokens per second; pN is the speed that N% of requests reached or exceeded, so p90 is lower than p50. Only meaningful for text generation; null for workloads without token throughput."
-                      }
-                    ]
-                  }
-                },
-                "required": [
-                  "latency",
-                  "throughput",
-                  "request_count"
-                ],
-                "type": "object"
-              },
-              "stt": {
-                "properties": {
-                  "latency": {
-                    "allOf": [
-                      {
-                        "$ref": "#/components/schemas/PercentileStats"
-                      },
-                      {
-                        "description": "Latency percentiles in milliseconds for this workload. Image and video generation report full end-to-end generation time, because their raw latency only measures request acknowledgement; every other workload reports time to first token or result."
-                      }
-                    ]
-                  },
-                  "request_count": {
-                    "description": "Total requests admitted for this workload in the window.",
-                    "type": [
-                      "integer",
-                      "null"
-                    ]
-                  },
-                  "throughput": {
-                    "allOf": [
-                      {
-                        "$ref": "#/components/schemas/PercentileStats"
-                      },
-                      {
-                        "description": "Throughput percentiles in tokens per second; pN is the speed that N% of requests reached or exceeded, so p90 is lower than p50. Only meaningful for text generation; null for workloads without token throughput."
-                      }
-                    ]
-                  }
-                },
-                "required": [
-                  "latency",
-                  "throughput",
-                  "request_count"
-                ],
-                "type": "object"
-              },
-              "text_generation": {
-                "properties": {
-                  "latency": {
-                    "allOf": [
-                      {
-                        "$ref": "#/components/schemas/PercentileStats"
-                      },
-                      {
-                        "description": "Latency percentiles in milliseconds for this workload. Image and video generation report full end-to-end generation time, because their raw latency only measures request acknowledgement; every other workload reports time to first token or result."
-                      }
-                    ]
-                  },
-                  "request_count": {
-                    "description": "Total requests admitted for this workload in the window.",
-                    "type": [
-                      "integer",
-                      "null"
-                    ]
-                  },
-                  "throughput": {
-                    "allOf": [
-                      {
-                        "$ref": "#/components/schemas/PercentileStats"
-                      },
-                      {
-                        "description": "Throughput percentiles in tokens per second; pN is the speed that N% of requests reached or exceeded, so p90 is lower than p50. Only meaningful for text generation; null for workloads without token throughput."
-                      }
-                    ]
-                  }
-                },
-                "required": [
-                  "latency",
-                  "throughput",
-                  "request_count"
-                ],
-                "type": "object"
-              },
-              "tts": {
-                "properties": {
-                  "latency": {
-                    "allOf": [
-                      {
-                        "$ref": "#/components/schemas/PercentileStats"
-                      },
-                      {
-                        "description": "Latency percentiles in milliseconds for this workload. Image and video generation report full end-to-end generation time, because their raw latency only measures request acknowledgement; every other workload reports time to first token or result."
-                      }
-                    ]
-                  },
-                  "request_count": {
-                    "description": "Total requests admitted for this workload in the window.",
-                    "type": [
-                      "integer",
-                      "null"
-                    ]
-                  },
-                  "throughput": {
-                    "allOf": [
-                      {
-                        "$ref": "#/components/schemas/PercentileStats"
-                      },
-                      {
-                        "description": "Throughput percentiles in tokens per second; pN is the speed that N% of requests reached or exceeded, so p90 is lower than p50. Only meaningful for text generation; null for workloads without token throughput."
-                      }
-                    ]
-                  }
-                },
-                "required": [
-                  "latency",
-                  "throughput",
-                  "request_count"
-                ],
-                "type": "object"
-              },
-              "unknown": {
-                "properties": {
-                  "latency": {
-                    "allOf": [
-                      {
-                        "$ref": "#/components/schemas/PercentileStats"
-                      },
-                      {
-                        "description": "Latency percentiles in milliseconds for this workload. Image and video generation report full end-to-end generation time, because their raw latency only measures request acknowledgement; every other workload reports time to first token or result."
-                      }
-                    ]
-                  },
-                  "request_count": {
-                    "description": "Total requests admitted for this workload in the window.",
-                    "type": [
-                      "integer",
-                      "null"
-                    ]
-                  },
-                  "throughput": {
-                    "allOf": [
-                      {
-                        "$ref": "#/components/schemas/PercentileStats"
-                      },
-                      {
-                        "description": "Throughput percentiles in tokens per second; pN is the speed that N% of requests reached or exceeded, so p90 is lower than p50. Only meaningful for text generation; null for workloads without token throughput."
-                      }
-                    ]
-                  }
-                },
-                "required": [
-                  "latency",
-                  "throughput",
-                  "request_count"
-                ],
-                "type": "object"
-              },
-              "video_generation": {
-                "properties": {
-                  "latency": {
-                    "allOf": [
-                      {
-                        "$ref": "#/components/schemas/PercentileStats"
-                      },
-                      {
-                        "description": "Latency percentiles in milliseconds for this workload. Image and video generation report full end-to-end generation time, because their raw latency only measures request acknowledgement; every other workload reports time to first token or result."
-                      }
-                    ]
-                  },
-                  "request_count": {
-                    "description": "Total requests admitted for this workload in the window.",
-                    "type": [
-                      "integer",
-                      "null"
-                    ]
-                  },
-                  "throughput": {
-                    "allOf": [
-                      {
-                        "$ref": "#/components/schemas/PercentileStats"
-                      },
-                      {
-                        "description": "Throughput percentiles in tokens per second; pN is the speed that N% of requests reached or exceeded, so p90 is lower than p50. Only meaningful for text generation; null for workloads without token throughput."
-                      }
-                    ]
-                  }
-                },
-                "required": [
-                  "latency",
-                  "throughput",
-                  "request_count"
-                ],
-                "type": "object"
-              }
-            },
-            "type": "object"
+            "$ref": "#/components/schemas/PerfLast30mByWorkload"
           },
           "pricing": {
-            "properties": {
-              "audio": {
-                "description": "Price in USD per audio input token",
-                "type": "string"
-              },
-              "audio_output": {
-                "description": "Price in USD per audio output token",
-                "type": "string"
-              },
-              "completion": {
-                "description": "Price in USD per token for completion (output) generation",
-                "type": "string"
-              },
-              "discount": {
-                "description": "Fractional discount applied to this endpoint's pricing; the price is multiplied by (1 - discount) (0 = no discount, 1 = free)",
-                "format": "double",
-                "type": "number"
-              },
-              "image": {
-                "description": "Price in USD per input image",
-                "type": "string"
-              },
-              "image_output": {
-                "description": "Price in USD per output image",
-                "type": "string"
-              },
-              "image_token": {
-                "description": "Price in USD per image token",
-                "type": "string"
-              },
-              "input_audio_cache": {
-                "description": "Price in USD per cached audio input token",
-                "type": "string"
-              },
-              "input_cache_read": {
-                "description": "Price in USD per cached input token (read)",
-                "type": "string"
-              },
-              "input_cache_write": {
-                "description": "Price per cache-write token, in USD per token. For providers with multiple cache TTLs (e.g. Anthropic), this is the default (5-minute) cache-write rate.",
-                "type": "string"
-              },
-              "input_cache_write_1h": {
-                "description": "Price per 1-hour cache-write token, in USD per token. Only present for providers that price an extended (1-hour) cache TTL separately, such as Anthropic.",
-                "type": "string"
-              },
-              "internal_reasoning": {
-                "description": "Price in USD per internal reasoning token",
-                "type": "string"
-              },
-              "overrides": {
-                "description": "Conditional overrides of the base pricing (e.g. long-context or time-based pricing). An entry applies when all of its condition fields (e.g. min_prompt_tokens, or the utc_start/utc_end time window) match the request; among applicable entries, later entries win per key; price keys absent from an entry inherit the base price. The top-level pricing keys always reflect the price that applies under default conditions.",
-                "items": {
-                  "$ref": "#/components/schemas/PricingOverride"
-                },
-                "type": "array"
-              },
-              "prompt": {
-                "description": "Price in USD per token for prompt (input) processing",
-                "type": "string"
-              },
-              "request": {
-                "description": "Price in USD per request",
-                "type": "string"
-              },
-              "web_search": {
-                "description": "Price in USD per web search",
-                "type": "string"
-              }
-            },
-            "required": [
-              "prompt",
-              "completion"
-            ],
-            "type": "object"
+            "$ref": "#/components/schemas/Pricing"
           },
           "provider_name": {
             "$ref": "#/components/schemas/ProviderName"
@@ -39844,6 +41132,69 @@
           "null"
         ],
         "x-speakeasy-unknown-values": "allow"
+      },
+      "PublicZdrEndpoint": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PublicEndpoint"
+          },
+          {
+            "properties": {
+              "safety_retention": {
+                "description": "Whether the endpoint uses Safety Retention: prompts are not retained by default, but the provider may retain prompts its safety classifiers flag. A ZDR-enforced request reaches these endpoints only when the account allows Safety Retention and no applied guardrail disallows it.",
+                "example": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "safety_retention"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "An endpoint whose data policy does not retain prompts by default",
+        "example": {
+          "context_length": 1048576,
+          "latency_last_30m": null,
+          "max_completion_tokens": 65535,
+          "max_prompt_tokens": null,
+          "model_id": "google/gemini-2.5-flash",
+          "model_name": "Gemini 2.5 Flash",
+          "name": "Google: Gemini 2.5 Flash",
+          "native_tools": {},
+          "pricing": {
+            "completion": "0.0000025",
+            "image": "0",
+            "prompt": "0.0000003",
+            "request": "0"
+          },
+          "provider_name": "Google",
+          "quantization": null,
+          "safety_retention": true,
+          "service_tier": null,
+          "status": 0,
+          "supported_parameters": [
+            "temperature",
+            "top_p",
+            "max_tokens"
+          ],
+          "supports_diarization": false,
+          "supports_image_reference": false,
+          "supports_implicit_caching": true,
+          "supports_multiple_audio_references": false,
+          "supports_tool_choice": {
+            "auto": true,
+            "function": true,
+            "none": true,
+            "required": true
+          },
+          "supports_voice_cloning": false,
+          "tag": "google-vertex",
+          "throughput_last_30m": null,
+          "uptime_last_1d": 99.8,
+          "uptime_last_30m": 99.5,
+          "uptime_last_5m": 100
+        }
       },
       "Quantization": {
         "enum": [
@@ -40637,6 +41988,43 @@
         ],
         "type": "object"
       },
+      "Rerank": {
+        "properties": {
+          "latency": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PercentileStats"
+              },
+              {
+                "description": "Latency percentiles in milliseconds for this workload. Image and video generation report full end-to-end generation time, because their raw latency only measures request acknowledgement; every other workload reports time to first token or result."
+              }
+            ]
+          },
+          "request_count": {
+            "description": "Total requests admitted for this workload in the window.",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "throughput": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PercentileStats"
+              },
+              {
+                "description": "Throughput percentiles in tokens per second; pN is the speed that N% of requests reached or exceeded, so p90 is lower than p50. Only meaningful for text generation; null for workloads without token throughput."
+              }
+            ]
+          }
+        },
+        "required": [
+          "latency",
+          "throughput",
+          "request_count"
+        ],
+        "type": "object"
+      },
       "ResponseHealingPlugin": {
         "example": {
           "enabled": true,
@@ -40840,6 +42228,24 @@
           "top_p": 0.9
         },
         "properties": {
+          "access_programs": {
+            "description": "OpenAI access programs for this request. `cyber` selects the Cyber access program: `standard`, `daybreak_blue`, or `daybreak_red`. A program other than `standard` is supported only on BYOK requests that run on your own OpenAI key enrolled in that program; any other endpoint, including OpenRouter's own OpenAI credentials, rejects it with a 400 error. Requests on OpenRouter's OpenAI credentials always run `standard`. Omit the field unless your key is enrolled in a Daybreak program.",
+            "example": {
+              "cyber": "standard"
+            },
+            "properties": {
+              "cyber": {
+                "enum": [
+                  "standard",
+                  "daybreak_blue",
+                  "daybreak_red"
+                ],
+                "type": "string",
+                "x-speakeasy-unknown-values": "allow"
+              }
+            },
+            "type": "object"
+          },
           "background": {
             "type": [
               "boolean",
@@ -41372,6 +42778,43 @@
         "example": "direct",
         "type": "string",
         "x-speakeasy-unknown-values": "allow"
+      },
+      "STT": {
+        "properties": {
+          "latency": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PercentileStats"
+              },
+              {
+                "description": "Latency percentiles in milliseconds for this workload. Image and video generation report full end-to-end generation time, because their raw latency only measures request acknowledgement; every other workload reports time to first token or result."
+              }
+            ]
+          },
+          "request_count": {
+            "description": "Total requests admitted for this workload in the window.",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "throughput": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PercentileStats"
+              },
+              {
+                "description": "Throughput percentiles in tokens per second; pN is the speed that N% of requests reached or exceeded, so p90 is lower than p50. Only meaningful for text generation; null for workloads without token throughput."
+              }
+            ]
+          }
+        },
+        "required": [
+          "latency",
+          "throughput",
+          "request_count"
+        ],
+        "type": "object"
       },
       "STTEntity": {
         "description": "A detected entity, returned when the provider runs entity detection",
@@ -44433,6 +45876,43 @@
         ],
         "type": "object"
       },
+      "TTS": {
+        "properties": {
+          "latency": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PercentileStats"
+              },
+              {
+                "description": "Latency percentiles in milliseconds for this workload. Image and video generation report full end-to-end generation time, because their raw latency only measures request acknowledgement; every other workload reports time to first token or result."
+              }
+            ]
+          },
+          "request_count": {
+            "description": "Total requests admitted for this workload in the window.",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "throughput": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PercentileStats"
+              },
+              {
+                "description": "Throughput percentiles in tokens per second; pN is the speed that N% of requests reached or exceeded, so p90 is lower than p50. Only meaningful for text generation; null for workloads without token throughput."
+              }
+            ]
+          }
+        },
+        "required": [
+          "latency",
+          "throughput",
+          "request_count"
+        ],
+        "type": "object"
+      },
       "TaskClassificationItem": {
         "example": {
           "category_token_share": 0.48,
@@ -44777,6 +46257,43 @@
             "type": "text"
           }
         }
+      },
+      "TextGeneration": {
+        "properties": {
+          "latency": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PercentileStats"
+              },
+              {
+                "description": "Latency percentiles in milliseconds for this workload. Image and video generation report full end-to-end generation time, because their raw latency only measures request acknowledgement; every other workload reports time to first token or result."
+              }
+            ]
+          },
+          "request_count": {
+            "description": "Total requests admitted for this workload in the window.",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "throughput": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PercentileStats"
+              },
+              {
+                "description": "Throughput percentiles in tokens per second; pN is the speed that N% of requests reached or exceeded, so p90 is lower than p50. Only meaningful for text generation; null for workloads without token throughput."
+              }
+            ]
+          }
+        },
+        "required": [
+          "latency",
+          "throughput",
+          "request_count"
+        ],
+        "type": "object"
       },
       "TokenExchangeRequest": {
         "description": "RFC 8693 token exchange request body (application/x-www-form-urlencoded).",
@@ -46162,6 +47679,43 @@
         ],
         "type": "object"
       },
+      "Unknown": {
+        "properties": {
+          "latency": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PercentileStats"
+              },
+              {
+                "description": "Latency percentiles in milliseconds for this workload. Image and video generation report full end-to-end generation time, because their raw latency only measures request acknowledgement; every other workload reports time to first token or result."
+              }
+            ]
+          },
+          "request_count": {
+            "description": "Total requests admitted for this workload in the window.",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "throughput": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PercentileStats"
+              },
+              {
+                "description": "Throughput percentiles in tokens per second; pN is the speed that N% of requests reached or exceeded, so p90 is lower than p50. Only meaningful for text generation; null for workloads without token throughput."
+              }
+            ]
+          }
+        },
+        "required": [
+          "latency",
+          "throughput",
+          "request_count"
+        ],
+        "type": "object"
+      },
       "UnprocessableEntityResponse": {
         "description": "Unprocessable Entity - Semantic validation failure",
         "example": {
@@ -47120,28 +48674,6 @@
             "example": "https://inference.example.com/v1",
             "minLength": 1,
             "type": "string"
-          },
-          "data_policy": {
-            "properties": {
-              "prompt_retention_days": {
-                "description": "Days prompts are retained. Must be `null` unless `retains_prompts` is true.",
-                "maximum": 3650,
-                "minimum": 1,
-                "type": [
-                  "integer",
-                  "null"
-                ]
-              },
-              "retains_prompts": {
-                "description": "Whether the provider retains prompts or completions.",
-                "type": "boolean"
-              },
-              "training": {
-                "description": "Whether the provider trains on prompts.",
-                "type": "boolean"
-              }
-            },
-            "type": "object"
           },
           "display_name": {
             "example": "Acme",
@@ -48306,6 +49838,43 @@
         "required": [
           "value",
           "hosts"
+        ],
+        "type": "object"
+      },
+      "VideoGeneration": {
+        "properties": {
+          "latency": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PercentileStats"
+              },
+              {
+                "description": "Latency percentiles in milliseconds for this workload. Image and video generation report full end-to-end generation time, because their raw latency only measures request acknowledgement; every other workload reports time to first token or result."
+              }
+            ]
+          },
+          "request_count": {
+            "description": "Total requests admitted for this workload in the window.",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "throughput": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PercentileStats"
+              },
+              {
+                "description": "Throughput percentiles in tokens per second; pN is the speed that N% of requests reached or exceeded, so p90 is lower than p50. Only meaningful for text generation; null for workloads without token throughput."
+              }
+            ]
+          }
+        },
+        "required": [
+          "latency",
+          "throughput",
+          "request_count"
         ],
         "type": "object"
       },
@@ -51006,6 +52575,343 @@
         "summary": "Submit a Decisions request",
         "tags": [
           "alpha.decisions"
+        ],
+        "x-speakeasy-name-override": "create"
+      }
+    },
+    "/api/alpha/extractions": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AppIdentifier"
+        },
+        {
+          "$ref": "#/components/parameters/AppDisplayName"
+        },
+        {
+          "$ref": "#/components/parameters/AppCategories"
+        }
+      ],
+      "post": {
+        "description": "Extracts, computes, estimates or forecasts typed fields from a state string and image assets using an extraction-style System One model. Alpha: the shape is not stable.",
+        "operationId": "createApiAlphaExtractions",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "fields": {
+                  "contacts": {
+                    "items": "text",
+                    "type": "list"
+                  },
+                  "days_to_pay": {
+                    "max": 120,
+                    "min": 0,
+                    "step": 1,
+                    "type": "estimate"
+                  },
+                  "due_date": {
+                    "instructions": "Issue date plus the net payment days",
+                    "type": "date"
+                  },
+                  "invoice_number": {
+                    "type": "text"
+                  },
+                  "total": {
+                    "decimals": 2,
+                    "type": "number",
+                    "unit": "USD"
+                  }
+                },
+                "model": "cloudflare/clairic",
+                "reference_date": "2026-10-28",
+                "state": "Invoice INV-2291 issued 2026-09-02, net 30. Contacts: Dana Ruiz, Priya Shah. Total $1080."
+              },
+              "schema": {
+                "$ref": "#/components/schemas/ExtractionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "answers": {
+                    "contacts": {
+                      "confidence": 0.9999,
+                      "spans": [
+                        [
+                          53,
+                          62
+                        ],
+                        [
+                          64,
+                          74
+                        ]
+                      ],
+                      "type": "list",
+                      "value": [
+                        "Dana Ruiz",
+                        "Priya Shah"
+                      ]
+                    },
+                    "days_to_pay": {
+                      "mean": 29.5,
+                      "median": 30,
+                      "p10": 21,
+                      "p90": 38,
+                      "type": "estimate",
+                      "value": 30
+                    },
+                    "due_date": {
+                      "guess": "2026-10-02",
+                      "p_null": 1.9e-08,
+                      "type": "date",
+                      "value": "2026-10-02"
+                    },
+                    "invoice_number": {
+                      "confidence": 1,
+                      "guess": "INV-2291",
+                      "p_null": 3.8e-10,
+                      "span": [
+                        8,
+                        16
+                      ],
+                      "type": "text",
+                      "value": "INV-2291"
+                    },
+                    "total": {
+                      "confidence": 0.9999,
+                      "guess": 1080,
+                      "p_null": 2.3e-08,
+                      "type": "number",
+                      "value": 1080
+                    }
+                  },
+                  "id": "gen-dec-1793251006-X5e5eKGQdvR9rblyX250",
+                  "model": "cloudflare/clairic",
+                  "provider": "Cloudflare",
+                  "truncated": false,
+                  "usage": {
+                    "cost": 6.55e-05,
+                    "image_tokens": 0,
+                    "input_tokens": 655,
+                    "output_tokens": 0,
+                    "passes": 3,
+                    "schema_tokens": 472,
+                    "state_tokens": 61
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractionsResponse"
+                }
+              }
+            },
+            "description": "Extractions response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 400,
+                    "message": "Invalid request parameters"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            },
+            "description": "Bad Request - Invalid request parameters or malformed input"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 401,
+                    "message": "Missing Authentication header"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 402,
+                    "message": "Insufficient credits. Add more using https://openrouter.ai/credits"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRequiredResponse"
+                }
+              }
+            },
+            "description": "Payment Required - Insufficient credits or quota to complete request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 403,
+                    "message": "Only management keys can perform this operation"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            },
+            "description": "Forbidden - Authentication successful but insufficient permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 404,
+                    "message": "Resource not found"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundResponse"
+                }
+              }
+            },
+            "description": "Not Found - Resource does not exist"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 413,
+                    "message": "Request payload too large"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PayloadTooLargeResponse"
+                }
+              }
+            },
+            "description": "Payload Too Large - Request payload exceeds size limits"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 429,
+                    "message": "Rate limit exceeded"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests - Rate limit exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 500,
+                    "message": "Internal Server Error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error - Unexpected server error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 502,
+                    "message": "Provider returned error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadGatewayResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway - Provider/upstream API failure"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 503,
+                    "message": "Service temporarily unavailable"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailableResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable - Service temporarily unavailable"
+          },
+          "524": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 524,
+                    "message": "Request timed out. Please try again later."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/EdgeNetworkTimeoutResponse"
+                }
+              }
+            },
+            "description": "Infrastructure Timeout - Provider request timed out at edge network"
+          },
+          "529": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 529,
+                    "message": "Provider returned error"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderOverloadedResponse"
+                }
+              }
+            },
+            "description": "Provider Overloaded - Provider is temporarily overloaded"
+          }
+        },
+        "servers": [
+          {
+            "url": "https://openrouter.ai"
+          }
+        ],
+        "summary": "Submit an Extractions request",
+        "tags": [
+          "alpha.extractions"
         ],
         "x-speakeasy-name-override": "create"
       }
@@ -56781,6 +58687,9 @@
                       "created": 1692901234,
                       "default_parameters": null,
                       "description": "OpenAI text embedding model optimized for performance.",
+                      "endpoints": [
+                        "/api/v1/embeddings"
+                      ],
                       "expiration_date": null,
                       "id": "openai/text-embedding-3-small",
                       "knowledge_cutoff": null,
@@ -56912,6 +58821,7 @@
                       },
                       "provider_name": "OpenAI",
                       "quantization": "fp16",
+                      "safety_retention": false,
                       "status": 0,
                       "supported_parameters": [
                         "temperature",
@@ -56961,6 +58871,7 @@
                         },
                         "provider_name": "OpenAI",
                         "quantization": "fp16",
+                        "safety_retention": false,
                         "status": 0,
                         "supported_parameters": [
                           "temperature",
@@ -56988,7 +58899,7 @@
                   "properties": {
                     "data": {
                       "items": {
-                        "$ref": "#/components/schemas/PublicEndpoint"
+                        "$ref": "#/components/schemas/PublicZdrEndpoint"
                       },
                       "type": "array"
                     }
@@ -62449,12 +64360,12 @@
             }
           },
           {
-            "description": "Filter API keys by workspace ID. By default, keys in the default workspace are returned.",
+            "description": "Filter API keys by workspace ID. By default an organization-scoped management key gets the default workspace; a workspace-scoped management key always gets its own workspace and cannot list another.",
             "in": "query",
             "name": "workspace_id",
             "required": false,
             "schema": {
-              "description": "Filter API keys by workspace ID. By default, keys in the default workspace are returned.",
+              "description": "Filter API keys by workspace ID. By default an organization-scoped management key gets the default workspace; a workspace-scoped management key always gets its own workspace and cannot list another.",
               "example": "0df9e665-d932-5740-b2c7-b52af166bc11",
               "format": "uuid",
               "type": "string"
@@ -62775,6 +64686,22 @@
             },
             "description": "Unauthorized - Authentication required or invalid credentials"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 403,
+                    "message": "Only management keys can perform this operation"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            },
+            "description": "Forbidden - Authentication successful but insufficient permissions"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -62942,7 +64869,7 @@
                     "type": "string"
                   },
                   "workspace_id": {
-                    "description": "The workspace to create the API key in. Defaults to the default workspace if not provided.",
+                    "description": "The workspace to create the API key in. Defaults to the default workspace for an organization-scoped management key, or to the management key's own workspace for a workspace-scoped one, which cannot create keys elsewhere.",
                     "example": "0df9e665-d932-5740-b2c7-b52af166bc11",
                     "format": "uuid",
                     "type": "string"
@@ -63390,6 +65317,22 @@
             },
             "description": "Unauthorized - Authentication required or invalid credentials"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 403,
+                    "message": "Only management keys can perform this operation"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            },
+            "description": "Forbidden - Authentication successful but insufficient permissions"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -63751,6 +65694,22 @@
               }
             },
             "description": "Unauthorized - Authentication required or invalid credentials"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": 403,
+                    "message": "Only management keys can perform this operation"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            },
+            "description": "Forbidden - Authentication successful but insufficient permissions"
           },
           "404": {
             "content": {
@@ -64650,6 +66609,12 @@
                     "created": 1692901234,
                     "default_parameters": null,
                     "description": "GPT-4 is a large multimodal model that can solve difficult problems with greater accuracy.",
+                    "endpoints": [
+                      "/api/v1/chat/completions",
+                      "/api/v1/completions",
+                      "/api/v1/messages",
+                      "/api/v1/responses"
+                    ],
                     "expiration_date": null,
                     "id": "openai/gpt-4",
                     "knowledge_cutoff": null,
@@ -65208,6 +67173,12 @@
                       "created": 1692901234,
                       "default_parameters": null,
                       "description": "GPT-4 is a large multimodal model that can solve difficult problems with greater accuracy.",
+                      "endpoints": [
+                        "/api/v1/chat/completions",
+                        "/api/v1/completions",
+                        "/api/v1/messages",
+                        "/api/v1/responses"
+                      ],
                       "expiration_date": null,
                       "id": "openai/gpt-4",
                       "knowledge_cutoff": null,
@@ -65596,12 +67567,12 @@
             }
           },
           {
-            "description": "Return only the models and presets the named harness offers: those that support tool calling, and, when one of your guardrails sets `enforce_first_party_harness_models`, only the harness vendor's own models (OpenAI for codex, Anthropic for claude_code and claude_desktop). One of: claude_code, claude_desktop, codex. Omit it to get every model you can use.",
+            "description": "Filter models and presets by the named harness's eligibility policy: tool calling is required, and when one of your guardrails sets `enforce_first_party_harness_models`, only the harness vendor's own models remain (OpenAI for codex, Anthropic for claude_code and claude_desktop). When your workspace's Managed Machines policy sets a model list for that harness, only the listed models remain, and a preset remains only while every model it routes to is listed. This filter doesn't apply the harness's ranking, caps or Claude Desktop model ID aliases, so returned IDs stay routable. One of: claude_code, claude_desktop, codex. Omit it to get every model you can use.",
             "in": "query",
             "name": "client",
             "required": false,
             "schema": {
-              "description": "Return only the models and presets the named harness offers: those that support tool calling, and, when one of your guardrails sets `enforce_first_party_harness_models`, only the harness vendor's own models (OpenAI for codex, Anthropic for claude_code and claude_desktop). One of: claude_code, claude_desktop, codex. Omit it to get every model you can use.",
+              "description": "Filter models and presets by the named harness's eligibility policy: tool calling is required, and when one of your guardrails sets `enforce_first_party_harness_models`, only the harness vendor's own models remain (OpenAI for codex, Anthropic for claude_code and claude_desktop). When your workspace's Managed Machines policy sets a model list for that harness, only the listed models remain, and a preset remains only while every model it routes to is listed. This filter doesn't apply the harness's ranking, caps or Claude Desktop model ID aliases, so returned IDs stay routable. One of: claude_code, claude_desktop, codex. Omit it to get every model you can use.",
               "enum": [
                 "claude_code",
                 "claude_desktop",
@@ -65636,6 +67607,12 @@
                       "created": 1692901234,
                       "default_parameters": null,
                       "description": "GPT-4 is a large multimodal model that can solve difficult problems with greater accuracy.",
+                      "endpoints": [
+                        "/api/v1/chat/completions",
+                        "/api/v1/completions",
+                        "/api/v1/messages",
+                        "/api/v1/responses"
+                      ],
                       "expiration_date": null,
                       "id": "openai/gpt-4",
                       "knowledge_cutoff": null,
@@ -71340,7 +73317,7 @@
         }
       ],
       "patch": {
-        "description": "Update a private provider\u2019s details or declared data policy. The name and slug cannot change. Refuses (409) a data-policy change while OpenRouter pins the declared policy on one of its endpoints. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "description": "Update a private provider\u2019s display name or base URL. The name and slug cannot change, and the data policy is fixed by OpenRouter, so a body with no editable field is rejected (400). [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "updatePrivateProvider",
         "parameters": [
           {
@@ -80398,6 +82375,10 @@
     {
       "description": "Alpha feature endpoints for Decisions requests",
       "name": "alpha.decisions"
+    },
+    {
+      "description": "Alpha feature endpoints for Extractions requests",
+      "name": "alpha.extractions"
     },
     {
       "description": "Deprecated alias of responses. Use responses instead; scheduled for removal (sunset date TBD).",
