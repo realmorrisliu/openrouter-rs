@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-11-03
+
 ### Added
 - `Model` and `UserModel` now carry `endpoints`: the request API paths (`/api/v1/chat/completions`, `/api/v1/responses`, …) that serve the model.
 - `PublicEndpoint` now carries `safety_retention`, which `GET /endpoints/zdr` sends for every endpoint.

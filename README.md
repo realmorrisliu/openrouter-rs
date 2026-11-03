@@ -25,7 +25,7 @@ Type-safe, async Rust SDK for the OpenRouter API.
 
 ```toml
 [dependencies]
-openrouter-rs = "0.23.0"
+openrouter-rs = "0.24.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -107,7 +107,7 @@ Management-governed endpoints require `OPENROUTER_MANAGEMENT_KEY`; ordinary chat
 - Typed tools, manual JSON-schema tools, OpenRouter server tools, and multimodal chat content
 - Typed chat usage metadata for token counts, OpenRouter cost, provider cost breakdowns, and BYOK status
 - Opt-in OpenRouter response metadata for chat, Responses API, and Anthropic-compatible Messages requests
-- Discovery, rankings and benchmark datasets, task classifications, rerank, audio speech/transcription, image generation, video generation, provider-backed files, embeddings, API-key management, preset creation/readback/versioning, analytics, BYOK provider credentials, observability destinations, workspace management, SCIM group mappings, organization members/settings, end-user registrations, guardrails, activity, credits, and generation metadata/content coverage
+- Discovery, rankings and benchmark datasets, task classifications, rerank, audio speech/transcription, image generation, video generation, provider-backed files, embeddings, API-key management, preset creation/readback/versioning, analytics, BYOK provider credentials, observability destinations, workspace management, SCIM group mappings, organization members/settings, external-user registrations, guardrails, activity, credits, and generation metadata/content coverage
 - A companion CLI for profile resolution, discovery, management, and billing/usage workflows
 
 Accepted endpoint coverage and live-test status are recorded separately in the [endpoint matrix](docs/operations/official-endpoint-test-matrix.md). See the [changelog](CHANGELOG.md) for release details and [migration guide](MIGRATION.md) when upgrading, including the [0.19 speech input change](MIGRATION.md#018x---0190-compatibility-notes).
@@ -118,7 +118,7 @@ Legacy text completions are opt-in:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.23.0", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.24.0", features = ["legacy-completions"] }
 ```
 
 ### HTTP backends and WASI
@@ -134,7 +134,7 @@ For a WASI component, disable the default reqwest backend and enable `wasip3`:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.23.0", default-features = false, features = ["wasip3"] }
+openrouter-rs = { version = "0.24.0", default-features = false, features = ["wasip3"] }
 ```
 
 The client API is the same on both backends, including streaming. When both features are on a WASI target, the default client uses `wasi:http`. The embedding host controls TLS, networking, redirects and timeouts; configure those policies in the host rather than assuming reqwest settings apply.
@@ -272,7 +272,7 @@ The repo includes runnable examples for the highest-value workflows:
 | [`examples/domain_management_api_keys.rs`](examples/domain_management_api_keys.rs) | API-key management via `management()` |
 | [`examples/list_byok_keys.rs`](examples/list_byok_keys.rs) | `management().list_byok_keys(...)` |
 | [`examples/list_observability_destinations.rs`](examples/list_observability_destinations.rs) | `management().list_observability_destinations(...)` |
-| [`examples/list_organization_members.rs`](examples/list_organization_members.rs) | Organization members/settings and end-user registration listing |
+| [`examples/list_organization_members.rs`](examples/list_organization_members.rs) | Organization members/settings and external-user registration listing |
 | [`examples/list_workspaces.rs`](examples/list_workspaces.rs) | `management().list_workspaces(...)` |
 | [`examples/exchange_code_for_api_key.rs`](examples/exchange_code_for_api_key.rs) | PKCE/auth-code flow |
 | [`examples/send_completion_request.rs`](examples/send_completion_request.rs) | Legacy completions (`legacy-completions` required) |
@@ -449,9 +449,13 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 ### Unreleased
 
-- Accepted the November 3 OpenAPI snapshot: model `endpoints`, ZDR endpoint `safety_retention`, and Responses `access_programs`. Private providers dropped `data_policy` (**breaking**); `POST /api/alpha/extractions` stays deferred.
+### Version 0.24.0 *(Latest)*
 
-### Version 0.23.0 *(Latest)*
+- Accepted the November 3 OpenAPI snapshot: `Model`/`UserModel` expose `endpoints`, ZDR endpoints expose `safety_retention`, and Responses requests can opt into OpenAI access programs. `POST /api/alpha/extractions` stays deferred.
+- **Breaking:** private providers dropped `data_policy` upstream, so `PrivateProviderDataPolicy` and the `data_policy` fields are removed. See the [0.24 migration notes](MIGRATION.md#023x---0240-private-providers-drop-data_policy).
+- The [endpoint matrix](docs/operations/official-endpoint-test-matrix.md) now matches the shipped surface again, and `test_real_tool_call` runs in the live workflow instead of being skipped everywhere.
+
+### Version 0.23.0
 
 - **Breaking:** One entry path per endpoint family: the 162 `api::*` endpoint functions and 109 flat `OpenRouterClient` methods are gone, so every call honours the configured client. See the [0.23 migration notes](MIGRATION.md#022x---0230-one-entry-path-per-endpoint-family).
 - **Breaking:** Transport failures carry `HttpRequestErrorKind`, the request URL, and `retry_after`; streaming has one event model (`UnifiedStreamEvent`) whose terminal event carries assembled `tool_calls` and typed `usage`.

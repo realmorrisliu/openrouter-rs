@@ -35,7 +35,7 @@ Drift review note:
 
 - Issue #291 (2026-11-02): accepted `Model`/`UserModel` `endpoints` (the request API paths that serve the model), `PublicEndpoint` `safety_retention` on `GET /endpoints/zdr`, and Responses `access_programs.cyber`. Upstream also removed private-provider `data_policy` from the create/update requests and every response, so `PrivateProviderDataPolicy` and its fields are gone (breaking). Reviewed as already covered: generation `api_type` `extractions` and provider `provider_sort_order_mode`/`provider_sort_order_rank` stay flexible strings and `extra` maps, and Batch result bodies keep echoing through `Value`. Deferred as out of scope: `POST /api/alpha/extractions`, whose alpha request/response shape (nine typed field specs and nine answer shapes) is documented as unstable upstream.
 - Issue #285 (2026-10-30): accepted the drift that renames `/end-users*` to `/external-users*`, removes the `/interns*` family, and adds `/private-providers*`. `management()` now exposes `list_external_users`/`create_external_user`/`get_external_user`/`update_external_user`/`delete_external_user` and `list_private_providers`/`create_private_provider`/`get_private_provider`/`update_private_provider`/`delete_private_provider`; `client.interns()` and its types are gone. Also accepted: guardrail `enforce_first_party_harness_models`, prompt-cache breakpoint `ttl`, user-model `client` filter, and vault connection `routing`/`routing_text`. Deferred as out of scope: the never-covered `/private-endpoints*` family, including the newly added but deprecated `PUT /private-endpoints/{id}/parameters`, plus provider-UI metadata inside flexible objects (`authMode`, `visibleWhen`) and provider option maps that already round-trip through `Value`.
-- Issue #273 (2026-10-20): accepted the two added operations `GET /interns/{internId}/icon` and `GET /vault/interns/{internId}/connections` through `client.interns().get_icon(...)` and `client.vault().list_connections_for_intern(...)`. Added Batch `callback_url`/`expires_at`/`provider`, endpoint `service_tier`/`supports_diarization`, guardrail `allow_safety_retention_*`, observability `broadcast_generation_cost_allocation`, video signed `urls`, intern `created_by_you`/`icon_sha256`, route-bound daemon signing (`route`, nonce and v2 signature), user-model `sort`, and Responses `stop`. Chat `alignment`/`safeguard_results` and Responses `openrouter:armor_blocked` items stay flexible (`Value`); Armor/alignment plugin configuration stays on `Plugin` maps. New 408/409/499 statuses use the shared error parser. No CLI flags change.
+- Issue #273 (2026-10-20): accepted the two added operations `GET /interns/{internId}/icon` and `GET /vault/interns/{internId}/connections` through `client.interns().get_icon(...)` and `client.vault().list_connections_for_intern(...)` (the `/interns*` family and `client.interns()` were later removed upstream; see Issue #285 - only the vault read remains). Added Batch `callback_url`/`expires_at`/`provider`, endpoint `service_tier`/`supports_diarization`, guardrail `allow_safety_retention_*`, observability `broadcast_generation_cost_allocation`, video signed `urls`, intern `created_by_you`/`icon_sha256`, route-bound daemon signing (`route`, nonce and v2 signature), user-model `sort`, and Responses `stop`. Chat `alignment`/`safeguard_results` and Responses `openrouter:armor_blocked` items stay flexible (`Value`); Armor/alignment plugin configuration stays on `Plugin` maps. New 408/409/499 statuses use the shared error parser. No CLI flags change.
 - Issue #264 (2026-10-13): accepted canonical `POST /interns/{internId}/daemon/sign` and the deprecated `daemon-access/sign` alias. Local HTTP tests cover encoded paths, digest request casing/validation, both routes, OAuth session bearer forwarding, attribution headers, 403 responses for ordinary API keys and insufficient grants, malformed credential errors and absent auth. Signature values have no Debug implementation. These routes require an `ori login --oidc` session with `vault:read`, including the deprecated alias; ordinary API keys and `interns`-only grants are rejected with 403. The existing client `api_key` slot forwards the session token. Mock tests verify forwarding and error handling; session/scope validation remains server-owned and has no live qualification.
 - Added BYOK declared regions with omit/set/clear/reset semantics, key budgets/effective budget and last-used timestamps, expired-key filtering, key workspace moves, video expiration, speech turn input/instructions, portable deferred-tool controls, chat function deferral flags, and Messages tool-search result blocks (including streaming). Older responses and text-input builder calls remain compatible; direct speech input field access needs the documented enum migration.
 - Reviewed all 27 changed operations: Responses input/output/tool-search results, allowed callers/output schemas, failable server tools and Batch result bodies use existing flexible JSON; plugins preserve `cost_tier`/`judge_model`; provider names remain strings. End-user ID constraints and the 500-key bulk assignment limit remain server-validated; new conflict/forbidden statuses use existing typed error handling. Existing 13 deferred operations remain deferred.
@@ -68,7 +68,7 @@ Drift review note:
 - Upstream replaced the two per-source benchmark dataset endpoints with unified `GET /benchmarks` and added workspace budget management. The SDK now exposes `client.models().get_benchmarks(...)` and `client.management().list_workspace_budgets(...)` / `upsert_workspace_budget(...)` / `delete_workspace_budget(...)`. The old per-source benchmark methods remain deprecated compatibility wrappers.
 - Upstream added model reasoning metadata, analytics warnings, chat server-tool usage metadata, embedding cost details, and Anthropic file document sources. The SDK now exposes typed fields/helpers for these stable surfaces while preserving flexible `Value` and `HashMap` escape hatches for high-churn payloads.
 - Official audio speech routing is now `POST /audio/speech`. The SDK keeps the canonical `client.audio().speech().create(...)` surface and retries legacy `POST /tts` only as a compatibility fallback.
-- Upstream added `GET /generation/content`, now exposed as `client.get_generation_content(...)` / `client.management().get_generation_content(...)`.
+- Upstream added `GET /generation/content`, now exposed as `client.management().get_generation_content(...)`.
 - Upstream added official workspace-management endpoints and workspace-aware management fields. The SDK and CLI now expose them; live management-key validation remains pending.
 - Upstream now exposes request metadata through generator globals (`HTTP-Referer`, `X-Title`) instead of repeating path-level metadata parameters. The SDK already applies `HTTP-Referer`, `X-Title`, `X-OpenRouter-Title`, and optional `X-OpenRouter-Categories` through the client builder.
 - Upstream added `num_fetches` to generation metadata responses. The typed `GenerationData` surface now deserializes it.
@@ -125,21 +125,21 @@ Legend:
 | `POST /oauth/token` | `client.management().exchange_oauth_token(...)` | Yes | Path | No | P1 |
 | `POST /scim/sync-jobs` | `client.management().create_scim_sync_job(...)` | Yes | Path | No | P1 |
 | `GET /scim/sync-jobs/{id}` | `client.management().get_scim_sync_job(...)` | Yes | Path | Conditional | P1 |
-| `GET /credits` | `client.get_credits()` / `client.management().get_credits()` | Yes | Path | No | P2 |
-| `POST /credits/coinbase` | `client.create_coinbase_charge(...)` / `client.management().create_coinbase_charge(...)` (deprecated upstream; use web credits purchase) | Yes (compatibility) | Path | No | P2 |
+| `GET /credits` | `client.management().get_credits()` | Yes | Path | No | P2 |
+| `POST /credits/coinbase` | `client.management().create_coinbase_charge(...)` (deprecated upstream; use web credits purchase) | Yes (compatibility) | Path | No | P2 |
 | `GET /datasets/app-rankings` | `client.models().get_app_rankings(...)` | Yes | Path | No | P2 |
 | `GET /datasets/rankings-daily` | `client.models().get_rankings_daily(...)` | Yes | Path | No | P2 |
 | `GET /datasets/session-cost` | `client.models().get_session_cost(...)` | Yes | Path | No | P2 |
-| `POST /embeddings` | `client.create_embedding(...)` / `client.models().create_embedding(...)` | Yes | Contract | Yes | Keep |
-| `GET /embeddings/models` | `client.list_embedding_models()` / `client.models().list_embedding_models()` | Yes | Path | Yes | Keep |
+| `POST /embeddings` | `client.models().create_embedding(...)` | Yes | Contract | Yes | Keep |
+| `GET /embeddings/models` | `client.models().list_embedding_models()` | Yes | Path | Yes | Keep |
 | `GET /endpoints/zdr` | `client.models().list_zdr_endpoints(...)` | Yes | Contract | Yes | Keep |
 | `GET /files` | `client.files().list(...)` / `list_for_provider(...)` | Yes | Path | No | P1 |
 | `POST /files` | `client.files().upload(...)` / `upload_for_provider(...)` | Yes | Path | No | P1 |
 | `GET /files/{file_id}` | `client.files().get_metadata(...)` / `get_metadata_for_provider(...)` | Yes | Path | No | P1 |
 | `DELETE /files/{file_id}` | `client.files().delete(...)` / `delete_for_provider(...)` | Yes | Path | No | P1 |
 | `GET /files/{file_id}/content` | `client.files().download_content(...)` / `download_content_for_provider(...)` | Yes | Path | No | P1 |
-| `GET /generation` | `client.get_generation(...)` / `client.management().get_generation(...)` | Yes | Path | No | P2 |
-| `GET /generation/content` | `client.get_generation_content(...)` / `client.management().get_generation_content(...)` | Yes | Path | No | P2 |
+| `GET /generation` | `client.management().get_generation(...)` | Yes | Path | No | P2 |
+| `GET /generation/content` | `client.management().get_generation_content(...)` | Yes | Path | No | P2 |
 | `POST /generation/feedback` | `client.management().submit_generation_feedback(...)` | Yes | Path | No | P1 |
 | `GET /guardrails` | `client.management().list_guardrails(...)` / `client.management().list_guardrails_in_workspace(...)` | Yes | Path | Yes | Keep |
 | `POST /guardrails` | `client.management().create_guardrail(...)` | Yes | Contract | Yes | Keep |
@@ -161,44 +161,35 @@ Legend:
 | `POST /batches` | `client.batches().create(...)` | Yes | Contract | No | P1 |
 | `GET /batches/{id}` | `client.batches().get(...)` | Yes | Contract | No | P1 |
 | `DELETE /batches/{id}` | `client.batches().delete(...)` | Yes | Contract | No | P1 |
-| `GET /interns/{internId}/daemon` | `client.interns().daemon(...)` | Yes | Path | No | P1 |
-| `GET /interns/{internId}/daemon-access` | `client.interns().daemon_access(...)` (deprecated upstream alias) | Yes | Path | No | P1 |
-| `POST /interns/{internId}/daemon/sign` | `client.interns().sign_daemon(...)` | Yes | Path | No | OIDC session with `vault:read`; local HTTP tested; live qualification pending |
-| `POST /interns/{internId}/daemon-access/sign` | `client.interns().sign_daemon_access(...)` (deprecated upstream alias) | Yes | Path | No | Same OIDC session and `vault:read` requirements as canonical signing route; local HTTP tested; live qualification pending |
-| `POST /interns/{internId}/invoke` | `client.interns().invoke(...)` | Yes | Contract | No | P1 |
-| `DELETE /interns/{internId}` | `client.interns().delete(...)` | Yes | Path | No | P1 |
-| `GET /interns` | `client.interns().list(...)` | Yes | Path | No | P1 |
-| `GET /interns/{internId}` | `client.interns().get(...)` | Yes | Path | No | P1 |
-| `GET /interns/{internId}/icon` | `client.interns().get_icon(...)` | Yes | Path | No | P1 |
-| `PATCH /interns/{internId}` | `client.interns().update(...)` | Yes | Path | No | P1 |
-| `POST /interns` | `client.interns().create(...)` | Yes | Path | No | P1 |
-| `POST /interns/{internId}/chat/completions` | `client.interns().chat_completion(...)` | Yes | Path | No | P1 |
-| `POST /interns/{internId}/provision` | `client.interns().provision(...)` | Yes | Path | No | P1 |
-| `POST /interns/{internId}/suspend` | `client.interns().suspend(...)` | Yes | Path | No | P1 |
-| `GET /key` | `client.get_current_api_key_info()` / `client.management().get_current_api_key_info()` | Yes | Contract | Yes | Keep |
+| `GET /key` | `client.management().get_current_api_key_info()` | Yes | Contract | Yes | Keep |
 | `GET /keys` | `client.management().list_api_keys(...)` / `client.management().list_api_keys_in_workspace(...)` | Yes | Path | Yes | Keep |
-| `POST /keys` | `client.create_api_key(...)` / `client.create_api_key_in_workspace(...)` / `client.management().create_api_key(...)` / `client.management().create_api_key_in_workspace(...)` | Yes | Path | Yes | Keep |
-| `GET /keys/{hash}` | `client.get_api_key(...)` / `client.management().get_api_key(...)` | Yes | Path | Yes | Keep |
-| `PATCH /keys/{hash}` | `client.update_api_key(...)` / `client.management().update_api_key(...)` | Yes | Path | Yes | Keep |
-| `DELETE /keys/{hash}` | `client.delete_api_key(...)` / `client.management().delete_api_key(...)` | Yes | Path | Yes | Keep |
+| `POST /keys` | `client.management().create_api_key(...)` / `client.management().create_api_key_in_workspace(...)` | Yes | Path | Yes | Keep |
+| `GET /keys/{hash}` | `client.management().get_api_key(...)` | Yes | Path | Yes | Keep |
+| `PATCH /keys/{hash}` | `client.management().update_api_key(...)` | Yes | Path | Yes | Keep |
+| `DELETE /keys/{hash}` | `client.management().delete_api_key(...)` | Yes | Path | Yes | Keep |
 | `GET /model/{author}/{slug}` | `client.models().get(...)` | Yes | Path | No | P2 |
-| `GET /models` | `client.list_models()` / `client.models().list()` | Yes | Contract | Yes | Keep |
-| `GET /models/{author}/{slug}/endpoints` | `client.list_model_endpoints(...)` / `client.models().list_endpoints(...)` | Yes | Path | Yes | Keep |
-| `GET /models/count` | `client.count_models()` / `client.models().get_model_count()` | Yes | Contract | Yes | Keep |
-| `GET /models/user` | `client.list_models_for_user()` / `client.models().list_user_models()` | Yes | Path | Yes | Keep |
+| `GET /models` | `client.models().list()` | Yes | Contract | Yes | Keep |
+| `GET /models/{author}/{slug}/endpoints` | `client.models().list_endpoints(...)` | Yes | Path | Yes | Keep |
+| `GET /models/count` | `client.models().get_model_count()` | Yes | Contract | Yes | Keep |
+| `GET /models/user` | `client.models().list_user_models()` | Yes | Path | Yes | Keep |
 | `GET /observability/destinations` | `client.management().list_observability_destinations(...)` | Yes | Path | No | P1 |
 | `POST /observability/destinations` | `client.management().create_observability_destination(...)` | Yes | Path | No | P1 |
 | `GET /observability/destinations/{id}` | `client.management().get_observability_destination(...)` | Yes | Path | No | P1 |
 | `PATCH /observability/destinations/{id}` | `client.management().update_observability_destination(...)` | Yes | Path | No | P1 |
 | `DELETE /observability/destinations/{id}` | `client.management().delete_observability_destination(...)` | Yes | Path | No | P1 |
 | `GET /organization/members` | `client.management().list_organization_members(...)` | Yes | Path | Yes | Keep |
-| `GET /end-users` | `client.management().list_end_users(...)` | Yes | Path | No | Local HTTP tested; live qualification pending |
-| `POST /end-users` | `client.management().create_end_user(...)` | Yes | Path | No | Local HTTP tested; live qualification pending |
-| `GET /end-users/{user}` | `client.management().get_end_user(...)` | Yes | Path | No | Local HTTP tested; live qualification pending |
-| `PATCH /end-users/{user}` | `client.management().update_end_user(...)` | Yes | Path | No | Local HTTP tested; live qualification pending |
-| `DELETE /end-users/{user}` | `client.management().delete_end_user(...)` | Yes | Path | No | Local HTTP tested; live qualification pending |
+| `GET /external-users` | `client.management().list_external_users(...)` | Yes | Path | No | Local HTTP tested; live qualification pending |
+| `POST /external-users` | `client.management().create_external_user(...)` | Yes | Path | No | Local HTTP tested; live qualification pending |
+| `GET /external-users/{user}` | `client.management().get_external_user(...)` | Yes | Path | No | Local HTTP tested; live qualification pending |
+| `PATCH /external-users/{user}` | `client.management().update_external_user(...)` | Yes | Path | No | Local HTTP tested; live qualification pending |
+| `DELETE /external-users/{user}` | `client.management().delete_external_user(...)` | Yes | Path | No | Local HTTP tested; live qualification pending |
 | `GET /organization/settings` | `client.management().get_organization_settings(...)` | Yes | Path | No | Local HTTP tested; live qualification pending |
 | `PATCH /organization/settings` | `client.management().update_organization_settings(...)` | Yes | Path | No | Local HTTP tested; live qualification pending |
+| `GET /private-providers` | `client.management().list_private_providers(...)` | Yes | Path | No | P1 |
+| `POST /private-providers` | `client.management().create_private_provider(...)` | Yes | Contract | No | P1 |
+| `GET /private-providers/{slug}` | `client.management().get_private_provider(...)` | Yes | Path | No | P1 |
+| `PATCH /private-providers/{slug}` | `client.management().update_private_provider(...)` | Yes | Contract | No | P1 |
+| `DELETE /private-providers/{slug}` | `client.management().delete_private_provider(...)` | Yes | Path | No | P1 |
 | `GET /presets` | `client.management().list_presets(...)` | Yes | Path | No | P2 |
 | `GET /presets/{slug}` | `client.management().get_preset(...)` | Yes | Path | No | P2 |
 | `POST /presets/{slug}/chat/completions` | `client.management().create_chat_completion_preset(...)` | Yes | Path | No | P2 |
@@ -206,7 +197,7 @@ Legend:
 | `POST /presets/{slug}/responses` | `client.management().create_response_preset(...)` | Yes | Path | No | P2 |
 | `GET /presets/{slug}/versions` | `client.management().list_preset_versions(...)` | Yes | Path | No | P2 |
 | `GET /presets/{slug}/versions/{version}` | `client.management().get_preset_version(...)` | Yes | Path | No | P2 |
-| `GET /providers` | `client.list_providers()` / `client.models().list_providers()` | Yes | Contract | Yes | Keep |
+| `GET /providers` | `client.models().list_providers()` | Yes | Contract | Yes | Keep |
 | `GET /scim/groups` | `client.management().list_scim_groups(...)` | Yes | Path | No | P1 |
 | `GET /scim/group-mappings` | `client.management().list_scim_group_mappings(...)` | Yes | Path | No | P1 |
 | `POST /scim/group-mappings` | `client.management().create_scim_group_mapping(...)` | Yes | Path | No | P1 |
