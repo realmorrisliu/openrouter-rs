@@ -112,7 +112,8 @@ fn sample_models_response() -> &'static str {
             "web_search": null,
             "internal_reasoning": null
           },
-          "per_request_limits": null
+          "per_request_limits": null,
+          "endpoints": ["/api/v1/chat/completions"]
         }
       ]
     }"#
@@ -162,7 +163,8 @@ fn test_models_list_json_snapshot() {
             "web_search": null,
             "internal_reasoning": null
         },
-        "per_request_limits": null
+        "per_request_limits": null,
+        "endpoints": ["/api/v1/chat/completions"]
     }]);
     assert_eq!(parsed.get("data"), Some(&expected));
 

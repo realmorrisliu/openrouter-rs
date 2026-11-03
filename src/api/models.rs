@@ -32,6 +32,9 @@ pub struct Model {
     pub per_request_limits: Option<HashMap<String, String>>,
     #[serde(default)]
     pub supported_parameters: Vec<String>,
+    /// Request API paths that serve this model, e.g. `/api/v1/chat/completions`.
+    #[serde(default)]
+    pub endpoints: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub supported_voices: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

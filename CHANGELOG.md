@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `Model` and `UserModel` now carry `endpoints`: the request API paths (`/api/v1/chat/completions`, `/api/v1/responses`, …) that serve the model.
+- `PublicEndpoint` now carries `safety_retention`, which `GET /endpoints/zdr` sends for every endpoint.
+- `ResponsesRequest` gained `access_programs(...)` with `AccessPrograms` for OpenAI Daybreak programs (`cyber`); the response echo stays readable through `ResponsesResponse::extra`.
+
+### Breaking
+- Upstream drift review (#291): `POST /private-providers`, `PATCH /private-providers/{id}`, and every private-provider response no longer carry `data_policy`. `PrivateProviderDataPolicy` and the `data_policy` fields on `PrivateProvider`, `CreatePrivateProviderRequest`, and `UpdatePrivateProviderRequest` are removed.
+
+### Changed
+- Reviewed the remaining 2026-11-02 drift as already covered: generation `extractions` modality and provider `provider_sort_order_mode`/`provider_sort_order_rank` stay flexible strings/`extra`, and Batch result bodies keep echoing through `Value`.
+
 ## [0.23.0] - 2026-10-30
 
 ### Fixed

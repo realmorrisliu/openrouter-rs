@@ -17,6 +17,26 @@ use crate::{
     utils::parse_sse_frames,
 };
 
+/// OpenAI access programs a request asks to run under.
+///
+/// A program other than `standard` is only accepted on BYOK requests running on
+/// your own OpenAI key, and requests on OpenRouter's OpenAI credentials always
+/// run `standard`.
+#[derive(Serialize, Deserialize, Debug, Clone, Builder)]
+#[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
+pub struct AccessPrograms {
+    /// Cyber access program: `standard`, `daybreak_blue`, or `daybreak_red`.
+    #[builder(setter(into))]
+    pub cyber: String,
+}
+
+impl AccessPrograms {
+    pub fn builder() -> AccessProgramsBuilder {
+        AccessProgramsBuilder::default()
+    }
+}
+
 /// Request body for the OpenRouter Responses API (`POST /responses`).
 #[derive(Serialize, Deserialize, Debug, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
@@ -158,6 +178,12 @@ pub struct ResponsesRequest {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     provider: Option<ProviderPreferences>,
+
+    /// OpenAI access programs for this request; only set it when your own
+    /// OpenAI key is enrolled in a Daybreak program.
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    access_programs: Option<AccessPrograms>,
 
     #[builder(setter(custom), default)]
     #[serde(skip_serializing_if = "Option::is_none")]

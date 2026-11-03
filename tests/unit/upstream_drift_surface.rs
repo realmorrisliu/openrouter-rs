@@ -17,9 +17,7 @@ use openrouter_rs::{
             CreateExternalUserRequest, ListExternalUsersParams, UpdateExternalUserRequest,
         },
         guardrails::{CreateGuardrailRequest, UpdateGuardrailRequest},
-        private_providers::{
-            CreatePrivateProviderRequest, PrivateProviderDataPolicy, UpdatePrivateProviderRequest,
-        },
+        private_providers::{CreatePrivateProviderRequest, UpdatePrivateProviderRequest},
         vault::VaultInternConnectionListResponse,
     },
     types::ApiResponse,
@@ -95,7 +93,7 @@ fn spawn_server_sequence(
     (format!("http://{addr}/api/v1"), rx, task)
 }
 
-const PROVIDER: &str = r#"{"data":{"name":"acme","slug":"acme","display_name":"Acme","base_url":"https://llm.acme.test","data_policy":{"training":false,"retains_prompts":true,"prompt_retention_days":30},"created_at":"2026-10-30T00:00:00Z"}}"#;
+const PROVIDER: &str = r#"{"data":{"name":"acme","slug":"acme","display_name":"Acme","base_url":"https://llm.acme.test","created_at":"2026-10-30T00:00:00Z"}}"#;
 
 #[tokio::test]
 async fn private_providers_cover_every_documented_route() {
@@ -125,14 +123,6 @@ async fn private_providers_cover_every_documented_route() {
                 .slug("acme")
                 .display_name("Acme")
                 .base_url("https://llm.acme.test")
-                .data_policy(
-                    PrivateProviderDataPolicy::builder()
-                        .training(false)
-                        .retains_prompts(true)
-                        .prompt_retention_days(30)
-                        .build()
-                        .unwrap(),
-                )
                 .build()
                 .unwrap(),
         )
@@ -182,10 +172,8 @@ async fn private_providers_cover_every_documented_route() {
     }));
     let create_body: serde_json::Value = serde_json::from_str(&requests[1].body).unwrap();
     assert_eq!(create_body["name"], "acme");
-    assert_eq!(
-        create_body["data_policy"],
-        json!({"training": false, "retains_prompts": true, "prompt_retention_days": 30})
-    );
+    // Upstream dropped `data_policy`; the SDK no longer sends or reads it.
+    assert!(create_body.get("data_policy").is_none());
     assert_eq!(
         serde_json::from_str::<serde_json::Value>(&requests[3].body).unwrap(),
         json!({"display_name": "Acme LLM"})

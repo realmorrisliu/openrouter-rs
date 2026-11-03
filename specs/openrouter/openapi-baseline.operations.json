@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-10-30T03:21:11+00:00",
+  "captured_at": "2026-11-03T02:06:02+00:00",
   "info": {
     "contact": {
       "email": "support@openrouter.ai",
@@ -14,7 +14,7 @@
     "title": "OpenRouter API",
     "version": "1.0.0"
   },
-  "operation_count": 145,
+  "operation_count": 146,
   "operations": [
     {
       "deprecated": false,
@@ -74,7 +74,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "300c12adc0da0abb",
+      "fingerprint": "397e55cfc18b840b",
       "id": "DELETE /keys/{path_param_0}",
       "method": "DELETE",
       "operation_id": "deleteKeys",
@@ -206,7 +206,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "26443aac6d8457b2",
+      "fingerprint": "c484e4598b281e82",
       "id": "GET /batches/{path_param_0}",
       "method": "GET",
       "operation_id": "getBatches",
@@ -338,7 +338,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "edb601ee4851979b",
+      "fingerprint": "648dff3ee2629648",
       "id": "GET /embeddings/models",
       "method": "GET",
       "operation_id": "listEmbeddingsModels",
@@ -349,7 +349,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "079f719ff6e08017",
+      "fingerprint": "9595c404383b762f",
       "id": "GET /endpoints/zdr",
       "method": "GET",
       "operation_id": "listEndpointsZdr",
@@ -417,7 +417,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "85c3a88a3a1030f4",
+      "fingerprint": "979d2c34c67841d3",
       "id": "GET /generation",
       "method": "GET",
       "operation_id": "getGeneration",
@@ -538,7 +538,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "0bdaf7f11ada5dc8",
+      "fingerprint": "2ad3379f1e14e3e9",
       "id": "GET /keys",
       "method": "GET",
       "operation_id": "list",
@@ -549,7 +549,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "a40ab3a105f7ecf8",
+      "fingerprint": "5b2f6f02c6b6c670",
       "id": "GET /keys/{path_param_0}",
       "method": "GET",
       "operation_id": "getKey",
@@ -560,7 +560,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "9a0b737c67ce6f0a",
+      "fingerprint": "a8d239ca789ff081",
       "id": "GET /model/{path_param_0}/{path_param_1}",
       "method": "GET",
       "operation_id": "getModel",
@@ -571,7 +571,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "3a303048f0c37b70",
+      "fingerprint": "0e6c714d933339a0",
       "id": "GET /models",
       "method": "GET",
       "operation_id": "getModels",
@@ -593,7 +593,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "086b1d04e67e5dd5",
+      "fingerprint": "cc3b8af5a5c05094",
       "id": "GET /models/user",
       "method": "GET",
       "operation_id": "listModelsUser",
@@ -736,7 +736,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "c6814b1a7cffb4eb",
+      "fingerprint": "173403d6addae5cb",
       "id": "GET /private-providers",
       "method": "GET",
       "operation_id": "listPrivateProviders",
@@ -747,7 +747,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "7d6a9ca9076829a6",
+      "fingerprint": "129210df5c7dcdb1",
       "id": "GET /private-providers/{path_param_0}",
       "method": "GET",
       "operation_id": "getPrivateProvider",
@@ -1045,7 +1045,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "070846c80b2e8025",
+      "fingerprint": "e16bca921ca6bb91",
       "id": "PATCH /private-providers/{path_param_0}",
       "method": "PATCH",
       "operation_id": "updatePrivateProvider",
@@ -1100,6 +1100,17 @@
     },
     {
       "deprecated": false,
+      "fingerprint": "c94bc6826f7ca3c1",
+      "id": "POST /api/alpha/extractions",
+      "method": "POST",
+      "operation_id": "createApiAlphaExtractions",
+      "path": "/api/alpha/extractions",
+      "tags": [
+        "alpha.extractions"
+      ]
+    },
+    {
+      "deprecated": false,
       "fingerprint": "f985db0d646eecee",
       "id": "POST /audio/speech",
       "method": "POST",
@@ -1144,7 +1155,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "a1e2f7c14dfa5ef3",
+      "fingerprint": "b3d096aef7752c0b",
       "id": "POST /batches",
       "method": "POST",
       "operation_id": "createBatches",
@@ -1376,7 +1387,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "83edeaea8ec931e9",
+      "fingerprint": "803ce2b63a44455b",
       "id": "POST /presets/{path_param_0}/responses",
       "method": "POST",
       "operation_id": "createPresetsResponses",
@@ -1442,7 +1453,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "11920d980873bc0f",
+      "fingerprint": "f70d24370b931b38",
       "id": "POST /private-providers",
       "method": "POST",
       "operation_id": "createPrivateProvider",
@@ -1464,7 +1475,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "84c4fba52307dd5f",
+      "fingerprint": "f1bfa752d3ee4d1c",
       "id": "POST /responses",
       "method": "POST",
       "operation_id": "createResponses",

@@ -9,24 +9,6 @@ use crate::{
     types::ApiResponse,
 };
 
-/// Data-handling policy a private provider declares.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Builder)]
-#[builder(build_fn(error = "OpenRouterError"))]
-#[non_exhaustive]
-pub struct PrivateProviderDataPolicy {
-    pub training: bool,
-    pub retains_prompts: bool,
-    #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub prompt_retention_days: Option<u32>,
-}
-
-impl PrivateProviderDataPolicy {
-    pub fn builder() -> PrivateProviderDataPolicyBuilder {
-        PrivateProviderDataPolicyBuilder::default()
-    }
-}
-
 /// A provider you host yourself and register with OpenRouter.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
@@ -35,7 +17,6 @@ pub struct PrivateProvider {
     pub slug: String,
     pub display_name: String,
     pub base_url: Option<String>,
-    pub data_policy: Option<PrivateProviderDataPolicy>,
     pub created_at: String,
 }
 
@@ -66,9 +47,6 @@ pub struct CreatePrivateProviderRequest {
     #[builder(setter(into, strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub base_url: Option<String>,
-    #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub data_policy: Option<PrivateProviderDataPolicy>,
 }
 
 impl CreatePrivateProviderRequest {
@@ -87,9 +65,6 @@ pub struct UpdatePrivateProviderRequest {
     #[builder(setter(into, strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub base_url: Option<String>,
-    #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub data_policy: Option<PrivateProviderDataPolicy>,
 }
 
 impl UpdatePrivateProviderRequest {

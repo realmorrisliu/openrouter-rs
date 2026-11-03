@@ -2,6 +2,34 @@
 
 This document keeps historical migration guides intact because the repo still smoke-tests older domain/naming transitions.
 
+## 0.23.x -> 0.24.0: Private Providers Drop `data_policy`
+
+Upstream removed `data_policy` from private providers (requests and responses), so the SDK
+no longer sends or reads it. It was introduced in `0.23.0` and has no replacement.
+
+```rust
+// before
+let request = CreatePrivateProviderRequest::builder()
+    .name("acme")
+    .data_policy(
+        PrivateProviderDataPolicy::builder()
+            .training(false)
+            .retains_prompts(true)
+            .build()?,
+    )
+    .build()?;
+
+// after
+let request = CreatePrivateProviderRequest::builder().name("acme").build()?;
+```
+
+Removed: `PrivateProviderDataPolicy`, `PrivateProvider::data_policy`,
+`CreatePrivateProviderRequest::data_policy`, and `UpdatePrivateProviderRequest::data_policy`.
+
+Same review, non-breaking: `Model`/`UserModel` gained `endpoints` (the request API paths that
+serve the model), `PublicEndpoint` gained `safety_retention`, and `ResponsesRequest` gained
+`access_programs(...)`.
+
 ## 0.22.x -> 0.23.0: One Entry Path Per Endpoint Family
 
 `0.23.0` collapses the SDK onto one public entry path per endpoint family, makes transport

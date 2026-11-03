@@ -47,6 +47,7 @@ pub mod workspaces;
 
 pub mod openapi_issue_251;
 pub mod openapi_issue_273;
+pub mod openapi_issue_291;
 pub mod openapi_september;
 
 /// Client bound to a local test server.
