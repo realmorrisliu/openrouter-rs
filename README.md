@@ -25,7 +25,7 @@ Type-safe, async Rust SDK for the OpenRouter API.
 
 ```toml
 [dependencies]
-openrouter-rs = "0.23.0"
+openrouter-rs = "0.24.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -118,7 +118,7 @@ Legacy text completions are opt-in:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.23.0", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.24.0", features = ["legacy-completions"] }
 ```
 
 ### HTTP backends and WASI
@@ -134,7 +134,7 @@ For a WASI component, disable the default reqwest backend and enable `wasip3`:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.23.0", default-features = false, features = ["wasip3"] }
+openrouter-rs = { version = "0.24.0", default-features = false, features = ["wasip3"] }
 ```
 
 The client API is the same on both backends, including streaming. When both features are on a WASI target, the default client uses `wasi:http`. The embedding host controls TLS, networking, redirects and timeouts; configure those policies in the host rather than assuming reqwest settings apply.
@@ -449,9 +449,13 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 ### Unreleased
 
-- Accepted the November 3 OpenAPI snapshot: model `endpoints`, ZDR endpoint `safety_retention`, and Responses `access_programs`. Private providers dropped `data_policy` (**breaking**); `POST /api/alpha/extractions` stays deferred.
+### Version 0.24.0 *(Latest)*
 
-### Version 0.23.0 *(Latest)*
+- Accepted the November 3 OpenAPI snapshot: `Model`/`UserModel` expose `endpoints`, ZDR endpoints expose `safety_retention`, and Responses requests can opt into OpenAI access programs. `POST /api/alpha/extractions` stays deferred.
+- **Breaking:** private providers dropped `data_policy` upstream, so `PrivateProviderDataPolicy` and the `data_policy` fields are removed. See the [0.24 migration notes](MIGRATION.md#023x---0240-private-providers-drop-data_policy).
+- The [endpoint matrix](docs/operations/official-endpoint-test-matrix.md) now matches the shipped surface again, and `test_real_tool_call` runs in the live workflow instead of being skipped everywhere.
+
+### Version 0.23.0
 
 - **Breaking:** One entry path per endpoint family: the 162 `api::*` endpoint functions and 109 flat `OpenRouterClient` methods are gone, so every call honours the configured client. See the [0.23 migration notes](MIGRATION.md#022x---0230-one-entry-path-per-endpoint-family).
 - **Breaking:** Transport failures carry `HttpRequestErrorKind`, the request URL, and `retry_after`; streaming has one event model (`UnifiedStreamEvent`) whose terminal event carries assembled `tool_calls` and typed `usage`.
