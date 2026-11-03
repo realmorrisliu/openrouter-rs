@@ -9,7 +9,7 @@ use std::time::Duration;
 ///
 /// Useful when you need to:
 ///   - route through an HTTP/SOCKS proxy (geo-restricted routes, corporate egress)
-///   - tighten or relax the default request timeouts
+///   - bound connection setup without capping a streaming response
 ///   - attach middleware (retries, tracing, metrics)
 ///   - configure mTLS or custom root certificates
 ///
@@ -19,8 +19,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Build a custom reqwest::Client. Replace these knobs with whatever your
     // deployment needs — proxy, middleware, retry policy, custom TLS, etc.
+    // `timeout` here would cover the response body too, which cuts a long SSE
+    // stream mid-answer. Bound the connection instead; bound whole calls with
+    // `tokio::time::timeout` when you want a hard deadline.
     let http_client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(120))
+        .connect_timeout(Duration::from_secs(10))
         .pool_max_idle_per_host(64)
         .pool_idle_timeout(Duration::from_secs(90))
         // Example: route all HTTPS traffic through a forward proxy.

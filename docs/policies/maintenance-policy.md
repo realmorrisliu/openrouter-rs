@@ -21,6 +21,7 @@ SDK releases:
 - the tag must match the root `Cargo.toml` version
 - the release workflow verifies formatting, clippy, unit tests, and `cargo package --locked`
 - crates.io publishing occurs only when the registry token is configured
+- batch upstream drift into a scheduled release instead of cutting one per detection; see [`compatibility-update-policy.md`](compatibility-update-policy.md#release-cadence)
 
 CLI releases:
 

@@ -139,6 +139,29 @@ openrouter-rs = { version = "0.24.0", default-features = false, features = ["was
 
 The client API is the same on both backends, including streaming. When both features are on a WASI target, the default client uses `wasi:http`. The embedding host controls TLS, networking, redirects and timeouts; configure those policies in the host rather than assuming reqwest settings apply.
 
+### Timeouts and long streams
+
+`reqwest::Client::timeout` covers the whole exchange, including the response body. On a streaming
+call that means a slow model response is cut off mid-stream, so a client built for chat completions
+should bound the *connection* instead and leave the body alone:
+
+```rust
+let http_client = reqwest::Client::builder()
+    .connect_timeout(std::time::Duration::from_secs(10)) // fail fast on a dead network
+    // no .timeout(): it would also cap the SSE body
+    .build()?;
+
+let client = OpenRouterClient::builder().api_key(key).http_client(http_client).build()?;
+```
+
+Bound the parts you actually care about:
+
+- non-streaming calls: wrap the whole call in `tokio::time::timeout(..)`
+- streaming calls: wrap each `stream.next()`, so a stalled provider is detected without capping the
+  total time a long answer may take
+
+The SDK sets no timeout on its default client.
+
 See [`tests/fixtures/wasip3-smoke/src/lib.rs`](tests/fixtures/wasip3-smoke/src/lib.rs) for a runnable WASI 0.3 command component. `just test-wasip3` runs it against a loopback mock server using Wasmtime 50.0.0 (`wasmtime` on PATH, or set `WASMTIME`). It checks authentication, query encoding, multipart upload, binary download, API/body errors, incremental SSE and stream cancellation without an OpenRouter account. Install the compilation target with `rustup target add wasm32-wasip2`.
 
 ## API Surface

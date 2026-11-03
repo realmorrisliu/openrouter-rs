@@ -58,7 +58,18 @@ The cadence is intentionally small and event-driven:
 | Same PR as acceptance | Repo accepts the change and updates code/docs/tests/baseline | `CHANGELOG.md`, `MIGRATION.md`, endpoint matrix, or baseline refresh updated in the same PR as needed |
 | Next release cut | A version is published | Release notes summarize already-landed compatibility updates; release notes do not replace the earlier docs updates |
 
-The important rule is: do not wait for a release cut to document a compatibility-relevant change once the repo has accepted it.
+The important rule is: do not wait for a release cut to document a compatibility-relevant change once the repo has accepted it. That rule governs documentation, not publishing.
+
+### Release cadence
+
+Accepting drift and publishing a version are separate decisions. Document the change as soon as it lands; release it on a schedule.
+
+- **Batch drift into scheduled releases.** Aim for at most one release per week. Drift accepted between releases waits in `CHANGELOG.md` under `## [Unreleased]`.
+- **One minor bump per batch.** Upstream removals and renames are breaking, so a batch that contains any of them ships as one minor release with one `MIGRATION.md` section. Do not cut a minor per upstream change.
+- **Patch releases are for defects, not alignment.** A patch may ship for a security issue, data loss, or a claim in the docs/API that is actively false (for example, documented calls that no longer compile).
+- **Compatible drift can wait.** Additive fields and new operations do not need their own release; they ride the next scheduled one.
+
+Why this is written down: between 2026-10-13 and 2026-11-03 the SDK published six versions, five of them breaking minors. Every one was correct in isolation, but a consumer pinning `openrouter-rs = "0.18"` had to absorb five migrations in three weeks to stay current. Batching keeps drift current without making the crate impossible to follow.
 
 ## Update Rules
 
