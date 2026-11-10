@@ -41,6 +41,7 @@ pub mod responses;
 pub mod scim;
 pub mod stream;
 pub mod tool_builder;
+pub mod tools;
 pub mod unified_stream;
 pub mod upstream_drift_surface;
 pub mod videos;

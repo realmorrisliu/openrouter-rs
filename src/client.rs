@@ -8,7 +8,7 @@ use crate::{
         analytics, api_keys, audio, auth, batches, byok, chat, credits, decisions, discovery,
         embeddings, external_users, files, generation, guardrail_policies, guardrails, images,
         messages, models, observability, organization, presets, private_providers, rerank,
-        responses, scim, vault, videos, workspaces,
+        responses, scim, tools, vault, videos, workspaces,
     },
     error::OpenRouterError,
     strip_option_vec_setter,
@@ -171,6 +171,10 @@ impl OpenRouterClient {
     }
 
     /// Domain client for asynchronous batch operations.
+    pub fn tools(&self) -> ToolsClient<'_> {
+        ToolsClient { client: self }
+    }
+
     pub fn batches(&self) -> BatchesClient<'_> {
         BatchesClient { client: self }
     }
@@ -224,6 +228,36 @@ impl OpenRouterClientBuilder {
     pub fn http_client<VALUE: Into<reqwest::Client>>(&mut self, value: VALUE) -> &mut Self {
         self.http_client = Some(crate::transport::HttpClient::Reqwest(value.into()));
         self
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ToolsClient<'a> {
+    client: &'a OpenRouterClient,
+}
+
+impl ToolsClient<'_> {
+    /// List the server tool catalog (`GET /tools`).
+    pub async fn list(
+        &self,
+        pagination: Option<PaginationOptions>,
+        api_format: Option<tools::ServerToolApiFormat>,
+    ) -> Result<tools::ListToolsResponse, OpenRouterError> {
+        tools::list_tools_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            pagination,
+            api_format,
+        )
+        .await
+    }
+
+    /// Get one server tool by canonical name or alias (`GET /tools/{name}`).
+    pub async fn get(&self, name: &str) -> Result<tools::ServerTool, OpenRouterError> {
+        tools::get_tool_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            name,
+        )
+        .await
     }
 }
 

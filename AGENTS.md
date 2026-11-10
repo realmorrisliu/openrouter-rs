@@ -11,6 +11,7 @@
   - `videos()`
   - `files()`
   - `models()`
+  - `tools()`
   - `management()`
   - `legacy()` behind `legacy-completions`
 - `src/api/` contains endpoint modules:
