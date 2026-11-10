@@ -209,7 +209,7 @@ async fn test_create_chat_completion_preset_path_body_and_auth_header() {
 
     let preset = test_client(&base_url, "management-key")
         .management()
-        .create_chat_completion_preset("my preset", &request)
+        .create_chat_completion_preset("my preset", &request, None)
         .await
         .expect("create chat preset should succeed");
     assert_eq!(preset.slug, "my-preset");
@@ -242,6 +242,32 @@ async fn test_create_chat_completion_preset_path_body_and_auth_header() {
 }
 
 #[tokio::test]
+async fn test_create_preset_scopes_to_workspace() {
+    let (base_url, rx, server) = spawn_json_server(preset_response_body());
+    let request = chat::ChatCompletionRequest::builder()
+        .model("openai/gpt-5")
+        .messages(vec![Message::new(Role::User, "hello")])
+        .build()
+        .expect("chat request should build");
+
+    test_client(&base_url, "management-key")
+        .management()
+        .create_chat_completion_preset("my-preset", &request, Some("ws 123"))
+        .await
+        .expect("create chat preset should succeed");
+
+    let captured = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("should capture request");
+    assert_eq!(
+        captured.request_line,
+        "POST /api/v1/presets/my-preset/chat/completions?workspace_id=ws+123 HTTP/1.1"
+    );
+
+    server.join().expect("server thread should finish");
+}
+
+#[tokio::test]
 async fn test_create_response_preset_path_body_and_auth_header() {
     let (base_url, rx, server) = spawn_json_server(preset_response_body());
     let request = responses::ResponsesRequest::builder()
@@ -253,7 +279,7 @@ async fn test_create_response_preset_path_body_and_auth_header() {
 
     let preset = test_client(&base_url, "management-key")
         .management()
-        .create_response_preset("my-preset", &request)
+        .create_response_preset("my-preset", &request, None)
         .await
         .expect("create response preset should succeed");
     assert_eq!(preset.id, "preset_1");
@@ -297,7 +323,7 @@ async fn test_create_message_preset_path_body_and_auth_header() {
 
     let preset = test_client(&base_url, "management-key")
         .management()
-        .create_message_preset("my-preset", &request)
+        .create_message_preset("my-preset", &request, None)
         .await
         .expect("create message preset should succeed");
     assert_eq!(preset.id, "preset_1");

@@ -1577,43 +1577,56 @@ impl<'a> ManagementClient<'a> {
     }
 
     /// Create or update a preset from a chat-completions request body.
+    ///
+    /// `workspace_id` picks the workspace to create the preset in; `None` uses
+    /// the key's workspace (or the account default for an unscoped key).
     pub async fn create_chat_completion_preset(
         &self,
         slug: &str,
         request: &chat::ChatCompletionRequest,
+        workspace_id: Option<&str>,
     ) -> Result<presets::PresetWithDesignatedVersion, OpenRouterError> {
         presets::create_chat_completion_preset_with_client(
             &self.client.request_context(self.management_key()?),
             slug,
             request,
+            workspace_id,
         )
         .await
     }
 
     /// Create or update a preset from a Responses API request body.
+    ///
+    /// See [`Self::create_chat_completion_preset`] for `workspace_id`.
     pub async fn create_response_preset(
         &self,
         slug: &str,
         request: &responses::ResponsesRequest,
+        workspace_id: Option<&str>,
     ) -> Result<presets::PresetWithDesignatedVersion, OpenRouterError> {
         presets::create_response_preset_with_client(
             &self.client.request_context(self.management_key()?),
             slug,
             request,
+            workspace_id,
         )
         .await
     }
 
     /// Create or update a preset from an Anthropic-compatible Messages request body.
+    ///
+    /// See [`Self::create_chat_completion_preset`] for `workspace_id`.
     pub async fn create_message_preset(
         &self,
         slug: &str,
         request: &messages::AnthropicMessagesRequest,
+        workspace_id: Option<&str>,
     ) -> Result<presets::PresetWithDesignatedVersion, OpenRouterError> {
         presets::create_message_preset_with_client(
             &self.client.request_context(self.management_key()?),
             slug,
             request,
+            workspace_id,
         )
         .await
     }

@@ -17,9 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking
 - `CreateAuthCodeRequest` no longer carries `spawn_agent`/`spawn_cloud`: upstream removed both fields from `POST /auth/keys/code`.
+- `create_chat_completion_preset`, `create_response_preset` and `create_message_preset` take a `workspace_id: Option<&str>` argument and send it as the preset-inference `?workspace_id=` query, so a preset can be created in a chosen workspace. `None` keeps the previous behavior.
 
 ### Changed
-- Reviewed the rest of the 2026-11-09 drift as already covered: new provider names and BYOK provider slugs, `tools_invoke` `api_type`, viewer roles, `openrouter:mcp` in `disabled_server_tools`, `deferred_tools` controls, Responses `compaction`/`mcp_*` output items, and the `openrouter-stealth-v1` reasoning format all sit on existing string or `Value` surfaces. Deferred: the preset inference `workspace_id` query, and upstream's removal of `PUT /private-endpoints/{id}/parameters` and `/pricing` (never covered).
+- Reviewed the rest of the 2026-11-09 drift as already covered: new provider names and BYOK provider slugs, `tools_invoke` `api_type`, viewer roles, `openrouter:mcp` in `disabled_server_tools`, `deferred_tools` controls, Responses `compaction`/`mcp_*` output items, and the `openrouter-stealth-v1` reasoning format all sit on existing string or `Value` surfaces. Deferred: upstream's removal of `PUT /private-endpoints/{id}/parameters` and `/pricing` (never covered).
 
 ## [0.24.0] - 2026-11-03
 
