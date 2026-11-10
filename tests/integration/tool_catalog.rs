@@ -49,22 +49,29 @@ async fn test_tool_catalog_returns_paginated_server_tools() {
 
     for tool in &page.data {
         assert!(
-            tool.name.starts_with("openrouter:"),
-            "catalog names are canonical openrouter:* names, got {}",
-            tool.name
+            tool.id.starts_with("openrouter:"),
+            "tool ids are canonical openrouter:* names, got {}",
+            tool.id
         );
-        assert!(!tool.id.is_empty(), "tool id should not be empty");
+        assert!(!tool.name.is_empty(), "{} should have a label", tool.id);
         assert!(
             !tool.aliases.is_empty(),
             "{} should accept at least one tools[].type spelling",
-            tool.name
+            tool.id
         );
         assert!(
-            tool.aliases.contains(&tool.name),
+            tool.aliases.iter().any(|alias| alias.input_type == tool.id),
             "{} should accept its own canonical name",
-            tool.name
+            tool.id
         );
-        assert!(!tool.docs_url.is_empty(), "{} should link docs", tool.name);
+        assert!(
+            tool.aliases
+                .iter()
+                .all(|alias| !alias.api_formats.is_empty()),
+            "{} aliases should declare the formats that accept them",
+            tool.id
+        );
+        assert!(!tool.docs_url.is_empty(), "{} should link docs", tool.id);
         assert!(
             tool.parameters_schema.is_object(),
             "{} should describe its parameters",
@@ -74,6 +81,13 @@ async fn test_tool_catalog_returns_paginated_server_tools() {
             tool.native_support.models.is_none(),
             "the list endpoint reports counts, not models"
         );
+        for engine in &tool.engines {
+            assert!(
+                !engine.name.is_empty(),
+                "{} engines should be named",
+                tool.id
+            );
+        }
     }
 }
 
@@ -99,7 +113,7 @@ async fn test_tool_catalog_filters_by_api_format() {
                 .iter()
                 .any(|format| format == "responses"),
             "{} leaked into the responses filter with {:?}",
-            tool.name,
+            tool.id,
             tool.supported_api_formats
         );
     }
@@ -124,7 +138,7 @@ async fn test_tool_lookup_accepts_canonical_name_and_alias() {
 
     let by_name = client
         .tools()
-        .get(&listed.name)
+        .get(&listed.id)
         .await
         .expect("lookup by canonical name should succeed");
     assert_eq!(by_name.id, listed.id);
@@ -139,7 +153,12 @@ async fn test_tool_lookup_accepts_canonical_name_and_alias() {
         "model_count should match the listed models"
     );
 
-    if let Some(alias) = listed.aliases.iter().find(|alias| **alias != listed.name) {
+    if let Some(alias) = listed
+        .aliases
+        .iter()
+        .find(|alias| alias.input_type != listed.id)
+    {
+        let alias = &alias.input_type;
         let by_alias = client
             .tools()
             .get(alias)
