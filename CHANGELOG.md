@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-11-10
+
 ### Added
 - `management()` now covers the `Guardrail Policies` family in new `api::guardrail_policies` types: account-wide policy CRUD, per-workspace budget/model-availability/moderation policy CRUD with assignments, and API key/member policy assignment reads and changes (23 operations, management key required).
 - `CreditPurchase`, `CreateCreditPurchaseRequest`, `management().create_credit_purchase(...)` and `management().get_credit_purchase(...)` for `POST /credits/purchases` and `GET /credits/purchases/{id}`.

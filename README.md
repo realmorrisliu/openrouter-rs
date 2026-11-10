@@ -25,7 +25,7 @@ Type-safe, async Rust SDK for the OpenRouter API.
 
 ```toml
 [dependencies]
-openrouter-rs = "0.24.0"
+openrouter-rs = "0.25.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -118,7 +118,7 @@ Legacy text completions are opt-in:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.24.0", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.25.0", features = ["legacy-completions"] }
 ```
 
 ### HTTP backends and WASI
@@ -134,7 +134,7 @@ For a WASI component, disable the default reqwest backend and enable `wasip3`:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.24.0", default-features = false, features = ["wasip3"] }
+openrouter-rs = { version = "0.25.0", default-features = false, features = ["wasip3"] }
 ```
 
 The client API is the same on both backends, including streaming. When both features are on a WASI target, the default client uses `wasi:http`. The embedding host controls TLS, networking, redirects and timeouts; configure those policies in the host rather than assuming reqwest settings apply.
@@ -473,7 +473,14 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 ### Unreleased
 
-### Version 0.24.0 *(Latest)*
+### Version 0.25.0 *(Latest)*
+
+- Added the guardrail policy family: account-wide and per-workspace budget, model-availability and moderation policies with assignments, plus API-key/member policy assignment reads and changes (23 operations on `management()`).
+- Added agent credit purchases (`POST /credits/purchases`, `GET /credits/purchases/{id}`), `client.tools()` for the server tool catalog, a `models().list` `endpoints` filter, image frame/markup/gif controls, and `ServerTool::mcp()`.
+- **Breaking:** `CreateAuthCodeRequest` dropped the upstream-removed `spawn_agent`/`spawn_cloud`, and `create_*_preset(...)` now takes `workspace_id: Option<&str>`. See the [migration notes](MIGRATION.md#024x---unreleased-guardrail-policies-and-two-small-removals).
+- SDK coverage is `158 / 169` documented endpoints (`93.5%`) and live coverage `27 / 169`; `/tools` reads run in the read-only contract suite.
+
+### Version 0.24.0
 
 - Accepted the November 3 OpenAPI snapshot: `Model`/`UserModel` expose `endpoints`, ZDR endpoints expose `safety_retention`, and Responses requests can opt into OpenAI access programs. `POST /api/alpha/extractions` stays deferred.
 - **Breaking:** private providers dropped `data_policy` upstream, so `PrivateProviderDataPolicy` and the `data_policy` fields are removed. See the [0.24 migration notes](MIGRATION.md#023x---0240-private-providers-drop-data_policy).
