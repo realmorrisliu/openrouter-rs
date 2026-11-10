@@ -10,6 +10,7 @@ Weekly drift workflow: `.github/workflows/openapi-drift.yml`
 Every endpoint in this matrix is reached through a domain client
 (`client.chat()`, `client.responses()`, `client.messages()`, `client.audio()`,
 `client.images()`, `client.videos()`, `client.files()`, `client.models()`,
+`client.tools()`,
 `client.rerank()`, `client.batches()`, `client.vault()`,
 `client.decisions()`, `client.management()`). Since 0.23.0 the `api::*` endpoint
 free functions and the flat `OpenRouterClient` methods no longer exist, so the
@@ -19,7 +20,7 @@ change.
 ## Coverage Summary
 
 - Official OpenAPI endpoints: `169` method+path entries.
-- SDK implementation coverage (`src/api` + domain client): `156 / 169` (`92.3%`).
+- SDK implementation coverage (`src/api` + domain client): `158 / 169` (`93.5%`).
 - Live integration coverage (`tests/integration`): `25 / 169` endpoints currently exercised.
   - Covered live now: `GET /oauth/jwks`, `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `POST /rerank`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`, `GET /organization/members`
 
@@ -232,6 +233,8 @@ Legend:
 | `DELETE /scim/group-mappings/{id}` | `client.management().delete_scim_group_mapping(...)` | Yes | Path | No | P1 |
 | `GET /workspaces` | `client.management().list_workspaces(...)` | Yes | Path | No | P1 |
 | `POST /systemone` | `client.decisions().create_system_one(...)` | Yes | Path | No | P2 |
+| `GET /tools` | `client.tools().list(...)` | Yes | Contract | No | P1 |
+| `GET /tools/{name}` | `client.tools().get(...)` | Yes | Path | No | P1 |
 | `DELETE /vault/interns/{internId}/secrets/{name}` | `client.vault().delete_for_intern(...)` | Yes | Path | No | P1 |
 | `GET /vault/interns/{internId}/connections` | `client.vault().list_connections_for_intern(...)` | Yes | Path | No | P1 |
 | `GET /vault/interns/{internId}/secrets` | `client.vault().list_for_intern(...)` | Yes | Path | No | P1 |
@@ -276,8 +279,6 @@ These are in the tracked upstream baseline and are not implemented by the SDK.
 | `POST /private-endpoints/{id}/disable` | Deferred beyond issue #254 |
 | `POST /private-endpoints/{id}/enable` | Deferred beyond issue #254 |
 | `POST /private-endpoints/{id}/validate` | Deferred beyond issue #254 |
-| `GET /tools` | Deferred beyond issue #254 |
-| `GET /tools/{name}` | Deferred beyond issue #254 |
 | `GET /vault/interns/{internId}/effective-secrets` | Deferred beyond issue #254 |
 | `POST /api/alpha/extractions` | Deferred beyond issue #291 (alpha; upstream shape is unstable) |
 

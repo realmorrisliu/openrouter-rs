@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ListModelsParams` gained an `endpoints(...)` filter for `GET /models`.
 - `ImageGenerationRequest` gained `frame_count`, `frame_duration_ms` and `markup`; `output_format` accepts `gif`.
 - `ServerTool::mcp()` for the `openrouter:mcp` server tool.
+- `client.tools()` covers the server tool catalog: `list(...)` with pagination and an `api_format` filter, and `get(name)` for one tool by canonical name or alias (`GET /tools`, `GET /tools/{name}`); typed engines, pricing rows and native-support counts replace the last `/tools*` gap in the endpoint matrix.
 
 ### Breaking
 - `CreateAuthCodeRequest` no longer carries `spawn_agent`/`spawn_cloud`: upstream removed both fields from `POST /auth/keys/code`.

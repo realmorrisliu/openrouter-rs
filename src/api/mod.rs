@@ -13,6 +13,7 @@
 //! - `client.images()` -> [`images`]
 //! - `client.videos()` -> [`videos`]
 //! - `client.models()` -> [`models`], [`embeddings`], [`discovery`]
+//! - `client.tools()` -> [`tools`]
 //! - `client.management()` -> [`api_keys`], [`auth`], [`byok`], [`credits`], [`generation`], [`guardrails`], [`guardrail_policies`], [`observability`], [`organization`], [`external_users`], [`presets`], [`private_providers`], [`scim`], [`workspaces`]
 //! - `client.batches()` -> [`batches`]
 //! - `client.vault()` -> [`vault`]
@@ -153,6 +154,7 @@ pub mod private_providers;
 pub mod rerank;
 pub mod responses;
 pub mod scim;
+pub mod tools;
 #[deprecated(note = "use api::audio for the canonical /audio/speech surface")]
 pub mod tts;
 pub mod vault;
