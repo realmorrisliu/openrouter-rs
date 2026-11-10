@@ -82,13 +82,27 @@ fn tool_json(with_models: bool) -> serde_json::Value {
         json!({"endpoint_count": 18, "model_count": 12})
     };
     json!({
-        "id": "web_search",
-        "name": "openrouter:web_search",
+        "id": "openrouter:web_search",
+        "name": "Web search",
         "summary": "Search the web",
         "tool_description": "Runs a web search",
         "status": "active",
         "docs_url": "https://openrouter.ai/docs/tools/web-search",
-        "aliases": ["openrouter:web_search", "web_search"],
+        "aliases": [
+            {
+                "type": "openrouter:web_search",
+                "api_formats": ["responses", "chat-completions"],
+                "output_names": [
+                    {"api_format": "responses", "type": "web_search_call"},
+                    {"api_format": "anthropic-messages", "name": "web_search", "type": "server_tool_use"}
+                ]
+            },
+            {
+                "type": "web_search_20250305",
+                "api_formats": ["anthropic-messages"],
+                "output_names": [{"api_format": "anthropic-messages", "name": "web_search", "type": "server_tool_use"}]
+            }
+        ],
         "supported_api_formats": ["responses", "chat-completions"],
         "default_engine": "exa",
         "fallback_engine": null,
@@ -124,9 +138,24 @@ fn list_response_decodes_catalog_entries() {
     assert!(parsed.links.next.is_none());
 
     let tool = &parsed.data[0];
-    assert_eq!(tool.name, "openrouter:web_search");
+    assert_eq!(tool.id, "openrouter:web_search");
+    assert_eq!(tool.name, "Web search");
     assert_eq!(tool.status, ServerToolStatus::Active);
     assert_eq!(tool.aliases.len(), 2);
+    assert_eq!(tool.aliases[0].input_type, "openrouter:web_search");
+    assert_eq!(
+        tool.aliases[0].api_formats,
+        ["responses", "chat-completions"]
+    );
+    assert_eq!(
+        tool.aliases[0].output_names[0].output_type,
+        "web_search_call"
+    );
+    assert!(tool.aliases[0].output_names[0].name.is_none());
+    assert_eq!(
+        tool.aliases[1].output_names[0].name.as_deref(),
+        Some("web_search")
+    );
     assert_eq!(tool.default_engine.as_deref(), Some("exa"));
     assert!(tool.fallback_engine.is_none());
     assert!(tool.output_schema.is_none());
@@ -242,7 +271,7 @@ async fn get_tool_encodes_the_name_and_unwraps_data() {
         .get("openrouter:web_search")
         .await
         .expect("tool lookup should succeed");
-    assert_eq!(tool.id, "web_search");
+    assert_eq!(tool.id, "openrouter:web_search");
 
     let captured = rx
         .recv_timeout(Duration::from_secs(2))

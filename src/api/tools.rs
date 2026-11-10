@@ -116,6 +116,34 @@ pub struct ServerToolEngine {
     pub pricing: Vec<ServerToolPrice>,
 }
 
+/// One accepted `tools[].type` spelling and what the call surfaces as.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[non_exhaustive]
+pub struct ServerToolInputName {
+    /// The spelling accepted in `tools[].type`.
+    #[serde(rename = "type")]
+    pub input_type: String,
+    /// API formats that accept this spelling.
+    #[serde(default)]
+    pub api_formats: Vec<String>,
+    #[serde(default)]
+    pub output_names: Vec<ServerToolOutputName>,
+}
+
+/// What a call surfaces as on one API format.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[non_exhaustive]
+pub struct ServerToolOutputName {
+    pub api_format: String,
+    /// Anthropic Messages `server_tool_use` block name, when it surfaces as one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Output item type on Responses, content block type on Messages,
+    /// `reasoning_details[].type` on Chat Completions.
+    #[serde(rename = "type")]
+    pub output_type: String,
+}
+
 /// Model that runs a server tool natively.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[non_exhaustive]
@@ -141,15 +169,18 @@ pub struct ServerToolNativeSupport {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct ServerTool {
+    /// Canonical `openrouter:*` name, also the stable `tools[].type` on every
+    /// format in `supported_api_formats`.
     pub id: String,
+    /// Human-facing label, never sent to a model.
     pub name: String,
     pub summary: String,
     pub tool_description: String,
     pub status: ServerToolStatus,
     pub docs_url: String,
-    /// Accepted `tools[].type` spellings for this tool.
+    /// Every spelling accepted in `tools[].type`, including the canonical one.
     #[serde(default)]
-    pub aliases: Vec<String>,
+    pub aliases: Vec<ServerToolInputName>,
     #[serde(default)]
     pub supported_api_formats: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

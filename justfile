@@ -63,6 +63,7 @@ test-integration:
 
 test-live-contract:
     cargo test --test integration contract:: -- --nocapture
+    cargo test --test integration tool_catalog:: -- --nocapture
 
 test-live-contract-management:
     OPENROUTER_RUN_MANAGEMENT_TESTS=1 cargo test --test integration management:: -- --nocapture
