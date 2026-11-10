@@ -3,6 +3,12 @@
 Releases are tagged `openrouter-cli-v<version>`. The SDK it builds on has its own
 [changelog](../../CHANGELOG.md).
 
+## [0.3.1] - 2026-11-10
+
+Rebuilt on `openrouter-rs` 0.25.0. No CLI changes: same commands, flags, exit
+codes and JSON shape, so this exists only so the published crate resolves the
+current SDK.
+
 ## [0.3.0] - 2026-11-03
 
 Rebuilt on `openrouter-rs` 0.24.0. The previous release pinned `^0.9.0`, so the
