@@ -21,8 +21,8 @@ change.
 
 - Official OpenAPI endpoints: `169` method+path entries.
 - SDK implementation coverage (`src/api` + domain client): `158 / 169` (`93.5%`).
-- Live integration coverage (`tests/integration`): `25 / 169` endpoints currently exercised.
-  - Covered live now: `GET /oauth/jwks`, `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `POST /rerank`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`, `GET /organization/members`
+- Live integration coverage (`tests/integration`): `27 / 169` endpoints currently exercised.
+  - Covered live now: `GET /oauth/jwks`, `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `POST /rerank`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`, `GET /organization/members`, `GET /tools`, `GET /tools/{name}`
 
 Chat response regression coverage:
 
@@ -233,8 +233,8 @@ Legend:
 | `DELETE /scim/group-mappings/{id}` | `client.management().delete_scim_group_mapping(...)` | Yes | Path | No | P1 |
 | `GET /workspaces` | `client.management().list_workspaces(...)` | Yes | Path | No | P1 |
 | `POST /systemone` | `client.decisions().create_system_one(...)` | Yes | Path | No | P2 |
-| `GET /tools` | `client.tools().list(...)` | Yes | Contract | No | P1 |
-| `GET /tools/{name}` | `client.tools().get(...)` | Yes | Path | No | P1 |
+| `GET /tools` | `client.tools().list(...)` | Yes | Contract | Yes | P1 |
+| `GET /tools/{name}` | `client.tools().get(...)` | Yes | Path | Yes | P1 |
 | `DELETE /vault/interns/{internId}/secrets/{name}` | `client.vault().delete_for_intern(...)` | Yes | Path | No | P1 |
 | `GET /vault/interns/{internId}/connections` | `client.vault().list_connections_for_intern(...)` | Yes | Path | No | P1 |
 | `GET /vault/interns/{internId}/secrets` | `client.vault().list_for_intern(...)` | Yes | Path | No | P1 |
