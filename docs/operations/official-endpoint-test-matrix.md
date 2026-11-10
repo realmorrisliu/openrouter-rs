@@ -1,6 +1,6 @@
 # Official Endpoint Test Matrix
 
-Snapshot date: 2026-11-03
+Snapshot date: 2026-11-10
 Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)  
 Tracked baseline: `specs/openrouter/openapi-baseline.json`  
 Weekly drift workflow: `.github/workflows/openapi-drift.yml`
@@ -18,9 +18,9 @@ change.
 
 ## Coverage Summary
 
-- Official OpenAPI endpoints: `154` method+path entries.
-- SDK implementation coverage (`src/api` + domain client): `140 / 154` (`90.9%`).
-- Live integration coverage (`tests/integration`): `25 / 154` endpoints currently exercised.
+- Official OpenAPI endpoints: `169` method+path entries.
+- SDK implementation coverage (`src/api` + domain client): `156 / 169` (`92.3%`).
+- Live integration coverage (`tests/integration`): `25 / 169` endpoints currently exercised.
   - Covered live now: `GET /oauth/jwks`, `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `POST /rerank`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`, `GET /organization/members`
 
 Chat response regression coverage:
@@ -33,6 +33,7 @@ Chat response regression coverage:
 
 Drift review note:
 
+- Issue #297 (2026-11-09): accepted the `Guardrail Policies` family (23 operations) and the agent credit purchase pair. `management()` now exposes account policy CRUD (`list_account_guardrail_policies`/`create_account_guardrail_policy`/`update_account_guardrail_policy`/`delete_account_guardrail_policy`), workspace budget/model-availability/moderation policy CRUD (`list_*_policies`, `create_*_policy`, `get_*_policy`, `update_*_policy`, `delete_*_policy`), API key and member policy assignments (`get_*_policy_assignment`, `change_*_policy_assignment`), and `create_credit_purchase`/`get_credit_purchase`. Budget authoring keeps an explicit-null config form because upstream requires `limit_usd` and `reset_interval` keys; moderation reuses the guardrail content-filter types; Model Armor config, PII filter entries, image `markup` and the policy detail `reference` stay on `Value`. Also accepted: `GET /models?endpoints=`, image `frame_count`/`frame_duration_ms`/`markup` plus `gif` output, `openrouter:mcp` server-tool constructor, and the auth-code `spawn_agent`/`spawn_cloud` fields removed upstream. Reviewed as already covered: provider taxonomy additions (Ant Digital/Parallel/Pearl Research/River and the new BYOK provider slugs), `tools_invoke` `api_type`, `org:viewer`/`viewer`/`restricted_viewer` roles, `openrouter:mcp` in `disabled_server_tools`, `deferred_tools` controls, Responses `compaction`/`mcp_*` output items, and the `openrouter-stealth-v1` reasoning format - all string or `Value` surfaces. Deferred as out of scope: the preset inference `workspace_id` query parameter (adding it would break existing method signatures) and upstream's removal of `PUT /private-endpoints/{id}/parameters` and `PUT /private-endpoints/{id}/pricing` (never covered).
 - Issue #291 (2026-11-02): accepted `Model`/`UserModel` `endpoints` (the request API paths that serve the model), `PublicEndpoint` `safety_retention` on `GET /endpoints/zdr`, and Responses `access_programs.cyber`. Upstream also removed private-provider `data_policy` from the create/update requests and every response, so `PrivateProviderDataPolicy` and its fields are gone (breaking). Reviewed as already covered: generation `api_type` `extractions` and provider `provider_sort_order_mode`/`provider_sort_order_rank` stay flexible strings and `extra` maps, and Batch result bodies keep echoing through `Value`. Deferred as out of scope: `POST /api/alpha/extractions`, whose alpha request/response shape (nine typed field specs and nine answer shapes) is documented as unstable upstream.
 - Issue #285 (2026-10-30): accepted the drift that renames `/end-users*` to `/external-users*`, removes the `/interns*` family, and adds `/private-providers*`. `management()` now exposes `list_external_users`/`create_external_user`/`get_external_user`/`update_external_user`/`delete_external_user` and `list_private_providers`/`create_private_provider`/`get_private_provider`/`update_private_provider`/`delete_private_provider`; `client.interns()` and its types are gone. Also accepted: guardrail `enforce_first_party_harness_models`, prompt-cache breakpoint `ttl`, user-model `client` filter, and vault connection `routing`/`routing_text`. Deferred as out of scope: the never-covered `/private-endpoints*` family, including the newly added but deprecated `PUT /private-endpoints/{id}/parameters`, plus provider-UI metadata inside flexible objects (`authMode`, `visibleWhen`) and provider option maps that already round-trip through `Value`.
 - Issue #273 (2026-10-20): accepted the two added operations `GET /interns/{internId}/icon` and `GET /vault/interns/{internId}/connections` through `client.interns().get_icon(...)` and `client.vault().list_connections_for_intern(...)` (the `/interns*` family and `client.interns()` were later removed upstream; see Issue #285 - only the vault read remains). Added Batch `callback_url`/`expires_at`/`provider`, endpoint `service_tier`/`supports_diarization`, guardrail `allow_safety_retention_*`, observability `broadcast_generation_cost_allocation`, video signed `urls`, intern `created_by_you`/`icon_sha256`, route-bound daemon signing (`route`, nonce and v2 signature), user-model `sort`, and Responses `stop`. Chat `alignment`/`safeguard_results` and Responses `openrouter:armor_blocked` items stay flexible (`Value`); Armor/alignment plugin configuration stays on `Plugin` maps. New 408/409/499 statuses use the shared error parser. No CLI flags change.
@@ -127,6 +128,8 @@ Legend:
 | `GET /scim/sync-jobs/{id}` | `client.management().get_scim_sync_job(...)` | Yes | Path | Conditional | P1 |
 | `GET /credits` | `client.management().get_credits()` | Yes | Path | No | P2 |
 | `POST /credits/coinbase` | `client.management().create_coinbase_charge(...)` (deprecated upstream; use web credits purchase) | Yes (compatibility) | Path | No | P2 |
+| `POST /credits/purchases` | `client.management().create_credit_purchase(...)` | Yes | Contract | No | P2 |
+| `GET /credits/purchases/{id}` | `client.management().get_credit_purchase(...)` | Yes | Path | No | P2 |
 | `GET /datasets/app-rankings` | `client.models().get_app_rankings(...)` | Yes | Path | No | P2 |
 | `GET /datasets/rankings-daily` | `client.models().get_rankings_daily(...)` | Yes | Path | No | P2 |
 | `GET /datasets/session-cost` | `client.models().get_session_cost(...)` | Yes | Path | No | P2 |
@@ -154,6 +157,29 @@ Legend:
 | `POST /guardrails/{id}/assignments/members/remove` | `client.management().delete_guardrail_member_assignments(...)` | Yes | Path | No | P1 |
 | `GET /guardrails/assignments/keys` | `client.management().list_key_assignments(...)` | Yes | Path | No | P1 |
 | `GET /guardrails/assignments/members` | `client.management().list_member_assignments(...)` | Yes | Path | No | P1 |
+| `GET /guardrails/policies/account` | `client.management().list_account_guardrail_policies(...)` | Yes | Path | No | P1 |
+| `POST /guardrails/policies/account` | `client.management().create_account_guardrail_policy(...)` | Yes | Contract | No | P1 |
+| `PUT /guardrails/policies/account/{id}` | `client.management().update_account_guardrail_policy(...)` | Yes | Contract | No | P1 |
+| `DELETE /guardrails/policies/account/{id}` | `client.management().delete_account_guardrail_policy(...)` | Yes | Path | No | P1 |
+| `GET /guardrails/policies/budget` | `client.management().list_budget_policies(...)` | Yes | Path | No | P1 |
+| `POST /guardrails/policies/budget` | `client.management().create_budget_policy(...)` | Yes | Contract | No | P1 |
+| `GET /guardrails/policies/budget/{id}` | `client.management().get_budget_policy(...)` | Yes | Contract | No | P1 |
+| `PUT /guardrails/policies/budget/{id}` | `client.management().update_budget_policy(...)` | Yes | Contract | No | P1 |
+| `DELETE /guardrails/policies/budget/{id}` | `client.management().delete_budget_policy(...)` | Yes | Path | No | P1 |
+| `GET /guardrails/policies/model-availability` | `client.management().list_model_availability_policies(...)` | Yes | Path | No | P1 |
+| `POST /guardrails/policies/model-availability` | `client.management().create_model_availability_policy(...)` | Yes | Contract | No | P1 |
+| `GET /guardrails/policies/model-availability/{id}` | `client.management().get_model_availability_policy(...)` | Yes | Contract | No | P1 |
+| `PUT /guardrails/policies/model-availability/{id}` | `client.management().update_model_availability_policy(...)` | Yes | Contract | No | P1 |
+| `DELETE /guardrails/policies/model-availability/{id}` | `client.management().delete_model_availability_policy(...)` | Yes | Path | No | P1 |
+| `GET /guardrails/policies/moderation` | `client.management().list_moderation_policies(...)` | Yes | Path | No | P1 |
+| `POST /guardrails/policies/moderation` | `client.management().create_moderation_policy(...)` | Yes | Contract | No | P1 |
+| `GET /guardrails/policies/moderation/{id}` | `client.management().get_moderation_policy(...)` | Yes | Contract | No | P1 |
+| `PUT /guardrails/policies/moderation/{id}` | `client.management().update_moderation_policy(...)` | Yes | Contract | No | P1 |
+| `DELETE /guardrails/policies/moderation/{id}` | `client.management().delete_moderation_policy(...)` | Yes | Path | No | P1 |
+| `GET /guardrails/policies/assignments/api-keys/{hash}` | `client.management().get_api_key_policy_assignment(...)` | Yes | Path | No | P1 |
+| `PUT /guardrails/policies/assignments/api-keys/{hash}` | `client.management().change_api_key_policy_assignment(...)` | Yes | Contract | No | P1 |
+| `GET /guardrails/policies/assignments/members/{member_id}` | `client.management().get_member_policy_assignment(...)` | Yes | Path | No | P1 |
+| `PUT /guardrails/policies/assignments/members/{member_id}` | `client.management().change_member_policy_assignment(...)` | Yes | Contract | No | P1 |
 | `POST /images` | `client.images().create(...)` / `client.images().stream(...)` | Yes | Path | No | P2 |
 | `GET /images/models` | `client.images().list_models()` | Yes | Path | No | P2 |
 | `GET /images/models/{author}/{slug}/endpoints` | `client.images().list_model_endpoints(...)` | Yes | Path | No | P2 |
@@ -249,7 +275,6 @@ These are in the tracked upstream baseline and are not implemented by the SDK.
 | `POST /private-endpoints/{id}/activate` | Deferred beyond issue #254 |
 | `POST /private-endpoints/{id}/disable` | Deferred beyond issue #254 |
 | `POST /private-endpoints/{id}/enable` | Deferred beyond issue #254 |
-| `PUT /private-endpoints/{id}/pricing` | Deferred beyond issue #254 |
 | `POST /private-endpoints/{id}/validate` | Deferred beyond issue #254 |
 | `GET /tools` | Deferred beyond issue #254 |
 | `GET /tools/{name}` | Deferred beyond issue #254 |

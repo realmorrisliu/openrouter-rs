@@ -6,9 +6,9 @@ use crate::api::legacy::completion;
 use crate::{
     api::{
         analytics, api_keys, audio, auth, batches, byok, chat, credits, decisions, discovery,
-        embeddings, external_users, files, generation, guardrails, images, messages, models,
-        observability, organization, presets, private_providers, rerank, responses, scim, vault,
-        videos, workspaces,
+        embeddings, external_users, files, generation, guardrail_policies, guardrails, images,
+        messages, models, observability, organization, presets, private_providers, rerank,
+        responses, scim, vault, videos, workspaces,
     },
     error::OpenRouterError,
     strip_option_vec_setter,
@@ -1774,6 +1774,30 @@ impl<'a> ManagementClient<'a> {
         .await
     }
 
+    /// Start an agent credit purchase (`POST /credits/purchases`).
+    pub async fn create_credit_purchase(
+        &self,
+        request: &credits::CreateCreditPurchaseRequest,
+    ) -> Result<credits::CreditPurchase, OpenRouterError> {
+        credits::create_credit_purchase_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            request,
+        )
+        .await
+    }
+
+    /// Poll one agent credit purchase (`GET /credits/purchases/{id}`).
+    pub async fn get_credit_purchase(
+        &self,
+        id: &str,
+    ) -> Result<credits::CreditPurchase, OpenRouterError> {
+        credits::get_credit_purchase_with_client(
+            &self.client.request_context(self.client.require_api_key()?),
+            id,
+        )
+        .await
+    }
+
     /// Get generation metadata (`GET /generation?id=...`).
     pub async fn get_generation(
         &self,
@@ -2146,6 +2170,317 @@ impl<'a> ManagementClient<'a> {
         guardrails::list_member_assignments_with_client(
             &self.client.request_context(self.management_key()?),
             pagination,
+        )
+        .await
+    }
+
+    /// List account-wide guardrail policies (`GET /guardrails/policies/account`).
+    pub async fn list_account_guardrail_policies(
+        &self,
+        pagination: Option<PaginationOptions>,
+    ) -> Result<Vec<guardrail_policies::AccountGuardrailPolicy>, OpenRouterError> {
+        guardrail_policies::list_account_guardrail_policies_with_client(
+            &self.client.request_context(self.management_key()?),
+            pagination,
+        )
+        .await
+    }
+
+    /// Create an account-wide guardrail policy (`POST /guardrails/policies/account`).
+    pub async fn create_account_guardrail_policy(
+        &self,
+        request: &guardrail_policies::AccountGuardrailPolicyRequest,
+    ) -> Result<guardrail_policies::AccountGuardrailPolicy, OpenRouterError> {
+        guardrail_policies::create_account_guardrail_policy_with_client(
+            &self.client.request_context(self.management_key()?),
+            request,
+        )
+        .await
+    }
+
+    /// Update an account-wide guardrail policy (`PUT /guardrails/policies/account/{id}`).
+    pub async fn update_account_guardrail_policy(
+        &self,
+        id: &str,
+        request: &guardrail_policies::AccountGuardrailPolicyRequest,
+    ) -> Result<guardrail_policies::AccountGuardrailPolicy, OpenRouterError> {
+        guardrail_policies::update_account_guardrail_policy_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            request,
+        )
+        .await
+    }
+
+    /// Delete an account-wide guardrail policy (`DELETE /guardrails/policies/account/{id}`).
+    pub async fn delete_account_guardrail_policy(&self, id: &str) -> Result<bool, OpenRouterError> {
+        guardrail_policies::delete_account_guardrail_policy_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+        )
+        .await
+    }
+
+    /// List budget policies in a workspace (`GET /guardrails/policies/budget`).
+    pub async fn list_budget_policies(
+        &self,
+        workspace_id: &str,
+        pagination: Option<PaginationOptions>,
+    ) -> Result<guardrail_policies::GuardrailBudgetPolicyList, OpenRouterError> {
+        guardrail_policies::list_budget_policies_with_client(
+            &self.client.request_context(self.management_key()?),
+            workspace_id,
+            pagination,
+        )
+        .await
+    }
+
+    /// Create a budget policy (`POST /guardrails/policies/budget`).
+    pub async fn create_budget_policy(
+        &self,
+        request: &guardrail_policies::CreateGuardrailBudgetPolicyRequest,
+    ) -> Result<guardrail_policies::GuardrailBudgetPolicy, OpenRouterError> {
+        guardrail_policies::create_budget_policy_with_client(
+            &self.client.request_context(self.management_key()?),
+            request,
+        )
+        .await
+    }
+
+    /// Get a budget policy with its assignments (`GET /guardrails/policies/budget/{id}`).
+    pub async fn get_budget_policy(
+        &self,
+        id: &str,
+        workspace_id: &str,
+    ) -> Result<guardrail_policies::GuardrailBudgetPolicyDetail, OpenRouterError> {
+        guardrail_policies::get_budget_policy_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            workspace_id,
+        )
+        .await
+    }
+
+    /// Replace a budget policy (`PUT /guardrails/policies/budget/{id}`).
+    pub async fn update_budget_policy(
+        &self,
+        id: &str,
+        request: &guardrail_policies::UpdateGuardrailBudgetPolicyRequest,
+    ) -> Result<guardrail_policies::GuardrailBudgetPolicy, OpenRouterError> {
+        guardrail_policies::update_budget_policy_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            request,
+        )
+        .await
+    }
+
+    /// Delete a budget policy (`DELETE /guardrails/policies/budget/{id}`).
+    pub async fn delete_budget_policy(
+        &self,
+        id: &str,
+        workspace_id: &str,
+    ) -> Result<bool, OpenRouterError> {
+        guardrail_policies::delete_budget_policy_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            workspace_id,
+        )
+        .await
+    }
+
+    /// List model availability policies in a workspace (`GET /guardrails/policies/model-availability`).
+    pub async fn list_model_availability_policies(
+        &self,
+        workspace_id: &str,
+        pagination: Option<PaginationOptions>,
+    ) -> Result<guardrail_policies::GuardrailModelAvailabilityPolicyList, OpenRouterError> {
+        guardrail_policies::list_model_availability_policies_with_client(
+            &self.client.request_context(self.management_key()?),
+            workspace_id,
+            pagination,
+        )
+        .await
+    }
+
+    /// Create a model availability policy (`POST /guardrails/policies/model-availability`).
+    pub async fn create_model_availability_policy(
+        &self,
+        request: &guardrail_policies::CreateGuardrailModelAvailabilityPolicyRequest,
+    ) -> Result<guardrail_policies::GuardrailModelAvailabilityPolicy, OpenRouterError> {
+        guardrail_policies::create_model_availability_policy_with_client(
+            &self.client.request_context(self.management_key()?),
+            request,
+        )
+        .await
+    }
+
+    /// Get a model availability policy (`GET /guardrails/policies/model-availability/{id}`).
+    pub async fn get_model_availability_policy(
+        &self,
+        id: &str,
+        workspace_id: &str,
+    ) -> Result<guardrail_policies::GuardrailModelAvailabilityPolicyDetail, OpenRouterError> {
+        guardrail_policies::get_model_availability_policy_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            workspace_id,
+        )
+        .await
+    }
+
+    /// Replace a model availability policy (`PUT /guardrails/policies/model-availability/{id}`).
+    pub async fn update_model_availability_policy(
+        &self,
+        id: &str,
+        request: &guardrail_policies::UpdateGuardrailModelAvailabilityPolicyRequest,
+    ) -> Result<guardrail_policies::GuardrailModelAvailabilityPolicy, OpenRouterError> {
+        guardrail_policies::update_model_availability_policy_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            request,
+        )
+        .await
+    }
+
+    /// Delete a model availability policy (`DELETE /guardrails/policies/model-availability/{id}`).
+    pub async fn delete_model_availability_policy(
+        &self,
+        id: &str,
+        workspace_id: &str,
+    ) -> Result<bool, OpenRouterError> {
+        guardrail_policies::delete_model_availability_policy_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            workspace_id,
+        )
+        .await
+    }
+
+    /// List moderation policies in a workspace (`GET /guardrails/policies/moderation`).
+    pub async fn list_moderation_policies(
+        &self,
+        workspace_id: &str,
+        pagination: Option<PaginationOptions>,
+    ) -> Result<guardrail_policies::GuardrailModerationPolicyList, OpenRouterError> {
+        guardrail_policies::list_moderation_policies_with_client(
+            &self.client.request_context(self.management_key()?),
+            workspace_id,
+            pagination,
+        )
+        .await
+    }
+
+    /// Create a moderation policy (`POST /guardrails/policies/moderation`).
+    pub async fn create_moderation_policy(
+        &self,
+        request: &guardrail_policies::CreateGuardrailModerationPolicyRequest,
+    ) -> Result<guardrail_policies::GuardrailModerationPolicy, OpenRouterError> {
+        guardrail_policies::create_moderation_policy_with_client(
+            &self.client.request_context(self.management_key()?),
+            request,
+        )
+        .await
+    }
+
+    /// Get a moderation policy (`GET /guardrails/policies/moderation/{id}`).
+    pub async fn get_moderation_policy(
+        &self,
+        id: &str,
+        workspace_id: &str,
+    ) -> Result<guardrail_policies::GuardrailModerationPolicyDetail, OpenRouterError> {
+        guardrail_policies::get_moderation_policy_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            workspace_id,
+        )
+        .await
+    }
+
+    /// Replace a moderation policy (`PUT /guardrails/policies/moderation/{id}`).
+    pub async fn update_moderation_policy(
+        &self,
+        id: &str,
+        request: &guardrail_policies::UpdateGuardrailModerationPolicyRequest,
+    ) -> Result<guardrail_policies::GuardrailModerationPolicy, OpenRouterError> {
+        guardrail_policies::update_moderation_policy_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            request,
+        )
+        .await
+    }
+
+    /// Delete a moderation policy (`DELETE /guardrails/policies/moderation/{id}`).
+    pub async fn delete_moderation_policy(
+        &self,
+        id: &str,
+        workspace_id: &str,
+    ) -> Result<bool, OpenRouterError> {
+        guardrail_policies::delete_moderation_policy_with_client(
+            &self.client.request_context(self.management_key()?),
+            id,
+            workspace_id,
+        )
+        .await
+    }
+
+    /// Read an API key's policy assignment (`GET /guardrails/policies/assignments/api-keys/{hash}`).
+    pub async fn get_api_key_policy_assignment(
+        &self,
+        hash: &str,
+        workspace_id: &str,
+        policy_type: guardrail_policies::GuardrailPolicyType,
+    ) -> Result<guardrail_policies::GuardrailPolicyAssignmentState, OpenRouterError> {
+        guardrail_policies::get_api_key_policy_assignment_with_client(
+            &self.client.request_context(self.management_key()?),
+            hash,
+            workspace_id,
+            policy_type,
+        )
+        .await
+    }
+
+    /// Change an API key's policy assignment (`PUT /guardrails/policies/assignments/api-keys/{hash}`).
+    pub async fn change_api_key_policy_assignment(
+        &self,
+        hash: &str,
+        request: &guardrail_policies::ChangeGuardrailPolicyAssignmentRequest,
+    ) -> Result<bool, OpenRouterError> {
+        guardrail_policies::change_api_key_policy_assignment_with_client(
+            &self.client.request_context(self.management_key()?),
+            hash,
+            request,
+        )
+        .await
+    }
+
+    /// Read a member's policy assignment (`GET /guardrails/policies/assignments/members/{member_id}`).
+    pub async fn get_member_policy_assignment(
+        &self,
+        member_id: &str,
+        workspace_id: &str,
+        policy_type: guardrail_policies::GuardrailPolicyType,
+    ) -> Result<guardrail_policies::GuardrailPolicyAssignmentState, OpenRouterError> {
+        guardrail_policies::get_member_policy_assignment_with_client(
+            &self.client.request_context(self.management_key()?),
+            member_id,
+            workspace_id,
+            policy_type,
+        )
+        .await
+    }
+
+    /// Change a member's policy assignment (`PUT /guardrails/policies/assignments/members/{member_id}`).
+    pub async fn change_member_policy_assignment(
+        &self,
+        member_id: &str,
+        request: &guardrail_policies::ChangeGuardrailPolicyAssignmentRequest,
+    ) -> Result<bool, OpenRouterError> {
+        guardrail_policies::change_member_policy_assignment_with_client(
+            &self.client.request_context(self.management_key()?),
+            member_id,
+            request,
         )
         .await
     }

@@ -24,6 +24,7 @@ pub mod embeddings;
 pub mod error_model;
 pub mod files;
 pub mod generation;
+pub mod guardrail_policies;
 pub mod guardrails;
 pub mod images;
 pub mod messages;

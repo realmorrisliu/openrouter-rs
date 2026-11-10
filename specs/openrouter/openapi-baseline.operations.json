@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-11-03T02:06:02+00:00",
+  "captured_at": "2026-11-10T02:27:18+00:00",
   "info": {
     "contact": {
       "email": "support@openrouter.ai",
@@ -14,7 +14,7 @@
     "title": "OpenRouter API",
     "version": "1.0.0"
   },
-  "operation_count": 146,
+  "operation_count": 169,
   "operations": [
     {
       "deprecated": false,
@@ -59,6 +59,50 @@
       "path": "/files/{path_param_0}",
       "tags": [
         "Files"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "eabd61c46b192368",
+      "id": "DELETE /guardrails/policies/account/{path_param_0}",
+      "method": "DELETE",
+      "operation_id": "deleteAccountPolicy",
+      "path": "/guardrails/policies/account/{path_param_0}",
+      "tags": [
+        "Guardrail Policies"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "1bf23ea3216b0182",
+      "id": "DELETE /guardrails/policies/budget/{path_param_0}",
+      "method": "DELETE",
+      "operation_id": "deleteBudgetPolicy",
+      "path": "/guardrails/policies/budget/{path_param_0}",
+      "tags": [
+        "Guardrail Policies"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "1f98b40aa6359ca8",
+      "id": "DELETE /guardrails/policies/model-availability/{path_param_0}",
+      "method": "DELETE",
+      "operation_id": "deleteModelAvailabilityPolicy",
+      "path": "/guardrails/policies/model-availability/{path_param_0}",
+      "tags": [
+        "Guardrail Policies"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "77253c97066ef69e",
+      "id": "DELETE /guardrails/policies/moderation/{path_param_0}",
+      "method": "DELETE",
+      "operation_id": "deleteModerationPolicy",
+      "path": "/guardrails/policies/moderation/{path_param_0}",
+      "tags": [
+        "Guardrail Policies"
       ]
     },
     {
@@ -206,7 +250,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "c484e4598b281e82",
+      "fingerprint": "3bcb9133c2ec05ff",
       "id": "GET /batches/{path_param_0}",
       "method": "GET",
       "operation_id": "getBatches",
@@ -228,7 +272,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "eb804f9e9a77838f",
+      "fingerprint": "cbd7aa8d92af55a8",
       "id": "GET /byok",
       "method": "GET",
       "operation_id": "listBYOKKeys",
@@ -239,7 +283,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b9048c69ae8e3b8e",
+      "fingerprint": "1222b419dcbecc96",
       "id": "GET /byok/{path_param_0}",
       "method": "GET",
       "operation_id": "getBYOKKey",
@@ -305,6 +349,17 @@
     },
     {
       "deprecated": false,
+      "fingerprint": "8608dfc858c724c1",
+      "id": "GET /credits/purchases/{path_param_0}",
+      "method": "GET",
+      "operation_id": "listCreditsPurchases",
+      "path": "/credits/purchases/{path_param_0}",
+      "tags": [
+        "Credits"
+      ]
+    },
+    {
+      "deprecated": false,
       "fingerprint": "3db102e521c70ac4",
       "id": "GET /datasets/app-rankings",
       "method": "GET",
@@ -349,7 +404,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "9595c404383b762f",
+      "fingerprint": "93350525500d2b28",
       "id": "GET /endpoints/zdr",
       "method": "GET",
       "operation_id": "listEndpointsZdr",
@@ -417,7 +472,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "979d2c34c67841d3",
+      "fingerprint": "7958d3b8befd52e2",
       "id": "GET /generation",
       "method": "GET",
       "operation_id": "getGeneration",
@@ -472,6 +527,105 @@
     },
     {
       "deprecated": false,
+      "fingerprint": "edde292b16933a8e",
+      "id": "GET /guardrails/policies/account",
+      "method": "GET",
+      "operation_id": "listAccountPolicies",
+      "path": "/guardrails/policies/account",
+      "tags": [
+        "Guardrail Policies"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "89540aac035b7031",
+      "id": "GET /guardrails/policies/assignments/api-keys/{path_param_0}",
+      "method": "GET",
+      "operation_id": "getApiKeyPolicyAssignment",
+      "path": "/guardrails/policies/assignments/api-keys/{path_param_0}",
+      "tags": [
+        "Guardrail Policies"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "6de96b29f05d5dfb",
+      "id": "GET /guardrails/policies/assignments/members/{path_param_0}",
+      "method": "GET",
+      "operation_id": "getMemberPolicyAssignment",
+      "path": "/guardrails/policies/assignments/members/{path_param_0}",
+      "tags": [
+        "Guardrail Policies"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "66bba049d19e76ef",
+      "id": "GET /guardrails/policies/budget",
+      "method": "GET",
+      "operation_id": "listBudgetPolicies",
+      "path": "/guardrails/policies/budget",
+      "tags": [
+        "Guardrail Policies"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "50261c11752513a9",
+      "id": "GET /guardrails/policies/budget/{path_param_0}",
+      "method": "GET",
+      "operation_id": "getBudgetPolicy",
+      "path": "/guardrails/policies/budget/{path_param_0}",
+      "tags": [
+        "Guardrail Policies"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "d90071226ed00422",
+      "id": "GET /guardrails/policies/model-availability",
+      "method": "GET",
+      "operation_id": "listModelAvailabilityPolicies",
+      "path": "/guardrails/policies/model-availability",
+      "tags": [
+        "Guardrail Policies"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "6ccbad027572f64a",
+      "id": "GET /guardrails/policies/model-availability/{path_param_0}",
+      "method": "GET",
+      "operation_id": "getModelAvailabilityPolicy",
+      "path": "/guardrails/policies/model-availability/{path_param_0}",
+      "tags": [
+        "Guardrail Policies"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "1352b4d30b71f8c8",
+      "id": "GET /guardrails/policies/moderation",
+      "method": "GET",
+      "operation_id": "listModerationPolicies",
+      "path": "/guardrails/policies/moderation",
+      "tags": [
+        "Guardrail Policies"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "bcb29a3b9b7174bd",
+      "id": "GET /guardrails/policies/moderation/{path_param_0}",
+      "method": "GET",
+      "operation_id": "getModerationPolicy",
+      "path": "/guardrails/policies/moderation/{path_param_0}",
+      "tags": [
+        "Guardrail Policies"
+      ]
+    },
+    {
+      "deprecated": false,
       "fingerprint": "d60de57b34de29c1",
       "id": "GET /guardrails/{path_param_0}",
       "method": "GET",
@@ -505,7 +659,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "4dbde35d6041b4b9",
+      "fingerprint": "6bf731b02692b14e",
       "id": "GET /images/models",
       "method": "GET",
       "operation_id": "listImageModels",
@@ -516,7 +670,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "1a65128c9abdfbe5",
+      "fingerprint": "2946f226e80c3430",
       "id": "GET /images/models/{path_param_0}/{path_param_1}/endpoints",
       "method": "GET",
       "operation_id": "listImageModelEndpoints",
@@ -538,7 +692,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "2ad3379f1e14e3e9",
+      "fingerprint": "78e690d740f132b0",
       "id": "GET /keys",
       "method": "GET",
       "operation_id": "list",
@@ -571,7 +725,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "0e6c714d933339a0",
+      "fingerprint": "c49b616298c3da45",
       "id": "GET /models",
       "method": "GET",
       "operation_id": "getModels",
@@ -604,7 +758,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "209bd146fc05ee0f",
+      "fingerprint": "e23483452eb9d5c5",
       "id": "GET /models/{path_param_0}/{path_param_1}/endpoints",
       "method": "GET",
       "operation_id": "listEndpoints",
@@ -648,7 +802,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "5a4d41466a870ede",
+      "fingerprint": "c5bd56b5f09acb7c",
       "id": "GET /organization/members",
       "method": "GET",
       "operation_id": "listOrganizationMembers",
@@ -956,7 +1110,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "191387e34281c2ed",
+      "fingerprint": "65998647f8629c50",
       "id": "GET /workspaces/{path_param_0}/members",
       "method": "GET",
       "operation_id": "listWorkspaceMembers",
@@ -967,7 +1121,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "60c4ce2a961babfe",
+      "fingerprint": "1d0cdae7103dca21",
       "id": "PATCH /byok/{path_param_0}",
       "method": "PATCH",
       "operation_id": "updateBYOKKey",
@@ -1067,7 +1221,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "762ffba6149260f2",
+      "fingerprint": "69c3ab6338845f73",
       "id": "PATCH /workspaces/{path_param_0}",
       "method": "PATCH",
       "operation_id": "updateWorkspace",
@@ -1089,7 +1243,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "0e27035b8519ee79",
+      "fingerprint": "d6fcb9d5063100fd",
       "id": "POST /api/alpha/decisions",
       "method": "POST",
       "operation_id": "createApiAlphaDecisions",
@@ -1100,7 +1254,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "c94bc6826f7ca3c1",
+      "fingerprint": "d3168589be59c512",
       "id": "POST /api/alpha/extractions",
       "method": "POST",
       "operation_id": "createApiAlphaExtractions",
@@ -1111,7 +1265,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f985db0d646eecee",
+      "fingerprint": "9bb5b46ceff9fb13",
       "id": "POST /audio/speech",
       "method": "POST",
       "operation_id": "createAudioSpeech",
@@ -1122,7 +1276,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "622e7eb921f27e08",
+      "fingerprint": "959b5c63d0efc413",
       "id": "POST /audio/transcriptions",
       "method": "POST",
       "operation_id": "createAudioTranscriptions",
@@ -1144,7 +1298,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "aa74155f51b4f6ce",
+      "fingerprint": "1539e4f4712f409d",
       "id": "POST /auth/keys/code",
       "method": "POST",
       "operation_id": "createAuthKeysCode",
@@ -1155,7 +1309,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b3d096aef7752c0b",
+      "fingerprint": "8f2ca33387ad4286",
       "id": "POST /batches",
       "method": "POST",
       "operation_id": "createBatches",
@@ -1166,7 +1320,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "08d3ccc8beb6a5c2",
+      "fingerprint": "227d8adaa063d486",
       "id": "POST /byok",
       "method": "POST",
       "operation_id": "createBYOKKey",
@@ -1177,7 +1331,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "33a78cff101529e7",
+      "fingerprint": "ee0fde2428b7cfb5",
       "id": "POST /chat/completions",
       "method": "POST",
       "operation_id": "sendChatCompletionRequest",
@@ -1210,7 +1364,18 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "d32cf044a7741720",
+      "fingerprint": "6847fe48c3b400cc",
+      "id": "POST /credits/purchases",
+      "method": "POST",
+      "operation_id": "createCreditsPurchases",
+      "path": "/credits/purchases",
+      "tags": [
+        "Credits"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "f4292b51ef13e42d",
       "id": "POST /embeddings",
       "method": "POST",
       "operation_id": "createEmbeddings",
@@ -1266,6 +1431,50 @@
     },
     {
       "deprecated": false,
+      "fingerprint": "5686210b592f43d6",
+      "id": "POST /guardrails/policies/account",
+      "method": "POST",
+      "operation_id": "createAccountPolicy",
+      "path": "/guardrails/policies/account",
+      "tags": [
+        "Guardrail Policies"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "d0c5555c93a12a7d",
+      "id": "POST /guardrails/policies/budget",
+      "method": "POST",
+      "operation_id": "createBudgetPolicy",
+      "path": "/guardrails/policies/budget",
+      "tags": [
+        "Guardrail Policies"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "fefbd0b5fec95665",
+      "id": "POST /guardrails/policies/model-availability",
+      "method": "POST",
+      "operation_id": "createModelAvailabilityPolicy",
+      "path": "/guardrails/policies/model-availability",
+      "tags": [
+        "Guardrail Policies"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "1f1b118fdfaa7edf",
+      "id": "POST /guardrails/policies/moderation",
+      "method": "POST",
+      "operation_id": "createModerationPolicy",
+      "path": "/guardrails/policies/moderation",
+      "tags": [
+        "Guardrail Policies"
+      ]
+    },
+    {
+      "deprecated": false,
       "fingerprint": "33fad17bafef8294",
       "id": "POST /guardrails/{path_param_0}/assignments/keys",
       "method": "POST",
@@ -1310,7 +1519,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "985363e4d6d6ea8f",
+      "fingerprint": "d85f1b0d290d5377",
       "id": "POST /images",
       "method": "POST",
       "operation_id": "createImages",
@@ -1332,7 +1541,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "daa62eb170c7dc99",
+      "fingerprint": "4e721ee664169fff",
       "id": "POST /messages",
       "method": "POST",
       "operation_id": "createMessages",
@@ -1365,7 +1574,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "8450af1851e1ae83",
+      "fingerprint": "aa8bdcf9219d0ad5",
       "id": "POST /presets/{path_param_0}/chat/completions",
       "method": "POST",
       "operation_id": "createPresetsChatCompletions",
@@ -1376,7 +1585,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "9585b97ec24dfbba",
+      "fingerprint": "77223e1b247bbdc4",
       "id": "POST /presets/{path_param_0}/messages",
       "method": "POST",
       "operation_id": "createPresetsMessages",
@@ -1387,7 +1596,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "803ce2b63a44455b",
+      "fingerprint": "fcd77892e990f19f",
       "id": "POST /presets/{path_param_0}/responses",
       "method": "POST",
       "operation_id": "createPresetsResponses",
@@ -1398,7 +1607,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "ae3cdff915951bd8",
+      "fingerprint": "ad520ca79690831d",
       "id": "POST /private-endpoints",
       "method": "POST",
       "operation_id": "createPrivateEndpoint",
@@ -1442,7 +1651,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b1002209676b37b9",
+      "fingerprint": "322e6b9f44292ad8",
       "id": "POST /private-endpoints/{path_param_0}/validate",
       "method": "POST",
       "operation_id": "validatePrivateEndpoint",
@@ -1464,7 +1673,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b65192f76bedd603",
+      "fingerprint": "9175e99e0b3a3ed8",
       "id": "POST /rerank",
       "method": "POST",
       "operation_id": "createRerank",
@@ -1475,7 +1684,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f1bfa752d3ee4d1c",
+      "fingerprint": "bd7fbb9b8312dd8f",
       "id": "POST /responses",
       "method": "POST",
       "operation_id": "createResponses",
@@ -1509,7 +1718,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "f8f5fcf287b90717",
+      "fingerprint": "827e29c4cfcdfa5a",
       "id": "POST /systemone",
       "method": "POST",
       "operation_id": "createSystemone",
@@ -1531,7 +1740,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b39f91196791ea15",
+      "fingerprint": "956f511b16a0ac3e",
       "id": "POST /videos",
       "method": "POST",
       "operation_id": "createVideos",
@@ -1542,7 +1751,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "b33f02bc1407740d",
+      "fingerprint": "48979d02c609349b",
       "id": "POST /workspaces",
       "method": "POST",
       "operation_id": "createWorkspace",
@@ -1553,7 +1762,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "478445131aeb220c",
+      "fingerprint": "4d981e30b676830d",
       "id": "POST /workspaces/{path_param_0}/members/add",
       "method": "POST",
       "operation_id": "bulkAddWorkspaceMembers",
@@ -1574,25 +1783,69 @@
       ]
     },
     {
-      "deprecated": true,
-      "fingerprint": "ea88206d7ccfa19e",
-      "id": "PUT /private-endpoints/{path_param_0}/parameters",
+      "deprecated": false,
+      "fingerprint": "e11986251ca87269",
+      "id": "PUT /guardrails/policies/account/{path_param_0}",
       "method": "PUT",
-      "operation_id": "updatePrivateEndpointParameters",
-      "path": "/private-endpoints/{path_param_0}/parameters",
+      "operation_id": "updateAccountPolicy",
+      "path": "/guardrails/policies/account/{path_param_0}",
       "tags": [
-        "Private Endpoints"
+        "Guardrail Policies"
       ]
     },
     {
-      "deprecated": true,
-      "fingerprint": "06a9ee0b4ca93664",
-      "id": "PUT /private-endpoints/{path_param_0}/pricing",
+      "deprecated": false,
+      "fingerprint": "e907c84a60e305a9",
+      "id": "PUT /guardrails/policies/assignments/api-keys/{path_param_0}",
       "method": "PUT",
-      "operation_id": "updatePrivateEndpointPricing",
-      "path": "/private-endpoints/{path_param_0}/pricing",
+      "operation_id": "changeApiKeyPolicyAssignment",
+      "path": "/guardrails/policies/assignments/api-keys/{path_param_0}",
       "tags": [
-        "Private Endpoints"
+        "Guardrail Policies"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "6ee3df1462383b86",
+      "id": "PUT /guardrails/policies/assignments/members/{path_param_0}",
+      "method": "PUT",
+      "operation_id": "changeMemberPolicyAssignment",
+      "path": "/guardrails/policies/assignments/members/{path_param_0}",
+      "tags": [
+        "Guardrail Policies"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "50bf3f5d7cd0bea5",
+      "id": "PUT /guardrails/policies/budget/{path_param_0}",
+      "method": "PUT",
+      "operation_id": "updateBudgetPolicy",
+      "path": "/guardrails/policies/budget/{path_param_0}",
+      "tags": [
+        "Guardrail Policies"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "18cf53d5d4f1c40a",
+      "id": "PUT /guardrails/policies/model-availability/{path_param_0}",
+      "method": "PUT",
+      "operation_id": "updateModelAvailabilityPolicy",
+      "path": "/guardrails/policies/model-availability/{path_param_0}",
+      "tags": [
+        "Guardrail Policies"
+      ]
+    },
+    {
+      "deprecated": false,
+      "fingerprint": "f93ab08435136a23",
+      "id": "PUT /guardrails/policies/moderation/{path_param_0}",
+      "method": "PUT",
+      "operation_id": "updateModerationPolicy",
+      "path": "/guardrails/policies/moderation/{path_param_0}",
+      "tags": [
+        "Guardrail Policies"
       ]
     },
     {

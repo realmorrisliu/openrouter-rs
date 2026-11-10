@@ -13,7 +13,7 @@
 //! - `client.images()` -> [`images`]
 //! - `client.videos()` -> [`videos`]
 //! - `client.models()` -> [`models`], [`embeddings`], [`discovery`]
-//! - `client.management()` -> [`api_keys`], [`auth`], [`byok`], [`credits`], [`generation`], [`guardrails`], [`observability`], [`organization`], [`external_users`], [`presets`], [`private_providers`], [`scim`], [`workspaces`]
+//! - `client.management()` -> [`api_keys`], [`auth`], [`byok`], [`credits`], [`generation`], [`guardrails`], [`guardrail_policies`], [`observability`], [`organization`], [`external_users`], [`presets`], [`private_providers`], [`scim`], [`workspaces`]
 //! - `client.batches()` -> [`batches`]
 //! - `client.vault()` -> [`vault`]
 //! - `client.decisions()` -> [`decisions`]
@@ -39,7 +39,7 @@
 //! - BYOK provider credential management
 //! - observability destination management
 //! - preset creation from inference request bodies
-//! - guardrails and guardrail assignments
+//! - guardrails, guardrail policies and guardrail assignments
 //! - organization members/settings and end-user registrations
 //! - SCIM group discovery and group-role mappings
 //! - workspace CRUD and membership management
@@ -141,6 +141,7 @@ pub mod errors;
 pub mod external_users;
 pub mod files;
 pub mod generation;
+pub mod guardrail_policies;
 pub mod guardrails;
 pub mod images;
 pub mod messages;

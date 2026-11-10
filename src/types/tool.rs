@@ -374,6 +374,10 @@ impl ServerTool {
         Self::new("openrouter:advisor")
     }
 
+    pub fn mcp() -> Self {
+        Self::new("openrouter:mcp")
+    }
+
     pub fn subagent() -> Self {
         Self::new("openrouter:subagent")
     }
