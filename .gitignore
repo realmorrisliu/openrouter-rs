@@ -5,3 +5,6 @@
 !.env.template
 __pycache__/
 *.pyc
+
+# Local agent/goal state, not part of the project
+.pi/
