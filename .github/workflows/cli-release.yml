@@ -67,12 +67,21 @@ jobs:
             exit 1
           fi
 
-          if curl -fsS "https://crates.io/api/v1/crates/openrouter-cli/${VERSION}" > /dev/null; then
+          # crates.io rejects UA-less API calls with 403, so send one.
+          if curl -fsS -H "User-Agent: openrouter-rs-release" \
+            "https://crates.io/api/v1/crates/openrouter-cli/${VERSION}" > /dev/null; then
             echo "openrouter-cli ${VERSION} is already published; skipping cargo publish."
             exit 0
           fi
 
-          cargo publish -p openrouter-cli --locked --token "${CARGO_REGISTRY_TOKEN}"
+          if ! cargo publish -p openrouter-cli --locked --token "${CARGO_REGISTRY_TOKEN}" 2>&1 | tee /tmp/publish.log; then
+            # A concurrent or re-run publish can lose the race; that is still success.
+            if grep -q "already exists\|already uploaded" /tmp/publish.log; then
+              echo "openrouter-cli ${VERSION} is already on crates.io; treating publish as done."
+              exit 0
+            fi
+            exit 1
+          fi
 
   build-binaries:
     name: Build CLI binary (${{ matrix.target }})
