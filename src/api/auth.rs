@@ -69,12 +69,6 @@ pub struct CreateAuthCodeRequest {
     usage_limit_type: Option<UsageLimitType>,
     #[builder(setter(into, strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
-    spawn_agent: Option<String>,
-    #[builder(setter(into, strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    spawn_cloud: Option<String>,
-    #[builder(setter(into, strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     workspace_id: Option<String>,
 }
 

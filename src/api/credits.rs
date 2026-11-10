@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
+use urlencoding::encode;
 
 use crate::transport::RequestContext;
 use crate::{
@@ -52,6 +53,46 @@ pub struct CreditsData {
     pub total_usage: f64,
 }
 
+/// One agent credit purchase started from a workspace API key.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct CreditPurchase {
+    pub id: String,
+    pub status: String,
+    pub credit_amount_usd: String,
+    pub platform_fee_usd: String,
+    pub total_charged_usd: String,
+    pub protocol: String,
+    pub network: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub payment_intent_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub failure_reason: Option<String>,
+    pub created_at: String,
+}
+
+/// Request body for `POST /credits/purchases`.
+#[derive(Serialize, Debug, Clone, Builder)]
+#[builder(build_fn(error = "OpenRouterError"))]
+#[non_exhaustive]
+pub struct CreateCreditPurchaseRequest {
+    /// Amount in USD as a decimal string, so the amount stays exact.
+    #[builder(setter(into))]
+    pub credit_amount_usd: String,
+}
+
+impl CreateCreditPurchaseRequest {
+    pub fn builder() -> CreateCreditPurchaseRequestBuilder {
+        CreateCreditPurchaseRequestBuilder::default()
+    }
+
+    pub fn new(credit_amount_usd: impl Into<String>) -> Self {
+        Self {
+            credit_amount_usd: credit_amount_usd.into(),
+        }
+    }
+}
+
 pub(crate) async fn create_coinbase_charge_with_client(
     ctx: &RequestContext<'_>,
     request: &CoinbaseChargeRequest,
@@ -87,4 +128,46 @@ pub(crate) async fn get_credits_with_client(
         transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
     let credits_response: ApiResponse<_> = transport_response::send_json(req, "credits").await?;
     Ok(credits_response.data)
+}
+
+/// Start a credit purchase (`POST /credits/purchases`).
+///
+/// The first call normally answers `402` with a payment challenge; retry with a
+/// payment credential to get the `202` purchase this returns.
+pub(crate) async fn create_credit_purchase_with_client(
+    ctx: &RequestContext<'_>,
+    request: &CreateCreditPurchaseRequest,
+) -> Result<CreditPurchase, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
+    let url = format!("{base_url}/credits/purchases");
+    let req =
+        transport_request::with_bearer_auth(transport_request::post(http_client, &url), api_key)
+            .json(request);
+    let purchase: ApiResponse<CreditPurchase> =
+        transport_response::send_json(req, "credit purchase").await?;
+    Ok(purchase.data)
+}
+
+/// Poll one credit purchase (`GET /credits/purchases/{id}`).
+pub(crate) async fn get_credit_purchase_with_client(
+    ctx: &RequestContext<'_>,
+    id: &str,
+) -> Result<CreditPurchase, OpenRouterError> {
+    let RequestContext {
+        http_client,
+        base_url,
+        credential: api_key,
+        ..
+    } = *ctx;
+    let url = format!("{base_url}/credits/purchases/{}", encode(id));
+    let req =
+        transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
+    let purchase: ApiResponse<CreditPurchase> =
+        transport_response::send_json(req, "credit purchase lookup").await?;
+    Ok(purchase.data)
 }

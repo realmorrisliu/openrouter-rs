@@ -282,6 +282,10 @@ pub struct ListModelsParams {
     #[builder(setter(into, strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub input_modalities: Option<String>,
+    /// Filter by the API path that serves the model (for example `/api/v1/responses`).
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub endpoints: Option<String>,
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub context: Option<u32>,

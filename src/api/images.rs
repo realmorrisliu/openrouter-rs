@@ -166,6 +166,19 @@ pub struct ImageGenerationRequest {
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub output_compression: Option<u32>,
+    /// Frames to generate, for animated output formats.
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub frame_count: Option<u32>,
+    /// Per-frame duration in milliseconds, for animated output formats.
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub frame_duration_ms: Option<u32>,
+    /// Overlay image drawn onto the generation; the upstream shape is still
+    /// moving, so the raw payload is kept.
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub markup: Option<Value>,
     #[builder(setter(into, strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub output_format: Option<String>,

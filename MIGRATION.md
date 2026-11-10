@@ -2,6 +2,44 @@
 
 This document keeps historical migration guides intact because the repo still smoke-tests older domain/naming transitions.
 
+## 0.24.x -> Unreleased: Guardrail Policies, and Two Small Removals
+
+Upstream split guardrail governance into account and workspace *policies*, and removed two
+always-ignored fields from the auth-code request. Both are covered by the same release.
+
+```rust
+// before: the flat guardrail surface was the only governance API
+let gr = client.management().create_guardrail(&request).await?;
+
+// after: policies are scoped either account-wide or per workspace
+let policy = client
+    .management()
+    .create_budget_policy(
+        &CreateGuardrailBudgetPolicyRequest::builder()
+            .name("Engineering monthly budget")
+            .config(GuardrailBudgetPolicyAuthoringConfig::new(
+                Some(200.0),
+                Some(GuardrailBudgetResetInterval::Monthly),
+                false,
+            ))
+            .workspace_id("ws_123")
+            .build()?,
+    )
+    .await?;
+```
+
+The flat `/guardrails*` surface keeps working; policies are additive. Budget configs have an
+authoring form (`GuardrailBudgetPolicyAuthoringConfig`) that always sends `limit_usd` and
+`reset_interval`, including explicit `null`, because upstream requires the keys.
+
+Removed: `CreateAuthCodeRequest::spawn_agent` and `CreateAuthCodeRequest::spawn_cloud`. Both were
+marked ignored in the upstream spec and never reached the wire from this SDK, so no replacement
+is needed.
+
+Same review, non-breaking: `ListModelsParams::endpoints`, image `frame_count`,
+`frame_duration_ms`, `markup` and the `gif` output format, `ServerTool::mcp()`, and the credit
+purchase pair `create_credit_purchase`/`get_credit_purchase`.
+
 ## 0.23.x -> 0.24.0: Private Providers Drop `data_policy`
 
 Upstream removed `data_policy` from private providers (requests and responses), so the SDK

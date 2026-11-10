@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `management()` now covers the `Guardrail Policies` family in new `api::guardrail_policies` types: account-wide policy CRUD, per-workspace budget/model-availability/moderation policy CRUD with assignments, and API key/member policy assignment reads and changes (23 operations, management key required).
+- `CreditPurchase`, `CreateCreditPurchaseRequest`, `management().create_credit_purchase(...)` and `management().get_credit_purchase(...)` for `POST /credits/purchases` and `GET /credits/purchases/{id}`.
+- `ListModelsParams` gained an `endpoints(...)` filter for `GET /models`.
+- `ImageGenerationRequest` gained `frame_count`, `frame_duration_ms` and `markup`; `output_format` accepts `gif`.
+- `ServerTool::mcp()` for the `openrouter:mcp` server tool.
+
+### Breaking
+- `CreateAuthCodeRequest` no longer carries `spawn_agent`/`spawn_cloud`: upstream removed both fields from `POST /auth/keys/code`.
+
+### Changed
+- Reviewed the rest of the 2026-11-09 drift as already covered: new provider names and BYOK provider slugs, `tools_invoke` `api_type`, viewer roles, `openrouter:mcp` in `disabled_server_tools`, `deferred_tools` controls, Responses `compaction`/`mcp_*` output items, and the `openrouter-stealth-v1` reasoning format all sit on existing string or `Value` surfaces. Deferred: the preset inference `workspace_id` query, and upstream's removal of `PUT /private-endpoints/{id}/parameters` and `/pricing` (never covered).
+
 ## [0.24.0] - 2026-11-03
 
 ### Added
