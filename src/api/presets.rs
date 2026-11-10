@@ -210,11 +210,17 @@ pub(crate) async fn get_preset_version_with_client(
     Ok(payload.data)
 }
 
+#[derive(Serialize)]
+struct CreatePresetQuery<'a> {
+    workspace_id: &'a str,
+}
+
 async fn create_preset_with_client<T: Serialize + ?Sized>(
     ctx: &RequestContext<'_>,
     slug: &str,
     suffix: &str,
     request: &T,
+    workspace_id: Option<&str>,
     context: &str,
 ) -> Result<PresetWithDesignatedVersion, OpenRouterError> {
     let RequestContext {
@@ -227,8 +233,12 @@ async fn create_preset_with_client<T: Serialize + ?Sized>(
     let req = transport_request::with_bearer_auth(
         transport_request::post(http_client, &url),
         management_key,
-    )
-    .json(request);
+    );
+    let req = match workspace_id {
+        Some(workspace_id) => req.query(&CreatePresetQuery { workspace_id }),
+        None => req,
+    };
+    let req = req.json(request);
     let parsed: ApiResponse<PresetWithDesignatedVersion> =
         transport_response::send_json(req, context).await?;
     Ok(parsed.data)
@@ -238,12 +248,14 @@ pub(crate) async fn create_chat_completion_preset_with_client(
     ctx: &RequestContext<'_>,
     slug: &str,
     request: &ChatCompletionRequest,
+    workspace_id: Option<&str>,
 ) -> Result<PresetWithDesignatedVersion, OpenRouterError> {
     create_preset_with_client(
         ctx,
         slug,
         "chat/completions",
         request,
+        workspace_id,
         "chat completion preset",
     )
     .await
@@ -253,14 +265,32 @@ pub(crate) async fn create_response_preset_with_client(
     ctx: &RequestContext<'_>,
     slug: &str,
     request: &ResponsesRequest,
+    workspace_id: Option<&str>,
 ) -> Result<PresetWithDesignatedVersion, OpenRouterError> {
-    create_preset_with_client(ctx, slug, "responses", request, "response preset").await
+    create_preset_with_client(
+        ctx,
+        slug,
+        "responses",
+        request,
+        workspace_id,
+        "response preset",
+    )
+    .await
 }
 
 pub(crate) async fn create_message_preset_with_client(
     ctx: &RequestContext<'_>,
     slug: &str,
     request: &AnthropicMessagesRequest,
+    workspace_id: Option<&str>,
 ) -> Result<PresetWithDesignatedVersion, OpenRouterError> {
-    create_preset_with_client(ctx, slug, "messages", request, "message preset").await
+    create_preset_with_client(
+        ctx,
+        slug,
+        "messages",
+        request,
+        workspace_id,
+        "message preset",
+    )
+    .await
 }

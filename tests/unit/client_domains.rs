@@ -737,21 +737,21 @@ async fn test_management_domain_remaining_methods_require_configured_key() {
     assert!(matches!(
         client
             .management()
-            .create_chat_completion_preset("my-preset", &chat_preset_request)
+            .create_chat_completion_preset("my-preset", &chat_preset_request, None)
             .await,
         Err(OpenRouterError::KeyNotConfigured)
     ));
     assert!(matches!(
         client
             .management()
-            .create_response_preset("my-preset", &response_preset_request)
+            .create_response_preset("my-preset", &response_preset_request, None)
             .await,
         Err(OpenRouterError::KeyNotConfigured)
     ));
     assert!(matches!(
         client
             .management()
-            .create_message_preset("my-preset", &message_preset_request)
+            .create_message_preset("my-preset", &message_preset_request, None)
             .await,
         Err(OpenRouterError::KeyNotConfigured)
     ));

@@ -36,6 +36,21 @@ Removed: `CreateAuthCodeRequest::spawn_agent` and `CreateAuthCodeRequest::spawn_
 marked ignored in the upstream spec and never reached the wire from this SDK, so no replacement
 is needed.
 
+Preset inference now takes the workspace to create the preset in:
+
+```rust
+// before
+client.management().create_chat_completion_preset("my-preset", &request).await?;
+
+// after (pass None to keep the old behavior)
+client
+    .management()
+    .create_chat_completion_preset("my-preset", &request, Some("ws_123"))
+    .await?;
+```
+
+Same signature change on `create_response_preset` and `create_message_preset`.
+
 Same review, non-breaking: `ListModelsParams::endpoints`, image `frame_count`,
 `frame_duration_ms`, `markup` and the `gif` output format, `ServerTool::mcp()`, and the credit
 purchase pair `create_credit_purchase`/`get_credit_purchase`.
