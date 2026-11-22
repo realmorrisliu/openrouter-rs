@@ -253,7 +253,7 @@ fn test_workspace_response_deserialization() {
     );
     assert_eq!(parsed.data.created_by.as_deref(), Some("user_123"));
     assert_eq!(parsed.data.io_logging_api_key_ids, Some(vec![101, 202]));
-    assert_eq!(parsed.data.io_logging_sampling_rate, 0.5);
+    assert_eq!(parsed.data.io_logging_sampling_rate, Some(0.5));
     assert!(parsed.data.include_byok_in_budgets);
 }
 
@@ -302,7 +302,7 @@ fn test_workspace_list_and_member_response_deserialization() {
 
     assert_eq!(list.total_count, 1.0);
     assert_eq!(list.data[0].io_logging_api_key_ids, None);
-    assert_eq!(list.data[0].io_logging_sampling_rate, 1.0);
+    assert_eq!(list.data[0].io_logging_sampling_rate, Some(1.0));
     assert_eq!(add.added_count, 1.0);
     assert_eq!(add.data[0].workspace_id, "ws_123");
     assert_eq!(remove.removed_count, 2.0);
@@ -743,4 +743,17 @@ async fn test_delete_workspace_with_confirm_query() {
     );
 
     server.join().expect("server thread should finish");
+}
+
+#[test]
+fn workspace_accepts_only_required_fields() {
+    let workspace: Workspace = serde_json::from_value(serde_json::json!({
+        "id":"ws", "name":"Default", "slug":"default", "created_at":"2026-01-01T00:00:00Z",
+        "default_guardrail_id":null, "description":null, "updated_at":null, "created_by":null
+    }))
+    .unwrap();
+    assert_eq!(workspace.io_logging_sampling_rate, None);
+    assert_eq!(workspace.is_observability_io_logging_enabled, None);
+    assert_eq!(workspace.is_observability_broadcast_enabled, None);
+    assert_eq!(workspace.is_data_discount_logging_enabled, None);
 }

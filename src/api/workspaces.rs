@@ -40,10 +40,14 @@ pub struct Workspace {
     pub include_byok_in_budgets: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub io_logging_api_key_ids: Option<Vec<u64>>,
-    pub io_logging_sampling_rate: f64,
-    pub is_observability_io_logging_enabled: bool,
-    pub is_observability_broadcast_enabled: bool,
-    pub is_data_discount_logging_enabled: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub io_logging_sampling_rate: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_observability_io_logging_enabled: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_observability_broadcast_enabled: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_data_discount_logging_enabled: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub disabled_server_tools: Option<Vec<String>>,
     pub created_at: String,

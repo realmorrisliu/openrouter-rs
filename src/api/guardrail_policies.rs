@@ -1014,7 +1014,7 @@ async fn get_policy_assignment(
     } = *ctx;
     let url = format!(
         "{base_url}/guardrails/policies/assignments/{subject}/{}",
-        encode(id)
+        crate::utils::encoded_path_segment(id)?
     );
     let req = transport_request::with_bearer_auth(
         transport_request::get(http_client, &url),
@@ -1059,7 +1059,7 @@ async fn change_policy_assignment(
     } = *ctx;
     let url = format!(
         "{base_url}/guardrails/policies/assignments/{subject}/{}",
-        encode(id)
+        crate::utils::encoded_path_segment(id)?
     );
     let req = transport_request::with_bearer_auth(
         transport_request::put(http_client, &url),

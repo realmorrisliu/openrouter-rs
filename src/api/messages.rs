@@ -1049,19 +1049,13 @@ pub(crate) async fn stream_messages_with_client(
 
     if response.status().is_success() {
         let stream = parse_sse_frames(response_lines(response))
-            .filter_map(async |frame| match frame {
-                Ok(frame) if frame.data == "[DONE]" => None,
-                Ok(frame) => Some(
-                    serde_json::from_str::<AnthropicMessagesStreamEvent>(&frame.data)
-                        .map_err(OpenRouterError::Serialization)
-                        .map(|payload| AnthropicMessagesSseEvent {
-                            event: frame
-                                .event
-                                .unwrap_or_else(|| payload.event_type().to_string()),
-                            data: payload,
-                        }),
-                ),
-                Err(error) => Some(Err(error)),
+            .map(|frame| {
+                let frame = frame?;
+                let data: AnthropicMessagesStreamEvent = serde_json::from_str(&frame.data)?;
+                Ok(AnthropicMessagesSseEvent {
+                    event: frame.event.unwrap_or_else(|| data.event_type().to_string()),
+                    data,
+                })
             })
             .boxed();
 

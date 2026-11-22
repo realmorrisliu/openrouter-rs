@@ -377,7 +377,7 @@ pub(crate) async fn download_file_content_with_client(
     let response = apply_workspace_query(req, workspace_id).send().await?;
 
     if response.status().is_success() {
-        Ok(response.bytes().await?.to_vec())
+        Ok(response.into_vec().await?)
     } else {
         Err(transport_response::error_from_response(response).await)
     }
@@ -402,7 +402,7 @@ pub(crate) async fn download_provider_file_content_with_client(
             .await?;
 
     if response.status().is_success() {
-        Ok(response.bytes().await?.to_vec())
+        Ok(response.into_vec().await?)
     } else {
         Err(transport_response::error_from_response(response).await)
     }
@@ -540,7 +540,7 @@ pub(crate) async fn download_container_file_with_client(
 
     let response = req.send().await?;
     if response.status().is_success() {
-        Ok(response.bytes().await?.to_vec())
+        Ok(response.into_vec().await?)
     } else {
         Err(transport_response::error_from_response(response).await)
     }

@@ -19,7 +19,7 @@ use crate::{
     },
 };
 
-#[derive(Debug, Clone, Builder)]
+#[derive(Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 pub struct OpenRouterClient {
     #[builder(
@@ -43,6 +43,8 @@ pub struct OpenRouterClient {
     #[builder(setter(custom), default = "crate::transport::new_client()?")]
     http_client: crate::transport::HttpClient,
 }
+
+crate::utils::debug_public_fields!(OpenRouterClient, x_title, app_categories);
 
 impl OpenRouterClient {
     pub fn builder() -> OpenRouterClientBuilder {
@@ -1750,7 +1752,8 @@ impl<'a> ManagementClient<'a> {
         .await
     }
 
-    /// Update an API key (`PATCH /keys/{hash}`).
+    /// Update an API key (`PATCH /keys/{hash}`). Each `None` leaves its field unchanged.
+    /// Use [`api_keys::UpdateApiKeyRequestBuilder::clear_limit`] to remove a cap.
     pub async fn update_api_key(
         &self,
         hash: &str,
@@ -1786,7 +1789,7 @@ impl<'a> ManagementClient<'a> {
         hash: &str,
         request: &api_keys::UpdateApiKeyRequest,
     ) -> Result<api_keys::ApiKey, OpenRouterError> {
-        api_keys::update_api_key_body_with_client(
+        api_keys::update_api_key_with_request(
             &self.client.request_context(self.management_key()?),
             hash,
             request,

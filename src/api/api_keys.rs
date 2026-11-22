@@ -8,7 +8,7 @@ use crate::{
     types::{ApiResponse, PaginationOptions},
 };
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct ApiKey {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -26,6 +26,8 @@ pub struct ApiKey {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub workspace_id: Option<String>,
 }
+
+crate::utils::debug_public_fields!(ApiKey, name, hash, workspace_id);
 
 #[derive(Serialize, Debug)]
 #[non_exhaustive]
@@ -136,6 +138,22 @@ pub struct RateLimit {
     pub note: Option<String>,
 }
 
+fn finite_limit(limit: Option<f64>) -> Result<Option<f64>, &'static str> {
+    if limit.is_some_and(|value| !value.is_finite()) {
+        return Err("API key spending limit must be finite");
+    }
+    Ok(limit)
+}
+
+pub(crate) fn serialize_limit<S: serde::Serializer>(
+    limit: &Option<f64>,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    finite_limit(*limit)
+        .map_err(serde::ser::Error::custom)?
+        .serialize(serializer)
+}
+
 /// API key creation options, including external identity binding.
 #[derive(Serialize, Deserialize, Debug, Clone, derive_builder::Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
@@ -144,7 +162,10 @@ pub struct CreateApiKeyRequest {
     #[builder(setter(into))]
     pub name: String,
     #[builder(default, setter(strip_option))]
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "serialize_limit"
+    )]
     pub limit: Option<f64>,
     #[builder(default, setter(into, strip_option))]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -158,13 +179,15 @@ impl CreateApiKeyRequest {
         CreateApiKeyRequestBuilder::default()
     }
 }
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 #[non_exhaustive]
 pub struct ExternalApiKeyIdentity {
     pub user: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_key: Option<String>,
 }
+
+crate::utils::debug_public_fields!(ExternalApiKeyIdentity, user);
 impl ExternalApiKeyIdentity {
     pub fn new(user: impl Into<String>) -> Self {
         Self {
@@ -174,7 +197,7 @@ impl ExternalApiKeyIdentity {
     }
 }
 
-/// Optional key updates; the legacy helper retains its null-valued fields.
+/// Omitted fields preserve their current values. Use `clear_limit()` to remove a cap.
 #[derive(Debug, Clone, Default, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
@@ -216,7 +239,7 @@ impl Serialize for UpdateApiKeyRequest {
         if let Some(value) = self.disabled {
             map.serialize_entry("disabled", &value)?;
         }
-        if let Some(value) = self.limit {
+        if let Some(value) = finite_limit(self.limit).map_err(serde::ser::Error::custom)? {
             map.serialize_entry("limit", &value)?;
         } else if self.clear_limit {
             map.serialize_entry("limit", &Option::<f64>::None)?;
@@ -388,9 +411,24 @@ pub(crate) async fn create_api_key_with_options_with_client(
     .send()
     .await?;
 
-    let api_response: ApiResponse<_> =
+    #[derive(Deserialize)]
+    struct CreatedKey {
+        data: ApiKey,
+        key: Option<String>,
+    }
+    let CreatedKey { mut data, key } =
         transport_response::parse_credential_response(response, "API key creation").await?;
-    Ok(api_response.data)
+    // Older compatible servers place the one-time secret inside data.
+    data.key = Some(
+        key.or(data.key)
+            .filter(|key| !key.is_empty())
+            .ok_or_else(|| {
+                OpenRouterError::Unknown(
+                    "API key creation response omitted the one-time key".into(),
+                )
+            })?,
+    );
+    Ok(data)
 }
 
 pub(crate) async fn get_api_key_with_client(
@@ -403,7 +441,10 @@ pub(crate) async fn get_api_key_with_client(
         credential: management_key,
         ..
     } = *ctx;
-    let url = format!("{base_url}/keys/{hash}");
+    let url = format!(
+        "{base_url}/keys/{}",
+        crate::utils::encoded_path_segment(hash)?
+    );
 
     let req = transport_request::with_bearer_auth(
         transport_request::get(http_client, &url),
@@ -423,7 +464,10 @@ pub(crate) async fn delete_api_key_with_client(
         credential: management_key,
         ..
     } = *ctx;
-    let url = format!("{base_url}/keys/{hash}");
+    let url = format!(
+        "{base_url}/keys/{}",
+        crate::utils::encoded_path_segment(hash)?
+    );
 
     transport_response::send_unit(transport_request::with_bearer_auth(
         transport_request::delete(http_client, &url),
@@ -440,15 +484,19 @@ pub(crate) async fn update_api_key_with_client(
     disabled: Option<bool>,
     limit: Option<f64>,
 ) -> Result<ApiKey, OpenRouterError> {
-    // Preserve the existing helper's wire shape, including explicit nulls.
-    let request = serde_json::json!({"name": name, "disabled": disabled, "limit": limit});
-    update_api_key_body_with_client(ctx, hash, &request).await
+    let request = UpdateApiKeyRequest {
+        name,
+        disabled,
+        limit,
+        ..Default::default()
+    };
+    update_api_key_with_request(ctx, hash, &request).await
 }
 
-pub(crate) async fn update_api_key_body_with_client<T: Serialize + ?Sized>(
+pub(crate) async fn update_api_key_with_request(
     ctx: &RequestContext<'_>,
     hash: &str,
-    request: &T,
+    request: &UpdateApiKeyRequest,
 ) -> Result<ApiKey, OpenRouterError> {
     let RequestContext {
         http_client,
@@ -456,12 +504,15 @@ pub(crate) async fn update_api_key_body_with_client<T: Serialize + ?Sized>(
         credential: management_key,
         ..
     } = *ctx;
-    let url = format!("{base_url}/keys/{}", urlencoding::encode(hash));
+    let url = format!(
+        "{base_url}/keys/{}",
+        crate::utils::encoded_path_segment(hash)?
+    );
     let req = transport_request::with_bearer_auth(
         transport_request::patch(http_client, &url),
         management_key,
     )
-    .json(&request);
+    .json(request);
     let api_response: ApiResponse<_> = transport_response::send_json(req, "API key update").await?;
     Ok(api_response.data)
 }

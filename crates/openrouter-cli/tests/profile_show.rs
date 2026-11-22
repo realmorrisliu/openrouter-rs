@@ -87,3 +87,27 @@ api_key = "file-api-key"
         Some("flag")
     );
 }
+
+#[test]
+fn malformed_profile_reports_location_without_echoing_credentials() {
+    let dir = TempDir::new().unwrap();
+    let path = dir.path().join("profiles.toml");
+    std::fs::write(
+        &path,
+        "[profiles.default]\napi_key = \"private-value\" trailing",
+    )
+    .unwrap();
+    for output in ["json", "table"] {
+        let mut cmd = cargo_bin_cmd!("openrouter-cli");
+        let result = cmd
+            .arg("--config")
+            .arg(&path)
+            .args(["--output", output, "profile", "show"])
+            .assert()
+            .failure();
+        let diagnostic = String::from_utf8_lossy(&result.get_output().stderr);
+        assert!(diagnostic.contains("profiles.toml"));
+        assert!(diagnostic.contains("line 2, column"));
+        assert!(!diagnostic.contains("private-value"));
+    }
+}

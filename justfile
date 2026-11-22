@@ -55,7 +55,7 @@ test-typed-tool-agent:
 
 test-integration-subsets:
     cargo test --test integration model_pool:: -- --nocapture
-    cargo test --test integration tools:: -- --nocapture
+    OPENROUTER_API_KEY= cargo test --test integration tools:: -- --nocapture
 
 test-integration:
     test -n "${OPENROUTER_API_KEY:-}"

@@ -9,13 +9,15 @@ use crate::{
     types::ApiResponse,
 };
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct AuthRequest {
     code: String,
     code_verifier: Option<String>,
     code_challenge_method: Option<CodeChallengeMethod>,
 }
+
+crate::utils::debug_public_fields!(AuthRequest, code_challenge_method);
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
@@ -26,12 +28,14 @@ pub enum CodeChallengeMethod {
     Plain,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct AuthResponse {
     pub key: String,
     pub user_id: Option<String>,
 }
+
+crate::utils::debug_public_fields!(AuthResponse, user_id);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
@@ -43,7 +47,7 @@ pub enum UsageLimitType {
 }
 
 /// Request payload for `POST /auth/keys/code`.
-#[derive(Serialize, Deserialize, Debug, Clone, Builder)]
+#[derive(Serialize, Deserialize, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
 pub struct CreateAuthCodeRequest {
@@ -56,7 +60,10 @@ pub struct CreateAuthCodeRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     code_challenge_method: Option<CodeChallengeMethod>,
     #[builder(setter(strip_option), default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "crate::api::api_keys::serialize_limit"
+    )]
     limit: Option<f64>,
     #[builder(setter(into, strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -72,6 +79,8 @@ pub struct CreateAuthCodeRequest {
     workspace_id: Option<String>,
 }
 
+crate::utils::debug_public_fields!(CreateAuthCodeRequest, usage_limit_type);
+
 impl CreateAuthCodeRequest {
     pub fn builder() -> CreateAuthCodeRequestBuilder {
         CreateAuthCodeRequestBuilder::default()
@@ -79,13 +88,15 @@ impl CreateAuthCodeRequest {
 }
 
 /// Response payload for `POST /auth/keys/code`.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 #[non_exhaustive]
 pub struct AuthCodeData {
     pub id: String,
     pub app_id: f64,
     pub created_at: String,
 }
+
+crate::utils::debug_public_fields!(AuthCodeData, app_id);
 
 pub(crate) async fn exchange_code_for_api_key_with_client(
     ctx: &RequestContext<'_>,
@@ -136,7 +147,7 @@ pub(crate) async fn create_auth_code_with_client(
 }
 
 /// RFC 8693 workload identity token exchange request.
-#[derive(Serialize, Deserialize, Debug, Clone, Builder)]
+#[derive(Serialize, Deserialize, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
 pub struct OAuthTokenExchangeRequest {
@@ -163,13 +174,15 @@ pub struct OAuthTokenExchangeRequest {
     pub scope: Option<String>,
 }
 
+crate::utils::debug_public_fields!(OAuthTokenExchangeRequest, grant_type);
+
 impl OAuthTokenExchangeRequest {
     pub fn builder() -> OAuthTokenExchangeRequestBuilder {
         OAuthTokenExchangeRequestBuilder::default()
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 #[non_exhaustive]
 pub struct OAuthTokenResponse {
     pub access_token: String,
@@ -178,6 +191,8 @@ pub struct OAuthTokenResponse {
     pub scope: String,
     pub token_type: String,
 }
+
+crate::utils::debug_public_fields!(OAuthTokenResponse, expires_in, token_type);
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]

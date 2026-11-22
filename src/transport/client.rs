@@ -268,23 +268,13 @@ impl Response {
         }
     }
 
-    pub(crate) async fn bytes(self) -> Result<Bytes, HttpRequestError> {
-        match self {
-            #[cfg(feature = "reqwest")]
-            Self::Reqwest(response) => response.bytes().await.map_err(super::reqwest_error),
-            #[cfg(all(feature = "wasip3", target_os = "wasi"))]
-            Self::Wasip3 { body, .. } => {
-                let mut chunks: Vec<Bytes> = body.try_collect().await?;
-                if chunks.len() <= 1 {
-                    return Ok(chunks.pop().unwrap_or_default());
-                }
-                let mut body = Vec::with_capacity(chunks.iter().map(Bytes::len).sum());
-                for chunk in &chunks {
-                    body.extend_from_slice(chunk);
-                }
-                Ok(Bytes::from(body))
-            }
+    pub(crate) async fn into_vec(self) -> Result<Vec<u8>, HttpRequestError> {
+        let mut stream = self.bytes_stream();
+        let mut body = Vec::new();
+        while let Some(chunk) = stream.try_next().await? {
+            body.extend_from_slice(&chunk);
         }
+        Ok(body)
     }
 
     pub(crate) async fn text(self) -> Result<String, HttpRequestError> {
@@ -294,7 +284,7 @@ impl Response {
             Self::Reqwest(response) => response.text().await.map_err(super::reqwest_error),
             #[cfg(all(feature = "wasip3", target_os = "wasi"))]
             response @ Self::Wasip3 { .. } => {
-                let bytes = response.bytes().await?;
+                let bytes = response.into_vec().await?;
                 Ok(String::from_utf8_lossy(&bytes).into_owned())
             }
         }

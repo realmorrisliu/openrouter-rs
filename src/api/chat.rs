@@ -1292,13 +1292,7 @@ pub(crate) async fn stream_chat_completion_with_client(
 
     if status.is_success() {
         let lines = parse_sse_frames(response_lines(response))
-            .filter_map(move |line| async move {
-                match line {
-                    Ok(frame) if frame.data == "[DONE]" => None,
-                    Ok(frame) => Some(parse_stream_frame(status, &frame.data)),
-                    Err(error) => Some(Err(error)),
-                }
-            })
+            .map(move |frame| frame.and_then(|frame| parse_stream_frame(status, &frame.data)))
             .boxed();
 
         Ok(lines)

@@ -3,6 +3,11 @@
 Releases are tagged `openrouter-cli-v<version>`. The SDK it builds on has its own
 [changelog](../../CHANGELOG.md).
 
+## [Unreleased]
+
+- Key creation preserves the one-time secret in JSON. Key updates send only the supplied flags.
+- Configuration diagnostics omit credential lines. Qualified model IDs use the single-model lookup.
+
 ## [0.3.1] - 2026-11-10
 
 Rebuilt on `openrouter-rs` 0.25.0. No CLI changes: same commands, flags, exit

@@ -216,6 +216,8 @@ At runtime, the builder/client exposes the values the SDK directly consumes:
 
 Chat, Responses API, and Anthropic-compatible Messages request builders also expose `experimental_metadata(OpenRouterExperimentalMetadata::Enabled)` for OpenRouter's opt-in routing metadata response header.
 
+Workspace reads expose optional logging settings, including `io_logging_sampling_rate`. A missing setting means the response did not report it. API key creation returns the one-time credential in `ApiKey.key` and CLI JSON `data.key`. Debug output omits it.
+
 ## Common Workflows
 
 `openrouter-rs` is not just a thin `/chat/completions` wrapper. The repo currently covers:

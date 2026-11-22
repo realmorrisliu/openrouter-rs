@@ -512,13 +512,10 @@ pub(crate) async fn stream_image_generation_with_client(
     if response.status().is_success() {
         if is_sse_response(&response) {
             let lines = parse_sse_frames(response_lines(response))
-                .filter_map(async |line| match line {
-                    Ok(frame) if frame.data == "[DONE]" => None,
-                    Ok(frame) => Some(
-                        serde_json::from_str::<ImageStreamingResponse>(&frame.data)
-                            .map_err(OpenRouterError::Serialization),
-                    ),
-                    Err(error) => Some(Err(error)),
+                .map(|frame| {
+                    Ok(serde_json::from_str::<ImageStreamingResponse>(
+                        &frame?.data,
+                    )?)
                 })
                 .boxed();
 

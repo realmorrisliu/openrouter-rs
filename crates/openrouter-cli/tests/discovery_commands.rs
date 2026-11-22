@@ -203,7 +203,9 @@ fn test_models_list_supported_parameter_filter_path() {
 
 #[test]
 fn test_models_show_json_snapshot() {
-    let (base_url, rx, server) = spawn_json_server(sample_models_response());
+    let catalog: Value = serde_json::from_str(sample_models_response()).unwrap();
+    let (base_url, rx, server) =
+        spawn_json_server(&json!({"data": catalog["data"][0]}).to_string());
 
     let mut cmd = base_cmd(&base_url, "json");
     cmd.arg("models").arg("show").arg("openai/gpt-4.1");
@@ -232,7 +234,10 @@ fn test_models_show_json_snapshot() {
     let captured = rx
         .recv_timeout(Duration::from_secs(2))
         .expect("request should be captured");
-    assert_eq!(captured.request_line, "GET /api/v1/models HTTP/1.1");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/model/openai/gpt-4.1 HTTP/1.1"
+    );
 
     server.join().expect("server thread should finish");
 }
@@ -365,7 +370,7 @@ fn test_models_show_missing_model_exits_nonzero() {
     let (base_url, _rx, server) = spawn_json_server(r#"{"data":[]}"#);
 
     let mut cmd = base_cmd(&base_url, "json");
-    cmd.arg("models").arg("show").arg("missing/model");
+    cmd.arg("models").arg("show").arg("missing-bare-id");
     cmd.assert()
         .failure()
         .code(1)

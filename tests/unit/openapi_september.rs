@@ -378,8 +378,10 @@ async fn oauth_uses_form_encoding_and_does_not_require_an_existing_key() {
 
 #[tokio::test]
 async fn external_key_identity_and_user_model_filters_reach_the_wire() {
-    let (base, rx, server) =
-        spawn_server(br#"{"data":{"external_user":"alice"}}"#, "application/json");
+    let (base, rx, server) = spawn_server(
+        br#"{"key":"one-time","data":{"external_user":"alice"}}"#,
+        "application/json",
+    );
     let request = CreateApiKeyRequest::builder()
         .name("external")
         .external(ExternalApiKeyIdentity::new("alice"))

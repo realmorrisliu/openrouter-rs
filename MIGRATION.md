@@ -4,6 +4,9 @@ This document keeps historical migration guides intact because the repo still sm
 
 ## 0.25.x to Unreleased
 
+- `management().update_api_key(..., None)` now omits the limit. To remove an existing cap, use `UpdateApiKeyRequest::builder().clear_limit()` with `update_api_key_with_request`.
+- Workspace responses expose `io_logging_sampling_rate` as `Option<f64>` and the three logging enablement flags as `Option<bool>`. Handle `None` when the service omits a setting. Explicit `false` and zero remain distinguishable from absence.
+
 - Pass an organization management key with `billing:update` for credit purchases and `billing:view` for polling. Call `create_credit_purchase(&request, idempotency_key, None)`, handle `CreditPurchaseOutcome::PaymentRequired`, then pass the complete signed `Payment ...` header with the same body and key. An `Accepted` outcome contains the purchase. Poll `get_credit_purchase(&purchase.id)` until its status is `credited` or `failed`. Use `CreditPurchase::id` in place of the removed `payment_intent_id`.
 - Pass a final `workspace_id: Option<&str>` to preset and preset-version reads and global guardrail assignment lists. Workspace policy lists, lookups, deletions and assignment lookups take `Some(id)` where they previously took `id`. Pass `None` to select the upstream default. Policy request builders now allow omitting the workspace. Custom filters in guardrail responses use `ContentFilterReadEntry` and expose `is_enforced`.
 - Inline batch builders still take `.requests(items)`. To inspect a constructed request, match `CreateBatchRequest::source` on `BatchSource::Requests` or `BatchSource::Input`. To submit a storage reference, call `.input(uri)`.

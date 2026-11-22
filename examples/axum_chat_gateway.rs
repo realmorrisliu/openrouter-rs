@@ -147,7 +147,9 @@ async fn chat_completion(
     Ok(Json(ChatGatewayResponse {
         model: response.model,
         content: choice.content().unwrap_or("").to_string(),
-        finish_reason: choice.finish_reason().map(|reason| format!("{reason:?}")),
+        finish_reason: choice
+            .finish_reason()
+            .map(|reason| reason.as_str().to_owned()),
     }))
 }
 
@@ -420,7 +422,14 @@ mod tests {
                 )
                 .await;
                 assert_eq!(response.status(), StatusCode::OK);
-                assert!(response.text().await.unwrap().contains("hi"));
+                let body = response.text().await.unwrap();
+                if path == "/chat" {
+                    let response: Value = serde_json::from_str(&body).unwrap();
+                    assert_eq!(response["content"], "hi");
+                    assert_eq!(response["finish_reason"], "stop");
+                } else {
+                    assert!(body.contains("hi"));
+                }
             }
         }
     }

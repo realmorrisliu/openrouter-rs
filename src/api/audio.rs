@@ -522,7 +522,7 @@ pub(crate) async fn create_speech_with_client(
     .await?;
 
     if official_response.status().is_success() {
-        return Ok(official_response.bytes().await?.to_vec());
+        return Ok(official_response.into_vec().await?);
     }
 
     let official_error = transport_response::error_from_response(official_response).await;
@@ -541,7 +541,7 @@ pub(crate) async fn create_speech_with_client(
         .await?;
 
         if legacy_response.status().is_success() {
-            return Ok(legacy_response.bytes().await?.to_vec());
+            return Ok(legacy_response.into_vec().await?);
         }
 
         return Err(transport_response::error_from_response(legacy_response).await);

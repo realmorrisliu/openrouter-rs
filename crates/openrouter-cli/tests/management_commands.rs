@@ -829,3 +829,27 @@ fn test_workspace_members_remove_requires_yes() {
         .arg("user_1");
     cmd.assert().failure().stderr(contains("without --yes"));
 }
+
+#[test]
+fn create_returns_the_one_time_key_and_rename_only_sends_name() {
+    let (base, _rx, server) = spawn_json_server(r#"{"data":{"hash":"h"},"key":"one-time"}"#);
+    let output = base_cmd(&base)
+        .args(["keys", "create", "--name", "job"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let json: Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(json["data"]["key"], "one-time");
+    server.join().unwrap();
+
+    let (base, rx, server) = spawn_json_server(r#"{"data":{"hash":"h","name":"new"}}"#);
+    base_cmd(&base)
+        .args(["keys", "update", "h", "--name", "new"])
+        .assert()
+        .success();
+    let body: Value = serde_json::from_str(&rx.recv().unwrap().body_text).unwrap();
+    assert_eq!(body, serde_json::json!({"name":"new"}));
+    server.join().unwrap();
+}

@@ -37,16 +37,13 @@ use futures_util::StreamExt;
 use futures_util::stream::BoxStream;
 use serde_json::Value;
 
+use crate::api::{
+    messages::{AnthropicContentPart, AnthropicMessagesSseEvent, AnthropicMessagesStreamEvent},
+    responses::ResponsesStreamEvent,
+};
 use crate::error::OpenRouterError;
 use crate::types::completion::{
     CompletionsResponse, FunctionCall, PartialToolCall, ReasoningDetail, ResponseUsage, ToolCall,
-};
-use crate::{
-    api::{
-        messages::{AnthropicContentPart, AnthropicMessagesSseEvent, AnthropicMessagesStreamEvent},
-        responses::ResponsesStreamEvent,
-    },
-    types::completion::FinishReason,
 };
 
 /// Internal accumulator for a single tool call being assembled from
@@ -199,17 +196,6 @@ impl StreamMeta {
     }
 }
 
-fn finish_reason_to_string(reason: &FinishReason) -> String {
-    match reason {
-        FinishReason::ToolCalls => "tool_calls".to_string(),
-        FinishReason::Stop => "stop".to_string(),
-        FinishReason::Length => "length".to_string(),
-        FinishReason::ContentFilter => "content_filter".to_string(),
-        FinishReason::Error => "error".to_string(),
-        FinishReason::Other(value) => value.clone(),
-    }
-}
-
 /// Adapt a chat-completions SSE stream to [`UnifiedStreamEvent`].
 pub fn adapt_chat_stream(
     inner: BoxStream<'static, Result<CompletionsResponse, OpenRouterError>>,
@@ -288,7 +274,7 @@ pub fn adapt_chat_stream(
                         }
 
                         if let Some(reason) = choice.finish_reason() {
-                            state.meta.finish_reason = Some(finish_reason_to_string(reason));
+                            state.meta.finish_reason = Some(reason.as_str().to_owned());
                         }
                     }
                 }
@@ -343,9 +329,7 @@ pub fn adapt_responses_stream(
 
             match state.inner.next().await {
                 Some(Ok(event)) => {
-                    let event_type = event.event_type.clone();
-                    let data_value = serde_json::to_value(&event.data).unwrap_or(Value::Null);
-                    let mut emitted = false;
+                    let event_type = event.event_type;
 
                     if let Some(response) = event.data.get("response") {
                         if let Some(id) = response.get("id").and_then(Value::as_str) {
@@ -366,57 +350,49 @@ pub fn adapt_responses_stream(
                         }
                     }
 
-                    if event_type.contains("output_text.delta")
-                        && let Some(delta) = event.data.get("delta").and_then(Value::as_str)
-                    {
-                        state
-                            .pending
-                            .push_back(UnifiedStreamEvent::ContentDelta(delta.to_string()));
-                        emitted = true;
-                    }
-
-                    if !emitted && event_type.contains("reasoning") {
-                        let reasoning = event
-                            .data
-                            .get("delta")
-                            .and_then(Value::as_str)
-                            .or_else(|| event.data.get("text").and_then(Value::as_str))
-                            .or_else(|| event.data.get("reasoning").and_then(Value::as_str));
-                        if let Some(reasoning) = reasoning {
-                            state.pending.push_back(UnifiedStreamEvent::ReasoningDelta(
-                                reasoning.to_string(),
-                            ));
-                            emitted = true;
+                    let delta = event.data.get("delta").and_then(Value::as_str);
+                    let projected = match event_type.as_str() {
+                        "response.output_text.delta" => {
+                            delta.map(|text| UnifiedStreamEvent::ContentDelta(text.to_owned()))
                         }
-                    }
-
-                    if !emitted && event_type.contains("tool") {
-                        state
-                            .pending
-                            .push_back(UnifiedStreamEvent::ToolDelta(data_value.clone()));
-                        emitted = true;
-                    }
-
-                    if event_type == "response.completed" {
-                        state.done_emitted = true;
-                        state.pending.push_back(UnifiedStreamEvent::Done {
-                            source: UnifiedStreamSource::Responses,
-                            id: state.meta.id.take(),
-                            model: state.meta.model.take(),
-                            finish_reason: state.meta.finish_reason.take(),
-                            tool_calls: Vec::new(),
-                            usage: state.meta.usage.take(),
-                        });
-                        continue;
-                    }
-
-                    if !emitted {
-                        state.pending.push_back(UnifiedStreamEvent::Raw {
+                        "response.reasoning_text.delta"
+                        | "response.reasoning_summary_text.delta"
+                        | "response.fusion_call.panel.reasoning.delta"
+                        | "response.reasoning.delta" => delta
+                            .or_else(|| event.data.get("text").and_then(Value::as_str))
+                            .or_else(|| event.data.get("reasoning").and_then(Value::as_str))
+                            .map(|text| UnifiedStreamEvent::ReasoningDelta(text.to_owned())),
+                        "response.function_call_arguments.delta"
+                        | "response.mcp_call_arguments.delta"
+                        | "response.custom_tool_call_input.delta"
+                        | "response.custom_tool_call_input.done"
+                        | "response.mcp_list_tools.completed"
+                        | "response.mcp_list_tools.failed"
+                        | "response.mcp_list_tools.in_progress"
+                        | "response.tool.completed"
+                        | "response.output_tool_call.delta" => Some(UnifiedStreamEvent::ToolDelta(
+                            serde_json::to_value(&event.data).unwrap_or(Value::Null),
+                        )),
+                        "response.completed" => {
+                            state.done_emitted = true;
+                            Some(UnifiedStreamEvent::Done {
+                                source: UnifiedStreamSource::Responses,
+                                id: state.meta.id.take(),
+                                model: state.meta.model.take(),
+                                finish_reason: state.meta.finish_reason.take(),
+                                tool_calls: Vec::new(),
+                                usage: state.meta.usage.take(),
+                            })
+                        }
+                        _ => None,
+                    };
+                    state
+                        .pending
+                        .push_back(projected.unwrap_or_else(|| UnifiedStreamEvent::Raw {
                             source: UnifiedStreamSource::Responses,
                             event_type,
-                            data: data_value,
-                        });
-                    }
+                            data: serde_json::to_value(event.data).unwrap_or(Value::Null),
+                        }));
                 }
                 Some(Err(error)) => {
                     state.pending.push_back(UnifiedStreamEvent::Error(error));
