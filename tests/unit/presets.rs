@@ -360,9 +360,10 @@ async fn test_list_and_get_presets_paths_and_auth_header() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
     let presets = test_client(&base_url, "management-key")
         .management()
-        .list_presets(Some(
-            openrouter_rs::types::PaginationOptions::with_offset_and_limit(5, 10),
-        ))
+        .list_presets(
+            Some(openrouter_rs::types::PaginationOptions::with_offset_and_limit(5, 10)),
+            Some("ws_1"),
+        )
         .await
         .expect("list presets should succeed");
     assert_eq!(presets.total_count, 0);
@@ -371,7 +372,7 @@ async fn test_list_and_get_presets_paths_and_auth_header() {
         .expect("should capture list request");
     assert_eq!(
         captured.request_line,
-        "GET /api/v1/presets?offset=5&limit=10 HTTP/1.1"
+        "GET /api/v1/presets?offset=5&limit=10&workspace_id=ws_1 HTTP/1.1"
     );
     assert!(
         captured
@@ -390,7 +391,7 @@ async fn test_list_and_get_presets_paths_and_auth_header() {
     let (base_url, rx, server) = spawn_json_server(preset_response_body());
     let preset = test_client(&base_url, "management-key")
         .management()
-        .get_preset("my preset")
+        .get_preset("my preset", None)
         .await
         .expect("get preset should succeed");
     assert_eq!(preset.id, "preset_1");
@@ -412,6 +413,7 @@ async fn test_list_and_get_preset_versions_paths() {
         .list_preset_versions(
             "my preset",
             Some(openrouter_rs::types::PaginationOptions::with_limit(25)),
+            None,
         )
         .await
         .expect("list preset versions should succeed");
@@ -430,7 +432,7 @@ async fn test_list_and_get_preset_versions_paths() {
     );
     let version = test_client(&base_url, "management-key")
         .management()
-        .get_preset_version("my preset", "1")
+        .get_preset_version("my preset", "1", None)
         .await
         .expect("get preset version should succeed");
     assert_eq!(version.version, 1);
@@ -442,4 +444,37 @@ async fn test_list_and_get_preset_versions_paths() {
         "GET /api/v1/presets/my%20preset/versions/1 HTTP/1.1"
     );
     server.join().expect("version server thread should finish");
+}
+
+#[tokio::test]
+async fn preset_lifecycle_targets_selected_workspace() {
+    for (method, suffix) in [("DELETE", ""), ("POST", "/restore")] {
+        let (base, rx, server) = spawn_json_server(preset_response_body());
+        let client = openrouter_rs::OpenRouterClient::builder()
+            .base_url(base)
+            .management_key("management")
+            .api_key("ordinary")
+            .build()
+            .unwrap();
+        let management = client.management();
+        let preset = if method == "DELETE" {
+            management.delete_preset("team/preset", Some("ws 1")).await
+        } else {
+            management.restore_preset("team/preset", Some("ws 1")).await
+        }
+        .unwrap();
+        assert_eq!(preset.id, "preset_1");
+        let captured = rx.recv().unwrap();
+        assert_eq!(
+            captured.request_line,
+            format!("{method} /api/v1/presets/team%2Fpreset{suffix}?workspace_id=ws+1 HTTP/1.1")
+        );
+        assert!(
+            captured
+                .request_text
+                .to_lowercase()
+                .contains("authorization: bearer management")
+        );
+        server.join().unwrap();
+    }
 }

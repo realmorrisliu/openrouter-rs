@@ -188,7 +188,7 @@ fn test_image_generation_response_deserialization() {
     let parsed: ImageGenerationResponse =
         serde_json::from_str(raw).expect("image generation response should deserialize");
     assert_eq!(parsed.created, 1748372400);
-    assert_eq!(parsed.data[0].b64_json, "aW1hZ2U=");
+    assert_eq!(parsed.data[0].b64_json.as_deref(), Some("aW1hZ2U="));
     assert_eq!(parsed.data[0].media_type.as_deref(), Some("image/svg+xml"));
     let usage = parsed.usage.expect("usage should be present");
     assert_eq!(usage.cost, Some(0.04));
@@ -317,7 +317,7 @@ async fn test_create_image_generation_path_body_and_headers() {
         .create(&request)
         .await
         .expect("image generation should succeed");
-    assert_eq!(response.data[0].b64_json, "aW1hZ2U=");
+    assert_eq!(response.data[0].b64_json.as_deref(), Some("aW1hZ2U="));
 
     let captured = rx
         .recv_timeout(Duration::from_secs(2))
@@ -419,7 +419,7 @@ async fn test_stream_image_generation_handles_buffered_json_fallback() {
         .expect("event should deserialize");
     match event.data {
         ImageStreamEvent::Completed(event) => {
-            assert_eq!(event.b64_json, "aW1hZ2U=");
+            assert_eq!(event.b64_json.as_deref(), Some("aW1hZ2U="));
             assert_eq!(event.created, 1748372400);
             assert_eq!(event.media_type.as_deref(), Some("image/png"));
             assert_eq!(
@@ -436,7 +436,7 @@ async fn test_stream_image_generation_handles_buffered_json_fallback() {
         .expect("event should deserialize");
     match event.data {
         ImageStreamEvent::Completed(event) => {
-            assert_eq!(event.b64_json, "aW1hZ2Uy");
+            assert_eq!(event.b64_json.as_deref(), Some("aW1hZ2Uy"));
             assert_eq!(event.media_type.as_deref(), Some("image/webp"));
             assert!(
                 event.usage.is_none(),
@@ -503,4 +503,21 @@ async fn test_list_image_model_endpoints_path_and_auth_header() {
     );
 
     server.join().expect("server thread should finish");
+}
+
+#[test]
+fn url_output_preserves_layer_and_expiry() {
+    let image: ImageGenerationResponse = serde_json::from_value(serde_json::json!({
+        "created": 100, "expires_at": 200, "data": [{
+            "url": "https://example.org/image", "layer": {"z_index":0, "name":"foreground"}
+        }]
+    }))
+    .unwrap();
+    assert_eq!(image.expires_at, Some(200));
+    assert!(image.data[0].b64_json.is_none());
+    assert_eq!(
+        image.data[0].url.as_deref(),
+        Some("https://example.org/image")
+    );
+    assert_eq!(image.data[0].layer.as_ref().unwrap()["name"], "foreground");
 }

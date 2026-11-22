@@ -18,6 +18,68 @@ const OFFICIAL_SPEECH_PATH: &str = "/audio/speech";
 const TRANSCRIPTIONS_PATH: &str = "/audio/transcriptions";
 const LEGACY_TTS_PATH: &str = "/tts";
 
+/// Speech model capabilities, aggregated across its serving endpoints.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct SpeechModel {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub created: u64,
+    pub input_modalities: Vec<SpeechModality>,
+    pub output_modalities: Vec<SpeechModality>,
+    pub endpoints: Vec<SpeechModelEndpoint>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct SpeechModelEndpoint {
+    pub provider_name: String,
+    pub provider_slug: String,
+    pub input_modalities: Vec<SpeechModality>,
+    pub output_modalities: Vec<SpeechModality>,
+}
+
+/// A modality and its provider-specific input or output parameters.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct SpeechModality {
+    #[serde(rename = "type")]
+    pub modality_type: String,
+    #[serde(flatten)]
+    pub capabilities: HashMap<String, serde_json::Value>,
+}
+
+pub(crate) async fn list_speech_models(
+    ctx: &RequestContext<'_>,
+) -> Result<Vec<SpeechModel>, OpenRouterError> {
+    let url = format!("{}/audio/speech/models", ctx.base_url);
+    let models: crate::types::ApiResponse<Vec<SpeechModel>> = transport_response::send_json(
+        transport_request::get(ctx.http_client, &url),
+        "speech model list",
+    )
+    .await?;
+    Ok(models.data)
+}
+
+pub(crate) async fn get_speech_model(
+    ctx: &RequestContext<'_>,
+    author: &str,
+    slug: &str,
+) -> Result<SpeechModel, OpenRouterError> {
+    let url = format!(
+        "{}/audio/speech/models/{}/{}",
+        ctx.base_url,
+        urlencoding::encode(author),
+        urlencoding::encode(slug)
+    );
+    transport_response::send_json(
+        transport_request::get(ctx.http_client, &url),
+        "speech model",
+    )
+    .await
+}
+
 /// Supported audio output formats for `POST /audio/speech`.
 #[non_exhaustive]
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -296,6 +358,9 @@ pub struct TranscriptionRequest {
     #[builder(setter(into))]
     pub model: String,
     pub input_audio: TranscriptionInputAudio,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prompt: Option<String>,
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub diarize: Option<bool>,

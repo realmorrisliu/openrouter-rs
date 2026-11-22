@@ -346,6 +346,7 @@ fn test_guardrail_response_deserialization() {
             }],
             "content_filters": [{
                 "pattern": "secret",
+                "is_enforced": false,
                 "action": "block",
                 "label": null
             }],
@@ -362,6 +363,10 @@ fn test_guardrail_response_deserialization() {
 
     let parsed: ApiResponse<Guardrail> =
         serde_json::from_str(raw).expect("guardrail response should deserialize");
+    assert_eq!(
+        parsed.data.content_filters.as_ref().unwrap()[0].is_enforced,
+        Some(false)
+    );
     assert_eq!(parsed.data.id, "gr_123");
     assert_eq!(parsed.data.name, "Production Guardrail");
     assert_eq!(parsed.data.allowed_providers.unwrap_or_default().len(), 1);
@@ -733,7 +738,7 @@ async fn test_list_member_assignments_global_path() {
 
     let result = test_client(&base_url, "mgmt-key")
         .management()
-        .list_member_assignments(Some(PaginationOptions::with_offset_and_limit(1, 2)))
+        .list_member_assignments(Some(PaginationOptions::with_offset_and_limit(1, 2)), None)
         .await
         .expect("list member assignments should succeed");
     assert_eq!(result.total_count, 0.0);
@@ -889,7 +894,7 @@ async fn test_list_key_assignments_global_path() {
 
     let result = test_client(&base_url, "mgmt-key")
         .management()
-        .list_key_assignments(Some(PaginationOptions::with_offset_and_limit(1, 2)))
+        .list_key_assignments(Some(PaginationOptions::with_offset_and_limit(1, 2)), None)
         .await
         .expect("list key assignments should succeed");
     assert_eq!(result.total_count, 0.0);

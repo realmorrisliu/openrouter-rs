@@ -182,6 +182,9 @@ pub struct ImageGenerationRequest {
     #[builder(setter(into, strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub output_format: Option<String>,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub response_format: Option<String>,
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub provider: Option<ImageProviderOptions>,
@@ -228,7 +231,12 @@ impl ImageGenerationRequest {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
 pub struct GeneratedImage {
-    pub b64_json: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub b64_json: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub layer: Option<Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub media_type: Option<String>,
     #[serde(flatten)]
@@ -256,6 +264,8 @@ pub struct ImageGenerationUsage {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
 pub struct ImageGenerationResponse {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
     pub created: u64,
     pub data: Vec<GeneratedImage>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -357,13 +367,31 @@ pub struct ImagePartialImageEvent {
     pub extra: HashMap<String, Value>,
 }
 
+fn completed_event_type<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<String, D::Error> {
+    let kind = String::deserialize(deserializer)?;
+    if kind == "image_generation.completed" {
+        Ok(kind)
+    } else {
+        Err(serde::de::Error::custom(
+            "expected image_generation.completed",
+        ))
+    }
+}
+
 /// Completion event emitted by streaming image generation.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
 pub struct ImageCompletedEvent {
-    #[serde(rename = "type")]
+    #[serde(rename = "type", deserialize_with = "completed_event_type")]
     pub event_type: String,
-    pub b64_json: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub b64_json: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub layer: Option<Value>,
     pub created: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub media_type: Option<String>,
@@ -527,13 +555,18 @@ fn buffered_image_response_stream(
     let created = response.created;
     let data = response.data;
     let mut usage = response.usage;
-    let response_extra = response.extra;
+    let mut response_extra = response.extra;
+    if let Some(expiry) = response.expires_at {
+        response_extra.insert("expires_at".into(), expiry.into());
+    }
 
     stream::iter(data.into_iter().map(move |image| {
         Ok(ImageStreamingResponse {
             data: ImageStreamEvent::Completed(ImageCompletedEvent {
                 event_type: "image_generation.completed".to_string(),
                 b64_json: image.b64_json,
+                url: image.url,
+                layer: image.layer,
                 created,
                 media_type: image.media_type,
                 usage: usage.take(),

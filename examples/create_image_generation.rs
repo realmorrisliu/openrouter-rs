@@ -20,7 +20,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("created: {}", response.created);
     println!("images: {}", response.data.len());
     if let Some(first) = response.data.first() {
-        println!("first image base64 bytes: {}", first.b64_json.len());
+        if let Some(data) = &first.b64_json {
+            println!("first image base64 length: {}", data.len());
+        } else if first.url.is_some() {
+            println!("first image is available by signed URL");
+        }
         println!(
             "first image media type: {}",
             first.media_type.as_deref().unwrap_or("image/png")

@@ -327,6 +327,66 @@ pub struct ListModelsParams {
     pub max_agentic_index: Option<f64>,
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_cyber_index: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_cyber_index: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_decision_index: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_decision_index: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_economics_index: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_economics_index: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_engineering_index: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_engineering_index: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_finance_and_accounting_index: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_finance_and_accounting_index: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_healthcare_and_medical_index: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_healthcare_and_medical_index: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_legal_index: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_legal_index: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_multilingual_index: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_multilingual_index: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_openness_index: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_openness_index: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_strategy_and_ops_index: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_strategy_and_ops_index: Option<f64>,
+    #[builder(setter(strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub min_tool_success_rate: Option<f64>,
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -361,38 +421,6 @@ impl ListModelsParams {
     pub fn builder() -> ListModelsParamsBuilder {
         ListModelsParamsBuilder::default()
     }
-
-    fn is_empty(&self) -> bool {
-        self.category.is_none()
-            && self.supported_parameters.is_none()
-            && self.output_modalities.is_none()
-            && self.sort.is_none()
-            && self.q.is_none()
-            && self.input_modalities.is_none()
-            && self.context.is_none()
-            && self.min_price.is_none()
-            && self.max_price.is_none()
-            && self.min_output_price.is_none()
-            && self.max_output_price.is_none()
-            && self.min_age_days.is_none()
-            && self.max_age_days.is_none()
-            && self.min_intelligence_index.is_none()
-            && self.max_intelligence_index.is_none()
-            && self.min_coding_index.is_none()
-            && self.max_coding_index.is_none()
-            && self.min_agentic_index.is_none()
-            && self.max_agentic_index.is_none()
-            && self.min_tool_success_rate.is_none()
-            && self.max_tool_success_rate.is_none()
-            && self.arch.is_none()
-            && self.model_authors.is_none()
-            && self.providers.is_none()
-            && self.distillable.is_none()
-            && self.zdr.is_none()
-            && self.region.is_none()
-            && self.limit.is_none()
-            && self.offset.is_none()
-    }
 }
 
 pub(crate) async fn list_models_with_client(
@@ -422,8 +450,8 @@ pub(crate) async fn list_models_with_params_and_client(
     let req =
         transport_request::with_bearer_auth(transport_request::get(http_client, &url), api_key);
     let req = match params {
-        Some(params) if !params.is_empty() => req.query(params),
-        _ => req,
+        Some(params) => req.query(params),
+        None => req,
     };
     let model_list_response: ApiResponse<_> =
         transport_response::send_json(req, "model list").await?;

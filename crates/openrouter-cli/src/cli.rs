@@ -120,6 +120,7 @@ pub enum ModelCategoryArg {
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, ValueEnum)]
 pub enum SupportedParameterArg {
+    StrictToolSchemas,
     #[value(name = "tools")]
     Tools,
     #[value(name = "temperature")]
@@ -403,6 +404,10 @@ pub struct GuardrailsUpdateArgs {
 
 #[derive(Debug, Clone, Args)]
 pub struct AssignmentListArgs {
+    /// Filter global assignments by workspace.
+    #[arg(long, conflicts_with = "guardrail_id")]
+    pub workspace_id: Option<String>,
+
     /// Optional guardrail ID. If omitted, lists global assignments.
     #[arg(long)]
     pub guardrail_id: Option<String>,

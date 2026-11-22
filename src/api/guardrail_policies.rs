@@ -329,8 +329,9 @@ pub struct CreateGuardrailBudgetPolicyRequest {
     #[builder(setter(skip), default = "GuardrailPolicyType::Budget")]
     pub policy_type: GuardrailPolicyType,
     pub config: GuardrailBudgetPolicyAuthoringConfig,
-    #[builder(setter(into))]
-    pub workspace_id: String,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workspace_id: Option<String>,
     #[builder(setter(strip_option), default)]
     #[serde(flatten)]
     pub assignments: Option<GuardrailPolicyAssignments>,
@@ -350,8 +351,9 @@ pub struct UpdateGuardrailBudgetPolicyRequest {
     #[builder(setter(into))]
     pub name: String,
     pub config: GuardrailBudgetPolicyAuthoringConfig,
-    #[builder(setter(into))]
-    pub workspace_id: String,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workspace_id: Option<String>,
     #[builder(setter(strip_option), default)]
     #[serde(flatten)]
     pub assignments: Option<GuardrailPolicyAssignments>,
@@ -373,8 +375,9 @@ pub struct CreateGuardrailModelAvailabilityPolicyRequest {
     #[builder(setter(skip), default = "GuardrailPolicyType::ModelAvailability")]
     pub policy_type: GuardrailPolicyType,
     pub config: GuardrailModelAvailabilityPolicyConfig,
-    #[builder(setter(into))]
-    pub workspace_id: String,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workspace_id: Option<String>,
     #[builder(setter(strip_option), default)]
     #[serde(flatten)]
     pub assignments: Option<GuardrailPolicyAssignments>,
@@ -394,8 +397,9 @@ pub struct UpdateGuardrailModelAvailabilityPolicyRequest {
     #[builder(setter(into))]
     pub name: String,
     pub config: GuardrailModelAvailabilityPolicyConfig,
-    #[builder(setter(into))]
-    pub workspace_id: String,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workspace_id: Option<String>,
     #[builder(setter(strip_option), default)]
     #[serde(flatten)]
     pub assignments: Option<GuardrailPolicyAssignments>,
@@ -417,8 +421,9 @@ pub struct CreateGuardrailModerationPolicyRequest {
     #[builder(setter(skip), default = "GuardrailPolicyType::Moderation")]
     pub policy_type: GuardrailPolicyType,
     pub config: GuardrailModerationPolicyConfig,
-    #[builder(setter(into))]
-    pub workspace_id: String,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workspace_id: Option<String>,
     #[builder(setter(strip_option), default)]
     #[serde(flatten)]
     pub assignments: Option<GuardrailPolicyAssignments>,
@@ -438,8 +443,9 @@ pub struct UpdateGuardrailModerationPolicyRequest {
     #[builder(setter(into))]
     pub name: String,
     pub config: GuardrailModerationPolicyConfig,
-    #[builder(setter(into))]
-    pub workspace_id: String,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workspace_id: Option<String>,
     #[builder(setter(strip_option), default)]
     #[serde(flatten)]
     pub assignments: Option<GuardrailPolicyAssignments>,
@@ -576,8 +582,9 @@ impl GuardrailPolicyAssignmentState {
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
 pub struct ChangeGuardrailPolicyAssignmentRequest {
-    #[builder(setter(into))]
-    pub workspace_id: String,
+    #[builder(setter(into, strip_option), default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workspace_id: Option<String>,
     pub policy_type: GuardrailPolicyType,
     #[builder(setter(into))]
     pub policy_id: String,
@@ -595,7 +602,7 @@ impl ChangeGuardrailPolicyAssignmentRequest {
 
 #[derive(Serialize)]
 struct WorkspacePolicyListQuery<'a> {
-    workspace_id: &'a str,
+    workspace_id: Option<&'a str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     offset: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -604,12 +611,12 @@ struct WorkspacePolicyListQuery<'a> {
 
 #[derive(Serialize)]
 struct WorkspacePolicyQuery<'a> {
-    workspace_id: &'a str,
+    workspace_id: Option<&'a str>,
 }
 
 #[derive(Serialize)]
 struct AssignmentQuery<'a> {
-    workspace_id: &'a str,
+    workspace_id: Option<&'a str>,
     policy_type: GuardrailPolicyType,
 }
 
@@ -731,7 +738,7 @@ pub(crate) async fn delete_account_guardrail_policy_with_client(
 
 pub(crate) async fn list_budget_policies_with_client(
     ctx: &RequestContext<'_>,
-    workspace_id: &str,
+    workspace_id: Option<&str>,
     pagination: Option<PaginationOptions>,
 ) -> Result<GuardrailBudgetPolicyList, OpenRouterError> {
     list_workspace_policies(ctx, "budget", workspace_id, pagination).await
@@ -739,7 +746,7 @@ pub(crate) async fn list_budget_policies_with_client(
 
 pub(crate) async fn list_model_availability_policies_with_client(
     ctx: &RequestContext<'_>,
-    workspace_id: &str,
+    workspace_id: Option<&str>,
     pagination: Option<PaginationOptions>,
 ) -> Result<GuardrailModelAvailabilityPolicyList, OpenRouterError> {
     list_workspace_policies(ctx, "model-availability", workspace_id, pagination).await
@@ -747,7 +754,7 @@ pub(crate) async fn list_model_availability_policies_with_client(
 
 pub(crate) async fn list_moderation_policies_with_client(
     ctx: &RequestContext<'_>,
-    workspace_id: &str,
+    workspace_id: Option<&str>,
     pagination: Option<PaginationOptions>,
 ) -> Result<GuardrailModerationPolicyList, OpenRouterError> {
     list_workspace_policies(ctx, "moderation", workspace_id, pagination).await
@@ -756,7 +763,7 @@ pub(crate) async fn list_moderation_policies_with_client(
 async fn list_workspace_policies<C>(
     ctx: &RequestContext<'_>,
     segment: &str,
-    workspace_id: &str,
+    workspace_id: Option<&str>,
     pagination: Option<PaginationOptions>,
 ) -> Result<GuardrailPolicyList<C>, OpenRouterError>
 where
@@ -831,7 +838,7 @@ where
 pub(crate) async fn get_budget_policy_with_client(
     ctx: &RequestContext<'_>,
     id: &str,
-    workspace_id: &str,
+    workspace_id: Option<&str>,
 ) -> Result<GuardrailBudgetPolicyDetail, OpenRouterError> {
     get_workspace_policy(ctx, "budget", id, workspace_id).await
 }
@@ -839,7 +846,7 @@ pub(crate) async fn get_budget_policy_with_client(
 pub(crate) async fn get_model_availability_policy_with_client(
     ctx: &RequestContext<'_>,
     id: &str,
-    workspace_id: &str,
+    workspace_id: Option<&str>,
 ) -> Result<GuardrailModelAvailabilityPolicyDetail, OpenRouterError> {
     get_workspace_policy(ctx, "model-availability", id, workspace_id).await
 }
@@ -847,7 +854,7 @@ pub(crate) async fn get_model_availability_policy_with_client(
 pub(crate) async fn get_moderation_policy_with_client(
     ctx: &RequestContext<'_>,
     id: &str,
-    workspace_id: &str,
+    workspace_id: Option<&str>,
 ) -> Result<GuardrailModerationPolicyDetail, OpenRouterError> {
     get_workspace_policy(ctx, "moderation", id, workspace_id).await
 }
@@ -856,7 +863,7 @@ async fn get_workspace_policy<C>(
     ctx: &RequestContext<'_>,
     segment: &str,
     id: &str,
-    workspace_id: &str,
+    workspace_id: Option<&str>,
 ) -> Result<GuardrailPolicyDetail<C>, OpenRouterError>
 where
     C: serde::de::DeserializeOwned,
@@ -931,7 +938,7 @@ where
 pub(crate) async fn delete_budget_policy_with_client(
     ctx: &RequestContext<'_>,
     id: &str,
-    workspace_id: &str,
+    workspace_id: Option<&str>,
 ) -> Result<bool, OpenRouterError> {
     delete_workspace_policy(ctx, "budget", id, workspace_id).await
 }
@@ -939,7 +946,7 @@ pub(crate) async fn delete_budget_policy_with_client(
 pub(crate) async fn delete_model_availability_policy_with_client(
     ctx: &RequestContext<'_>,
     id: &str,
-    workspace_id: &str,
+    workspace_id: Option<&str>,
 ) -> Result<bool, OpenRouterError> {
     delete_workspace_policy(ctx, "model-availability", id, workspace_id).await
 }
@@ -947,7 +954,7 @@ pub(crate) async fn delete_model_availability_policy_with_client(
 pub(crate) async fn delete_moderation_policy_with_client(
     ctx: &RequestContext<'_>,
     id: &str,
-    workspace_id: &str,
+    workspace_id: Option<&str>,
 ) -> Result<bool, OpenRouterError> {
     delete_workspace_policy(ctx, "moderation", id, workspace_id).await
 }
@@ -956,7 +963,7 @@ async fn delete_workspace_policy(
     ctx: &RequestContext<'_>,
     segment: &str,
     id: &str,
-    workspace_id: &str,
+    workspace_id: Option<&str>,
 ) -> Result<bool, OpenRouterError> {
     let RequestContext {
         http_client,
@@ -977,7 +984,7 @@ async fn delete_workspace_policy(
 pub(crate) async fn get_api_key_policy_assignment_with_client(
     ctx: &RequestContext<'_>,
     hash: &str,
-    workspace_id: &str,
+    workspace_id: Option<&str>,
     policy_type: GuardrailPolicyType,
 ) -> Result<GuardrailPolicyAssignmentState, OpenRouterError> {
     get_policy_assignment(ctx, "api-keys", hash, workspace_id, policy_type).await
@@ -986,7 +993,7 @@ pub(crate) async fn get_api_key_policy_assignment_with_client(
 pub(crate) async fn get_member_policy_assignment_with_client(
     ctx: &RequestContext<'_>,
     member_id: &str,
-    workspace_id: &str,
+    workspace_id: Option<&str>,
     policy_type: GuardrailPolicyType,
 ) -> Result<GuardrailPolicyAssignmentState, OpenRouterError> {
     get_policy_assignment(ctx, "members", member_id, workspace_id, policy_type).await
@@ -996,7 +1003,7 @@ async fn get_policy_assignment(
     ctx: &RequestContext<'_>,
     subject: &str,
     id: &str,
-    workspace_id: &str,
+    workspace_id: Option<&str>,
     policy_type: GuardrailPolicyType,
 ) -> Result<GuardrailPolicyAssignmentState, OpenRouterError> {
     let RequestContext {

@@ -756,24 +756,24 @@ async fn test_management_domain_remaining_methods_require_configured_key() {
         Err(OpenRouterError::KeyNotConfigured)
     ));
     assert!(matches!(
-        client.management().list_presets(None).await,
+        client.management().list_presets(None, None).await,
         Err(OpenRouterError::KeyNotConfigured)
     ));
     assert!(matches!(
-        client.management().get_preset("my-preset").await,
+        client.management().get_preset("my-preset", None).await,
         Err(OpenRouterError::KeyNotConfigured)
     ));
     assert!(matches!(
         client
             .management()
-            .list_preset_versions("my-preset", None)
+            .list_preset_versions("my-preset", None, None)
             .await,
         Err(OpenRouterError::KeyNotConfigured)
     ));
     assert!(matches!(
         client
             .management()
-            .get_preset_version("my-preset", "1")
+            .get_preset_version("my-preset", "1", None)
             .await,
         Err(OpenRouterError::KeyNotConfigured)
     ));
@@ -1001,11 +1001,14 @@ async fn test_management_domain_remaining_methods_require_configured_key() {
         Err(OpenRouterError::KeyNotConfigured)
     ));
     assert!(matches!(
-        client.management().list_key_assignments(None).await,
+        client.management().list_key_assignments(None, None).await,
         Err(OpenRouterError::KeyNotConfigured)
     ));
     assert!(matches!(
-        client.management().list_member_assignments(None).await,
+        client
+            .management()
+            .list_member_assignments(None, None)
+            .await,
         Err(OpenRouterError::KeyNotConfigured)
     ));
     assert!(matches!(
