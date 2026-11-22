@@ -30,7 +30,7 @@ pub struct VaultSecretResponse {
     pub data: VaultSecret,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Builder)]
+#[derive(Serialize, Deserialize, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
 pub struct VaultSecretWriteRequest {
@@ -39,6 +39,8 @@ pub struct VaultSecretWriteRequest {
     #[builder(setter(custom))]
     pub hosts: Vec<String>,
 }
+
+crate::utils::debug_public_fields!(VaultSecretWriteRequest, hosts);
 
 impl VaultSecretWriteRequest {
     pub fn builder() -> VaultSecretWriteRequestBuilder {

@@ -537,12 +537,17 @@ async fn run(cli: Cli) -> Result<()> {
                     print_models(&response, cli.global.output)?;
                 }
                 ModelsCommands::Show(args) => {
-                    let models = models_client.list().await?;
-                    let model = models
-                        .iter()
-                        .find(|model| model.id == args.model_id)
-                        .ok_or_else(|| anyhow!("model not found: {}", args.model_id))?;
-                    print_model(model, cli.global.output)?;
+                    let model = if let Some((author, slug)) = args.model_id.split_once('/') {
+                        models_client.get(author, slug).await?
+                    } else {
+                        models_client
+                            .list()
+                            .await?
+                            .into_iter()
+                            .find(|model| model.id == args.model_id)
+                            .ok_or_else(|| anyhow!("model not found: {}", args.model_id))?
+                    };
+                    print_model(&model, cli.global.output)?;
                 }
                 ModelsCommands::Endpoints(args) => {
                     let (author, slug) = parse_model_id(&args.model_id)?;

@@ -157,3 +157,12 @@ fn classification_is_comparable_and_cloneable() {
         HttpRequestError::classified(HttpRequestErrorKind::Connect, "slow")
     );
 }
+
+#[tokio::test]
+async fn credential_error_preserves_retry_after_and_omits_raw_body() {
+    let base = spawn_response("HTTP/1.1 429 Too Many Requests\r\nretry-after: 30\r\ncontent-length: 7\r\nconnection: close\r\n\r\nprivate");
+    let client = OpenRouterClient::builder().base_url(base).management_key("test").build().unwrap();
+    let error = client.management().create_api_key("test", None).await.unwrap_err();
+    assert!(!error.to_string().contains("private"));
+    assert!(matches!(error, OpenRouterError::Api(context) if context.retry_after == Some(Duration::from_secs(30))));
+}

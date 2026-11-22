@@ -139,17 +139,17 @@ pub(crate) async fn parse_credential_response<T: DeserializeOwned>(
     }
     let status = response.status();
     let request_id = response_request_id(&response);
+    let delay = retry_after(&response);
     let body = match response.text().await {
         Ok(body) => body,
         Err(error) => {
-            return Err(unreadable_error_response(
-                status,
-                request_id,
-                &error.to_string(),
+            return Err(attach_retry_after(
+                unreadable_error_response(status, request_id, &error.to_string()),
+                delay,
             ));
         }
     };
-    Err(
+    Err(attach_retry_after(
         try_parse_api_error(status, request_id.clone(), &body).unwrap_or_else(|| {
             parse_api_error(
                 status,
@@ -157,5 +157,6 @@ pub(crate) async fn parse_credential_response<T: DeserializeOwned>(
                 "Invalid credential error response (body omitted)",
             )
         }),
-    )
+        delay,
+    ))
 }

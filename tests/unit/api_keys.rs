@@ -227,7 +227,7 @@ async fn test_delete_api_key_uses_single_api_v1_prefix() {
     let base_url = format!("http://{addr}/api/v1");
     let deleted = test_client(&base_url, "test-key")
         .management()
-        .delete_api_key("key-hash")
+        .delete_api_key("key/hash")
         .await
         .expect("delete request should succeed");
 
@@ -236,7 +236,7 @@ async fn test_delete_api_key_uses_single_api_v1_prefix() {
     let request_line = rx
         .recv_timeout(Duration::from_secs(2))
         .expect("should capture request line");
-    assert_eq!(request_line, "DELETE /api/v1/keys/key-hash HTTP/1.1");
+    assert_eq!(request_line, "DELETE /api/v1/keys/key%2Fhash HTTP/1.1");
 
     server.join().expect("server thread should finish");
 }
@@ -437,8 +437,9 @@ async fn test_list_api_keys_serializes_workspace_filter_without_other_query_para
 
 #[tokio::test]
 async fn test_create_api_key_serializes_workspace_id() {
-    let (base_url, rx, server) =
-        spawn_json_server(r#"{"data":{"name":"ops","hash":"key_hash_1","workspace_id":"ws_123"}}"#);
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"key":"one-time","data":{"name":"ops","hash":"key_hash_1","workspace_id":"ws_123"}}"#,
+    );
 
     let response = test_client(&base_url, "mgmt-key")
         .management()
@@ -462,8 +463,9 @@ async fn test_create_api_key_serializes_workspace_id() {
 
 #[tokio::test]
 async fn test_create_api_key_sends_path_body_and_auth_header() {
-    let (base_url, rx, server) =
-        spawn_json_server(r#"{"data":{"hash":"hash_123","name":"new-key","disabled":false}}"#);
+    let (base_url, rx, server) = spawn_json_server(
+        r#"{"key":"one-time","data":{"hash":"hash_123","name":"new-key","disabled":false}}"#,
+    );
 
     let created = test_client(&base_url, "mgmt-key")
         .management()
@@ -472,6 +474,7 @@ async fn test_create_api_key_sends_path_body_and_auth_header() {
         .expect("create API key should succeed");
     assert_eq!(created.hash.as_deref(), Some("hash_123"));
     assert_eq!(created.name.as_deref(), Some("new-key"));
+    assert_eq!(created.key.as_deref(), Some("one-time"));
 
     let captured = rx
         .recv_timeout(Duration::from_secs(2))
@@ -500,7 +503,7 @@ async fn test_get_api_key_sends_path_and_auth_header() {
 
     let fetched = test_client(&base_url, "mgmt-key")
         .management()
-        .get_api_key("hash_123")
+        .get_api_key("hash/part?#")
         .await
         .expect("get API key should succeed");
     assert_eq!(fetched.hash.as_deref(), Some("hash_123"));
@@ -508,7 +511,10 @@ async fn test_get_api_key_sends_path_and_auth_header() {
     let captured = rx
         .recv_timeout(Duration::from_secs(2))
         .expect("should capture request");
-    assert_eq!(captured.request_line, "GET /api/v1/keys/hash_123 HTTP/1.1");
+    assert_eq!(
+        captured.request_line,
+        "GET /api/v1/keys/hash%2Fpart%3F%23 HTTP/1.1"
+    );
     let request_lower = captured.request_text.to_ascii_lowercase();
     assert!(
         request_lower.contains("authorization: bearer mgmt-key")
@@ -559,4 +565,68 @@ async fn test_update_api_key_sends_path_body_and_auth_header() {
     assert_eq!(request_json["limit"], 99.0);
 
     server.join().expect("server thread should finish");
+}
+
+#[test]
+fn nonfinite_spending_limits_cannot_serialize_as_null() {
+    for limit in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+        let create = api_keys::CreateApiKeyRequest::builder()
+            .name("job")
+            .limit(limit)
+            .build()
+            .unwrap();
+        let update = api_keys::UpdateApiKeyRequest::builder()
+            .limit(limit)
+            .build()
+            .unwrap();
+        assert!(serde_json::to_vec(&create).is_err());
+        assert!(serde_json::to_vec(&update).is_err());
+    }
+}
+
+#[tokio::test]
+async fn invalid_hashes_and_legacy_nonfinite_limits_fail_locally() {
+    let client = test_client("http://127.0.0.1:0", "test");
+    for hash in ["", ".", ".."] {
+        let error = client.management().delete_api_key(hash).await.unwrap_err();
+        assert!(matches!(
+            error,
+            openrouter_rs::error::OpenRouterError::ConfigError(_)
+        ));
+    }
+    let error = client
+        .management()
+        .update_api_key("h", None, None, Some(f64::NAN))
+        .await
+        .unwrap_err();
+    assert!(error.to_string().contains("spending limit must be finite"));
+}
+
+#[test]
+fn debug_omits_credentials_from_clients_and_key_payloads() {
+    use openrouter_rs::api::byok::CreateByokKeyRequest;
+    let client = openrouter_rs::OpenRouterClient::builder()
+        .api_key("inference-secret")
+        .management_key("management-secret")
+        .build()
+        .unwrap();
+    let byok = CreateByokKeyRequest::builder()
+        .provider("test")
+        .key("provider-secret")
+        .build()
+        .unwrap();
+    let key: api_keys::ApiKey =
+        serde_json::from_value(serde_json::json!({"key":"created-secret"})).unwrap();
+    for rendered in [
+        format!("{client:?}"),
+        format!("{:?}", client.chat()),
+        format!("{byok:?}"),
+        format!("{key:?}"),
+    ] {
+        assert!(!rendered.contains("-secret"));
+    }
+    assert_eq!(
+        serde_json::to_value(byok).unwrap()["key"],
+        "provider-secret"
+    );
 }

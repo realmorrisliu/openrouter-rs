@@ -5,6 +5,8 @@ Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted fro
 Tracked baseline: `specs/openrouter/openapi-baseline.json`  
 Weekly drift workflow: `.github/workflows/openapi-drift.yml`
 
+Local regression coverage includes one-time key creation and rename-only PATCH bodies in the CLI, workspace responses with omitted logging settings, and image-only video request round trips.
+
 ## Public Access Path
 
 Every endpoint in this matrix is reached through a domain client

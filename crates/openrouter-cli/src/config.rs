@@ -107,8 +107,19 @@ fn read_config_file(path: &Path) -> Result<(CliConfigFile, bool)> {
 
     let raw = fs::read_to_string(path)
         .with_context(|| format!("failed to read config file at {}", path.display()))?;
-    let parsed = toml::from_str::<CliConfigFile>(&raw)
-        .with_context(|| format!("invalid config TOML at {}", path.display()))?;
+    let parsed = toml::from_str::<CliConfigFile>(&raw).map_err(|error| {
+        // The parser's Display includes the source line, which may contain a key.
+        let location = error
+            .span()
+            .and_then(|span| raw.get(..span.start))
+            .map(|prefix| {
+                let line = prefix.bytes().filter(|byte| *byte == b'\n').count() + 1;
+                let column = prefix.rsplit('\n').next().unwrap_or("").chars().count() + 1;
+                format!(" (line {line}, column {column})")
+            })
+            .unwrap_or_default();
+        anyhow::anyhow!("invalid config TOML at {}{location}", path.display())
+    })?;
     Ok((parsed, true))
 }
 

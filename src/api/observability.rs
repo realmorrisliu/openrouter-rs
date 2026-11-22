@@ -76,7 +76,7 @@ impl ObservabilityFilterRule {
 }
 
 /// Observability destination returned by `/observability/destinations`.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 #[non_exhaustive]
 pub struct ObservabilityDestination {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -111,6 +111,8 @@ pub struct ObservabilityDestination {
     pub broadcast_generation_request_context: bool,
 }
 
+crate::utils::debug_public_fields!(ObservabilityDestination, id, destination_type);
+
 /// Paginated observability destination list response.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
@@ -120,7 +122,7 @@ pub struct ObservabilityDestinationListResponse {
 }
 
 /// Request payload for creating an observability destination.
-#[derive(Serialize, Deserialize, Debug, Clone, Builder)]
+#[derive(Serialize, Deserialize, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
 pub struct CreateObservabilityDestinationRequest {
@@ -165,6 +167,8 @@ pub struct CreateObservabilityDestinationRequest {
     pub broadcast_generation_request_context: Option<bool>,
 }
 
+crate::utils::debug_public_fields!(CreateObservabilityDestinationRequest, destination_type);
+
 impl CreateObservabilityDestinationRequest {
     pub fn builder() -> CreateObservabilityDestinationRequestBuilder {
         CreateObservabilityDestinationRequestBuilder::default()
@@ -176,7 +180,7 @@ impl CreateObservabilityDestinationRequestBuilder {
 }
 
 /// Request payload for updating an observability destination.
-#[derive(Debug, Clone, Builder)]
+#[derive(Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
 pub struct UpdateObservabilityDestinationRequest {
@@ -209,6 +213,8 @@ pub struct UpdateObservabilityDestinationRequest {
     #[builder(setter(strip_option), default)]
     pub broadcast_generation_request_context: Option<bool>,
 }
+
+crate::utils::debug_public_fields!(UpdateObservabilityDestinationRequest, enabled);
 
 crate::utils::deserialize_nullable_patch!(
     UpdateObservabilityDestinationRequest,

@@ -16,6 +16,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("workspace count: {}", workspaces.total_count);
     for workspace in workspaces.data {
+        if let Some(rate) = workspace.io_logging_sampling_rate {
+            println!("{} has I/O logging sampling rate {rate}", workspace.slug);
+        }
         println!(
             "{} ({}) default guardrail: {:?}",
             workspace.name, workspace.slug, workspace.default_guardrail_id

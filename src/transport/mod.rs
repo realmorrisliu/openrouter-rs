@@ -45,7 +45,7 @@ pub(crate) fn new_client() -> Result<HttpClient, OpenRouterError> {
 /// Bundles the values every endpoint function needs so signatures do not repeat
 /// the same argument clump, and so a new configuration field does not force a
 /// signature change everywhere.
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub(crate) struct RequestContext<'a> {
     pub http_client: &'a HttpClient,
     pub base_url: &'a str,

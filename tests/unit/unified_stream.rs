@@ -610,3 +610,25 @@ async fn messages_stream_keeps_the_input_count_from_message_start() {
         other => panic!("expected Done, got {other:?}"),
     }
 }
+
+#[tokio::test]
+async fn responses_snapshots_do_not_repeat_deltas() {
+    for prefix in ["response.reasoning_text", "response.reasoning_summary_text"] {
+        let frames = [
+            responses_event(&format!("{prefix}.delta"), json!({"delta":"once"})),
+            responses_event(&format!("{prefix}.done"), json!({"text":"once"})),
+            responses_event(
+                "response.function_call_arguments.delta",
+                json!({"delta":"{}"}),
+            ),
+        ];
+        let events: Vec<_> = adapt_responses_stream(stream::iter(frames.map(Ok)).boxed())
+            .collect()
+            .await;
+        assert!(
+            matches!(&events[..], [UnifiedStreamEvent::ReasoningDelta(text),
+            UnifiedStreamEvent::Raw {..}, UnifiedStreamEvent::ToolDelta(args),
+            UnifiedStreamEvent::Done {..}] if text == "once" && args["delta"] == "{}")
+        );
+    }
+}

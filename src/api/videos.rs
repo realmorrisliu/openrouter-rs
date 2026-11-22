@@ -118,7 +118,7 @@ impl VideoProviderOptions {
 #[non_exhaustive]
 pub struct VideoGenerationRequest {
     #[builder(setter(into), default)]
-    #[serde(skip_serializing_if = "String::is_empty")]
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub prompt: String,
     #[builder(setter(into))]
     pub model: String,
@@ -326,7 +326,7 @@ pub(crate) async fn get_video_content_with_client(
             .await?;
 
     if response.status().is_success() {
-        Ok(response.bytes().await?.to_vec())
+        Ok(response.into_vec().await?)
     } else {
         Err(transport_response::error_from_response(response).await)
     }

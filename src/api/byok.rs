@@ -63,7 +63,7 @@ pub struct ByokKeyListResponse {
 }
 
 /// Request payload for creating a BYOK credential (`POST /byok`).
-#[derive(Serialize, Deserialize, Debug, Clone, Builder)]
+#[derive(Serialize, Deserialize, Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
 pub struct CreateByokKeyRequest {
@@ -106,6 +106,8 @@ pub struct CreateByokKeyRequest {
     pub declared_region: Option<String>,
 }
 
+crate::utils::debug_public_fields!(CreateByokKeyRequest, provider, workspace_id);
+
 impl CreateByokKeyRequest {
     pub fn builder() -> CreateByokKeyRequestBuilder {
         CreateByokKeyRequestBuilder::default()
@@ -119,7 +121,7 @@ impl CreateByokKeyRequestBuilder {
 }
 
 /// Request payload for updating a BYOK credential (`PATCH /byok/{id}`).
-#[derive(Debug, Clone, Builder)]
+#[derive(Clone, Builder)]
 #[builder(build_fn(error = "OpenRouterError"))]
 #[non_exhaustive]
 pub struct UpdateByokKeyRequest {
@@ -158,6 +160,8 @@ pub struct UpdateByokKeyRequest {
     #[builder(setter(custom), default)]
     clear_declared_region: bool,
 }
+
+crate::utils::debug_public_fields!(UpdateByokKeyRequest, disabled);
 
 crate::utils::deserialize_nullable_patch!(
     UpdateByokKeyRequest,

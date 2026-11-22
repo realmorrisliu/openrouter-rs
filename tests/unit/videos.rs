@@ -82,6 +82,8 @@ fn test_video_generation_request_allows_image_only_input() {
 
     let value = serde_json::to_value(request).expect("video request should serialize");
     assert!(value.get("prompt").is_none());
+    let restored: VideoGenerationRequest = serde_json::from_value(value.clone()).unwrap();
+    assert_eq!(serde_json::to_value(restored).unwrap(), value);
     assert_eq!(
         value["input_references"][0]["image_url"]["url"],
         "https://example.com/reference.png"
