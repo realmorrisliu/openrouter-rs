@@ -96,6 +96,10 @@ impl VideoFrameImage {
 #[non_exhaustive]
 pub struct VideoProviderOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub zdr: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data_collection: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub options: Option<HashMap<String, serde_json::Value>>,
 }
 
@@ -103,6 +107,7 @@ impl VideoProviderOptions {
     pub fn new(options: HashMap<String, serde_json::Value>) -> Self {
         Self {
             options: Some(options),
+            ..Self::default()
         }
     }
 }
@@ -187,6 +192,10 @@ pub struct VideoGenerationUsage {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
 pub struct VideoGenerationResponse {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub progress: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status_detail: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expires_at: Option<i64>,
     pub id: String,

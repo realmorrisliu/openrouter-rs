@@ -25,13 +25,41 @@ pub struct CreateBatchRequest {
     #[builder(setter(into, strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub callback_url: Option<String>,
-    pub requests: Vec<BatchRequest>,
     #[builder(setter(into, strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub completion_window: Option<String>,
     #[builder(setter(strip_option), default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub provider: Option<BatchProviderPreferences>,
+    /// Upstream requires inline requests to be the last field on the wire.
+    #[serde(flatten)]
+    pub source: BatchSource,
+}
+
+#[derive(Serialize, Debug, Clone)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum BatchSource {
+    Requests(Vec<BatchRequest>),
+    Input(BatchStorageReference),
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[non_exhaustive]
+pub struct BatchStorageReference {
+    pub uri: String,
+}
+
+impl CreateBatchRequestBuilder {
+    pub fn requests(&mut self, requests: Vec<BatchRequest>) -> &mut Self {
+        self.source(BatchSource::Requests(requests))
+    }
+
+    pub fn input(&mut self, uri: impl Into<String>) -> &mut Self {
+        self.source(BatchSource::Input(BatchStorageReference {
+            uri: uri.into(),
+        }))
+    }
 }
 
 impl CreateBatchRequest {
@@ -116,6 +144,8 @@ pub struct Batch {
     pub request_counts: BatchRequestCounts,
     pub usage: Option<Value>,
     pub results: Option<Vec<BatchResult>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub output: Option<BatchStorageReference>,
     pub error: Option<BatchError>,
 }
 

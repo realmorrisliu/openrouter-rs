@@ -96,6 +96,19 @@ impl ContentFilterEntry {
     }
 }
 
+/// A custom filter as returned by guardrail reads.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct ContentFilterReadEntry {
+    pub pattern: String,
+    pub action: ContentFilterAction,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    /// Older responses omit the enforcement state.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_enforced: Option<bool>,
+}
+
 /// Guardrail model.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
@@ -125,7 +138,7 @@ pub struct Guardrail {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub content_filter_builtins: Option<Vec<ContentFilterBuiltinEntry>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub content_filters: Option<Vec<ContentFilterEntry>>,
+    pub content_filters: Option<Vec<ContentFilterReadEntry>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub enforce_zdr: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -916,6 +929,7 @@ pub(crate) async fn bulk_unassign_members_from_guardrail_with_client(
 pub(crate) async fn list_key_assignments_with_client(
     ctx: &RequestContext<'_>,
     pagination: Option<PaginationOptions>,
+    workspace_id: Option<&str>,
 ) -> Result<GuardrailKeyAssignmentsResponse, OpenRouterError> {
     let RequestContext {
         http_client,
@@ -930,13 +944,15 @@ pub(crate) async fn list_key_assignments_with_client(
     let req = transport_request::with_bearer_auth(
         transport_request::get(http_client, &url),
         management_key,
-    );
+    )
+    .query(&[("workspace_id", workspace_id)]);
     transport_response::send_json(req, "global key assignments").await
 }
 
 pub(crate) async fn list_member_assignments_with_client(
     ctx: &RequestContext<'_>,
     pagination: Option<PaginationOptions>,
+    workspace_id: Option<&str>,
 ) -> Result<GuardrailMemberAssignmentsResponse, OpenRouterError> {
     let RequestContext {
         http_client,
@@ -951,6 +967,7 @@ pub(crate) async fn list_member_assignments_with_client(
     let req = transport_request::with_bearer_auth(
         transport_request::get(http_client, &url),
         management_key,
-    );
+    )
+    .query(&[("workspace_id", workspace_id)]);
     transport_response::send_json(req, "global member assignments").await
 }

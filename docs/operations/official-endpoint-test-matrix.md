@@ -1,6 +1,6 @@
 # Official Endpoint Test Matrix
 
-Snapshot date: 2026-11-10
+Snapshot date: 2026-11-22
 Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)  
 Tracked baseline: `specs/openrouter/openapi-baseline.json`  
 Weekly drift workflow: `.github/workflows/openapi-drift.yml`
@@ -19,10 +19,10 @@ change.
 
 ## Coverage Summary
 
-- Official OpenAPI endpoints: `169` method+path entries.
-- SDK implementation coverage (`src/api` + domain client): `158 / 169` (`93.5%`).
-- Live integration coverage (`tests/integration`): `27 / 169` endpoints currently exercised.
-  - Covered live now: `GET /oauth/jwks`, `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `POST /rerank`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`, `GET /organization/members`, `GET /tools`, `GET /tools/{name}`
+- Official OpenAPI endpoints: `176` method+path entries.
+- SDK implementation coverage (`src/api` + domain client): `165 / 176` (`93.8%`).
+- Live integration coverage (`tests/integration`): `32 / 176` endpoints currently exercised.
+  - Covered live now: `GET /oauth/jwks`, `POST /chat/completions`, `POST /messages`, `POST /responses`, `POST /embeddings`, `POST /rerank`, `GET /key`, `GET /models`, `GET /models/user`, `GET /models/count`, `GET /models/{author}/{slug}/endpoints`, `GET /providers`, `GET /endpoints/zdr`, `GET /embeddings/models`, `GET /keys`, `POST /keys`, `GET /keys/{hash}`, `PATCH /keys/{hash}`, `DELETE /keys/{hash}`, `GET /guardrails`, `POST /guardrails`, `GET /guardrails/{id}`, `PATCH /guardrails/{id}`, `DELETE /guardrails/{id}`, `GET /organization/members`, `GET /tools`, `GET /tools/{name}`, `GET /audio/speech/models`, `GET /audio/speech/models/{author}/{slug}`, `GET /credits/purchases`, `GET /credits/purchases/setup`, `GET /credits/purchases/SKILL.md`
 
 Chat response regression coverage:
 
@@ -33,6 +33,9 @@ Chat response regression coverage:
 - Issues #259/#260: local serde/request tests cover non-streaming assistant-message replay (including null content, signed/encrypted reasoning and modeled metadata), getter behavior for streaming/legacy choices, and optional prompt-cache usage in both response envelopes. Regression coverage also verifies all four official reasoning variants across message replay and both chat stream adapters. The streaming tool example has a local test for ordered multi-chunk replay, including repeated reasoning indices. No new endpoint or live qualification is claimed. The CLI has no chat command consuming these types.
 
 Drift review note:
+
+- Issue #306 (2026-11-22) adds seven operations. The three public billing routes return Markdown. The purchase POST and polling GET require an organization management key. Paid retries reuse the same request body and idempotency key. Local HTTP tests exercise both payment offers and the accepted response. Preset deletion and restoration also have local HTTP coverage.
+- Reviewed changes on existing operations include workspace selection for presets and guardrails, batch storage references, image URL outputs, speech and video options, nested text embeddings, reasoning controls and benchmark filters. Existing strings and JSON maps cover provider and reasoning format names, Responses includes, annotations and input transformations, benchmark scores and OpenTelemetry metrics configuration. The server validates the updated analytics dimension limit. Private endpoint settings and alpha extractions retain their deferred status.
 
 - Issue #297 (2026-11-09): accepted the `Guardrail Policies` family (23 operations) and the agent credit purchase pair. `management()` now exposes account policy CRUD (`list_account_guardrail_policies`/`create_account_guardrail_policy`/`update_account_guardrail_policy`/`delete_account_guardrail_policy`), workspace budget/model-availability/moderation policy CRUD (`list_*_policies`, `create_*_policy`, `get_*_policy`, `update_*_policy`, `delete_*_policy`), API key and member policy assignments (`get_*_policy_assignment`, `change_*_policy_assignment`), and `create_credit_purchase`/`get_credit_purchase`. Budget authoring keeps an explicit-null config form because upstream requires `limit_usd` and `reset_interval` keys; moderation reuses the guardrail content-filter types; Model Armor config, PII filter entries, image `markup` and the policy detail `reference` stay on `Value`. Also accepted: `GET /models?endpoints=`, image `frame_count`/`frame_duration_ms`/`markup` plus `gif` output, `openrouter:mcp` server-tool constructor, and the auth-code `spawn_agent`/`spawn_cloud` fields removed upstream. Reviewed as already covered: provider taxonomy additions (Ant Digital/Parallel/Pearl Research/River and the new BYOK provider slugs), `tools_invoke` `api_type`, `org:viewer`/`viewer`/`restricted_viewer` roles, `openrouter:mcp` in `disabled_server_tools`, `deferred_tools` controls, Responses `compaction`/`mcp_*` output items, and the `openrouter-stealth-v1` reasoning format - all string or `Value` surfaces. Also accepted: the preset inference `workspace_id` query parameter, exposed as an explicit argument on `create_*_preset(...)` (breaking, so it landed with the next minor). Deferred as out of scope: upstream's removal of `PUT /private-endpoints/{id}/parameters` and `PUT /private-endpoints/{id}/pricing` (never covered).
 - Issue #291 (2026-11-02): accepted `Model`/`UserModel` `endpoints` (the request API paths that serve the model), `PublicEndpoint` `safety_retention` on `GET /endpoints/zdr`, and Responses `access_programs.cyber`. Upstream also removed private-provider `data_policy` from the create/update requests and every response, so `PrivateProviderDataPolicy` and its fields are gone (breaking). Reviewed as already covered: generation `api_type` `extractions` and provider `provider_sort_order_mode`/`provider_sort_order_rank` stay flexible strings and `extra` maps, and Batch result bodies keep echoing through `Value`. Deferred as out of scope: `POST /api/alpha/extractions`, whose alpha request/response shape (nine typed field specs and nine answer shapes) is documented as unstable upstream.
@@ -129,7 +132,10 @@ Legend:
 | `GET /scim/sync-jobs/{id}` | `client.management().get_scim_sync_job(...)` | Yes | Path | Conditional | P1 |
 | `GET /credits` | `client.management().get_credits()` | Yes | Path | No | P2 |
 | `POST /credits/coinbase` | `client.management().create_coinbase_charge(...)` (deprecated upstream; use web credits purchase) | Yes (compatibility) | Path | No | P2 |
-| `POST /credits/purchases` | `client.management().create_credit_purchase(...)` | Yes | Contract | No | P2 |
+| `GET /credits/purchases` | `client.management().get_credit_purchase_guide(Overview)` | Yes | None | Yes | Keep |
+| `GET /credits/purchases/setup` | `client.management().get_credit_purchase_guide(Setup)` | Yes | None | Yes | Keep |
+| `GET /credits/purchases/SKILL.md` | `client.management().get_credit_purchase_guide(Skill)` | Yes | None | Yes | Keep |
+| `POST /credits/purchases` | `client.management().create_credit_purchase(...)` | Yes | Path | No | P2 |
 | `GET /credits/purchases/{id}` | `client.management().get_credit_purchase(...)` | Yes | Path | No | P2 |
 | `GET /datasets/app-rankings` | `client.models().get_app_rankings(...)` | Yes | Path | No | P2 |
 | `GET /datasets/rankings-daily` | `client.models().get_rankings_daily(...)` | Yes | Path | No | P2 |
@@ -222,6 +228,8 @@ Legend:
 | `POST /presets/{slug}/chat/completions` | `client.management().create_chat_completion_preset(...)` | Yes | Path | No | P2 |
 | `POST /presets/{slug}/messages` | `client.management().create_message_preset(...)` | Yes | Path | No | P2 |
 | `POST /presets/{slug}/responses` | `client.management().create_response_preset(...)` | Yes | Path | No | P2 |
+| `DELETE /presets/{slug}` | `client.management().delete_preset(...)` | Yes | Path | No | P2 |
+| `POST /presets/{slug}/restore` | `client.management().restore_preset(...)` | Yes | Path | No | P2 |
 | `GET /presets/{slug}/versions` | `client.management().list_preset_versions(...)` | Yes | Path | No | P2 |
 | `GET /presets/{slug}/versions/{version}` | `client.management().get_preset_version(...)` | Yes | Path | No | P2 |
 | `GET /providers` | `client.models().list_providers()` | Yes | Contract | Yes | Keep |
@@ -249,6 +257,8 @@ Legend:
 | `POST /messages` | `client.messages().create(...)` / `client.messages().stream(...)` | Yes | Path | Yes | Keep |
 | `POST /rerank` | `client.rerank().create(...)` | Yes | Path | Yes | Keep |
 | `POST /responses` | `client.responses().create(...)` / `client.responses().stream(...)` | Yes | Contract | Yes | Keep |
+| `GET /audio/speech/models` | `client.audio().speech().list_models()` | Yes | None | Yes | Keep |
+| `GET /audio/speech/models/{author}/{slug}` | `client.audio().speech().get_model(...)` | Yes | None | Yes | Keep |
 | `POST /audio/speech` | `client.audio().speech().create(...)` | Yes | Path | No | P1 |
 | `POST /audio/transcriptions` | `client.audio().transcriptions().create(...)` | Yes | Path | No | P1 |
 | `POST /videos` | `client.videos().create(...)` | Yes | Path | No | P2 |

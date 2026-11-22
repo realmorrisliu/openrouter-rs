@@ -24,6 +24,16 @@ pub(crate) fn new_client() -> Result<HttpClient, OpenRouterError> {
     #[cfg(all(feature = "reqwest", not(all(feature = "wasip3", target_os = "wasi"))))]
     {
         reqwest::Client::builder()
+            .redirect(reqwest::redirect::Policy::custom(|attempt| {
+                // Payment-Authorization is not one of reqwest's stripped redirect headers.
+                if attempt.previous().first().is_some_and(|origin| {
+                    origin.path().ends_with("/credits/purchases")
+                        && origin.origin() != attempt.url().origin()
+                }) {
+                    return attempt.stop();
+                }
+                reqwest::redirect::Policy::default().redirect(attempt)
+            }))
             .build()
             .map(HttpClient::Reqwest)
             .map_err(OpenRouterError::from)

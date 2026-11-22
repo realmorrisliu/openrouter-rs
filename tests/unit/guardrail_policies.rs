@@ -10,7 +10,7 @@ use std::{
 
 use openrouter_rs::{
     api::{
-        credits::{CreateCreditPurchaseRequest, CreditPurchase},
+        credits::{CreateCreditPurchaseRequest, CreditPurchaseOutcome},
         guardrail_policies::{
             AccountGuardrailPolicy, AccountGuardrailPolicyRequest,
             ChangeGuardrailPolicyAssignmentRequest, CreateGuardrailBudgetPolicyRequest,
@@ -40,6 +40,18 @@ struct CapturedRequest {
 }
 
 fn spawn_json_server(
+    response_body: &str,
+) -> (
+    String,
+    mpsc::Receiver<CapturedRequest>,
+    thread::JoinHandle<()>,
+) {
+    spawn_response_server("200 OK", "", response_body)
+}
+
+fn spawn_response_server(
+    status: &'static str,
+    headers: &'static str,
     response_body: &str,
 ) -> (
     String,
@@ -111,7 +123,7 @@ fn spawn_json_server(
         .expect("server should send captured request");
 
         let response = format!(
-            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            "HTTP/1.1 {status}\r\n{headers}Content-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
             body.len(),
             body
         );
@@ -364,7 +376,10 @@ async fn list_budget_policies_sends_workspace_and_pagination() {
 
     let result = test_client(&base_url, "mgmt-key")
         .management()
-        .list_budget_policies("ws_123", Some(PaginationOptions::new(Some(5), Some(10))))
+        .list_budget_policies(
+            Some("ws_123"),
+            Some(PaginationOptions::new(Some(5), Some(10))),
+        )
         .await
         .expect("list budget policies should succeed");
     assert_eq!(result.total_count, 0);
@@ -406,7 +421,7 @@ async fn get_and_delete_moderation_policy_send_workspace_query() {
     let (base_url, rx, server) = spawn_json_server(&detail);
     let policy = test_client(&base_url, "mgmt-key")
         .management()
-        .get_moderation_policy("pol 1", "ws_123")
+        .get_moderation_policy("pol 1", Some("ws_123"))
         .await
         .expect("get moderation policy should succeed");
     assert_eq!(policy.config.content_filter_blocks_requests, Some(true));
@@ -422,7 +437,7 @@ async fn get_and_delete_moderation_policy_send_workspace_query() {
     let (base_url, rx, server) = spawn_json_server(r#"{"data":true}"#);
     let deleted = test_client(&base_url, "mgmt-key")
         .management()
-        .delete_moderation_policy("pol_1", "ws_123")
+        .delete_moderation_policy("pol_1", Some("ws_123"))
         .await
         .expect("delete moderation policy should succeed");
     assert!(deleted);
@@ -486,7 +501,7 @@ async fn api_key_policy_assignment_sends_policy_type_query() {
 
     let state = test_client(&base_url, "mgmt-key")
         .management()
-        .get_api_key_policy_assignment("hash_1", "ws_123", GuardrailPolicyType::RateLimit)
+        .get_api_key_policy_assignment("hash_1", Some("ws_123"), GuardrailPolicyType::RateLimit)
         .await
         .expect("read assignment should succeed");
     assert!(state.opted_out);
@@ -548,61 +563,114 @@ async fn account_policy_endpoints_use_expected_paths() {
 }
 
 #[tokio::test]
-async fn credit_purchase_round_trip_uses_api_key() {
-    let purchase = json!({
-        "data": {
-            "id": "purchase_1",
-            "status": "pending",
-            "credit_amount_usd": "10.00",
-            "platform_fee_usd": "0.30",
-            "total_charged_usd": "10.30",
-            "protocol": "mpp",
-            "network": "tempo",
-            "payment_intent_id": null,
-            "failure_reason": null,
-            "created_at": "2025-01-01T00:00:00Z"
-        }
-    })
+async fn credit_purchase_challenge_paid_retry_and_lookup() {
+    let body = json!({"data":{
+        "id":"pi_123","status":"processing","credit_amount_usd":"10.00",
+        "platform_fee_usd":"0.30","total_charged_usd":"10.30","protocol":"mpp",
+        "network":"tempo","failure_reason":null,"created_at":"2026-11-22T00:00:00Z"
+    }})
     .to_string();
-    let (base_url, rx, server) = spawn_json_server(&purchase);
-    let created = test_client(&base_url, "api-key")
-        .management()
-        .create_credit_purchase(&CreateCreditPurchaseRequest::new("10.00"))
-        .await
-        .expect("create credit purchase should succeed");
-    assert_eq!(created.status, "pending");
-    let captured = rx
-        .recv_timeout(Duration::from_secs(2))
-        .expect("should capture request");
-    assert_eq!(
-        captured.request_line,
-        "POST /api/v1/credits/purchases HTTP/1.1"
+    let request = CreateCreditPurchaseRequest::new("10.00");
+    let client = |base_url: &str| {
+        openrouter_rs::OpenRouterClient::builder()
+            .base_url(base_url)
+            .api_key("ordinary")
+            .management_key("billing")
+            .build()
+            .unwrap()
+    };
+    let problem =
+        json!({"type":"payment-required","title":"Payment required","status":402,"setup":"/setup"})
+            .to_string();
+    let (url, rx, server) = spawn_response_server(
+        "402 Payment Required",
+        "WWW-Authenticate: Payment first\r\nWWW-Authenticate: Payment second\r\n",
+        &problem,
     );
-    let body: serde_json::Value = serde_json::from_str(&captured.body_text).expect("json body");
-    assert_eq!(body["credit_amount_usd"], "10.00");
-    let request_lower = captured.request_text.to_ascii_lowercase();
+    let outcome = client(&url)
+        .management()
+        .create_credit_purchase(&request, "purchase-key", None)
+        .await
+        .unwrap();
+    let CreditPurchaseOutcome::PaymentRequired {
+        challenges,
+        problem,
+    } = outcome
+    else {
+        panic!("expected challenge")
+    };
+    assert_eq!(challenges, ["Payment first", "Payment second"]);
+    assert_eq!(problem.setup, "/setup");
+    let unpaid = rx.recv().unwrap();
     assert!(
-        request_lower.contains("authorization: bearer api-key")
-            || request_lower.contains("authorization:bearer api-key"),
-        "workspace api key should be sent"
+        !unpaid
+            .request_text
+            .to_lowercase()
+            .contains("payment-authorization:")
     );
-    server.join().expect("server thread should finish");
+    server.join().unwrap();
 
-    let (base_url, rx, server) = spawn_json_server(&purchase);
-    let polled: CreditPurchase = test_client(&base_url, "api-key")
-        .management()
-        .get_credit_purchase("purchase_1")
-        .await
-        .expect("poll credit purchase should succeed");
-    assert_eq!(polled.credit_amount_usd, "10.00");
-    let captured = rx
-        .recv_timeout(Duration::from_secs(2))
-        .expect("should capture request");
-    assert_eq!(
-        captured.request_line,
-        "GET /api/v1/credits/purchases/purchase_1 HTTP/1.1"
+    let (url, rx, server) = spawn_response_server(
+        "202 Accepted",
+        "Location: /credits/purchases/pi_123\r\nPayment-Receipt: receipt\r\n",
+        &body,
     );
-    server.join().expect("server thread should finish");
+    let outcome = client(&url)
+        .management()
+        .create_credit_purchase(&request, "purchase-key", Some("Payment signed"))
+        .await
+        .unwrap();
+    let CreditPurchaseOutcome::Accepted {
+        purchase,
+        location,
+        payment_receipt,
+    } = outcome
+    else {
+        panic!("expected purchase")
+    };
+    assert_eq!(purchase.status, "processing");
+    assert_eq!(location.as_deref(), Some("/credits/purchases/pi_123"));
+    assert_eq!(payment_receipt.as_deref(), Some("receipt"));
+    let paid = rx.recv().unwrap();
+    assert!(
+        paid.request_text
+            .to_lowercase()
+            .contains("payment-authorization: payment signed")
+    );
+    assert_eq!(paid.body_text, unpaid.body_text);
+    for captured in [paid, unpaid] {
+        assert_eq!(
+            captured.request_line,
+            "POST /api/v1/credits/purchases HTTP/1.1"
+        );
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(&captured.body_text).unwrap(),
+            json!({"credit_amount_usd":"10.00"})
+        );
+        let headers = captured.request_text.to_lowercase();
+        assert!(headers.contains("idempotency-key: purchase-key"));
+        assert!(headers.contains("authorization: bearer billing"));
+    }
+    server.join().unwrap();
+
+    let (url, rx, server) = spawn_json_server(&body);
+    let polled = client(&url)
+        .management()
+        .get_credit_purchase(&purchase.id)
+        .await
+        .unwrap();
+    assert_eq!(polled.id, purchase.id);
+    let get = rx.recv().unwrap();
+    assert_eq!(
+        get.request_line,
+        "GET /api/v1/credits/purchases/pi_123 HTTP/1.1"
+    );
+    assert!(
+        get.request_text
+            .to_lowercase()
+            .contains("authorization: bearer billing")
+    );
+    server.join().unwrap();
 }
 
 #[test]
@@ -636,4 +704,30 @@ fn image_requests_expose_frame_and_markup_fields() {
         value["markup"]["image_url"]["url"],
         "https://example.com/overlay.png"
     );
+}
+
+#[tokio::test]
+async fn default_workspace_is_omitted_from_policy_queries_and_bodies() {
+    let request = CreateGuardrailBudgetPolicyRequest::builder()
+        .name("Budget")
+        .config(budget_policy_config())
+        .build()
+        .unwrap();
+    assert!(
+        serde_json::to_value(request)
+            .unwrap()
+            .get("workspace_id")
+            .is_none()
+    );
+    let (url, rx, server) = spawn_json_server(r#"{"data":[],"total_count":0}"#);
+    test_client(&url, "management")
+        .management()
+        .list_budget_policies(None, None)
+        .await
+        .unwrap();
+    assert_eq!(
+        rx.recv().unwrap().request_line,
+        "GET /api/v1/guardrails/policies/budget HTTP/1.1"
+    );
+    server.join().unwrap();
 }

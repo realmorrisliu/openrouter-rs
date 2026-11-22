@@ -165,6 +165,7 @@ fn model_category(value: ModelCategoryArg) -> ModelCategory {
 fn supported_parameter(value: SupportedParameterArg) -> SupportedParameters {
     match value {
         SupportedParameterArg::Tools => SupportedParameters::Tools,
+        SupportedParameterArg::StrictToolSchemas => SupportedParameters::StrictToolSchemas,
         SupportedParameterArg::Temperature => SupportedParameters::Temperature,
         SupportedParameterArg::TopP => SupportedParameters::TopP,
         SupportedParameterArg::TopK => SupportedParameters::TopK,
@@ -736,7 +737,9 @@ async fn run(cli: Cli) -> Result<()> {
                                     .await?;
                                 print_value(&response, cli.global.output)?;
                             } else {
-                                let response = management.list_key_assignments(pagination).await?;
+                                let response = management
+                                    .list_key_assignments(pagination, args.workspace_id.as_deref())
+                                    .await?;
                                 print_value(&response, cli.global.output)?;
                             }
                         }
@@ -772,8 +775,12 @@ async fn run(cli: Cli) -> Result<()> {
                                     .await?;
                                 print_value(&response, cli.global.output)?;
                             } else {
-                                let response =
-                                    management.list_member_assignments(pagination).await?;
+                                let response = management
+                                    .list_member_assignments(
+                                        pagination,
+                                        args.workspace_id.as_deref(),
+                                    )
+                                    .await?;
                                 print_value(&response, cli.global.output)?;
                             }
                         }

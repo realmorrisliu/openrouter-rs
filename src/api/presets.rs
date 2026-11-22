@@ -128,6 +128,7 @@ fn with_pagination(url: String, pagination: Option<PaginationOptions>) -> String
 pub(crate) async fn list_presets_with_client(
     ctx: &RequestContext<'_>,
     pagination: Option<PaginationOptions>,
+    workspace_id: Option<&str>,
 ) -> Result<ListPresetsResponse, OpenRouterError> {
     let RequestContext {
         http_client,
@@ -139,26 +140,24 @@ pub(crate) async fn list_presets_with_client(
     let req = transport_request::with_bearer_auth(
         transport_request::get(http_client, &url),
         management_key,
-    );
+    )
+    .query(&[("workspace_id", workspace_id)]);
     transport_response::send_json(req, "preset list").await
 }
 
-pub(crate) async fn get_preset_with_client(
+pub(crate) async fn preset_detail_with_client(
     ctx: &RequestContext<'_>,
+    method: http::Method,
     slug: &str,
+    suffix: &str,
+    workspace_id: Option<&str>,
 ) -> Result<PresetWithDesignatedVersion, OpenRouterError> {
-    let RequestContext {
-        http_client,
-        base_url,
-        credential: management_key,
-        ..
-    } = *ctx;
-    let encoded_slug = encode(slug);
-    let url = format!("{base_url}/presets/{encoded_slug}");
+    let url = format!("{}/presets/{}{}", ctx.base_url, encode(slug), suffix);
     let req = transport_request::with_bearer_auth(
-        transport_request::get(http_client, &url),
-        management_key,
-    );
+        transport_request::request(ctx.http_client, method, &url),
+        ctx.credential,
+    )
+    .query(&[("workspace_id", workspace_id)]);
     let payload: ApiResponse<PresetWithDesignatedVersion> =
         transport_response::send_json(req, "preset").await?;
     Ok(payload.data)
@@ -168,6 +167,7 @@ pub(crate) async fn list_preset_versions_with_client(
     ctx: &RequestContext<'_>,
     slug: &str,
     pagination: Option<PaginationOptions>,
+    workspace_id: Option<&str>,
 ) -> Result<ListPresetVersionsResponse, OpenRouterError> {
     let RequestContext {
         http_client,
@@ -183,7 +183,8 @@ pub(crate) async fn list_preset_versions_with_client(
     let req = transport_request::with_bearer_auth(
         transport_request::get(http_client, &url),
         management_key,
-    );
+    )
+    .query(&[("workspace_id", workspace_id)]);
     transport_response::send_json(req, "preset version list").await
 }
 
@@ -191,6 +192,7 @@ pub(crate) async fn get_preset_version_with_client(
     ctx: &RequestContext<'_>,
     slug: &str,
     version: &str,
+    workspace_id: Option<&str>,
 ) -> Result<PresetDesignatedVersion, OpenRouterError> {
     let RequestContext {
         http_client,
@@ -204,7 +206,8 @@ pub(crate) async fn get_preset_version_with_client(
     let req = transport_request::with_bearer_auth(
         transport_request::get(http_client, &url),
         management_key,
-    );
+    )
+    .query(&[("workspace_id", workspace_id)]);
     let payload: ApiResponse<PresetDesignatedVersion> =
         transport_response::send_json(req, "preset version").await?;
     Ok(payload.data)

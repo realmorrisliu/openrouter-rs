@@ -53,7 +53,7 @@ pub struct CreditsData {
     pub total_usage: f64,
 }
 
-/// One agent credit purchase started from a workspace API key.
+/// One agent credit purchase made by an organization.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[non_exhaustive]
 pub struct CreditPurchase {
@@ -65,10 +65,64 @@ pub struct CreditPurchase {
     pub protocol: String,
     pub network: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub payment_intent_id: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub failure_reason: Option<String>,
     pub created_at: String,
+}
+
+/// Result of an unpaid request or its paid retry.
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum CreditPurchaseOutcome {
+    PaymentRequired {
+        /// Each WWW-Authenticate value is a separate payment offer.
+        challenges: Vec<String>,
+        problem: CreditPurchaseProblem,
+    },
+    Accepted {
+        purchase: CreditPurchase,
+        location: Option<String>,
+        payment_receipt: Option<String>,
+    },
+}
+
+#[derive(Debug, Deserialize)]
+#[non_exhaustive]
+pub struct CreditPurchaseProblem {
+    #[serde(rename = "type")]
+    pub problem_type: String,
+    pub title: String,
+    pub status: u16,
+    pub setup: String,
+    pub detail: Option<String>,
+    #[serde(rename = "challengeId")]
+    pub challenge_id: Option<String>,
+}
+
+/// Public Markdown guides for agent credit purchases.
+#[derive(Debug, Clone, Copy)]
+#[non_exhaustive]
+pub enum CreditPurchaseGuide {
+    Overview,
+    Setup,
+    Skill,
+}
+
+pub(crate) async fn get_credit_purchase_guide(
+    ctx: &RequestContext<'_>,
+    guide: CreditPurchaseGuide,
+) -> Result<String, OpenRouterError> {
+    let suffix = match guide {
+        CreditPurchaseGuide::Overview => "",
+        CreditPurchaseGuide::Setup => "/setup",
+        CreditPurchaseGuide::Skill => "/SKILL.md",
+    };
+    let url = format!("{}/credits/purchases{suffix}", ctx.base_url);
+    let response = transport_request::get(ctx.http_client, &url).send().await?;
+    if response.status().is_success() {
+        Ok(response.text().await?)
+    } else {
+        Err(transport_response::error_from_response(response).await)
+    }
 }
 
 /// Request body for `POST /credits/purchases`.
@@ -130,27 +184,58 @@ pub(crate) async fn get_credits_with_client(
     Ok(credits_response.data)
 }
 
-/// Start a credit purchase (`POST /credits/purchases`).
-///
-/// The first call normally answers `402` with a payment challenge; retry with a
-/// payment credential to get the `202` purchase this returns.
 pub(crate) async fn create_credit_purchase_with_client(
     ctx: &RequestContext<'_>,
     request: &CreateCreditPurchaseRequest,
-) -> Result<CreditPurchase, OpenRouterError> {
-    let RequestContext {
-        http_client,
-        base_url,
-        credential: api_key,
-        ..
-    } = *ctx;
-    let url = format!("{base_url}/credits/purchases");
-    let req =
-        transport_request::with_bearer_auth(transport_request::post(http_client, &url), api_key)
-            .json(request);
+    idempotency_key: &str,
+    payment_authorization: Option<&str>,
+) -> Result<CreditPurchaseOutcome, OpenRouterError> {
+    let url = format!("{}/credits/purchases", ctx.base_url);
+    let mut req = transport_request::with_bearer_auth(
+        transport_request::post(ctx.http_client, &url),
+        ctx.credential,
+    )
+    .header("Idempotency-Key", idempotency_key)
+    .json(request);
+    if let Some(payment) = payment_authorization {
+        let mut header = http::HeaderValue::from_str(payment).map_err(|_| {
+            OpenRouterError::ConfigError("Invalid Payment-Authorization header".into())
+        })?;
+        header.set_sensitive(true);
+        req = req.header("Payment-Authorization", header);
+    }
+    let response = req.send().await?;
+    if response.status() == http::StatusCode::PAYMENT_REQUIRED {
+        let challenges = response
+            .headers()
+            .get_all(http::header::WWW_AUTHENTICATE)
+            .iter()
+            .filter_map(|value| value.to_str().ok().map(str::to_owned))
+            .collect();
+        let problem =
+            transport_response::parse_json_response(response, "credit purchase challenge").await?;
+        return Ok(CreditPurchaseOutcome::PaymentRequired {
+            challenges,
+            problem,
+        });
+    }
+    let header = |name: &str| {
+        response
+            .headers()
+            .get(name)?
+            .to_str()
+            .ok()
+            .map(str::to_owned)
+    };
+    let location = header("location");
+    let payment_receipt = header("payment-receipt");
     let purchase: ApiResponse<CreditPurchase> =
-        transport_response::send_json(req, "credit purchase").await?;
-    Ok(purchase.data)
+        transport_response::parse_or_error(response, "credit purchase").await?;
+    Ok(CreditPurchaseOutcome::Accepted {
+        purchase: purchase.data,
+        location,
+        payment_receipt,
+    })
 }
 
 /// Poll one credit purchase (`GET /credits/purchases/{id}`).

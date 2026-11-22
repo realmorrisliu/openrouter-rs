@@ -351,6 +351,10 @@ impl Display for Effort {
 #[non_exhaustive]
 pub struct ReasoningConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub mode: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub context: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub effort: Option<Effort>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_tokens: Option<u32>,
@@ -364,10 +368,8 @@ impl ReasoningConfig {
     /// Create a new ReasoningConfig that enables reasoning with provider defaults.
     pub fn enabled() -> Self {
         Self {
-            effort: None,
-            max_tokens: None,
-            exclude: None,
             enabled: Some(true),
+            ..Self::default()
         }
     }
 
@@ -375,29 +377,23 @@ impl ReasoningConfig {
     pub fn with_effort(effort: Effort) -> Self {
         Self {
             effort: Some(effort),
-            max_tokens: None,
-            exclude: None,
-            enabled: None,
+            ..Self::default()
         }
     }
 
     /// Create a ReasoningConfig with max tokens limit
     pub fn with_max_tokens(max_tokens: u32) -> Self {
         Self {
-            effort: None,
             max_tokens: Some(max_tokens),
-            exclude: None,
-            enabled: None,
+            ..Self::default()
         }
     }
 
     /// Create a ReasoningConfig that excludes reasoning from response
     pub fn excluded() -> Self {
         Self {
-            effort: None,
-            max_tokens: None,
             exclude: Some(true),
-            enabled: None,
+            ..Self::default()
         }
     }
 
@@ -481,6 +477,7 @@ impl ModelCategory {
 #[non_exhaustive]
 #[serde(rename_all = "snake_case")]
 pub enum SupportedParameters {
+    StrictToolSchemas,
     Tools,
     Temperature,
     TopP,
@@ -507,6 +504,7 @@ impl Display for SupportedParameters {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             SupportedParameters::Tools => write!(f, "tools"),
+            SupportedParameters::StrictToolSchemas => write!(f, "strict_tool_schemas"),
             SupportedParameters::Temperature => write!(f, "temperature"),
             SupportedParameters::TopP => write!(f, "top_p"),
             SupportedParameters::TopK => write!(f, "top_k"),
@@ -534,6 +532,7 @@ impl SupportedParameters {
     pub fn all() -> Vec<SupportedParameters> {
         vec![
             SupportedParameters::Tools,
+            SupportedParameters::StrictToolSchemas,
             SupportedParameters::Temperature,
             SupportedParameters::TopP,
             SupportedParameters::TopK,

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Public speech model discovery and Markdown credit purchase guides. Presets support soft deletion and restoration in a chosen workspace.
+- Batches accept a storage URI and expose the resulting output URI. Image generation supports signed URLs, expiry and layer metadata. Transcription accepts a prompt, and video generation exposes data policy preferences and fractional progress.
+- New model benchmark range filters, strict tool schema filtering, nested text arrays for embeddings and chat reasoning mode/context. CLI global guardrail assignment lists accept `--workspace-id`.
+
+### Breaking
+- Agent credit purchases use an organization management key, a caller-provided idempotency key and an optional signed payment credential. Callers handle either a payment challenge or an accepted purchase and poll using the purchase ID.
+- Preset reads and global guardrail assignment lists take an optional workspace argument. Workspace ID is optional on guardrail policy requests and queries. Guardrail read filters expose enforcement state. Batch request sources and image output fields reflect the upstream alternatives. See `MIGRATION.md` for call-site changes.
+
 ## [0.25.0] - 2026-11-10
 
 ### Added

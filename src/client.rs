@@ -224,6 +224,8 @@ impl OpenRouterClientBuilder {
     strip_option_vec_setter!(app_categories, String);
 
     /// Sends requests through a caller-configured `reqwest::Client` (feature `reqwest`).
+    /// For paid credit purchases configure this client to reject cross-origin redirects
+    /// so that the signed `Payment-Authorization` header stays on the billing origin.
     #[cfg(feature = "reqwest")]
     pub fn http_client<VALUE: Into<reqwest::Client>>(&mut self, value: VALUE) -> &mut Self {
         self.http_client = Some(crate::transport::HttpClient::Reqwest(value.into()));
@@ -640,6 +642,20 @@ pub struct SpeechClient<'a> {
 }
 
 impl<'a> SpeechClient<'a> {
+    /// List models in the public text-to-speech catalog.
+    pub async fn list_models(&self) -> Result<Vec<audio::SpeechModel>, OpenRouterError> {
+        audio::list_speech_models(&self.client.request_context("")).await
+    }
+
+    /// Get a speech model with its endpoint capabilities.
+    pub async fn get_model(
+        &self,
+        author: &str,
+        slug: &str,
+    ) -> Result<audio::SpeechModel, OpenRouterError> {
+        audio::get_speech_model(&self.client.request_context(""), author, slug).await
+    }
+
     /// Create speech audio bytes (`POST /audio/speech`).
     pub async fn create(&self, request: &audio::SpeechRequest) -> Result<Vec<u8>, OpenRouterError> {
         audio::create_speech_with_client(
@@ -1635,10 +1651,12 @@ impl<'a> ManagementClient<'a> {
     pub async fn list_presets(
         &self,
         pagination: Option<PaginationOptions>,
+        workspace_id: Option<&str>,
     ) -> Result<presets::ListPresetsResponse, OpenRouterError> {
         presets::list_presets_with_client(
             &self.client.request_context(self.management_key()?),
             pagination,
+            workspace_id,
         )
         .await
     }
@@ -1647,9 +1665,48 @@ impl<'a> ManagementClient<'a> {
     pub async fn get_preset(
         &self,
         slug: &str,
+        workspace_id: Option<&str>,
     ) -> Result<presets::PresetWithDesignatedVersion, OpenRouterError> {
-        presets::get_preset_with_client(&self.client.request_context(self.management_key()?), slug)
-            .await
+        presets::preset_detail_with_client(
+            &self.client.request_context(self.management_key()?),
+            http::Method::GET,
+            slug,
+            "",
+            workspace_id,
+        )
+        .await
+    }
+
+    /// Soft-delete a preset.
+    pub async fn delete_preset(
+        &self,
+        slug: &str,
+        workspace_id: Option<&str>,
+    ) -> Result<presets::PresetWithDesignatedVersion, OpenRouterError> {
+        presets::preset_detail_with_client(
+            &self.client.request_context(self.management_key()?),
+            http::Method::DELETE,
+            slug,
+            "",
+            workspace_id,
+        )
+        .await
+    }
+
+    /// Restore a soft-deleted preset.
+    pub async fn restore_preset(
+        &self,
+        slug: &str,
+        workspace_id: Option<&str>,
+    ) -> Result<presets::PresetWithDesignatedVersion, OpenRouterError> {
+        presets::preset_detail_with_client(
+            &self.client.request_context(self.management_key()?),
+            http::Method::POST,
+            slug,
+            "/restore",
+            workspace_id,
+        )
+        .await
     }
 
     /// List preset versions (`GET /presets/{slug}/versions`).
@@ -1657,11 +1714,13 @@ impl<'a> ManagementClient<'a> {
         &self,
         slug: &str,
         pagination: Option<PaginationOptions>,
+        workspace_id: Option<&str>,
     ) -> Result<presets::ListPresetVersionsResponse, OpenRouterError> {
         presets::list_preset_versions_with_client(
             &self.client.request_context(self.management_key()?),
             slug,
             pagination,
+            workspace_id,
         )
         .await
     }
@@ -1671,11 +1730,13 @@ impl<'a> ManagementClient<'a> {
         &self,
         slug: &str,
         version: &str,
+        workspace_id: Option<&str>,
     ) -> Result<presets::PresetDesignatedVersion, OpenRouterError> {
         presets::get_preset_version_with_client(
             &self.client.request_context(self.management_key()?),
             slug,
             version,
+            workspace_id,
         )
         .await
     }
@@ -1821,14 +1882,28 @@ impl<'a> ManagementClient<'a> {
         .await
     }
 
+    /// Fetch one of the public Markdown guides to agent credit purchases.
+    pub async fn get_credit_purchase_guide(
+        &self,
+        guide: credits::CreditPurchaseGuide,
+    ) -> Result<String, OpenRouterError> {
+        credits::get_credit_purchase_guide(&self.client.request_context(""), guide).await
+    }
+
     /// Start an agent credit purchase (`POST /credits/purchases`).
+    /// Reuse the same key and body for a paid retry. Pass the complete signed
+    /// `Payment ...` header value after choosing a challenge.
     pub async fn create_credit_purchase(
         &self,
         request: &credits::CreateCreditPurchaseRequest,
-    ) -> Result<credits::CreditPurchase, OpenRouterError> {
+        idempotency_key: &str,
+        payment_authorization: Option<&str>,
+    ) -> Result<credits::CreditPurchaseOutcome, OpenRouterError> {
         credits::create_credit_purchase_with_client(
-            &self.client.request_context(self.client.require_api_key()?),
+            &self.client.request_context(self.management_key()?),
             request,
+            idempotency_key,
+            payment_authorization,
         )
         .await
     }
@@ -1839,7 +1914,7 @@ impl<'a> ManagementClient<'a> {
         id: &str,
     ) -> Result<credits::CreditPurchase, OpenRouterError> {
         credits::get_credit_purchase_with_client(
-            &self.client.request_context(self.client.require_api_key()?),
+            &self.client.request_context(self.management_key()?),
             id,
         )
         .await
@@ -2201,10 +2276,12 @@ impl<'a> ManagementClient<'a> {
     pub async fn list_key_assignments(
         &self,
         pagination: Option<PaginationOptions>,
+        workspace_id: Option<&str>,
     ) -> Result<guardrails::GuardrailKeyAssignmentsResponse, OpenRouterError> {
         guardrails::list_key_assignments_with_client(
             &self.client.request_context(self.management_key()?),
             pagination,
+            workspace_id,
         )
         .await
     }
@@ -2213,10 +2290,12 @@ impl<'a> ManagementClient<'a> {
     pub async fn list_member_assignments(
         &self,
         pagination: Option<PaginationOptions>,
+        workspace_id: Option<&str>,
     ) -> Result<guardrails::GuardrailMemberAssignmentsResponse, OpenRouterError> {
         guardrails::list_member_assignments_with_client(
             &self.client.request_context(self.management_key()?),
             pagination,
+            workspace_id,
         )
         .await
     }
@@ -2271,7 +2350,7 @@ impl<'a> ManagementClient<'a> {
     /// List budget policies in a workspace (`GET /guardrails/policies/budget`).
     pub async fn list_budget_policies(
         &self,
-        workspace_id: &str,
+        workspace_id: Option<&str>,
         pagination: Option<PaginationOptions>,
     ) -> Result<guardrail_policies::GuardrailBudgetPolicyList, OpenRouterError> {
         guardrail_policies::list_budget_policies_with_client(
@@ -2298,7 +2377,7 @@ impl<'a> ManagementClient<'a> {
     pub async fn get_budget_policy(
         &self,
         id: &str,
-        workspace_id: &str,
+        workspace_id: Option<&str>,
     ) -> Result<guardrail_policies::GuardrailBudgetPolicyDetail, OpenRouterError> {
         guardrail_policies::get_budget_policy_with_client(
             &self.client.request_context(self.management_key()?),
@@ -2326,7 +2405,7 @@ impl<'a> ManagementClient<'a> {
     pub async fn delete_budget_policy(
         &self,
         id: &str,
-        workspace_id: &str,
+        workspace_id: Option<&str>,
     ) -> Result<bool, OpenRouterError> {
         guardrail_policies::delete_budget_policy_with_client(
             &self.client.request_context(self.management_key()?),
@@ -2339,7 +2418,7 @@ impl<'a> ManagementClient<'a> {
     /// List model availability policies in a workspace (`GET /guardrails/policies/model-availability`).
     pub async fn list_model_availability_policies(
         &self,
-        workspace_id: &str,
+        workspace_id: Option<&str>,
         pagination: Option<PaginationOptions>,
     ) -> Result<guardrail_policies::GuardrailModelAvailabilityPolicyList, OpenRouterError> {
         guardrail_policies::list_model_availability_policies_with_client(
@@ -2366,7 +2445,7 @@ impl<'a> ManagementClient<'a> {
     pub async fn get_model_availability_policy(
         &self,
         id: &str,
-        workspace_id: &str,
+        workspace_id: Option<&str>,
     ) -> Result<guardrail_policies::GuardrailModelAvailabilityPolicyDetail, OpenRouterError> {
         guardrail_policies::get_model_availability_policy_with_client(
             &self.client.request_context(self.management_key()?),
@@ -2394,7 +2473,7 @@ impl<'a> ManagementClient<'a> {
     pub async fn delete_model_availability_policy(
         &self,
         id: &str,
-        workspace_id: &str,
+        workspace_id: Option<&str>,
     ) -> Result<bool, OpenRouterError> {
         guardrail_policies::delete_model_availability_policy_with_client(
             &self.client.request_context(self.management_key()?),
@@ -2407,7 +2486,7 @@ impl<'a> ManagementClient<'a> {
     /// List moderation policies in a workspace (`GET /guardrails/policies/moderation`).
     pub async fn list_moderation_policies(
         &self,
-        workspace_id: &str,
+        workspace_id: Option<&str>,
         pagination: Option<PaginationOptions>,
     ) -> Result<guardrail_policies::GuardrailModerationPolicyList, OpenRouterError> {
         guardrail_policies::list_moderation_policies_with_client(
@@ -2434,7 +2513,7 @@ impl<'a> ManagementClient<'a> {
     pub async fn get_moderation_policy(
         &self,
         id: &str,
-        workspace_id: &str,
+        workspace_id: Option<&str>,
     ) -> Result<guardrail_policies::GuardrailModerationPolicyDetail, OpenRouterError> {
         guardrail_policies::get_moderation_policy_with_client(
             &self.client.request_context(self.management_key()?),
@@ -2462,7 +2541,7 @@ impl<'a> ManagementClient<'a> {
     pub async fn delete_moderation_policy(
         &self,
         id: &str,
-        workspace_id: &str,
+        workspace_id: Option<&str>,
     ) -> Result<bool, OpenRouterError> {
         guardrail_policies::delete_moderation_policy_with_client(
             &self.client.request_context(self.management_key()?),
@@ -2476,7 +2555,7 @@ impl<'a> ManagementClient<'a> {
     pub async fn get_api_key_policy_assignment(
         &self,
         hash: &str,
-        workspace_id: &str,
+        workspace_id: Option<&str>,
         policy_type: guardrail_policies::GuardrailPolicyType,
     ) -> Result<guardrail_policies::GuardrailPolicyAssignmentState, OpenRouterError> {
         guardrail_policies::get_api_key_policy_assignment_with_client(
@@ -2506,7 +2585,7 @@ impl<'a> ManagementClient<'a> {
     pub async fn get_member_policy_assignment(
         &self,
         member_id: &str,
-        workspace_id: &str,
+        workspace_id: Option<&str>,
         policy_type: guardrail_policies::GuardrailPolicyType,
     ) -> Result<guardrail_policies::GuardrailPolicyAssignmentState, OpenRouterError> {
         guardrail_policies::get_member_policy_assignment_with_client(

@@ -691,6 +691,8 @@ fn test_guardrail_member_assignment_list_global_happy_path() {
         .arg("assignments")
         .arg("members")
         .arg("list")
+        .arg("--workspace-id")
+        .arg("ws_1")
         .arg("--offset")
         .arg("3")
         .arg("--limit")
@@ -710,7 +712,7 @@ fn test_guardrail_member_assignment_list_global_happy_path() {
         .expect("request should be captured");
     assert_eq!(
         captured.request_line,
-        "GET /api/v1/guardrails/assignments/members?offset=3&limit=5 HTTP/1.1"
+        "GET /api/v1/guardrails/assignments/members?offset=3&limit=5&workspace_id=ws_1 HTTP/1.1"
     );
 
     server.join().expect("server thread should finish");

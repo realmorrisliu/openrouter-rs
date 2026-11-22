@@ -121,6 +121,7 @@ impl EmbeddingMultimodalInput {
 pub enum EmbeddingInput {
     Text(String),
     TextArray(Vec<String>),
+    TextArrayBatch(Vec<Vec<String>>),
     TokenArray(Vec<f64>),
     TokenArrayBatch(Vec<Vec<f64>>),
     MultimodalArray(Vec<EmbeddingMultimodalInput>),
@@ -141,6 +142,12 @@ impl From<&str> for EmbeddingInput {
 impl From<Vec<String>> for EmbeddingInput {
     fn from(value: Vec<String>) -> Self {
         Self::TextArray(value)
+    }
+}
+
+impl From<Vec<Vec<String>>> for EmbeddingInput {
+    fn from(value: Vec<Vec<String>>) -> Self {
+        Self::TextArrayBatch(value)
     }
 }
 

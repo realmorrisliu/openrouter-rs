@@ -392,3 +392,40 @@ async fn test_read_only_contract_embeddings_surface() -> Result<(), OpenRouterEr
         last_failure.unwrap_or_else(|| "no candidate embedding models were available".to_string()),
     );
 }
+
+#[tokio::test]
+async fn public_speech_catalog_lists_models_and_endpoint_capabilities() {
+    let client = openrouter_rs::OpenRouterClient::builder().build().unwrap();
+    let speech = client.audio().speech();
+    let models = speech.list_models().await.unwrap();
+    let model = models
+        .first()
+        .expect("public speech catalog should contain models");
+    let (author, slug) = model.id.split_once('/').expect("author/model identifier");
+    let detail = speech.get_model(author, slug).await.unwrap();
+    assert_eq!(detail.id, model.id);
+    assert!(!detail.endpoints.is_empty());
+    assert!(
+        detail
+            .output_modalities
+            .iter()
+            .any(|m| m.modality_type == "speech")
+    );
+}
+
+#[tokio::test]
+async fn public_credit_purchase_guides_return_markdown() {
+    use openrouter_rs::api::credits::CreditPurchaseGuide::{Overview, Setup, Skill};
+    let client = openrouter_rs::OpenRouterClient::builder().build().unwrap();
+    for guide in [Overview, Setup, Skill] {
+        let markdown = client
+            .management()
+            .get_credit_purchase_guide(guide)
+            .await
+            .unwrap();
+        assert!(
+            markdown.lines().any(|line| line.starts_with('#')),
+            "{guide:?} should contain Markdown headings"
+        );
+    }
+}
