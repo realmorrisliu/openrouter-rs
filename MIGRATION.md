@@ -2,7 +2,7 @@
 
 This document keeps historical migration guides intact because the repo still smoke-tests older domain/naming transitions.
 
-## 0.25.x to Unreleased
+## 0.25.x to 0.26.0
 
 - `management().update_api_key(..., None)` now omits the limit. To remove an existing cap, use `UpdateApiKeyRequest::builder().clear_limit()` with `update_api_key_with_request`.
 - Workspace responses expose `io_logging_sampling_rate` as `Option<f64>` and the three logging enablement flags as `Option<bool>`. Handle `None` when the service omits a setting. Explicit `false` and zero remain distinguishable from absence.
