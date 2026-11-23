@@ -227,7 +227,7 @@ impl OpenRouterClientBuilder {
 
     /// Sends requests through a caller-configured `reqwest::Client` (feature `reqwest`).
     /// For paid credit purchases configure this client to reject cross-origin redirects
-    /// so that the signed `Payment-Authorization` header stays on the billing origin.
+    /// so signed payment credentials stay on the billing origin.
     #[cfg(feature = "reqwest")]
     pub fn http_client<VALUE: Into<reqwest::Client>>(&mut self, value: VALUE) -> &mut Self {
         self.http_client = Some(crate::transport::HttpClient::Reqwest(value.into()));
@@ -1894,19 +1894,34 @@ impl<'a> ManagementClient<'a> {
     }
 
     /// Start an agent credit purchase (`POST /credits/purchases`).
-    /// Reuse the same key and body for a paid retry. Pass the complete signed
-    /// `Payment ...` header value after choosing a challenge.
+    /// Reuse the same key and body for a paid retry. Pass the complete MPP
+    /// `Payment ...` credential or the encoded x402 signature for the request protocol.
+    /// For x402, save the challenge's purchase URL before paying.
+    ///
+    /// ```no_run
+    /// # use openrouter_rs::{OpenRouterClient, api::credits::{CreateCreditPurchaseRequest, CreditPurchaseOutcome}, error::OpenRouterError};
+    /// # async fn quote(client: &OpenRouterClient, idempotency_key: &str) -> Result<(), OpenRouterError> {
+    /// let request = CreateCreditPurchaseRequest::builder()
+    ///     .credit_amount_usd("10.00")
+    ///     .protocol("x402")
+    ///     .build()?;
+    /// let quote = client.management().create_credit_purchase(&request, idempotency_key, None).await?;
+    /// if let CreditPurchaseOutcome::PaymentRequired { payment_required, location, .. } = quote {
+    ///     // Save the location before signing the challenge held in payment_required.
+    /// }
+    /// # Ok(()) }
+    /// ```
     pub async fn create_credit_purchase(
         &self,
         request: &credits::CreateCreditPurchaseRequest,
         idempotency_key: &str,
-        payment_authorization: Option<&str>,
+        payment_credential: Option<&str>,
     ) -> Result<credits::CreditPurchaseOutcome, OpenRouterError> {
         credits::create_credit_purchase_with_client(
             &self.client.request_context(self.management_key()?),
             request,
             idempotency_key,
-            payment_authorization,
+            payment_credential,
         )
         .await
     }

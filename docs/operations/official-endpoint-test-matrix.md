@@ -1,6 +1,6 @@
 # Official Endpoint Test Matrix
 
-Snapshot date: 2026-11-22
+Snapshot date: 2026-11-23
 Source of truth: `https://openrouter.ai/openapi.json` (method+path extracted from latest spec)  
 Tracked baseline: `specs/openrouter/openapi-baseline.json`  
 Weekly drift workflow: `.github/workflows/openapi-drift.yml`
@@ -35,6 +35,8 @@ Chat response regression coverage:
 - Issues #259/#260: local serde/request tests cover non-streaming assistant-message replay (including null content, signed/encrypted reasoning and modeled metadata), getter behavior for streaming/legacy choices, and optional prompt-cache usage in both response envelopes. Regression coverage also verifies all four official reasoning variants across message replay and both chat stream adapters. The streaming tool example has a local test for ordered multi-chunk replay, including repeated reasoning indices. No new endpoint or live qualification is claimed. The CLI has no chat command consuming these types.
 
 Drift review note:
+
+- Issue #309 (2026-11-23) accepts all three changed operations. Local HTTP tests cover the x402 challenge and its purchase URL, signed retry, settlement receipt and receipt-free recovery on `POST /credits/purchases`. The ordinary and preset Messages routes share request-history support for `tool_search_tool_result`, with serde tests for tool references, errors and cache control. Purchase tests use a local server without transferring funds.
 
 - Issue #306 (2026-11-22) adds seven operations. The three public billing routes return Markdown. The purchase POST and polling GET require an organization management key. Paid retries reuse the same request body and idempotency key. Local HTTP tests exercise both payment offers and the accepted response. Preset deletion and restoration also have local HTTP coverage.
 - Reviewed changes on existing operations include workspace selection for presets and guardrails, batch storage references, image URL outputs, speech and video options, nested text embeddings, reasoning controls and benchmark filters. Existing strings and JSON maps cover provider and reasoning format names, Responses includes, annotations and input transformations, benchmark scores and OpenTelemetry metrics configuration. The server validates the updated analytics dimension limit. Private endpoint settings and alpha extractions retain their deferred status.

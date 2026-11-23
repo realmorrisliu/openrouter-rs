@@ -77,11 +77,17 @@ pub enum CreditPurchaseOutcome {
         /// Each WWW-Authenticate value is a separate payment offer.
         challenges: Vec<String>,
         problem: CreditPurchaseProblem,
+        /// Encoded x402 challenge from PAYMENT-REQUIRED.
+        payment_required: Option<String>,
+        /// Purchase URL to save before signing an x402 challenge.
+        location: Option<String>,
     },
     Accepted {
         purchase: CreditPurchase,
         location: Option<String>,
         payment_receipt: Option<String>,
+        /// Encoded x402 settlement receipt, if returned.
+        payment_response: Option<String>,
     },
 }
 
@@ -133,6 +139,10 @@ pub struct CreateCreditPurchaseRequest {
     /// Amount in USD as a decimal string, so the amount stays exact.
     #[builder(setter(into))]
     pub credit_amount_usd: String,
+    /// Payment protocol. Omitting it uses the service default (MPP).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(default, setter(strip_option, into))]
+    pub protocol: Option<String>,
 }
 
 impl CreateCreditPurchaseRequest {
@@ -143,6 +153,7 @@ impl CreateCreditPurchaseRequest {
     pub fn new(credit_amount_usd: impl Into<String>) -> Self {
         Self {
             credit_amount_usd: credit_amount_usd.into(),
+            protocol: None,
         }
     }
 }
@@ -188,7 +199,7 @@ pub(crate) async fn create_credit_purchase_with_client(
     ctx: &RequestContext<'_>,
     request: &CreateCreditPurchaseRequest,
     idempotency_key: &str,
-    payment_authorization: Option<&str>,
+    payment_credential: Option<&str>,
 ) -> Result<CreditPurchaseOutcome, OpenRouterError> {
     let url = format!("{}/credits/purchases", ctx.base_url);
     let mut req = transport_request::with_bearer_auth(
@@ -197,15 +208,33 @@ pub(crate) async fn create_credit_purchase_with_client(
     )
     .header("Idempotency-Key", idempotency_key)
     .json(request);
-    if let Some(payment) = payment_authorization {
-        let mut header = http::HeaderValue::from_str(payment).map_err(|_| {
-            OpenRouterError::ConfigError("Invalid Payment-Authorization header".into())
-        })?;
+    if let Some(payment) = payment_credential {
+        let name = match request.protocol.as_deref() {
+            None | Some("mpp") => "Payment-Authorization",
+            Some("x402") => "Payment-Signature",
+            Some(_) => {
+                return Err(OpenRouterError::ConfigError(
+                    "Cannot select a payment credential header for an unknown protocol".into(),
+                ));
+            }
+        };
+        let mut header = http::HeaderValue::from_str(payment)
+            .map_err(|_| OpenRouterError::ConfigError(format!("Invalid {name} header")))?;
         header.set_sensitive(true);
-        req = req.header("Payment-Authorization", header);
+        req = req.header(name, header);
     }
     let response = req.send().await?;
+    let header = |name: &str| {
+        response
+            .headers()
+            .get(name)?
+            .to_str()
+            .ok()
+            .map(str::to_owned)
+    };
+    let location = header("location");
     if response.status() == http::StatusCode::PAYMENT_REQUIRED {
+        let payment_required = header("payment-required");
         let challenges = response
             .headers()
             .get_all(http::header::WWW_AUTHENTICATE)
@@ -217,17 +246,11 @@ pub(crate) async fn create_credit_purchase_with_client(
         return Ok(CreditPurchaseOutcome::PaymentRequired {
             challenges,
             problem,
+            payment_required,
+            location,
         });
     }
-    let header = |name: &str| {
-        response
-            .headers()
-            .get(name)?
-            .to_str()
-            .ok()
-            .map(str::to_owned)
-    };
-    let location = header("location");
+    let payment_response = header("payment-response");
     let payment_receipt = header("payment-receipt");
     let purchase: ApiResponse<CreditPurchase> =
         transport_response::parse_or_error(response, "credit purchase").await?;
@@ -235,6 +258,7 @@ pub(crate) async fn create_credit_purchase_with_client(
         purchase: purchase.data,
         location,
         payment_receipt,
+        payment_response,
     })
 }
 

@@ -106,6 +106,12 @@ impl From<Vec<AnthropicContentPart>> for AnthropicMessageContent {
 #[non_exhaustive]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum AnthropicContentPart {
+    ToolSearchToolResult {
+        tool_use_id: String,
+        content: Value,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        cache_control: Option<CacheControl>,
+    },
     OpenrouterToolSearchResult {
         tool_use_id: String,
         content: Value,

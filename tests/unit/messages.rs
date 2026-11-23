@@ -787,3 +787,18 @@ async fn test_create_message_sets_stream_false_and_headers() {
 
     server.join().expect("server thread should finish");
 }
+
+#[test]
+fn tool_search_tool_result_round_trips_in_message_history() {
+    for content in [
+        json!({"type":"tool_search_tool_search_result","tool_references":[{"type":"tool_reference","tool_name":"get_weather"}]}),
+        json!({"type":"tool_search_tool_result_error","error_code":"unavailable","error_message":null}),
+    ] {
+        let message = json!({"role":"assistant","content":[{
+            "type":"tool_search_tool_result","tool_use_id":"srvtoolu_01",
+            "content":content,"cache_control":{"type":"ephemeral"}
+        }]});
+        let parsed: AnthropicMessage = serde_json::from_value(message.clone()).unwrap();
+        assert_eq!(serde_json::to_value(parsed).unwrap(), message);
+    }
+}

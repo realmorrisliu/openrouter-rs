@@ -25,7 +25,7 @@ pub(crate) fn new_client() -> Result<HttpClient, OpenRouterError> {
     {
         reqwest::Client::builder()
             .redirect(reqwest::redirect::Policy::custom(|attempt| {
-                // Payment-Authorization is not one of reqwest's stripped redirect headers.
+                // reqwest retains custom payment credential headers on redirects.
                 if attempt.previous().first().is_some_and(|origin| {
                     origin.path().ends_with("/credits/purchases")
                         && origin.origin() != attempt.url().origin()
