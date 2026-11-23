@@ -595,6 +595,8 @@ async fn credit_purchase_challenge_paid_retry_and_lookup() {
     let CreditPurchaseOutcome::PaymentRequired {
         challenges,
         problem,
+        payment_required: None,
+        location: None,
     } = outcome
     else {
         panic!("expected challenge")
@@ -624,6 +626,7 @@ async fn credit_purchase_challenge_paid_retry_and_lookup() {
         purchase,
         location,
         payment_receipt,
+        payment_response: None,
     } = outcome
     else {
         panic!("expected purchase")
@@ -730,4 +733,105 @@ async fn default_workspace_is_omitted_from_policy_queries_and_bodies() {
         "GET /api/v1/guardrails/policies/budget HTTP/1.1"
     );
     server.join().unwrap();
+}
+
+#[tokio::test]
+async fn x402_credit_purchase_challenge_payment_and_recovery() {
+    let request = CreateCreditPurchaseRequest::builder()
+        .credit_amount_usd("10.00")
+        .protocol("x402")
+        .build()
+        .unwrap();
+    let accepted = json!({"data":{
+        "id":"purchase","status":"processing","credit_amount_usd":"10.00",
+        "platform_fee_usd":"0.30","total_charged_usd":"10.30","protocol":"x402",
+        "network":"base","created_at":"2026-11-23T00:00:00Z"
+    }});
+    let challenge =
+        json!({"type":"payment-required","title":"Payment required","status":402,"setup":"/setup"});
+    for (status, headers, body, signature) in [
+        (
+            "402 Payment Required",
+            "PAYMENT-REQUIRED: challenge\r\nLocation: /purchase\r\n",
+            &challenge,
+            None,
+        ),
+        (
+            "202 Accepted",
+            "PAYMENT-RESPONSE: settlement\r\nLocation: /purchase\r\n",
+            &accepted,
+            Some("signed"),
+        ),
+        ("202 Accepted", "Location: /purchase\r\n", &accepted, None),
+    ] {
+        let (url, rx, server) = spawn_response_server(status, headers, &body.to_string());
+        let client = openrouter_rs::OpenRouterClient::builder()
+            .base_url(url)
+            .management_key("billing")
+            .build()
+            .unwrap();
+        let outcome = client
+            .management()
+            .create_credit_purchase(&request, "same-key", signature)
+            .await
+            .unwrap();
+        match outcome {
+            CreditPurchaseOutcome::PaymentRequired {
+                challenges,
+                payment_required,
+                location,
+                ..
+            } => {
+                assert_eq!(status, "402 Payment Required");
+                assert!(challenges.is_empty());
+                assert_eq!(payment_required.as_deref(), Some("challenge"));
+                assert_eq!(location.as_deref(), Some("/purchase"));
+            }
+            CreditPurchaseOutcome::Accepted {
+                payment_response,
+                location,
+                purchase,
+                ..
+            } => {
+                assert_eq!(status, "202 Accepted");
+                assert_eq!(payment_response.as_deref(), signature.map(|_| "settlement"));
+                assert_eq!(purchase.protocol, "x402");
+                assert_eq!(location.as_deref(), Some("/purchase"));
+            }
+            _ => panic!("unexpected purchase outcome"),
+        }
+        let captured = rx.recv().unwrap();
+        let wire = captured.request_text.to_ascii_lowercase();
+        assert!(wire.contains("authorization: bearer billing"));
+        assert!(wire.contains("idempotency-key: same-key"));
+        assert!(!wire.contains("payment-authorization:"));
+        assert_eq!(
+            wire.lines()
+                .find_map(|line| line.strip_prefix("payment-signature: ")),
+            signature
+        );
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(&captured.body_text).unwrap(),
+            json!({"credit_amount_usd":"10.00","protocol":"x402"})
+        );
+        server.join().unwrap();
+    }
+}
+
+#[tokio::test]
+async fn unknown_purchase_protocol_cannot_send_a_signed_credential() {
+    let client = test_client("http://127.0.0.1:1", "billing");
+    let request = CreateCreditPurchaseRequest::builder()
+        .credit_amount_usd("10.00")
+        .protocol("future")
+        .build()
+        .unwrap();
+    let result = client
+        .management()
+        .create_credit_purchase(&request, "key", Some("signed"))
+        .await;
+    assert!(matches!(
+        result,
+        Err(openrouter_rs::error::OpenRouterError::ConfigError(_))
+    ));
 }

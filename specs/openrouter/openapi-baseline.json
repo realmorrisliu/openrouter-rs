@@ -15484,6 +15484,15 @@
             "description": "Credits to buy, in USD with at most two decimals. The platform fee is added on top and shown in the challenge and the receipt.",
             "example": "25.00",
             "type": "string"
+          },
+          "protocol": {
+            "description": "Payment protocol. Defaults to MPP on Tempo; x402 pays USDC on Base when enabled. Keep the protocol and Idempotency-Key unchanged on retries.",
+            "enum": [
+              "mpp",
+              "x402"
+            ],
+            "type": "string",
+            "x-speakeasy-unknown-values": "allow"
           }
         },
         "required": [
@@ -16665,6 +16674,7 @@
             "type": "string"
           },
           "failure_reason": {
+            "description": "Why fulfillment failed. A Tempo payout failure does not reverse the Base payment; contact support with the purchase ID instead of paying again.",
             "type": [
               "string",
               "null"
@@ -24847,7 +24857,8 @@
         "description": "Image generation request input",
         "example": {
           "model": "bytedance-seed/seedream-4.5",
-          "prompt": "a red panda astronaut floating in space, studio lighting"
+          "prompt": "a red panda astronaut floating in space, studio lighting",
+          "response_format": "url"
         },
         "properties": {
           "aspect_ratio": {
@@ -25005,7 +25016,7 @@
               "b64_json",
               "url"
             ],
-            "example": "b64_json",
+            "example": "url",
             "type": "string",
             "x-speakeasy-unknown-values": "allow"
           },
@@ -25050,9 +25061,11 @@
           "created": 1748372400,
           "data": [
             {
-              "b64_json": "<base64-encoded-image>"
+              "media_type": "image/png",
+              "url": "https://storage.googleapis.com/openrouter-generated-media-us/v1/..."
             }
           ],
+          "expires_at": 1748458800,
           "usage": {
             "completion_tokens": 4175,
             "cost": 0.04,
@@ -29666,6 +29679,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/ORAnthropicToolSearchResultParam"
+                    },
+                    {
+                      "$ref": "#/components/schemas/MessagesToolSearchToolResultBlock"
                     }
                   ]
                 },
@@ -31483,6 +31499,168 @@
         "required": [
           "type",
           "tool"
+        ],
+        "type": "object"
+      },
+      "MessagesToolSearchToolReference": {
+        "description": "The name of one tool a tool search found.",
+        "example": {
+          "tool_name": "get_weather",
+          "type": "tool_reference"
+        },
+        "properties": {
+          "tool_name": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "tool_reference"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "tool_name"
+        ],
+        "type": "object"
+      },
+      "MessagesToolSearchToolResultBlock": {
+        "description": "Tool search result from a prior assistant turn, returned beside the `server_tool_use` it answers.",
+        "example": {
+          "content": {
+            "tool_references": [
+              {
+                "tool_name": "get_weather",
+                "type": "tool_reference"
+              }
+            ],
+            "type": "tool_search_tool_search_result"
+          },
+          "tool_use_id": "srvtoolu_01abc",
+          "type": "tool_search_tool_result"
+        },
+        "properties": {
+          "cache_control": {
+            "$ref": "#/components/schemas/AnthropicCacheControlDirective"
+          },
+          "content": {
+            "$ref": "#/components/schemas/MessagesToolSearchToolResultContent"
+          },
+          "tool_use_id": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "tool_search_tool_result"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "tool_use_id",
+          "content"
+        ],
+        "type": "object"
+      },
+      "MessagesToolSearchToolResultContent": {
+        "description": "What a tool search returned: the tools it found, or an error.",
+        "discriminator": {
+          "mapping": {
+            "tool_search_tool_result_error": "#/components/schemas/MessagesToolSearchToolResultError",
+            "tool_search_tool_search_result": "#/components/schemas/MessagesToolSearchToolSearchResult"
+          },
+          "propertyName": "type"
+        },
+        "example": {
+          "tool_references": [
+            {
+              "tool_name": "get_weather",
+              "type": "tool_reference"
+            }
+          ],
+          "type": "tool_search_tool_search_result"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/MessagesToolSearchToolResultError"
+          },
+          {
+            "$ref": "#/components/schemas/MessagesToolSearchToolSearchResult"
+          }
+        ]
+      },
+      "MessagesToolSearchToolResultError": {
+        "description": "A tool search that returned an error in place of tools.",
+        "example": {
+          "error_code": "unavailable",
+          "error_message": null,
+          "type": "tool_search_tool_result_error"
+        },
+        "properties": {
+          "error_code": {
+            "$ref": "#/components/schemas/MessagesToolSearchToolResultErrorCode"
+          },
+          "error_message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": {
+            "enum": [
+              "tool_search_tool_result_error"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "error_code"
+        ],
+        "type": "object"
+      },
+      "MessagesToolSearchToolResultErrorCode": {
+        "description": "Why a tool search returned no result.",
+        "enum": [
+          "invalid_tool_input",
+          "unavailable",
+          "too_many_requests",
+          "execution_time_exceeded"
+        ],
+        "example": "unavailable",
+        "type": "string",
+        "x-speakeasy-unknown-values": "allow"
+      },
+      "MessagesToolSearchToolSearchResult": {
+        "description": "The tools a tool search found, by name, in match order.",
+        "example": {
+          "tool_references": [
+            {
+              "tool_name": "get_weather",
+              "type": "tool_reference"
+            }
+          ],
+          "type": "tool_search_tool_search_result"
+        },
+        "properties": {
+          "tool_references": {
+            "items": {
+              "$ref": "#/components/schemas/MessagesToolSearchToolReference"
+            },
+            "type": "array"
+          },
+          "type": {
+            "enum": [
+              "tool_search_tool_search_result"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "tool_references"
         ],
         "type": "object"
       },
@@ -63704,9 +63882,29 @@
         }
       ],
       "post": {
-        "description": "Starts an agent credit purchase paid with a Machine Payments Protocol (MPP) credential: Bridged USDC (USDC.e) or Open USD (OUSD) on Tempo, with USDC.e offered first, or a card when one is offered. Discover currencies in `x-payment-info.offers`; select a runtime challenge by its `request.currency` contract address, not a purchase-body field. Production currently refuses OUSD selections. The first call answers `402` with one `WWW-Authenticate: Payment ...` challenge per payment option; pay one of them and retry the same request, same `Idempotency-Key`, with the signed credential in `Payment-Authorization: Payment ...` (or in `Authorization: Payment ...` when the management key is sent as `X-Api-Key`). A paid request answers `202`: the transfer was broadcast or the card was charged, and the payment is still being confirmed, so credits arrive asynchronously. Poll the URL in the `Location` header, `GET /api/v1/credits/purchases/{id}`, until `status` is `credited` or `failed`.",
+        "description": "Starts an agent credit purchase paid with a Machine Payments Protocol (MPP) credential: Bridged USDC (USDC.e) or Open USD (OUSD) on Tempo, with USDC.e offered first, or a card when one is offered. Discover currencies in `x-payment-info.offers`; select a runtime challenge by its `request.currency` contract address, not a purchase-body field. Production currently refuses OUSD selections. The first call answers `402` with one `WWW-Authenticate: Payment ...` challenge per payment option; pay one of them and retry the same request, same `Idempotency-Key`, with the signed credential in `Payment-Authorization: Payment ...` (or in `Authorization: Payment ...` when the management key is sent as `X-Api-Key`). When x402 is enabled for the account, set `protocol: \"x402\"` to buy with Base USDC instead: sign the `PAYMENT-REQUIRED` challenge and retry with `PAYMENT-SIGNATURE`; a newly settled retry includes `PAYMENT-RESPONSE`, but an already-paid recovery may omit it. Do not mix the protocols. A paid request answers `202`: the transfer was broadcast or the card was charged, and the payment is still being confirmed, so credits arrive asynchronously. Poll the URL in the `Location` header, `GET /api/v1/credits/purchases/{id}`, until `status` is `credited` or `failed`.",
         "operationId": "createCreditsPurchases",
         "parameters": [
+          {
+            "description": "The signed x402 credential; only for protocol x402. Keep the management key in Authorization or X-Api-Key.",
+            "in": "header",
+            "name": "payment-signature",
+            "required": false,
+            "schema": {
+              "description": "The signed x402 credential; only for protocol x402. Keep the management key in Authorization or X-Api-Key.",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The MPP Payment credential; only for protocol mpp. Do not combine it with PAYMENT-SIGNATURE.",
+            "in": "header",
+            "name": "payment-authorization",
+            "required": false,
+            "schema": {
+              "description": "The MPP Payment credential; only for protocol mpp. Do not combine it with PAYMENT-SIGNATURE.",
+              "type": "string"
+            }
+          },
           {
             "description": "Identifies the purchase. Send the same value on the unpaid request and on the paid retry; use a new value for a new purchase.",
             "in": "header",
@@ -63751,11 +63949,19 @@
                   "type": "string"
                 }
               },
-              "Payment-Receipt": {
-                "description": "The payment reference, on the request that paid: the transaction hash for a Tempo payment, or the PaymentIntent ID for a card. Absent when an earlier request already paid this purchase.",
+              "PAYMENT-RESPONSE": {
+                "description": "The x402 settlement receipt. Credits still depend on Stripe confirmation; poll Location.",
                 "required": false,
                 "schema": {
-                  "description": "The payment reference, on the request that paid: the transaction hash for a Tempo payment, or the PaymentIntent ID for a card. Absent when an earlier request already paid this purchase.",
+                  "description": "The x402 settlement receipt. Credits still depend on Stripe confirmation; poll Location.",
+                  "type": "string"
+                }
+              },
+              "Payment-Receipt": {
+                "description": "The payment reference on the request that paid: the transaction hash for a Tempo stablecoin or Base USDC payment, or the PaymentIntent ID for a card. An x402 payment also includes PAYMENT-RESPONSE. Absent when an earlier request already paid this purchase.",
+                "required": false,
+                "schema": {
+                  "description": "The payment reference on the request that paid: the transaction hash for a Tempo stablecoin or Base USDC payment, or the PaymentIntent ID for a card. An x402 payment also includes PAYMENT-RESPONSE. Absent when an earlier request already paid this purchase.",
                   "example": "0x8f3c2b1a9e7d6c5b4a39281706f5e4d3c2b1a09f8e7d6c5b4a39281706f5e4d3",
                   "type": "string"
                 }
@@ -63802,7 +64008,7 @@
                 }
               }
             },
-            "description": "Payment required. An unpaid request carries the MPP challenge in `WWW-Authenticate`, and a `Link: rel=\"help\"` header plus a `setup` field pointing at the agent setup guide, `GET /api/v1/credits/purchases/setup`.",
+            "description": "Payment required. The challenge is in `WWW-Authenticate` for MPP or `PAYMENT-REQUIRED` for x402; `Link: rel=\"help\"` and the `setup` field point to the agent setup guide.",
             "headers": {
               "Link": {
                 "description": "The agent setup guide.",
@@ -63813,9 +64019,25 @@
                   "type": "string"
                 }
               },
+              "Location": {
+                "description": "For x402, save this purchase URL before paying. Within 24 hours, a retry without payment headers using the same body, key and protocol can recover it if the quoted total is unchanged. Fee changes can cause a conflict; use the saved URL or support then, never another payment.",
+                "required": false,
+                "schema": {
+                  "description": "For x402, save this purchase URL before paying. Within 24 hours, a retry without payment headers using the same body, key and protocol can recover it if the quoted total is unchanged. Fee changes can cause a conflict; use the saved URL or support then, never another payment.",
+                  "type": "string"
+                }
+              },
+              "PAYMENT-REQUIRED": {
+                "description": "Base USDC x402 challenge. Use a bound-client-capable mppx EVM client and retry with PAYMENT-SIGNATURE.",
+                "required": false,
+                "schema": {
+                  "description": "Base USDC x402 challenge. Use a bound-client-capable mppx EVM client and retry with PAYMENT-SIGNATURE.",
+                  "type": "string"
+                }
+              },
               "WWW-Authenticate": {
                 "description": "The MPP challenges, one per way to pay: `Payment id=\"...\", method=\"tempo\", intent=\"charge\", ...` for the selected stablecoin on Tempo and, when cards are offered, `Payment id=\"...\", method=\"stripe\", intent=\"charge\", ...` for a card. Pay one of them.",
-                "required": true,
+                "required": false,
                 "schema": {
                   "description": "The MPP challenges, one per way to pay: `Payment id=\"...\", method=\"tempo\", intent=\"charge\", ...` for the selected stablecoin on Tempo and, when cards are offered, `Payment id=\"...\", method=\"stripe\", intent=\"charge\", ...` for a card. Pay one of them.",
                   "type": "string"
@@ -64035,7 +64257,7 @@
     },
     "/credits/purchases/{id}": {
       "get": {
-        "description": "Returns one agent credit purchase of the calling account, read from its Stripe PaymentIntent. Poll this after a `202` until `status` is `credited` or `failed`.",
+        "description": "Returns one agent credit purchase of the calling account, read from its Stripe PaymentIntent and any pending x402 Tempo payout. Poll this after a `202` until `status` is `credited` or `failed`. A failed Tempo payout can follow a completed Base payment: do not pay again; contact support with the purchase ID for reconciliation.",
         "operationId": "listCreditsPurchases",
         "parameters": [
           {
@@ -73711,7 +73933,8 @@
             "application/json": {
               "example": {
                 "model": "bytedance-seed/seedream-4.5",
-                "prompt": "a red panda astronaut floating in space, studio lighting"
+                "prompt": "a red panda astronaut floating in space, studio lighting",
+                "response_format": "url"
               },
               "schema": {
                 "$ref": "#/components/schemas/ImageGenerationRequest"
@@ -73728,9 +73951,11 @@
                   "created": 1748372400,
                   "data": [
                     {
-                      "b64_json": "<base64-encoded-image>"
+                      "media_type": "image/png",
+                      "url": "https://storage.googleapis.com/openrouter-generated-media-us/v1/..."
                     }
                   ],
+                  "expires_at": 1748458800,
                   "usage": {
                     "completion_tokens": 4175,
                     "cost": 0.04,
@@ -86055,7 +86280,7 @@
     },
     "/scim/group-mappings/{id}": {
       "delete": {
-        "description": "Delete a SCIM group-to-workspace mapping. For an `admin` mapping, `keep_members=true` returns `403` and leaves the mapping in place \u2014 preserving members as workspace admins is dashboard-only. Deleting a mapping that has guardrail policies attached returns `403`; remove those policies in the dashboard first. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
+        "description": "Delete a SCIM group-to-workspace mapping. For an `admin` mapping, `keep_members=true` returns `403` and leaves the mapping in place \u2014 preserving members as workspace admins is dashboard-only. [Management key](/docs/guides/overview/auth/management-api-keys) required.",
         "operationId": "deleteScimGroupMapping",
         "parameters": [
           {

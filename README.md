@@ -96,7 +96,7 @@ These commands run from a checkout of this repository with `OPENROUTER_API_KEY` 
 | Execute typed tools against fixed demo fixtures in a bounded agent loop | `cargo run --example typed_tool_agent` | [Typed tool agent](examples/typed_tool_agent.rs) |
 | Inspect credits and manage API keys | `cargo run --example get_credits` | [CLI usage recipes](docs/operations/cli-automation-workflows.md) and [key management](examples/domain_management_api_keys.rs) |
 
-Management-governed endpoints require `OPENROUTER_MANAGEMENT_KEY`; chat and credit balance requests use `OPENROUTER_API_KEY`. Agent credit purchases require an organization management key with billing permissions. For a minimal HTTP server, see the [Axum chat gateway](examples/axum_chat_gateway.rs).
+Management-governed endpoints require `OPENROUTER_MANAGEMENT_KEY`; chat and credit balance requests use `OPENROUTER_API_KEY`. Agent credit purchases require an organization management key with billing permissions. Purchases default to MPP. On x402-enabled accounts, set `CreateCreditPurchaseRequest::builder().protocol("x402")`, save the purchase URL from the 402 response, and retry with the same body, idempotency key and a signed x402 credential. For a minimal HTTP server, see the [Axum chat gateway](examples/axum_chat_gateway.rs).
 
 ## Why `openrouter-rs`
 

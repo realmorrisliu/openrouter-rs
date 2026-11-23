@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-11-22T01:12:52+00:00",
+  "captured_at": "2026-11-23T15:54:05+00:00",
   "info": {
     "contact": {
       "email": "support@openrouter.ai",
@@ -1430,7 +1430,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "962aff13fca5ab50",
+      "fingerprint": "000484c2b14ba5bd",
       "id": "POST /credits/purchases",
       "method": "POST",
       "operation_id": "createCreditsPurchases",
@@ -1607,7 +1607,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "74ce4b1a157a7746",
+      "fingerprint": "de0005925d49e78f",
       "id": "POST /messages",
       "method": "POST",
       "operation_id": "createMessages",
@@ -1651,7 +1651,7 @@
     },
     {
       "deprecated": false,
-      "fingerprint": "346a208c8ae1cee0",
+      "fingerprint": "80b6fe6ebccb156c",
       "id": "POST /presets/{path_param_0}/messages",
       "method": "POST",
       "operation_id": "createPresetsMessages",

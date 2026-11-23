@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Route qualified CLI model lookups directly to the single-model endpoint. Keep the deterministic tool tests offline and publish the SDK before creating its GitHub release.
 
 ### Added
+- Credit purchases support the x402 challenge, signed retry, settlement receipt and recovery URL. MPP remains the default.
+- Messages and preset Messages accept `tool_search_tool_result` history blocks with tool references or an error and optional cache control.
 - Public speech model discovery and Markdown credit purchase guides. Presets support soft deletion and restoration in a chosen workspace.
 - Batches accept a storage URI and expose the resulting output URI. Image generation supports signed URLs, expiry and layer metadata. Transcription accepts a prompt, and video generation exposes data policy preferences and fractional progress.
 - New model benchmark range filters, strict tool schema filtering, nested text arrays for embeddings and chat reasoning mode/context. CLI global guardrail assignment lists accept `--workspace-id`.
