@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.26.0] - 2026-11-24
+
 ### Fixed
 - Preserve the one-time secret on API key creation, omit unrequested CLI key updates, validate spending limits, and encode key identifiers consistently.
 - Omit credentials from debug and CLI configuration errors. Preserve retry delays on credential endpoints.

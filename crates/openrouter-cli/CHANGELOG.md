@@ -5,6 +5,9 @@ Releases are tagged `openrouter-cli-v<version>`. The SDK it builds on has its ow
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-24
+
+- Built on `openrouter-rs` 0.26.0. Use `--workspace-id` to scope global guardrail assignment lists.
 - Key creation preserves the one-time secret in JSON. Key updates send only the supplied flags.
 - Configuration diagnostics omit credential lines. Qualified model IDs use the single-model lookup.
 

@@ -25,7 +25,7 @@ Type-safe, async Rust SDK for the OpenRouter API.
 
 ```toml
 [dependencies]
-openrouter-rs = "0.25.0"
+openrouter-rs = "0.26.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -118,7 +118,7 @@ Legacy text completions are opt-in:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.25.0", features = ["legacy-completions"] }
+openrouter-rs = { version = "0.26.0", features = ["legacy-completions"] }
 ```
 
 ### HTTP backends and WASI
@@ -134,7 +134,7 @@ For a WASI component, disable the default reqwest backend and enable `wasip3`:
 
 ```toml
 [dependencies]
-openrouter-rs = { version = "0.25.0", default-features = false, features = ["wasip3"] }
+openrouter-rs = { version = "0.26.0", default-features = false, features = ["wasip3"] }
 ```
 
 The client API is the same on both backends, including streaming. When both features are on a WASI target, the default client uses `wasi:http`. The embedding host controls TLS, networking, redirects and timeouts; configure those policies in the host rather than assuming reqwest settings apply.
@@ -475,7 +475,14 @@ Start with [`docs/README.md`](docs/README.md) for grouped navigation across root
 
 ### Unreleased
 
-### Version 0.25.0 *(Latest)*
+### Version 0.26.0 *(Latest)*
+
+- Credit purchases support MPP and x402 challenges, signed retries and recovery. Use an organization management key and reuse the original idempotency key for retries.
+- Key updates preserve spending limits when the limit is omitted. Streaming stops at the terminal marker and preserves reasoning and tool-call deltas.
+- Messages accept tool search results in conversation history. Batches support storage URIs and image generation supports signed output URLs.
+- **Breaking changes** affect credit purchases, preset and guardrail workspace arguments, workspace logging fields, batch inputs and image outputs. See the [0.26.0 migration guide](MIGRATION.md#025x-to-0260).
+
+### Version 0.25.0
 
 - Added the guardrail policy family: account-wide and per-workspace budget, model-availability and moderation policies with assignments, plus API-key/member policy assignment reads and changes (23 operations on `management()`).
 - Added agent credit purchases (`POST /credits/purchases`, `GET /credits/purchases/{id}`), `client.tools()` for the server tool catalog, a `models().list` `endpoints` filter, image frame/markup/gif controls, and `ServerTool::mcp()`.

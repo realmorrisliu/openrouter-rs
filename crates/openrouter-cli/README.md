@@ -9,7 +9,7 @@ It currently focuses on four areas:
 - API-key, workspace, organization, and guardrail management
 - credits, billing, and usage activity
 
-The implementation lives in [`crates/openrouter-cli/src`](./src), and the crate currently publishes as `0.3.1`.
+The implementation lives in [`crates/openrouter-cli/src`](./src), and the crate currently publishes as `0.4.0`.
 
 Copyable shell and CI recipes live in [`../../docs/operations/cli-automation-workflows.md`](../../docs/operations/cli-automation-workflows.md).
 
@@ -30,7 +30,7 @@ cargo install --path crates/openrouter-cli --locked
 Prebuilt GitHub release archives follow the `openrouter-cli-v<version>` tag naming:
 
 ```bash
-VERSION=0.3.1
+VERSION=0.4.0
 curl -L -o openrouter-cli.tar.gz \
   "https://github.com/realmorrisliu/openrouter-rs/releases/download/openrouter-cli-v${VERSION}/openrouter-cli-${VERSION}-x86_64-unknown-linux-gnu.tar.gz"
 curl -L -o SHA256SUMS \
@@ -40,7 +40,7 @@ tar -xzf openrouter-cli.tar.gz
 ./openrouter-cli --help
 ```
 
-For macOS and Windows, use the matching artifact from the same release tag.
+For Apple silicon macOS, use the `aarch64-apple-darwin` archive from the same release tag. On Windows, install with Cargo.
 
 ## Command Surface
 
